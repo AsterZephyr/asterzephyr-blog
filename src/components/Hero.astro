@@ -1,0 +1,89 @@
+---
+import { SITE } from '../data/site';
+---
+<section
+  id="home"
+  class="relative w-full h-screen flex items-center justify-center overflow-hidden"
+>
+  <div
+    class="absolute inset-0 bg-cover bg-center bg-no-repeat"
+    style="background-image: url('/images/hero-bg.jpg')"
+  ></div>
+  <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-amber-950/60"></div>
+
+  <div class="relative z-10 max-w-4xl mx-auto px-6 text-center text-white">
+    <div class="inline-block mb-6">
+      <span class="text-sm uppercase tracking-[0.3em] text-amber-300/80 font-medium">Welcome to my world</span>
+    </div>
+    <h1 class="font-heading text-5xl md:text-7xl lg:text-8xl font-black mb-6 animate-fade-in-up text-white">
+      Hi! I'm {SITE.name}.
+    </h1>
+    <p class="text-lg md:text-2xl text-gray-200 mb-2 animate-fade-in-up" style="animation-delay: 0.2s">
+      {SITE.tagline}
+    </p>
+    <p class="text-base md:text-xl text-gray-300 animate-fade-in-up" style="animation-delay: 0.4s">
+      <span>Interested in </span>
+      <span id="typed-text" class="font-semibold text-amber-300"></span>
+      <span class="inline-block w-0.5 h-5 bg-amber-300 ml-0.5 align-middle typed-cursor"></span>
+    </p>
+  </div>
+
+  <a
+    href="#about"
+    class="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 text-amber-300 animate-bounce-slow"
+    aria-label="Scroll down"
+  >
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+    </svg>
+  </a>
+</section>
+
+<style>
+  .typed-cursor {
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+</style>
+
+<script define:vars={{ subtitles: SITE.subtitles }}>
+  function typeWriter() {
+    const el = document.getElementById('typed-text');
+    if (!el) return;
+
+    let wordIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+
+    function tick() {
+      const current = subtitles[wordIndex];
+      if (isDeleting) {
+        el.textContent = current.substring(0, charIndex - 1);
+        charIndex--;
+      } else {
+        el.textContent = current.substring(0, charIndex + 1);
+        charIndex++;
+      }
+
+      let delay = isDeleting ? 40 : 80;
+
+      if (!isDeleting && charIndex === current.length) {
+        delay = 2000;
+        isDeleting = true;
+      } else if (isDeleting && charIndex === 0) {
+        isDeleting = false;
+        wordIndex = (wordIndex + 1) % subtitles.length;
+        delay = 500;
+      }
+
+      setTimeout(tick, delay);
+    }
+
+    tick();
+  }
+
+  typeWriter();
+  document.addEventListener('astro:after-swap', typeWriter);
+</script>

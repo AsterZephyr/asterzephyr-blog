@@ -1,0 +1,107 @@
+---
+import { SITE } from '../data/site';
+
+interface Props {
+  transparent?: boolean;
+}
+
+const { transparent = false } = Astro.props;
+---
+<nav
+  id="navbar"
+  class:list={[
+    'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+    transparent ? 'nav-transparent' : 'nav-solid',
+  ]}
+  data-transparent={transparent}
+>
+  <div class="mx-auto max-w-6xl px-6 flex items-center justify-between h-16 md:h-20">
+    <a href="/" class="font-heading text-xl font-bold tracking-wide hover:text-[var(--color-accent-light)] transition-colors">
+      {SITE.name}
+    </a>
+    <button id="nav-toggle" class="md:hidden p-2" aria-label="Toggle navigation">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+    <ul class="hidden md:flex items-center gap-8">
+      {SITE.nav.map((item) => (
+        <li>
+          <a
+            href={item.href}
+            class="text-sm font-medium tracking-wide uppercase hover:text-[var(--color-accent-light)] transition-colors"
+          >
+            {item.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+  <div id="nav-mobile" class="hidden md:hidden px-6 pb-4">
+    <ul class="flex flex-col gap-3">
+      {SITE.nav.map((item) => (
+        <li>
+          <a
+            href={item.href}
+            class="block text-sm font-medium tracking-wide uppercase hover:text-[var(--color-accent-light)] transition-colors"
+          >
+            {item.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</nav>
+
+<style>
+  .nav-transparent {
+    background: transparent;
+    color: #fff;
+  }
+  .nav-solid {
+    background: #fff;
+    color: #1a1a1a;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .nav-scrolled {
+    background: #fff !important;
+    color: #1a1a1a !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid var(--color-border);
+  }
+</style>
+
+<script>
+  function initNav() {
+    const navbar = document.getElementById('navbar');
+    const toggle = document.getElementById('nav-toggle');
+    const mobile = document.getElementById('nav-mobile');
+    if (!navbar) return;
+
+    const isTransparent = navbar.dataset.transparent === 'true';
+
+    if (isTransparent) {
+      const onScroll = () => {
+        if (window.scrollY > 80) {
+          navbar.classList.add('nav-scrolled');
+        } else {
+          navbar.classList.remove('nav-scrolled');
+        }
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+
+    toggle?.addEventListener('click', () => {
+      mobile?.classList.toggle('hidden');
+    });
+
+    mobile?.querySelectorAll('a').forEach((a) => {
+      a.addEventListener('click', () => mobile?.classList.add('hidden'));
+    });
+  }
+
+  initNav();
+  document.addEventListener('astro:after-swap', initNav);
+</script>

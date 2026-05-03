@@ -1,0 +1,35 @@
+---
+import { getCollection } from 'astro:content';
+import ProjectCard from './ProjectCard.astro';
+
+const allProjects = await getCollection('projects');
+const featured = allProjects
+  .filter((p) => p.data.featured)
+  .sort((a, b) => (a.data.order ?? 99) - (b.data.order ?? 99))
+  .slice(0, 6);
+
+const projects = featured.length > 0 ? featured : allProjects.slice(0, 6);
+---
+{projects.length > 0 && (
+  <section id="projects-home" class="py-24 bg-[var(--color-surface)] section-animate">
+    <div class="mx-auto max-w-6xl px-6">
+      <div class="text-center mb-14">
+        <h2 class="font-heading text-3xl font-bold uppercase tracking-wide">Projects</h2>
+        <div class="w-12 h-0.5 bg-[var(--color-accent-light)] mx-auto mt-4"></div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {projects.map((project) => (
+          <ProjectCard project={project} />
+        ))}
+      </div>
+      <div class="text-center mt-12">
+        <a
+          href="/projects"
+          class="inline-block bg-[var(--color-accent)] text-white px-6 py-2.5 text-sm font-medium uppercase tracking-wider hover:bg-[var(--color-accent-light)] border-2 border-[var(--color-accent)] hover:border-[var(--color-accent-light)] transition-all"
+        >
+          View All Projects
+        </a>
+      </div>
+    </div>
+  </section>
+)}

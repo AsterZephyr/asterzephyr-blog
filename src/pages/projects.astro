@@ -1,0 +1,30 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { getCollection } from 'astro:content';
+
+const allProjects = await getCollection('projects');
+const projects = allProjects.sort((a, b) => {
+  const orderA = a.data.order ?? 99;
+  const orderB = b.data.order ?? 99;
+  if (orderA !== orderB) return orderA - orderB;
+  return b.data.date.getTime() - a.data.date.getTime();
+});
+---
+<PageLayout title="Projects" description="Projects and experiments by AsterZephyr.">
+  <div class="pt-28 pb-16">
+    <div class="mx-auto max-w-6xl px-6">
+      <h1 class="font-heading text-4xl font-bold uppercase tracking-wide mb-4">Projects</h1>
+      <div class="w-12 h-0.5 bg-[var(--color-accent-light)] mb-14"></div>
+      {projects.length > 0 ? (
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project) => (
+            <ProjectCard project={project} />
+          ))}
+        </div>
+      ) : (
+        <p class="text-[var(--color-muted)] text-center py-20">Projects coming soon.</p>
+      )}
+    </div>
+  </div>
+</PageLayout>

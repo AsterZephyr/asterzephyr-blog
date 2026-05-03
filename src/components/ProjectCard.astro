@@ -1,0 +1,50 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+}
+
+const { project } = Astro.props;
+const { title, description, cover, url, repo, tags } = project.data;
+---
+<div class="group relative overflow-hidden bg-white border border-[var(--color-border)] hover:border-[var(--color-accent-glow)]/50 hover:shadow-lg transition-all duration-300">
+  {cover ? (
+    <img
+      src={cover}
+      alt={title}
+      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-500"
+      loading="lazy"
+    />
+  ) : (
+    <div class="w-full h-52 bg-gradient-to-br from-[var(--color-accent-bg)] to-[var(--color-surface-alt)] flex items-center justify-center">
+      <span class="font-heading text-3xl font-bold text-[var(--color-accent-light)]/30">{title.charAt(0)}</span>
+    </div>
+  )}
+  <div class="absolute inset-0 bg-gradient-to-t from-amber-950/90 via-black/60 to-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-6 text-white text-center">
+    <h3 class="font-heading text-lg font-semibold mb-2">{title}</h3>
+    <p class="text-sm text-amber-100/80 mb-4 line-clamp-3">{description}</p>
+    <div class="flex gap-3">
+      {url && (
+        <a href={url} target="_blank" rel="noopener noreferrer" class="px-4 py-1.5 text-xs uppercase tracking-wider border border-amber-300 text-amber-300 hover:bg-amber-300 hover:text-black transition-all">
+          Live
+        </a>
+      )}
+      {repo && (
+        <a href={repo} target="_blank" rel="noopener noreferrer" class="px-4 py-1.5 text-xs uppercase tracking-wider border border-amber-300 text-amber-300 hover:bg-amber-300 hover:text-black transition-all">
+          Code
+        </a>
+      )}
+    </div>
+  </div>
+  <div class="p-4">
+    <h3 class="font-heading text-sm font-semibold">{title}</h3>
+    {tags.length > 0 && (
+      <div class="flex flex-wrap gap-1.5 mt-2">
+        {tags.map((tag) => (
+          <span class="text-xs text-[var(--color-accent-light)]">#{tag}</span>
+        ))}
+      </div>
+    )}
+  </div>
+</div>

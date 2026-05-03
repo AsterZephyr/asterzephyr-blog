@@ -1,0 +1,35 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { getCollection } from 'astro:content';
+
+const allPosts = await getCollection('posts', ({ data }) => !data.draft);
+const tags = [...new Set(allPosts.flatMap((p) => p.data.tags))].sort();
+
+const tagCounts = tags.map((tag) => ({
+  name: tag,
+  count: allPosts.filter((p) => p.data.tags.includes(tag)).length,
+}));
+---
+<PageLayout title="Tags" description="Browse all tags.">
+  <div class="pt-28 pb-16">
+    <div class="mx-auto max-w-4xl px-6">
+      <h1 class="font-heading text-4xl font-bold uppercase tracking-wide mb-4">Tags</h1>
+      <div class="w-12 h-0.5 bg-[var(--color-accent-light)] mb-14"></div>
+      {tagCounts.length > 0 ? (
+        <div class="flex flex-wrap gap-3">
+          {tagCounts.map(({ name, count }) => (
+            <a
+              href={`/tags/${name}/`}
+              class="px-4 py-2 border border-[var(--color-border)] text-[var(--color-body)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent-light)] hover:bg-[var(--color-accent-bg)] transition-all"
+            >
+              <span class="text-sm font-medium">{name}</span>
+              <span class="text-xs text-[var(--color-muted)] ml-1">({count})</span>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p class="text-[var(--color-muted)]">No tags yet.</p>
+      )}
+    </div>
+  </div>
+</PageLayout>

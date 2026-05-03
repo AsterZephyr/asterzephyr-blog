@@ -1,0 +1,76 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Prose from '../components/Prose.astro';
+import TOC from '../components/TOC.astro';
+import TagList from '../components/TagList.astro';
+import PrevNext from '../components/PrevNext.astro';
+import type { CollectionEntry } from 'astro:content';
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  post: CollectionEntry<'posts'>;
+  headings: Heading[];
+  prev?: CollectionEntry<'posts'>;
+  next?: CollectionEntry<'posts'>;
+}
+
+const { post, headings, prev, next } = Astro.props;
+const { title, date, updated, tags, cover, summary } = post.data;
+const formattedDate = date.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+const formattedUpdated = updated?.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+<BaseLayout title={title} description={summary || title} image={cover}>
+  <Header />
+  <article class="pt-28 pb-16">
+    <div class="mx-auto max-w-6xl px-6">
+      <div class="max-w-3xl mx-auto xl:mx-0">
+        <header class="mb-12">
+          <time class="text-sm uppercase tracking-wider text-[var(--color-muted)]">{formattedDate}</time>
+          {formattedUpdated && (
+            <span class="text-sm text-[var(--color-muted)] ml-3">
+              (Updated: {formattedUpdated})
+            </span>
+          )}
+          <h1 class="font-heading text-3xl md:text-4xl font-bold mt-3 mb-4">{title}</h1>
+          {summary && <p class="text-lg text-[var(--color-muted)]">{summary}</p>}
+          {tags.length > 0 && (
+            <div class="mt-4">
+              <TagList tags={tags} />
+            </div>
+          )}
+        </header>
+      </div>
+
+      <div class="xl:flex xl:gap-16">
+        <div class="xl:flex-1 max-w-3xl">
+          {cover && (
+            <img src={cover} alt={title} class="w-full mb-10 rounded-sm" />
+          )}
+          <Prose>
+            <slot />
+          </Prose>
+          <PrevNext prev={prev} next={next} />
+        </div>
+        <aside class="xl:w-56 xl:flex-shrink-0 xl:sticky xl:top-24 xl:self-start xl:mt-0 mt-12">
+          <TOC headings={headings} />
+        </aside>
+      </div>
+    </div>
+  </article>
+  <Footer />
+</BaseLayout>

@@ -1,0 +1,33 @@
+---
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: Heading[];
+}
+
+const { headings } = Astro.props;
+const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+---
+{toc.length > 0 && (
+  <nav class="toc hidden xl:block" aria-label="Table of Contents">
+    <h4 class="font-heading text-xs uppercase tracking-widest text-[var(--color-muted)] mb-4">
+      On this page
+    </h4>
+    <ul class="space-y-2 text-sm border-l border-[var(--color-border)]">
+      {toc.map((heading) => (
+        <li class:list={[heading.depth === 3 && 'ml-4']}>
+          <a
+            href={`#${heading.slug}`}
+            class="text-[var(--color-muted)] hover:text-[var(--color-accent)] transition-colors block py-0.5 pl-4 -ml-px border-l border-transparent hover:border-[var(--color-accent-light)]"
+          >
+            {heading.text}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}

@@ -1,0 +1,23 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import { SITE } from '../data/site';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+}
+
+const { title, description, image } = Astro.props;
+const pageTitle = title ? `${title} — ${SITE.name}` : SITE.title;
+const pageDescription = description || SITE.description;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={pageTitle} description={pageDescription} image={image} />
+  </head>
+  <body class="min-h-screen bg-[var(--color-surface)]">
+    <slot />
+  </body>
+</html>
