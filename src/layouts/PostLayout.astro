@@ -38,7 +38,7 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
   <Header />
   <article class="pt-28 pb-16">
     <div class="mx-auto max-w-6xl px-6">
-      <div class="max-w-3xl mx-auto xl:mx-0">
+      <div class="max-w-3xl mx-auto">
         <header class="mb-12">
           <time class="text-sm uppercase tracking-wider text-[var(--color-muted)]">{formattedDate}</time>
           {formattedUpdated && (
@@ -56,9 +56,8 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
         </header>
       </div>
 
-      <div class="xl:flex xl:gap-16">
-        <div class="xl:flex-1 max-w-3xl">
-          {cover && (
+      <div class="max-w-3xl mx-auto">
+        {cover && (
             <img src={cover} alt={title} class="w-full mb-10 rounded-sm" />
           )}
           <Prose>
@@ -66,11 +65,7 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
           </Prose>
           <PrevNext prev={prev} next={next} />
         </div>
-        <aside class="xl:w-56 xl:flex-shrink-0 xl:sticky xl:top-24 xl:self-start xl:mt-0 mt-12">
-          <TOC headings={headings} />
-        </aside>
       </div>
-    </div>
   </article>
   <Footer />
 </BaseLayout>
