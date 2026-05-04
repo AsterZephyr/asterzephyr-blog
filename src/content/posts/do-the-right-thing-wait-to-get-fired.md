@@ -1,0 +1,22 @@
+---
+title: "Do the right thing, wait to get fired"
+date: 2025-01-01
+tags: [开发, 思考]
+category: "技术分享"
+---
+
+**New Google employees (we call “Nooglers”) often ask me what makes me effective at what I do.  I tell them only half-jokingly that it’s very simple: I do the Right Thing for Google and the world, and then I sit back and wait to get fired.  If I don’t get fired, I’ve done the Right Thing for everyone.  If I do get fired, this is the wrong employer to work for in the first place.  So, either way, I win.  That is my career strategy.**
+
+**新谷歌员工（我们称之为“新新员工”）经常问我是什么让我在所做事情上如此有效。我半开玩笑地告诉他们这很简单：我为谷歌和世界做正确的事，然后坐下来等着被解雇。如果我没有被解雇，我就为所有人做了正确的事。如果我确实被解雇了，那本来就不是适合我的雇主。所以，无论哪种情况，我都赢了。这就是我的职业策略。**
+
+**I discovered where I got this rebel streak from only very recently.  I realized I inherited it from my dad, which was very strange to me because when I was growing up, I perceived my dad as an establishment figure, part of the very establishment I was rebelling against, so it was a severe cognitive dissonance for me to think of my dad as a rebel.  But rebel he was.**
+
+**我最近才意识到自己这种叛逆性格的来源。我意识到这是从我父亲那里继承来的，这让我觉得很奇怪，因为我小时候认为我父亲是一个体制内的人物，正是我反叛的对象之一，所以把我父亲看作一个反叛者让我产生了严重的认知失调。但事实就是如此，他确实是个反叛者。**
+
+**My dad started his career as a child laborer (yes, one of those millions of faceless children in developing countries you read about occasionally on National Geographic), but by mid-career, he rose up the ranks to become one of the most senior military officers in all of Singapore.  I recently learned that one reason he was so successful was because he was unafraid to speak the unpleasant truth to his superiors to their faces, including Defense Ministers and Prime Ministers.  Near the end of his military career, one of his superiors asked him what made him so effective.  My father replied, “It’s very simple.  Everyday on my drive home, I would pass by HDB flats (public housing in Singapore) and I would always take an extra look at them.  Why?  Because after you fire me, that is where I’d live.”**
+
+**我的父亲起初是一名童工（是的，就是那些你在《国家地理》杂志偶尔读到的、发展中大国里无数无名的孩子之一），但到了中年，他通过晋升成为新加坡最资深军事官员之一。我最近了解到，他之所以如此成功的一个原因是，他敢于当面对上级说出令人不快的真相，包括国防部长和总理。在他军旅生涯的尾声，一位上级问他是什么让他如此高效。我父亲回答说：“这很简单。每天下班回家途中，我都会经过组屋（新加坡的公共住房），我总会多看一眼。为什么？因为一旦你解雇我，那里就是我的住处。”**
+
+**Some day, when you reach my old age, spend some time talking to your father about his career, you may be pleasantly horrified to discover how much you are like your father.**
+
+**总有一天，当你到了我这个年纪，花些时间和你父亲谈谈他的职业生涯，你可能会惊讶地发现你与他如此相似。**
