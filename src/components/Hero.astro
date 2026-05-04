@@ -6,7 +6,8 @@ import { SITE } from '../data/site';
   class="relative w-full h-screen flex items-center justify-center overflow-hidden"
 >
   <div
-    class="absolute inset-0 bg-cover bg-center bg-no-repeat"
+    id="hero-bg"
+    class="absolute inset-0 bg-cover bg-center bg-no-repeat parallax-bg"
     style="background-image: url('/images/hero-bg.jpg')"
   ></div>
   <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-amber-950/60"></div>
@@ -15,8 +16,8 @@ import { SITE } from '../data/site';
     <div class="inline-block mb-6">
       <span class="text-sm uppercase tracking-[0.3em] text-amber-300/80 font-medium">Welcome to my world</span>
     </div>
-    <h1 class="font-heading text-5xl md:text-7xl lg:text-8xl font-black mb-6 animate-fade-in-up text-white">
-      Hi! I'm {SITE.name}.
+    <h1 class="font-heading text-5xl md:text-7xl lg:text-8xl font-black mb-6 animate-fade-in-up">
+      Hi! I'm <span class="text-gradient">{ SITE.name}</span>.
     </h1>
     <p class="text-lg md:text-2xl text-gray-200 mb-2 animate-fade-in-up" style="animation-delay: 0.2s">
       {SITE.tagline}
@@ -86,4 +87,21 @@ import { SITE } from '../data/site';
 
   typeWriter();
   document.addEventListener('astro:after-swap', typeWriter);
+
+  function initParallax() {
+    const bg = document.getElementById('hero-bg');
+    if (!bg) return;
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          bg.style.transform = `translateY(${window.scrollY * 0.4}px)`;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+  }
+  initParallax();
+  document.addEventListener('astro:after-swap', initParallax);
 </script>

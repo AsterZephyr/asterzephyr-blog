@@ -16,7 +16,9 @@ const recentPosts = allPosts
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {recentPosts.map((post) => (
-          <BlogCard post={post} />
+          <div class="stagger-item">
+            <BlogCard post={post} />
+          </div>
         ))}
       </div>
       <div class="text-center mt-12">

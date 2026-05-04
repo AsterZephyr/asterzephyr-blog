@@ -13,7 +13,7 @@ const formattedDate = date.toLocaleDateString('en-US', {
   day: 'numeric',
 });
 ---
-<article class="group bg-white border border-[var(--color-border)] hover:border-[var(--color-accent-glow)]/50 hover:shadow-lg transition-all duration-300 relative overflow-hidden">
+<article class="group card-tilt bg-white border border-[var(--color-border)] hover:border-[var(--color-accent-glow)]/50 relative overflow-hidden">
   <div class="absolute top-0 left-0 w-1 h-full bg-[var(--color-accent-light)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
   {cover && (
     <a href={`/blog/${post.id}/`} class="block overflow-hidden">

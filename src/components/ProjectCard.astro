@@ -8,7 +8,7 @@ interface Props {
 const { project } = Astro.props;
 const { title, description, cover, url, repo, tags } = project.data;
 ---
-<div class="group relative overflow-hidden bg-white border border-[var(--color-border)] hover:border-[var(--color-accent-glow)]/50 hover:shadow-lg transition-all duration-300">
+<div class="group card-tilt relative overflow-hidden bg-white border border-[var(--color-border)] hover:border-[var(--color-accent-glow)]/50">
   {cover ? (
     <img
       src={cover}

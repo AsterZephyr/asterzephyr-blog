@@ -15,7 +15,7 @@ import RecentPosts from '../components/RecentPosts.astro';
 <script>
   function initScrollAnimations() {
     const sections = document.querySelectorAll('.section-animate');
-    const observer = new IntersectionObserver(
+    const sectionObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
@@ -25,7 +25,23 @@ import RecentPosts from '../components/RecentPosts.astro';
       },
       { threshold: 0.1 }
     );
-    sections.forEach((s) => observer.observe(s));
+    sections.forEach((s) => sectionObserver.observe(s));
+
+    const staggerItems = document.querySelectorAll('.stagger-item');
+    const itemObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    staggerItems.forEach((item, i) => {
+      item.style.transitionDelay = `${i * 100}ms`;
+      itemObserver.observe(item);
+    });
   }
 
   initScrollAnimations();
