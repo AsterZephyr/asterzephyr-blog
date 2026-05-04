@@ -6,7 +6,10 @@ import type { GetStaticPaths } from 'astro';
 
 export const getStaticPaths = (async ({ paginate }) => {
   const allPosts = await getCollection('posts', ({ data }) => !data.draft);
-  const posts = allPosts.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+  const posts = allPosts.sort((a, b) => {
+    if (a.data.pinned !== b.data.pinned) return a.data.pinned ? -1 : 1;
+    return b.data.date.getTime() - a.data.date.getTime();
+  });
   return paginate(posts, { pageSize: 12 });
 }) satisfies GetStaticPaths;
 
@@ -14,6 +17,17 @@ const { page } = Astro.props;
 
 const allPosts = await getCollection('posts', ({ data }) => !data.draft);
 const allTags = [...new Set(allPosts.flatMap((p) => p.data.tags))].sort();
+
+const searchIndex = allPosts
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .map((p) => ({
+    id: p.id,
+    title: p.data.title,
+    tags: p.data.tags,
+    date: p.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+    summary: p.data.summary || '',
+    pinned: p.data.pinned || false,
+  }));
 ---
 <PageLayout title="Blog" description="All blog posts by AsterZephyr.">
   <div class="pt-28 pb-16">
@@ -21,6 +35,14 @@ const allTags = [...new Set(allPosts.flatMap((p) => p.data.tags))].sort();
       <header class="mb-14">
         <h1 class="font-heading text-4xl font-bold uppercase tracking-wide">Blog</h1>
         <div class="w-12 h-0.5 bg-[var(--color-accent-light)] mt-4 mb-6"></div>
+        <div class="relative mb-6">
+          <input
+            id="blog-search"
+            type="text"
+            placeholder="Search posts by title or tag..."
+            class="w-full md:w-96 px-4 py-2 text-sm border border-[var(--color-border)] bg-white text-[var(--color-body)] placeholder-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent-light)] transition-colors"
+          />
+        </div>
         {allTags.length > 0 && (
           <div class="flex flex-wrap gap-2">
             {allTags.map((tag) => (
@@ -34,40 +56,100 @@ const allTags = [...new Set(allPosts.flatMap((p) => p.data.tags))].sort();
           </div>
         )}
       </header>
-      {page.data.length > 0 ? (
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {page.data.map((post) => (
-            <BlogCard post={post} />
-          ))}
-        </div>
-      ) : (
-        <p class="text-[var(--color-muted)] text-center py-20">No posts yet. Stay tuned!</p>
-      )}
-      {page.lastPage > 1 && (
-        <nav class="flex justify-center items-center gap-4 mt-16" aria-label="Pagination">
-          {page.url.prev ? (
-            <a href={page.url.prev} class="px-4 py-2 border border-[var(--color-border)] text-sm hover:border-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors">
-              Prev
-            </a>
-          ) : (
-            <span class="px-4 py-2 border border-[var(--color-border)] text-sm text-[var(--color-muted)] opacity-40">
-              Prev
+
+      <div id="blog-grid">
+        {page.data.length > 0 ? (
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {page.data.map((post) => (
+              <BlogCard post={post} />
+            ))}
+          </div>
+        ) : (
+          <p class="text-[var(--color-muted)] text-center py-20">No posts yet. Stay tuned!</p>
+        )}
+        {page.lastPage > 1 && (
+          <nav class="flex justify-center items-center gap-4 mt-16" aria-label="Pagination">
+            {page.url.prev ? (
+              <a href={page.url.prev} class="px-4 py-2 border border-[var(--color-border)] text-sm hover:border-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors">
+                Prev
+              </a>
+            ) : (
+              <span class="px-4 py-2 border border-[var(--color-border)] text-sm text-[var(--color-muted)] opacity-40">
+                Prev
+              </span>
+            )}
+            <span class="text-sm text-[var(--color-muted)]">
+              {page.currentPage} / {page.lastPage}
             </span>
-          )}
-          <span class="text-sm text-[var(--color-muted)]">
-            {page.currentPage} / {page.lastPage}
-          </span>
-          {page.url.next ? (
-            <a href={page.url.next} class="px-4 py-2 border border-[var(--color-border)] text-sm hover:border-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors">
-              Next
-            </a>
-          ) : (
-            <span class="px-4 py-2 border border-[var(--color-border)] text-sm text-[var(--color-muted)] opacity-40">
-              Next
-            </span>
-          )}
-        </nav>
-      )}
+            {page.url.next ? (
+              <a href={page.url.next} class="px-4 py-2 border border-[var(--color-border)] text-sm hover:border-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors">
+                Next
+              </a>
+            ) : (
+              <span class="px-4 py-2 border border-[var(--color-border)] text-sm text-[var(--color-muted)] opacity-40">
+                Next
+              </span>
+            )}
+          </nav>
+        )}
+      </div>
+
+      <div id="search-results" class="hidden">
+        <div id="search-results-list" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+        <p id="search-no-results" class="hidden text-[var(--color-muted)] text-center py-20">No matching posts found.</p>
+      </div>
     </div>
   </div>
 </PageLayout>
+
+<script define:vars={{ searchIndex }}>
+  function initBlogSearch() {
+    const input = document.getElementById('blog-search');
+    const grid = document.getElementById('blog-grid');
+    const results = document.getElementById('search-results');
+    const resultsList = document.getElementById('search-results-list');
+    const noResults = document.getElementById('search-no-results');
+    if (!input || !grid || !results || !resultsList || !noResults) return;
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      if (!q) {
+        grid.classList.remove('hidden');
+        results.classList.add('hidden');
+        return;
+      }
+
+      grid.classList.add('hidden');
+      results.classList.remove('hidden');
+
+      const matched = searchIndex.filter((p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.tags.some((t) => t.toLowerCase().includes(q)) ||
+        p.summary.toLowerCase().includes(q)
+      );
+
+      if (matched.length === 0) {
+        resultsList.innerHTML = '';
+        noResults.classList.remove('hidden');
+        return;
+      }
+
+      noResults.classList.add('hidden');
+      resultsList.innerHTML = matched.map((p) => `
+        <a href="/blog/${p.id}/" class="group block bg-white border border-[var(--color-border)] hover:border-[var(--color-accent-glow)]/50 hover:shadow-lg transition-all duration-300 relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-1 h-full bg-[var(--color-accent-light)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="p-6">
+            ${p.pinned ? '<span class="inline-block text-[10px] uppercase tracking-widest font-semibold text-[var(--color-accent)] border border-[var(--color-accent-light)] px-2 py-0.5 mb-2">Pinned</span>' : ''}
+            <time class="text-xs uppercase tracking-wider text-[var(--color-muted)]">${p.date}</time>
+            <h3 class="font-heading text-lg font-semibold mt-2 mb-3 group-hover:text-[var(--color-accent)] transition-colors">${p.title}</h3>
+            ${p.summary ? `<p class="text-sm text-[var(--color-body)] line-clamp-3 mb-4">${p.summary}</p>` : ''}
+            ${p.tags.length > 0 ? `<div class="flex flex-wrap gap-2">${p.tags.slice(0, 3).map((t) => `<span class="text-xs uppercase tracking-wider text-[var(--color-accent-light)]">#${t}</span>`).join('')}</div>` : ''}
+          </div>
+        </a>
+      `).join('');
+    });
+  }
+
+  initBlogSearch();
+  document.addEventListener('astro:after-swap', initBlogSearch);
+</script>

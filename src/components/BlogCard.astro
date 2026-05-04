@@ -6,7 +6,7 @@ interface Props {
 }
 
 const { post } = Astro.props;
-const { title, date, summary, tags, cover } = post.data;
+const { title, date, summary, tags, cover, pinned } = post.data;
 const formattedDate = date.toLocaleDateString('en-US', {
   year: 'numeric',
   month: 'long',
@@ -26,6 +26,9 @@ const formattedDate = date.toLocaleDateString('en-US', {
     </a>
   )}
   <div class="p-6">
+    {pinned && (
+      <span class="inline-block text-[10px] uppercase tracking-widest font-semibold text-[var(--color-accent)] border border-[var(--color-accent-light)] px-2 py-0.5 mb-2">Pinned</span>
+    )}
     <time class="text-xs uppercase tracking-wider text-[var(--color-muted)]">{formattedDate}</time>
     <h3 class="font-heading text-lg font-semibold mt-2 mb-3 group-hover:text-[var(--color-accent)] transition-colors">
       <a href={`/blog/${post.id}/`}>{title}</a>
