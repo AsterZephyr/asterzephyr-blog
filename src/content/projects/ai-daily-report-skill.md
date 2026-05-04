@@ -4,6 +4,7 @@ description: "A Claude Code skill that generates daily AI/tech intelligence repo
 date: 2026-05-02
 url: ""
 repo: "https://github.com/AsterZephyr/ai-daily-report-skill"
+cover: "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=800&q=80"
 tags: [Python, Claude Code, AI]
 featured: true
 order: 4

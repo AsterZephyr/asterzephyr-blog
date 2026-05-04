@@ -4,6 +4,7 @@ description: "A production-ready multi-agent platform with sandboxed execution, 
 date: 2025-10-22
 url: ""
 repo: "https://github.com/AsterZephyr/polyagent"
+cover: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80"
 tags: [Go, AI, agents]
 featured: true
 order: 3

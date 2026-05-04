@@ -4,6 +4,7 @@ description: "A native macOS voice-to-text app — press Fn, speak, and polished
 date: 2026-03-20
 url: ""
 repo: "https://github.com/AsterZephyr/AsterTypeless"
+cover: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=800&q=80"
 tags: [Swift, macOS, AI]
 featured: true
 order: 2
