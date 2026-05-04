@@ -1,6 +1,6 @@
 ---
 title: "为什么现在的LLM都是Decoder only的架构"
-date: 2025-01-01
+date: 2025-09-01
 tags: [llm, 开发, 思考]
 category: "技术分享"
 ---

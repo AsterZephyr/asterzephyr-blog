@@ -1,6 +1,6 @@
 ---
 title: "nlp相关常问"
-date: 2025-01-01
+date: 2025-08-20
 tags: [llm, 开发, 思考]
 category: "技术分享"
 ---

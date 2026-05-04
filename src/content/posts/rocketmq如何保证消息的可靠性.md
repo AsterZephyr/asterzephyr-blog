@@ -1,6 +1,6 @@
 ---
 title: "RocketMQ如何保证消息的可靠性？"
-date: 2025-01-01
+date: 2025-03-28
 tags: [开发, 思考]
 category: "技术分享"
 ---

@@ -1,6 +1,7 @@
 ---
 title: "本地模型追上 API 的临界点：21GB 模型在什么场景能替代 Claude"
 date: 2026-04-20
+tags: [AI, llm]
 ---
 
 2026 年 4 月 16 日，Simon Willison 在博客上写了一句话：他让笔记本上运行的 Qwen3.6-35B-A3B 画了一只鹈鹕，比 Claude Opus 4.7 画得好。

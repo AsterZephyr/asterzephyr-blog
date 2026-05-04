@@ -1,6 +1,7 @@
 ---
 title: "OpenClaw 爆火背后：开源 Agent 和原生 Agent 的本质分野，以及程序员该怎么想"
 date: 2026-03-23
+tags: [AI, agent, 开发]
 ---
 
 2026 年初，一个叫 [OpenClaw](https://github.com/openclaw/openclaw)（早期社区里叫 ClawBot/Clawdbot）的开源项目成了 GitHub 上增长最快的 AI 项目之一。主仓库 330k star、64k fork、超过 2 万次 commit，OpenAI 和 Vercel 是官方 sponsor。中文社区里更是直接引爆：清华大学出版社在出一本叫《OpenClaw 超级个体实操手册》的纸质书，配套教程写了 40 万字，B 站和 CSDN 上的部署教程铺天盖地。这个声量，是 2024 年 Stable Diffusion 以来开源项目少见的。

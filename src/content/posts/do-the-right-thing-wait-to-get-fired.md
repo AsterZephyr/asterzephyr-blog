@@ -1,6 +1,6 @@
 ---
 title: "Do the right thing, wait to get fired"
-date: 2025-01-01
+date: 2025-10-03
 tags: [开发, 思考]
 category: "技术分享"
 ---

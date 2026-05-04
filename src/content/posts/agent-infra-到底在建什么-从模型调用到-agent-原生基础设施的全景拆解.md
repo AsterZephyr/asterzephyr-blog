@@ -1,6 +1,7 @@
 ---
 title: "Agent Infra 到底在建什么：从模型调用到 Agent 原生基础设施的全景拆解"
 date: 2026-03-25
+tags: [AI, agent, 基础设施]
 ---
 
 2026 年 Q1，LangChain 累计融了 9500 万美元，E2B 拿了 1800 万，Browserbase 3000 万，Fly.io 7000 万。钱都涌向同一个方向——不是模型层，不是应用层，而是中间那个叫 "Agent Infra" 的东西。

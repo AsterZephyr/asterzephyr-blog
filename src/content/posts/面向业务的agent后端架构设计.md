@@ -1,6 +1,7 @@
 ---
 title: "面向业务的agent后端架构设计"
 date: 2025-12-19
+tags: [AI, agent, 开发]
 ---
 
 > 如何设计一个可扩展、可维护的 AI Agent 后台系统

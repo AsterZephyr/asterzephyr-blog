@@ -1,10 +1,9 @@
 ---
 title: "Obsidian + Claude Code 个人配置最优解"
-date: 2025-01-01
+date: 2026-01-10
 category: "技术分享"
 summary: "这是一份完整的 Obsidian 知识库配置攻略，涵盖 Obsidian 作为知识管理前端、Claude Code 作为 AI 编程代理、iCloud 作为跨设备同步方案的全栈配置"
----
-
+tags: [工具, 开发, AI]
 ---
 
 ## 目录

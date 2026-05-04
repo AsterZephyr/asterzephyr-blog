@@ -1,0 +1,73 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import BlogCard from '../../components/BlogCard.astro';
+import { getCollection } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const allPosts = await getCollection('posts', ({ data }) => !data.draft);
+  const posts = allPosts.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+  return paginate(posts, { pageSize: 12 });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+
+const allPosts = await getCollection('posts', ({ data }) => !data.draft);
+const allTags = [...new Set(allPosts.flatMap((p) => p.data.tags))].sort();
+---
+<PageLayout title="Blog" description="All blog posts by AsterZephyr.">
+  <div class="pt-28 pb-16">
+    <div class="mx-auto max-w-6xl px-6">
+      <header class="mb-14">
+        <h1 class="font-heading text-4xl font-bold uppercase tracking-wide">Blog</h1>
+        <div class="w-12 h-0.5 bg-[var(--color-accent-light)] mt-4 mb-6"></div>
+        {allTags.length > 0 && (
+          <div class="flex flex-wrap gap-2">
+            {allTags.map((tag) => (
+              <a
+                href={`/tags/${tag}/`}
+                class="text-xs uppercase tracking-wider px-3 py-1 border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent-light)] transition-colors"
+              >
+                {tag}
+              </a>
+            ))}
+          </div>
+        )}
+      </header>
+      {page.data.length > 0 ? (
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {page.data.map((post) => (
+            <BlogCard post={post} />
+          ))}
+        </div>
+      ) : (
+        <p class="text-[var(--color-muted)] text-center py-20">No posts yet. Stay tuned!</p>
+      )}
+      {page.lastPage > 1 && (
+        <nav class="flex justify-center items-center gap-4 mt-16" aria-label="Pagination">
+          {page.url.prev ? (
+            <a href={page.url.prev} class="px-4 py-2 border border-[var(--color-border)] text-sm hover:border-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors">
+              Prev
+            </a>
+          ) : (
+            <span class="px-4 py-2 border border-[var(--color-border)] text-sm text-[var(--color-muted)] opacity-40">
+              Prev
+            </span>
+          )}
+          <span class="text-sm text-[var(--color-muted)]">
+            {page.currentPage} / {page.lastPage}
+          </span>
+          {page.url.next ? (
+            <a href={page.url.next} class="px-4 py-2 border border-[var(--color-border)] text-sm hover:border-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors">
+              Next
+            </a>
+          ) : (
+            <span class="px-4 py-2 border border-[var(--color-border)] text-sm text-[var(--color-muted)] opacity-40">
+              Next
+            </span>
+          )}
+        </nav>
+      )}
+    </div>
+  </div>
+</PageLayout>

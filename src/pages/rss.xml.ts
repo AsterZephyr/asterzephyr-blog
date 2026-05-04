@@ -11,7 +11,7 @@ export async function GET(context: APIContext) {
     title: SITE.name,
     description: SITE.description,
     site: context.site!,
-    items: sorted.map((post) => ({
+    items: sorted.slice(0, 30).map((post) => ({
       title: post.data.title,
       pubDate: post.data.date,
       description: post.data.summary || '',
