@@ -7,4 +7,4 @@ featured: true
 order: 2
 ---
 
-An exploration of multi-agent architectures for tackling complex software engineering tasks, including code review, debugging, and feature implementation through specialized agent collaboration.
+Explores multi-agent architectures where specialized agents — planner, coder, reviewer, debugger — collaborate on software engineering tasks through structured message passing and shared context. Evaluates session state machines, tool execution pipelines, and virtual file system abstractions as coordination primitives, with experiments on code review, feature implementation, and cross-repository refactoring.

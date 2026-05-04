@@ -1,12 +1,11 @@
 ---
-title: "AI Daily Report Skill"
-description: "An automated AI/tech intelligence report generator that aggregates content from multiple sources."
-date: 2026-03-01
-repo: "https://github.com/asterzephyr/ai-daily-report-skill"
+title: "Real-Time Bidding Engine"
+description: "A high-throughput DSP bidding system with ML model serving, multi-stage ad filtering, and adaptive budget pacing."
+date: 2025-06-01
 cover: "/images/projects/project-3.jpg"
-tags: [AI, automation, python]
+tags: [Go, algorithms, advertising]
 featured: true
 order: 3
 ---
 
-An automated system that generates daily AI and technology intelligence reports by scraping and analyzing content from Hacker News, HuggingFace Papers, and other sources.
+The core engine behind a programmatic advertising platform, handling millions of bid requests per day across multiple ad exchanges. Built in Go with a 30+ filter matching pipeline, CTR/CVR prediction via TensorFlow Serving, and a three-level budget control system with K-factor optimization. Supports multi-region deployment, AB experimentation at the model and strategy level, and real-time funnel analytics through structured logging and Prometheus metrics.
