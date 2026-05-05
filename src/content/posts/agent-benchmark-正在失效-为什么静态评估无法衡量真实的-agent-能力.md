@@ -1,0 +1,204 @@
+---
+title: "Agent Benchmark 正在失效：为什么静态评估无法衡量真实的 Agent 能力"
+date: 2026-05-05
+tags: [AI, agent, evaluation]
+category: "技术分析"
+sources:
+  - title: "Claw-Eval-Live: A Live Agent Benchmark for Evolving Real-World Workflows"
+    url: https://arxiv.org/abs/2604.28139
+    date: 2026-04-30
+  - title: "LiveCodeBench: Holistic and Contamination Free Evaluation of LLMs for Code"
+    url: https://arxiv.org/abs/2403.07974
+    date: 2024-03-12
+  - title: "TheAgentCompany: Benchmarking LLM Agents on Consequential Real World Tasks"
+    url: https://arxiv.org/abs/2412.14161
+    date: 2024-12-18
+---
+
+# Agent Benchmark 正在失效：为什么静态评估无法衡量真实的 Agent 能力
+
+Claw-Eval-Live 在 105 个工作流任务上评估了 13 个前沿模型。最好的模型通过率 66.7%，没有任何模型突破 70%。这个数字本身不算意外——意外的是，通过率相近的模型在任务维度上的失败模式完全不同，排行榜上的名次差异并不能反映实际能力差异。
+
+这暴露了一个更深层的问题：我们用来评估 Agent 的工具本身可能已经过时了。当前主流的 Agent benchmark——无论是 SWE-bench、WebArena 还是 AgentBench——都有一个共同特征：它们在发布那一刻就被冻结了。任务集不变、评估环境不变、评分标准不变。但现实世界的工作流在持续演化，工具栈在更新，企业瓶颈在转移。一个 benchmark 可以保持完美的可复现性，同时与用户真正需要 Agent 自动化的任务渐行渐远。
+
+这篇文章分析 Agent benchmark 失效的三种模式，剖析 Claw-Eval-Live 提出的"活的 benchmark"设计思路，以及这件事对正在构建 Agent 系统的工程师意味着什么。
+
+## 静态 Benchmark 的三种失效模式
+
+```mermaid
+graph TB
+    subgraph center["静态 Benchmark"]
+        B["发布时冻结的任务集"]
+    end
+
+    subgraph mode1["失效模式 1"]
+        M1["任务分布漂移"]
+        M1D["需求侧持续演化<br/>季度间权重剧烈变动"]
+    end
+
+    subgraph mode2["失效模式 2"]
+        M2["评估表面单一化"]
+        M2D["只覆盖单一执行表面<br/>高估 Agent 实际能力"]
+    end
+
+    subgraph mode3["失效模式 3"]
+        M3["结果评分欺骗"]
+        M3D["只检查最终输出<br/>「听起来对」不等于「做对了」"]
+    end
+
+    B --> M1
+    B --> M2
+    B --> M3
+    M1 --> M1D
+    M2 --> M2D
+    M3 --> M3D
+
+    M1D --> R["排行榜排名 ≠ 实际 Agent 能力"]
+    M2D --> R
+    M3D --> R
+
+    style mode1 fill:#ffe3e3,stroke:#c92a2a
+    style mode2 fill:#ffe8cc,stroke:#d9480f
+    style mode3 fill:#e5dbff,stroke:#5f3dc4
+    style center fill:#dbe4ff,stroke:#1971c2
+    style R fill:#fff3bf,stroke:#e67700
+```
+
+Agent benchmark 的失效不是突然发生的，而是三种力量持续侵蚀的结果。
+
+**第一种：任务分布漂移（Task Distribution Drift）**
+
+Benchmark 发布时的任务组合反映的是作者当时认为重要的能力维度。但现实中，哪些工作流最需要自动化是随时间变化的。2024 年 Q4，企业最头疼的可能是跨系统数据对账；到了 2025 年 Q3，可能变成了多步骤审批链的自动化。Benchmark 的任务集冻结在发布时间点，无法捕捉这种需求侧的漂移。
+
+Claw-Eval-Live 的数据直接说明了这一点：他们用 ClawHub Top-500 的热门 skills 作为"需求信号"的代理指标，发现不同时间点抽取的信号会产生不同的任务分布权重。一个季度前被认为核心的工作流家族，可能因为新工具的出现或业务流程变化而变得不那么关键。
+
+**第二种：评估表面单一化（Surface Narrowing）**
+
+现有 benchmark 通常只覆盖一种执行表面（execution surface）。Web benchmark 关注浏览器交互，代码 benchmark 关注仓库操作，桌面 benchmark 关注 GUI 操作。但现实中的高价值工作流往往跨越多个表面——需要查询 CRM 系统、修改本地文件、发送审批请求、验证修复结果。
+
+Claw-Eval-Live 将 105 个任务分为两类执行表面：Service-backed workflows（87 个）和 Workspace repair（18 个）。结果显示，服务端工作流的难度远高于本地工作区修复。最好的模型在工作区修复上表现尚可，但在 HR、管理和多系统业务工作流上持续失败。一个只测试单一执行表面的 benchmark 会系统性地高估 Agent 的实际能力。
+
+**第三种：结果评分欺骗（Output-Only Gaming）**
+
+大多数 benchmark 只检查最终输出。Agent 生成了一份看起来正确的报告，评分器给了通过。但"听起来对"和"真的做了"之间有本质区别。Agent 可能产出了一份流畅的文档，但实际上查询了错误的记录、修改了错误的文件、或者基于错误的数据做了推荐。
+
+Claw-Eval-Live 引入了 action-grounded hybrid grading：记录执行轨迹（execution traces）、审计日志（audit logs）、服务状态变更和工作区产物。只有当证据充分时才使用确定性检查，语义维度才引入 LLM 评分。这种设计意味着 Agent 不能通过"生成看起来正确的文本"来骗过评分器——它必须证明自己真的完成了工作。
+
+## Claw-Eval-Live 的设计：Benchmark 也可以是活的
+
+Claw-Eval-Live 的核心创新是将 benchmark 构建分为两层：一个随时间变化的信号层（signal layer）和一个固定的发布快照（release snapshot）。
+
+信号层从外部需求源（ClawHub Top-500 热门 skills）获取当前用户最关心的工作流模式。这些信号经过聚类、加权、种子扩展、候选筛选，最终通过混合整数线性规划（MILP）选出公开发布的子集。
+
+关键在于：一旦某个版本发布，它的任务、fixture 和评分器就固定下来，保证可复现的模型比较。变化的是下一个版本构建时使用的信号快照。这让 benchmark 能够通过季度刷新来吸收工作流生态的变化，而不需要修改已发布的评估集。
+
+整个构建流程分为五个阶段：
+
+```mermaid
+graph LR
+    S1["1 信号收集<br/>ClawHub Top-500<br/>时间戳快照"]
+    S2["2 模式聚类<br/>碎片 Skill 名称<br/>聚合为工作流模式"]
+    S3["3 家族加权<br/>信号权重<br/>计算目标分布"]
+    S4["4 种子扩展<br/>加权模式展开<br/>可执行任务候选"]
+    S5["5 MILP 选择<br/>最大化区分度<br/>+ 覆盖约束"]
+
+    S1 --> S2 --> S3 --> S4 --> S5
+
+    S5 --> OUT["固定版本快照<br/>(可复现)"]
+
+    C1["家族覆盖度"] -.-> S5
+    C2["排行榜分辨率"] -.-> S5
+
+    style S1 fill:#d3f9d8,stroke:#2f9e44
+    style S2 fill:#e5dbff,stroke:#5f3dc4
+    style S3 fill:#ffe8cc,stroke:#d9480f
+    style S4 fill:#c5f6fa,stroke:#0c8599
+    style S5 fill:#b2f2bb,stroke:#2f9e44
+    style OUT fill:#e7f5ff,stroke:#1971c2
+    style C1 fill:#fff3bf,stroke:#e67700
+    style C2 fill:#fff3bf,stroke:#e67700
+```
+
+1. **信号收集**：从 ClawHub Top-500 获取时间戳快照
+2. **模式聚类**：将碎片化的 skill 名称聚合为工作流模式
+3. **家族加权**：根据信号权重计算目标分布
+4. **种子扩展与实现**：将加权模式展开为可执行任务候选
+5. **区分度感知的发布选择**：用 MILP 选择兼顾覆盖度和区分度的公开子集
+
+MILP 的目标函数值得注意。它最大化的是：被选中的任务能在多大程度上保持 pilot 模型之间的排序。如果一个任务所有模型都通过或都失败，它没有区分价值——被排除。最终选出的 105 个任务必须同时满足家族覆盖、发布规模和排行榜分辨率三个约束。
+
+## 数据揭示了什么
+
+13 个前沿模型的评估结果有几个值得注意的发现：
+
+**通过率天花板很低**。最好的模型 66.7%，没有模型超过 70%。考虑到这些是当前最强的 frontier 模型（Claude、GPT、Gemini 系列），这说明可靠的工作流自动化远未解决。
+
+**排行榜名次不等于能力差异**。通过率接近的模型可能在完全不同的任务家族上失败。两个模型都是 60% 的通过率，但一个擅长数据处理型任务而在 HR 流程上惨败，另一个正好相反。排行榜的一维排序丢失了这种结构化信息。
+
+**失败是结构化的**。不同模型不是随机地在不同任务上失败——失败模式按任务家族和执行表面聚类。HR、管理和多系统业务工作流是所有模型的持续瓶颈；本地工作区修复相对容易但远未饱和。
+
+**区分度集中在中间带**。评估任务中，真正能区分模型优劣的任务集中在中等难度区间——太简单的所有模型都通过，太难的所有模型都失败。这意味着如果 benchmark 的难度分布设计不当，看似全面的评估实际上只有一小部分任务在提供有效信号。
+
+## 对 Agent 工程实践的启示
+
+这些发现对正在构建 Agent 系统的工程师有三个实际影响：
+
+**不要依赖单一 benchmark 做技术选型**。如果你在为特定业务场景选择 Agent 框架或模型，SWE-bench 排名第一的模型在你的 HR 审批自动化场景上可能表现平庸。需要在目标场景上构建自己的评估集，或者至少用多个 benchmark 的交叉结果来决策。
+
+**评估要看过程，不只看结果**。如果你的 Agent 系统在生产环境中出了问题，仅靠"输出看起来对不对"无法定位故障。需要记录完整的执行轨迹——工具调用序列、中间状态、数据源。Claw-Eval-Live 的 action-grounded grading 思路值得借鉴：用确定性检查验证关键操作确实被执行了。
+
+**为评估集的持续演化做设计**。如果你在维护一个内部的 Agent 评估套件，考虑引入类似 Claw-Eval-Live 的"信号层 + 快照层"分离。用线上用户的实际需求模式来指导评估集的更新方向，同时保持已发布版本的稳定性。每个季度审视一次：当前评估集覆盖的任务分布是否还反映用户的真实需求？
+
+## 更广泛的趋势：从一次性发布到持续校准
+
+```mermaid
+graph LR
+    subgraph static["静态 Benchmark 生命周期"]
+        direction TB
+        A1["发布任务集"] --> A2["模型评测"] --> A3["排行榜发布"] --> A4["逐渐过时失效"]
+    end
+
+    subgraph live["Live Benchmark 生命周期"]
+        direction TB
+        B1["采集需求信号"] --> B2["构建时间戳快照"] --> B3["评测 + 评分"] --> B4["季度刷新信号"]
+        B4 -.-> B1
+    end
+
+    style A4 fill:#ffc9c9,stroke:#c92a2a
+    style B4 fill:#ffd8a8,stroke:#d9480f
+    style static fill:#f8f9fa,stroke:#868e96
+    style live fill:#f8f9fa,stroke:#868e96
+```
+
+Claw-Eval-Live 不是孤例。LiveCodeBench 通过持续从编程竞赛中抽取新题目来对抗数据污染。EvoClaw 通过挖掘仓库演化历史来构建时间感知的评估。WebArena-Verified 在发现原始评估结论因任务质量问题而不可靠后，做了大规模的重新验证。
+
+这些努力共同指向一个方向：benchmark 不再是一次性的学术贡献，而是需要持续维护的基础设施。就像软件需要持续部署一样，评估也需要持续校准。
+
+但这带来了一个工程上的矛盾：可复现性要求固定，而相关性要求更新。Claw-Eval-Live 的"时间戳快照"设计是对这个矛盾的一种回应——每个版本内部完全固定（保证可复现），但版本之间允许任务分布演化（保证相关性）。这类似于软件发布中的版本管理：v1.0 是稳定的，但 v2.0 可以包含新功能。
+
+## 还没解决的问题
+
+Agent benchmark 领域还有几个开放问题值得关注：
+
+**成本维度缺失**。当前所有 benchmark 只衡量"能不能做到"，不衡量"花多少钱做到"。一个用了 100 次工具调用才完成的任务和一个用了 5 次就完成的任务，在通过率上没有区别——但在生产成本上差了 20 倍。
+
+**安全与可靠性的权衡**。Agent 在追求高通过率时可能采取冒险策略——比如在不确定时直接执行而不请求澄清。当前 benchmark 不惩罚"做错了"，只惩罚"没做"。一个在生产环境中误删了数据库的 Agent 和一个谨慎拒绝执行的 Agent，在评分上后者更低。
+
+**多轮交互的评估**。大部分 benchmark 测试单次指令的执行。但现实中的工作流往往需要多轮澄清、中间确认、异常处理。这个维度的评估方法论还不成熟。
+
+---
+
+Agent benchmark 的失效不是某一个评估集的问题，而是整个评估范式正在面临范式转换的压力。静态发布、单一表面、输出导向的评估模式是为上一代 AI 系统设计的——当时模型的主要任务是回答问题，不是完成工作。当 Agent 的目标从"说对话"变成"做对事"，评估系统也必须从"检查答案"演化为"审计行为"。
+
+Claw-Eval-Live 的设计思路——需求驱动的任务构建、执行证据锚定的评分、时间戳版本化的发布——提供了一个可行的方向。但能否真正解决问题，取决于社区是否愿意承担持续维护评估基础设施的成本。毕竟，写一篇论文发布一个 benchmark 是一次性的学术产出，而维护一个活的评估系统是长期的工程承诺。
+
+---
+
+**参考链接**
+
+- [Claw-Eval-Live: A Live Agent Benchmark for Evolving Real-World Workflows](https://arxiv.org/abs/2604.28139)
+- [Claw-Eval-Live Project Page](https://claw-eval-live.github.io/)
+- [LiveCodeBench](https://arxiv.org/abs/2403.07974)
+- [SWE-bench](https://arxiv.org/abs/2310.06770)
+- [TheAgentCompany](https://arxiv.org/abs/2412.14161)
+- [WebArena](https://arxiv.org/abs/2307.13854)
