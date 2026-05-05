@@ -72,8 +72,8 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
 
 <script>
 async function renderMermaidDiagrams() {
-  const codeBlocks = document.querySelectorAll('pre > code.language-mermaid');
-  if (codeBlocks.length === 0) return;
+  const preBlocks = document.querySelectorAll('pre[data-language="mermaid"]');
+  if (preBlocks.length === 0) return;
 
   const { default: mermaid } = await import(
     'https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs'
@@ -100,11 +100,8 @@ async function renderMermaidDiagrams() {
     },
   });
 
-  for (const codeEl of codeBlocks) {
-    const pre = codeEl.parentElement;
-    if (!pre) continue;
-
-    const graphDefinition = codeEl.textContent || '';
+  for (const pre of preBlocks) {
+    const graphDefinition = pre.textContent || '';
     const id = `mermaid-${crypto.randomUUID()}`;
 
     try {
