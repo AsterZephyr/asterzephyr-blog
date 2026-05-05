@@ -3,19 +3,8 @@ title: "Agent Benchmark 正在失效：为什么静态评估无法衡量真实�
 date: 2026-05-05
 tags: [AI, agent, evaluation]
 category: "技术分析"
-sources:
-  - title: "Claw-Eval-Live: A Live Agent Benchmark for Evolving Real-World Workflows"
-    url: https://arxiv.org/abs/2604.28139
-    date: 2026-04-30
-  - title: "LiveCodeBench: Holistic and Contamination Free Evaluation of LLMs for Code"
-    url: https://arxiv.org/abs/2403.07974
-    date: 2024-03-12
-  - title: "TheAgentCompany: Benchmarking LLM Agents on Consequential Real World Tasks"
-    url: https://arxiv.org/abs/2412.14161
-    date: 2024-12-18
+summary: "Claw-Eval-Live 揭示静态 Agent 评估的三种失效模式，提出需求驱动的活 benchmark 设计——季度刷新任务分布，同时保持版本内可复现。"
 ---
-
-# Agent Benchmark 正在失效：为什么静态评估无法衡量真实的 Agent 能力
 
 Claw-Eval-Live 在 105 个工作流任务上评估了 13 个前沿模型。最好的模型通过率 66.7%，没有任何模型突破 70%。这个数字本身不算意外——意外的是，通过率相近的模型在任务维度上的失败模式完全不同，排行榜上的名次差异并不能反映实际能力差异。
 

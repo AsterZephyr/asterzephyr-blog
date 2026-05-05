@@ -3,22 +3,8 @@ title: "8 张 4090 微调 235B 模型：RoundPipe 如何打破消费级 GPU 训�
 date: 2026-05-05
 tags: [AI, llm, 训练优化]
 category: "技术分析"
-sources:
-  - title: "Efficient Training on Multiple Consumer GPUs with RoundPipe"
-    url: https://arxiv.org/abs/2604.27085
-    date: 2026-04-28
-  - title: "RoundPipe GitHub"
-    url: https://github.com/ITcarrot/RoundPipe
-    date: 2026-04-28
-  - title: "ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning"
-    url: https://arxiv.org/abs/2104.07857
-    date: 2021-04-15
-  - title: "Mobius: Near-Zero Bubble Pipeline Parallelism for Consumer GPUs"
-    url: https://arxiv.org/abs/2211.05322
-    date: 2023-02-17
+summary: "RoundPipe 通过无状态 GPU 池和非对称流水线切分，在 8 张 4090 上实现 235B MoE 模型的 LoRA 微调，吞吐量达到 A800 方案的 76%+。"
 ---
-
-# 8 张 4090 微调 235B 模型：RoundPipe 如何打破消费级 GPU 训练的天花板
 
 一张 RTX 4090 的算力和 A100 相当，价格却只有后者的 20%。但在 LLM 微调场景里，几乎没人用它。原因很简单：24GB 显存放不下 8B 模型的训练状态（需要 128GB），PCIe 带宽不到 NVLink 的 20%，一做多卡并行通信就成瓶颈。
 
