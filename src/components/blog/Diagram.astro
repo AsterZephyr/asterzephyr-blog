@@ -13,7 +13,7 @@ const { title, caption } = Astro.props;
       <span class="text-sm font-semibold uppercase tracking-wider text-[var(--color-muted)]">{title}</span>
     </div>
   )}
-  <div class="diagram-wrapper rounded-lg border border-[var(--color-border)] bg-[#1a1b26] p-4 overflow-x-auto">
+  <div class="diagram-wrapper rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 overflow-x-auto">
     <slot />
   </div>
   {caption && (
