@@ -1,0 +1,151 @@
+# AsterZephyr Blog
+
+Astro 6 static blog. Posts live in `src/content/posts/`.
+
+## Blog Post Format
+
+**All new posts must use `.mdx` format**, not `.md`. MDX allows importing custom Astro components for richer visuals.
+
+### File Structure
+
+```mdx
+---
+title: "Post Title"
+date: 2026-01-15
+tags: [tag1, tag2]
+summary: "Optional summary"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+
+Post content here...
+```
+
+Only import components that are actually used in the post.
+
+### Available Components
+
+All components live in `src/components/blog/`.
+
+#### Callout — Info/warning/tip boxes
+
+```mdx
+<Callout type="info" title="Optional title">
+Content here. Supports **markdown**.
+</Callout>
+```
+
+Types: `info` (blue), `warning` (amber), `tip` (green), `note` (violet). Default: `info`.
+
+#### Figure — Images with caption
+
+```mdx
+<Figure src="/images/posts/post-name/image.png" alt="description" caption="Optional caption" width="80%" />
+```
+
+Do NOT use raw `![alt](src)` markdown images. Always use `<Figure>`.
+
+#### Diagram — Mermaid wrapper with title/caption
+
+```mdx
+import Diagram from '../../components/blog/Diagram.astro'
+
+<Diagram title="SYSTEM OVERVIEW" caption="High-level architecture">
+```mermaid
+graph LR
+    A --> B --> C
+`` `
+</Diagram>
+```
+
+Note: Mermaid code blocks without `<Diagram>` wrapper also render (via PostLayout.astro global script), but won't have title/caption.
+
+#### Steps / StepItem — Numbered steps
+
+```mdx
+import Steps from '../../components/blog/Steps.astro'
+import StepItem from '../../components/blog/StepItem.astro'
+
+<Steps>
+  <StepItem title="First step">
+    Details here.
+  </StepItem>
+  <StepItem title="Second step">
+    More details.
+  </StepItem>
+</Steps>
+```
+
+#### Timeline / TimelineItem — Vertical timeline
+
+```mdx
+import Timeline from '../../components/blog/Timeline.astro'
+import TimelineItem from '../../components/blog/TimelineItem.astro'
+
+<Timeline>
+  <TimelineItem date="2026-01" label="Phase 1" active>
+    Description of this phase.
+  </TimelineItem>
+  <TimelineItem date="2026-06" label="Phase 2">
+    Future work.
+  </TimelineItem>
+</Timeline>
+```
+
+#### Card / CardGrid — Feature cards
+
+```mdx
+import Card from '../../components/blog/Card.astro'
+import CardGrid from '../../components/blog/CardGrid.astro'
+
+<CardGrid cols={3}>
+  <Card title="Feature A" icon="rocket">
+    Description.
+  </Card>
+  <Card title="Feature B" icon="code">
+    Description.
+  </Card>
+</CardGrid>
+```
+
+Icons: `book`, `chart`, `rocket`, `code`, `bolt`, `gear`, `star`.
+
+#### Comparison — Two-column comparison
+
+```mdx
+import Comparison from '../../components/blog/Comparison.astro'
+
+<Comparison
+  left={{ title: "Before", items: ["Slow", "Error-prone"] }}
+  right={{ title: "After", items: ["Fast", "Reliable"] }}
+  leftLabel="Old System"
+  rightLabel="New System"
+/>
+```
+
+### MDX Pitfalls
+
+1. **Curly braces** `{}` outside code blocks are parsed as JSX expressions. Escape with `\{` and `\}`, or wrap in code blocks.
+2. **Angle brackets** `<` followed by lowercase letter outside code blocks is parsed as JSX. Use `&lt;` instead (e.g., `&lt;100ms`).
+3. **Self-closing HTML tags** are required: `<br />` not `<br>`, `<hr />` not `<hr>`.
+4. **Code fences** must be paired. Verify even number of ` ``` ` in the file.
+
+### Images
+
+Place images in `public/images/posts/<post-slug>/`. Reference as `/images/posts/<post-slug>/image.png`.
+
+## Tech Stack
+
+- Astro 6.2 + `@astrojs/mdx` + `@astrojs/sitemap`
+- Tailwind CSS 4 + `@tailwindcss/typography`
+- Mermaid (CDN, client-side rendering with warm amber light theme)
+- Deployed via Vercel
+
+## Build
+
+```bash
+npm run dev      # dev server
+npm run build    # production build, verify before pushing
+```
