@@ -1,0 +1,239 @@
+---
+title: "推荐系统的 Mixer 革命：从一篇论文到四家大厂全量上线"
+date: 2026-05-11
+tags: [推荐系统, 深度学习, 广告系统, 架构设计]
+category: "技术分享"
+---
+
+# 推荐系统的 Mixer 革命：从一篇论文到四家大厂全量上线
+
+2025 年 7 月，字节跳动发了一篇叫 RankMixer 的论文。核心想法很简单：推荐系统的排序模型不需要 self-attention——用一个无参数的 token mixing 操作替掉它，效果更好，速度更快。
+
+12 个月后的今天，token mixing 已经成为中国互联网大厂排序模型的标准架构。字节跳动把它 scale 到了 15B 参数（TokenMixer-Large），腾讯微信在它基础上发现了 representation collapse 并提出了 RankUp，美团基于类似思路做了 MTmixAtt。参数量跨越三个数量级（100M 到 15B），覆盖推荐、广告、电商、直播四个核心场景，全部全量上线。
+
+这不是一个模型的成功故事。这是推荐系统在 scaling law 驱动下的第一次架构大换血——从 NLP 借来的 self-attention 被推荐系统原生的 token mixing 替代。这篇文章拆解这次换血的技术逻辑、每家公司在 scale 过程中踩的不同的坑，以及这个趋势对从业者意味着什么。
+
+## RankMixer：为什么 Self-Attention 不适合推荐系统
+
+理解 Mixer 革命的起点，需要先看清一个被忽视了好几年的结构性问题。
+
+NLP 的 self-attention 之所以有效，是因为语言 token 共享一个统一的语义空间——"猫"和"狗"在同一个 embedding 空间里，它们之间的内积有明确的语义含义。推荐系统的 token 完全不是这样：一个请求包含的"用户年龄=25"、"商品品类=美妆"、"设备=iPhone"、"上下文=晚间"这些 token，来自完全不同的特征空间，它们之间做 self-attention（计算内积相似度）在语义上没有意义。
+
+但过去几年，因为 Transformer 在 NLP 和 CV 领域的成功，推荐系统不加批判地照搬了 self-attention 架构——AutoInt、InterFormer、DHEN 都是这个思路。这些模型确实比传统 FM 好，但代价是 self-attention 的 O(T²) 复杂度和低硬件利用率。
+
+RankMixer 的核心洞察是：**推荐系统的特征交互不需要计算 token 之间的相似度，只需要让 token 之间的信息流动起来。** 这把问题从"学习 token 间的注意力权重"简化成了"把 token 的信息混合到一起"。
+
+```mermaid
+graph LR
+    subgraph attention["Self-Attention 特征交互"]
+        direction TB
+        A1["Token 1: 年龄=25"] --> QKV["Q K V 投影"]
+        A2["Token 2: 品类=美妆"] --> QKV
+        A3["Token 3: 设备=iPhone"] --> QKV
+        QKV --> ATTN["计算 T x T 注意力矩阵"]
+        ATTN --> OUT1["加权聚合"]
+        OUT1 --> FFN1["共享 FFN"]
+    end
+
+    subgraph mixer["RankMixer 特征交互"]
+        direction TB
+        M1["Token 1: 年龄=25"] --> MIX["Multi-head Token Mixing<br/>无参数 代数变换"]
+        M2["Token 2: 品类=美妆"] --> MIX
+        M3["Token 3: 设备=iPhone"] --> MIX
+        MIX --> OUT2["混合后的 Token"]
+        OUT2 --> PFFN["Per-token FFN<br/>每个 Token 独立参数"]
+    end
+
+    style A1 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style A2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style A3 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style QKV fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
+    style ATTN fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px
+    style OUT1 fill:#f8f9fa,stroke:#868e96,stroke-width:1px
+    style FFN1 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
+    style M1 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style M2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style M3 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style MIX fill:#c5f6fa,stroke:#0c8599,stroke-width:2px
+    style OUT2 fill:#f8f9fa,stroke:#868e96,stroke-width:1px
+    style PFFN fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
+```
+
+RankMixer Block 的核心由两个组件构成：
+
+**Multi-head Token Mixing。** 把每个 token 的 D 维特征均分成 H 个头，然后跨 token 拼接同一个头的子向量。这个操作没有任何可学习参数——纯粹是代数层面的维度重排。效果是让每个头看到所有 token 在对应子空间里的信息，实现了跨 token 的信息混合。复杂度是 O(T)，不是 self-attention 的 O(T²)。
+
+**Per-token FFN。** 这是 RankMixer 和标准 Transformer 的第二个关键差异。标准 Transformer 的 FFN 对所有 token 共享参数。但推荐系统的 token 来自不同的特征空间——"年龄"和"品类"的统计分布完全不同，高频特征和长尾特征的梯度量级差异巨大。Per-token FFN 给每个 token 位置分配独立的 FFN 参数，让不同特征空间有各自的变换能力。
+
+这两个设计的组合效果是：信息通过 token mixing 在 token 之间流动，通过 per-token FFN 在各自的特征空间里被独立处理。和 self-attention + 共享 FFN 的标准 Transformer 相比，这个架构更匹配推荐系统异构 token 的本质需求。
+
+但 RankMixer 被快速采纳的真正原因不是效果提升，而是 **MFU（Model FLOPs Utilization）从 4.5% 跳到了 45%**。
+
+之前的推荐系统排序模型——各种手工设计的特征交叉模块（DCN、DeepFM、DHEN）——都是 CPU 时代的遗产，充满了 memory-bound 的稀疏操作，GPU 的算力大部分时间在空转。RankMixer 用 dense matmul 替换了这些操作，让 GPU 真正做了它擅长的事情。在抖音的线上部署中，RankMixer-1B 和之前 16M 参数的 baseline 推理延迟几乎相同（14.3ms vs 14.5ms），但参数量增加了 70 倍。
+
+这意味着：**你可以免费把模型做大 70 倍。** 在 serving 成本是推荐系统最大约束的工业场景里，这个属性比任何 AUC 提升都更有说服力。
+
+## 从 1B 到 15B：什么在 Scale 时崩了
+
+RankMixer 在 1B 参数下工作良好，但字节跳动试图进一步 scale 到 7B 和 15B 时，遇到了三个原版架构无法解决的问题。TokenMixer-Large（2026.2）是对这三个问题的系统性修复。
+
+### 残差路径断裂
+
+RankMixer 的 token mixing 操作把 T 个 token 混合成 H 个 token（H = T 时可以做残差连接）。但在更深的配置下，mixing 前后的 token 在语义上已经发生了偏移——混合后的 token 承载的是跨特征空间的混合信息，原始 token 承载的是单一特征空间的信息。直接相加在浅层模型里影响不大，但在深层模型里，这种语义错位逐层累积，导致信号退化。
+
+TokenMixer-Large 的修复是 **mixing-and-reverting**：用两层 token mixing 构成对称结构——第一层混合（T → H），第二层恢复（H → T）。这确保了残差连接两端的 token 语义一致，信号路径在任意深度都不会断裂。
+
+### 深层梯度消失
+
+原版 RankMixer 在线上只部署了 2 层。当层数增加到 8 层、16 层时，低层参数几乎收不到梯度更新——这是 Post-Norm + 无跳层连接的经典问题。
+
+TokenMixer-Large 引入了三个稳定深层训练的机制：Pre-Norm（用 RMSNorm 替换 LayerNorm）、间隔层残差连接（跨 block 的 skip connection）、以及辅助 loss（低层和高层的 logits 联合监督，让低层也能直接从 loss 获得梯度信号）。
+
+### MoE 范式转变
+
+RankMixer 的 Sparse-MoE 用的是"Dense Train, Sparse Infer"策略——训练时所有 expert 都激活，推理时只选部分。这意味着训练成本没有因为稀疏化而降低，而且 dense 训练到 sparse 推理的迁移会有精度损失。
+
+TokenMixer-Large 提出了"先放大，再稀疏"的新范式：先设计一个 dense 模型确保最优效果，然后把 SwiGLU 的 kernel 拆分成多个子 expert，用 per-token routing 稀疏激活。关键技巧是 Gate Value Scaling——在 router 函数前乘以一个常数（1/sparsity_ratio），保持梯度和 dense 模型一致。这让 1:2 稀疏比下几乎零精度损失，同时训练和推理成本都降低了。
+
+### 线上结果
+
+TokenMixer-Large 在字节跳动的三个核心场景全量部署：
+
+| 场景 | 基线 | 升级 | 核心指标 |
+|:-----|:-----|:-----|:---------|
+| 电商 | RankMixer-1B | TokenMixer-7B | 订单+1.66%, GMV+2.98% |
+| 广告 | RankMixer-150M | TokenMixer-4B | ADSS+2.0% |
+| 直播 | RankMixer-500M | TokenMixer-2B | 收入+1.4% |
+
+这些数字的含义是：Mixer 架构在 15B 参数量级下仍然展现出持续的 scaling 收益，没有出现收益饱和。推荐系统的 scaling law 在 Mixer 架构上成立。
+
+## 腾讯发现了一个更深层的问题：Representation Collapse
+
+如果字节的故事是"Mixer 能 scale 多大"，腾讯微信的故事是"scale 大了之后，表示空间发生了什么"。
+
+RankUp（2026.4）的出发点是一个反直觉的观察：在基于 RankMixer 的 MetaFormer 架构上，把参数量从 10M scale 到 100M，**token 表示的 effective rank 并没有随参数量增长，反而呈现衰减振荡的轨迹**——在某些层甚至低于更小的模型。
+
+```mermaid
+graph TB
+    subgraph collapse["Representation Collapse 现象"]
+        direction TB
+        OBS["观察: 参数量 10M to 100M<br/>Effective rank 呈衰减振荡<br/>深层 rank 反而低于浅层"]
+        CAUSE1["Token Mixing 提供有界的 rank 扩展<br/>无法持续增加表示多样性"]
+        CAUSE2["Per-token FFN 在 channel 维度<br/>具有 rank 压缩效应"]
+        CAUSE3["多任务学习中不同目标<br/>在共享空间里互相压缩"]
+        OBS --> CAUSE1
+        OBS --> CAUSE2
+        OBS --> CAUSE3
+        CAUSE1 --> CONCLUSION["结论: 加参数 ≠ 加表示能力<br/>需要扩展的是输入空间 不是计算空间"]
+        CAUSE2 --> CONCLUSION
+        CAUSE3 --> CONCLUSION
+    end
+
+    style OBS fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px
+    style CAUSE1 fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
+    style CAUSE2 fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
+    style CAUSE3 fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
+    style CONCLUSION fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
+```
+
+Effective rank 是用奇异值分布的 Shannon 熵来度量表示矩阵实际利用了多少维度。如果一个 1024 维的表示空间里 90% 的信息集中在前 50 个奇异值上，它的 effective rank 远低于 1024——剩下的维度是浪费的。
+
+腾讯团队分析了 representation collapse 的三个根源：
+
+**Token mixing 的 rank 扩展是有界的。** 无参数的代数变换只能重新分配已有信息，不能创造新的表示维度。无论叠多少层 token mixing，表示空间的 rank 上界由输入决定。
+
+**Per-token FFN 在 channel 维度上是 rank 压缩的。** FFN 的 down-projection（从高维映射到低维再映射回来）天然会丢弃部分方向的信息。这个压缩效应在深层累积。
+
+**多任务学习的梯度干扰。** 推荐系统通常同时预测点击率、转化率、完播率等多个目标。不同任务的梯度在共享的表示空间里互相拉扯，dominant task 会把表示空间压缩到自己偏好的少数方向上。
+
+RankUp 的核心判断是：**问题不在于计算不够（不需要更多参数或更深的层），而在于输入空间的多样性不够。** 基于这个判断，他们提出了五个机制，全部作用于输入端或 token 空间的多样性：
+
+1. **Randomized Permutation Splitting** — 随机打乱特征的分组方式，打破语义分组导致的 token 间共线性
+2. **Multi-embedding** — 同一特征用 K 个独立 embedding table 映射，从不同几何视角编码
+3. **Global Token Integration** — 引入全局 token 聚合所有特征信息，补充局部 token 缺失的全局上下文
+4. **Cross Pretrained Embedding** — 把预训练的 user/item embedding 的交互信号注入表示空间
+5. **Task-specific Token Decoupling** — 为每个任务引入独立的可学习 token，减少任务间的梯度干扰
+
+这五个机制的共同思路是：不动 Mixer 架构本身，而是让进入 Mixer 的输入更丰富、更多样。这和 TokenMixer-Large 修复残差和梯度问题的思路完全正交——前者解决的是"信息能不能在深层流动"，后者解决的是"流动的信息本身是否足够丰富"。
+
+线上结果证明了这个判断的正确性。RankUp 在腾讯微信的三个核心广告场景全量部署：
+
+| 场景 | GMV 提升 | 新广告冷启 GMV |
+|:-----|:---------|:-------------|
+| 微信视频号 | +3.41% | +5.83% |
+| 微信公众号 | +4.81% | +9.67% |
+| 微信朋友圈 | +2.21% | +2.84% |
+
+值得注意的是新广告的冷启动场景——视频号 +5.83%、公众号 +9.67%。冷启动是推荐系统里特征最稀疏的场景，multi-embedding 和 cross pretrained embedding 在这里的增益最大，因为它们从多个角度补偿了数据稀疏带来的信息缺失。
+
+## 行业部署全景：四家公司，四条路线
+
+现在把视角拉远，看整个行业在 12 个月里发生了什么。
+
+```mermaid
+graph TB
+    subgraph timeline["Mixer 架构行业部署时间线"]
+        direction LR
+        RM["2025.7 RankMixer<br/>字节 抖音<br/>1B 参数 MFU 45%"] --> OT["2025.10 OneTrans<br/>字节 电商<br/>统一特征交互+序列建模"]
+        RM --> MT["2025.10 MTmixAtt<br/>美团 首页<br/>AutoToken+MoE"]
+        OT --> HF["2026.1 HyFormer<br/>字节 高流量场景<br/>混合 Transformer"]
+        OT --> TML["2026.2 TokenMixer-Large<br/>字节 全场景<br/>7B-15B 参数"]
+        RM --> RU["2026.4 RankUp<br/>腾讯微信 广告<br/>修复 representation collapse"]
+    end
+
+    style RM fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
+    style OT fill:#c5f6fa,stroke:#0c8599,stroke-width:1px
+    style MT fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
+    style HF fill:#c5f6fa,stroke:#0c8599,stroke-width:1px
+    style TML fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
+    style RU fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
+```
+
+**字节跳动的路线：纵深推进。** 从 RankMixer（1B）出发，一方面纵向 scale 到 TokenMixer-Large（7B-15B），另一方面横向统一到 OneTrans（特征交互 + 序列建模），再到 HyFormer（进一步优化统一架构的序列建模部分）。字节的策略是最激进的——它同时在参数量、架构统一性、和 serving 效率三条线上推进。
+
+**腾讯微信的路线：深度诊断。** 没有急于 scale 参数量，而是在 100M 量级上深入分析了 Mixer 架构的表示能力瓶颈。RankUp 发现的 representation collapse 问题是一个对整个 Mixer 家族都有价值的洞察——它意味着单纯加参数不够，输入空间的多样性是另一个独立的 scaling 维度。
+
+**美团的路线：场景适配。** MTmixAtt（2025.10）的创新点是 AutoToken——自动把异构特征聚类成语义一致的 token 组，替代了人工定义特征分组的传统做法。同时用可学习的 mixing matrix 替代了 RankMixer 的无参数 mixing，并引入了场景感知的 sparse expert 来处理美团多场景（首页、外卖、酒旅）的需求。线上结果：首页支付 PV +3.62%，GTV +2.54%。
+
+**一个有趣的对照：字节 vs 腾讯的不同优先级。** 字节在 2025 年底就从 1B scale 到了 7B，2026 年初到了 15B——速度优先，先把参数量推上去，遇到问题再修。腾讯在同一时期停留在 100M 量级，花了大量精力做 representation 层面的分析，发现了 collapse 问题后才做架构改进。两种策略都拿到了显著的线上收益，但产出的知识不同：字节贡献了 scaling 的工程 know-how（怎么训 15B 的推荐模型、怎么做 token parallel、怎么 sparse），腾讯贡献了架构层面的理论洞察（为什么加参数不等于加表示能力、输入多样性和计算深度是两个独立的 scaling 维度）。
+
+**跨公司的共同模式：** 尽管四家公司的具体路线不同，但有三个趋势是一致的：
+
+1. **全部用 token mixing 替代了 self-attention 做特征交互。** 无论是 RankMixer 的无参数 mixing、MTmixAtt 的可学习 mixing matrix、还是 HyFormer 的 efficient token mixing，核心操作都不是计算注意力权重。
+2. **全部采用了 per-token 或 per-group 的独立参数。** 没有一家还在用 NLP 式的全 token 共享 FFN。推荐系统异构 token 需要独立参数这一点已经成为行业共识。
+3. **全部在做 MoE 稀疏化。** 从 RankMixer 的 ReLU-MoE 到 TokenMixer-Large 的 Sparse Per-token MoE 到 MTmixAtt 的场景感知 sparse expert，MoE 是推荐系统大模型控制 serving 成本的标配。
+
+## Mixer 为什么赢了 Attention
+
+回到一个更根本的问题：为什么 token mixing 在推荐系统里替代了 self-attention？不只是因为效果更好（那可能只是暂时的），而是因为有三个结构性的理由。
+
+**理由一：硬件利用率。** Self-attention 的 O(T²) 复杂度在 NLP 里不是大问题（序列长度通常几千），但推荐系统的 token 数量（几百个特征字段 + 上千步行为序列）让注意力矩阵的计算和存储成为瓶颈。更重要的是，推荐系统的特征是高度稀疏的（大量 ID 类特征），sparse lookup + dense attention 的组合让 GPU 在 memory-bound 和 compute-bound 之间反复切换，MFU 极低。Token mixing 把所有操作统一成 dense matmul，让 GPU 保持在 compute-bound 状态。RankMixer 的 MFU 从 4.5% 到 45% 不是工程优化的结果，而是架构层面消除了 memory-bound 操作。
+
+**理由二：异构 token 空间。** NLP 的 self-attention 假设所有 token 在同一个语义空间里。推荐系统的 token 来自完全不同的特征空间——"年龄"和"品类"之间计算内积没有语义含义。Token mixing 不假设 token 之间有可比较的语义——它只是让信息流动，具体的语义处理交给 per-token FFN 在各自的特征空间里完成。这更符合推荐系统的数据本质。
+
+**理由三：Scaling 属性。** RankMixer 到 TokenMixer-Large 的演进证明了 token mixing 架构在 15B 参数量级下仍然有持续的 scaling 收益。更重要的是，MFU 的大幅提升意味着同样的硬件预算下，Mixer 架构可以部署比 attention 架构大得多的模型。在推荐系统"延迟预算 < 15ms"的硬约束下，这个属性决定了谁能先 scale 到下一个量级。
+
+这三个理由加在一起，意味着 Mixer 替代 Attention 不是一个暂时的技术选择，而是推荐系统发现了自己原生的架构范式。过去十年，推荐系统一直在 NLP 和 CV 的架构创新后面跟跑——Embedding 跟 word2vec，序列建模跟 RNN/Transformer，注意力机制跟 BERT。Mixer 可能是推荐系统第一次走出了一条 NLP 没走过的路。
+
+## 对从业者的启示
+
+**如果你还在用 attention 做特征交互：** Mixer 架构的行业采纳速度表明，attention-based 的特征交互模块（AutoInt、InterFormer、DHEN）可能已经不是最优选择。核心决策点不是"Mixer 比 Attention 好多少 AUC"，而是"Mixer 的 MFU 优势让你在同样的 serving 预算下能部署多大的模型"。在 scaling law 成立的前提下，能部署更大模型的架构最终一定会赢。
+
+**如果你在做 Mixer 但还没 scale：** TokenMixer-Large 踩过的三个坑（残差对齐、深层梯度、MoE 范式）是必经之路。特别是残差对齐——mixing 改变了 token 语义这件事在 2 层的时候不明显，到 8 层以上就成了硬伤。如果你在计划从 100M scale 到 1B，mixing-and-reverting 几乎是必须的。
+
+**如果你已经在 scale：** 腾讯的 representation collapse 发现值得认真对待。参数量增加不等于表示能力增加——effective rank 可能在深层反而下降。RankUp 提出的"扩展输入空间而非计算空间"的思路可能是 Mixer 架构下一阶段的关键方向。在你的模型上做 effective rank 分析（用奇异值分解 + Shannon 熵），成本很低但洞察价值很高。
+
+**如果你在做广告系统：** RankUp 在新广告冷启动上的巨大增益（公众号 +9.67%）说明 multi-embedding 和 cross pretrained embedding 对稀疏场景有显著价值。广告系统天然面临更严重的冷启动问题（新广告主、新素材），在 embedding 层面做多样性投入的 ROI 可能比在模型层面加深度更高。
+
+推荐系统的 Mixer 革命还在加速。12 个月前这是一篇论文，12 个月后这是四家大厂的生产标准。下一步的竞争不在"要不要用 Mixer"——这已经不是问题了——而在谁能把 Mixer 架构 scale 到 100B 级别并控制住 serving 成本。在这个方向上，目前字节跳动走得最远，但腾讯在表示能力分析上的深度、美团在场景适配上的灵活性，都可能在下一轮 scaling 中成为关键差异化因素。
+
+---
+
+**References:**
+
+- [RankMixer: Scaling Up Ranking Models in Industrial Recommenders](https://arxiv.org/abs/2507.15551) - ByteDance (2025.7)
+- [TokenMixer-Large: Scaling Up Large Ranking Models in Industrial Recommenders](https://arxiv.org/abs/2602.06563) - ByteDance (2026.2)
+- [RankUp: Towards High-rank Representations for Large Scale Advertising Recommender Systems](https://arxiv.org/abs/2604.17878) - Tencent WeChat (2026.4)
+- [MTmixAtt: Integrating Mixture-of-Experts with Multi-Mix Attention for Large-Scale Recommendation](https://arxiv.org/abs/2510.15286) - Meituan (2025.10)
+- [HyFormer: Revisiting the Roles of Sequence Modeling and Feature Interaction in CTR Prediction](https://arxiv.org/abs/2601.12681) - (2026.1)
+- [OneTrans: One Transformer for Unified Feature Interaction and Sequence Modeling in Ranking](https://arxiv.org/abs/2510.26104) - ByteDance (2025.10)
