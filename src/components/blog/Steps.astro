@@ -1,0 +1,15 @@
+---
+---
+
+<div class="not-prose my-8 steps-container">
+  <slot />
+</div>
+
+<script>
+document.querySelectorAll('.steps-container').forEach((container) => {
+  const items = container.querySelectorAll('.step-number');
+  items.forEach((el, i) => {
+    el.textContent = String(i + 1);
+  });
+});
+</script>

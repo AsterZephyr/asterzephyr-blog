@@ -1,0 +1,54 @@
+---
+interface Side {
+  title: string;
+  items: string[];
+}
+
+interface Props {
+  left: Side;
+  right: Side;
+  leftLabel?: string;
+  rightLabel?: string;
+}
+
+const { left, right, leftLabel, rightLabel } = Astro.props;
+---
+
+<div class="not-prose my-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div class="rounded-lg border border-[var(--color-border)] p-5 bg-[var(--color-surface)]">
+    {leftLabel && (
+      <span class="inline-block text-xs font-semibold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded mb-3">{leftLabel}</span>
+    )}
+    <h4 class="font-semibold text-[var(--color-heading)] mb-3">{left.title}</h4>
+    <ul class="space-y-2">
+      {left.items.map((item) => (
+        <li class="flex items-start gap-2 text-sm text-[var(--color-body)]">
+          <span class="text-emerald-500 mt-0.5 shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+              <path fill-rule="evenodd" d="M12.416 3.376a.75.75 0 01.208 1.04l-5 7.5a.75.75 0 01-1.154.114l-3-3a.75.75 0 011.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 011.04-.207z" clip-rule="evenodd" />
+            </svg>
+          </span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+  <div class="rounded-lg border border-[var(--color-border)] p-5 bg-[var(--color-surface)]">
+    {rightLabel && (
+      <span class="inline-block text-xs font-semibold uppercase tracking-wider text-rose-600 bg-rose-50 px-2 py-0.5 rounded mb-3">{rightLabel}</span>
+    )}
+    <h4 class="font-semibold text-[var(--color-heading)] mb-3">{right.title}</h4>
+    <ul class="space-y-2">
+      {right.items.map((item) => (
+        <li class="flex items-start gap-2 text-sm text-[var(--color-body)]">
+          <span class="text-emerald-500 mt-0.5 shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+              <path fill-rule="evenodd" d="M12.416 3.376a.75.75 0 01.208 1.04l-5 7.5a.75.75 0 01-1.154.114l-3-3a.75.75 0 011.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 011.04-.207z" clip-rule="evenodd" />
+            </svg>
+          </span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</div>

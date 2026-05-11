@@ -1,0 +1,53 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<div class="step-item">
+  <div class="step-marker">
+    <div class="w-8 h-8 rounded-full bg-[var(--color-accent)] text-white flex items-center justify-center text-sm font-bold shrink-0">
+      <span class="step-number"></span>
+    </div>
+    <div class="step-line flex-1 w-0.5 bg-[var(--color-border)]"></div>
+  </div>
+  <div class="pb-8 pt-0.5">
+    <h4 class="font-semibold text-[var(--color-heading)] mb-2">{title}</h4>
+    <div class="step-content text-sm leading-relaxed text-[var(--color-body)]">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<style>
+  .step-item {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: 1rem;
+  }
+  .step-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .step-item:last-child .step-line {
+    display: none;
+  }
+  .step-item:last-child > div:last-child {
+    padding-bottom: 0;
+  }
+  .step-content :global(p) {
+    margin: 0;
+  }
+  .step-content :global(p + p) {
+    margin-top: 0.5rem;
+  }
+  .step-content :global(code) {
+    background-color: rgba(0, 0, 0, 0.06);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.85em;
+  }
+</style>

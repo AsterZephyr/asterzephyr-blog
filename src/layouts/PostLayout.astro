@@ -81,22 +81,45 @@ async function renderMermaidDiagrams() {
 
   mermaid.initialize({
     startOnLoad: false,
-    theme: 'dark',
+    theme: 'base',
     themeVariables: {
       darkMode: true,
-      background: '#1a1b26',
-      primaryColor: '#7aa2f7',
-      primaryTextColor: '#c0caf5',
-      primaryBorderColor: '#565f89',
-      secondaryColor: '#292e42',
-      tertiaryColor: '#24283b',
-      lineColor: '#565f89',
-      textColor: '#c0caf5',
-      mainBkg: '#1a1b26',
-      nodeBorder: '#565f89',
-      clusterBkg: '#24283b',
-      titleColor: '#c0caf5',
-      edgeLabelBackground: '#1a1b26',
+      background: '#1c1917',
+      fontSize: '16px',
+      primaryColor: '#92400e',
+      primaryTextColor: '#fef3c7',
+      primaryBorderColor: '#b45309',
+      secondaryColor: '#44403c',
+      tertiaryColor: '#292524',
+      lineColor: '#78716c',
+      textColor: '#d6d3d1',
+      mainBkg: '#292524',
+      nodeBorder: '#b45309',
+      clusterBkg: '#1c1917',
+      clusterBorder: '#57534e',
+      titleColor: '#fbbf24',
+      edgeLabelBackground: '#292524',
+      nodeTextColor: '#fef3c7',
+      actorTextColor: '#fef3c7',
+      actorBkg: '#292524',
+      actorBorder: '#b45309',
+      actorLineColor: '#78716c',
+      signalColor: '#d6d3d1',
+      signalTextColor: '#fef3c7',
+      labelBoxBkgColor: '#292524',
+      labelBoxBorderColor: '#57534e',
+      labelTextColor: '#d6d3d1',
+      loopTextColor: '#d6d3d1',
+      noteBkgColor: '#422006',
+      noteBorderColor: '#b45309',
+      noteTextColor: '#fef3c7',
+      sectionBkgColor: '#292524',
+      sectionBkgColor2: '#1c1917',
+      taskBkgColor: '#92400e',
+      taskTextColor: '#fef3c7',
+      taskBorderColor: '#b45309',
+      activeTaskBkgColor: '#b45309',
+      activeTaskBorderColor: '#fbbf24',
     },
   });
 
@@ -125,10 +148,15 @@ document.addEventListener('astro:after-swap', renderMermaidDiagrams);
     display: flex;
     justify-content: center;
     margin: 1.5rem 0;
+    padding: 1rem;
     overflow-x: auto;
+    background: #1c1917;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
   }
   .mermaid-diagram svg {
     max-width: 100%;
     height: auto;
+    font-size: 16px;
   }
 </style>

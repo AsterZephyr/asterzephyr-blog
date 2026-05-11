@@ -1,0 +1,75 @@
+---
+interface Props {
+  type?: 'info' | 'warning' | 'tip' | 'note';
+  title?: string;
+}
+
+const { type = 'info', title } = Astro.props;
+
+const config = {
+  info: {
+    border: 'border-l-blue-500',
+    bg: 'bg-blue-50',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-blue-600 shrink-0"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" /></svg>`,
+    titleColor: 'text-blue-800',
+  },
+  warning: {
+    border: 'border-l-amber-500',
+    bg: 'bg-amber-50',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-amber-600 shrink-0"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`,
+    titleColor: 'text-amber-800',
+  },
+  tip: {
+    border: 'border-l-emerald-500',
+    bg: 'bg-emerald-50',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-emerald-600 shrink-0"><path d="M10 1a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 1zM5.05 3.05a.75.75 0 011.06 0l1.062 1.06A.75.75 0 116.11 5.173L5.05 4.11a.75.75 0 010-1.06zm9.9 0a.75.75 0 010 1.06l-1.06 1.062a.75.75 0 01-1.062-1.061l1.061-1.06a.75.75 0 011.06 0zM10 7a3 3 0 00-3 3 .75.75 0 000 1.5 1.5 1.5 0 001.5 1.5.75.75 0 000 1.5A3 3 0 0010 7zm-6.25 3a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zm12.5 0a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5z" /></svg>`,
+    titleColor: 'text-emerald-800',
+  },
+  note: {
+    border: 'border-l-violet-500',
+    bg: 'bg-violet-50',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-violet-600 shrink-0"><path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0011.378 2H4.5zm2.25 8.5a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5zm0 3a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z" clip-rule="evenodd" /></svg>`,
+    titleColor: 'text-violet-800',
+  },
+} as const;
+
+const c = config[type];
+---
+
+<div class={`not-prose my-6 rounded-r-lg border-l-4 ${c.border} ${c.bg} p-4`}>
+  {title ? (
+    <div class="flex items-center gap-2 mb-2">
+      <Fragment set:html={c.icon} />
+      <span class={`font-semibold ${c.titleColor}`}>{title}</span>
+    </div>
+  ) : (
+    <div class="flex items-start gap-2">
+      <div class="mt-0.5">
+        <Fragment set:html={c.icon} />
+      </div>
+      <div class="callout-content text-sm leading-relaxed text-gray-700">
+        <slot />
+      </div>
+    </div>
+  )}
+  {title && (
+    <div class="callout-content text-sm leading-relaxed text-gray-700 ml-7">
+      <slot />
+    </div>
+  )}
+</div>
+
+<style>
+  .callout-content :global(p) {
+    margin: 0;
+  }
+  .callout-content :global(p + p) {
+    margin-top: 0.5rem;
+  }
+  .callout-content :global(code) {
+    background-color: rgba(0, 0, 0, 0.06);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.85em;
+  }
+</style>

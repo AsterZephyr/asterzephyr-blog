@@ -1,0 +1,27 @@
+---
+interface Props {
+  src: string;
+  alt?: string;
+  caption?: string;
+  width?: string;
+}
+
+const { src, alt = '', caption, width = '100%' } = Astro.props;
+---
+
+<figure class="not-prose my-8">
+  <div class="overflow-hidden rounded-lg border border-[var(--color-border)]" style={`max-width: ${width}; margin: 0 auto;`}>
+    <img
+      src={src}
+      alt={alt || caption || ''}
+      class="block w-full"
+      loading="lazy"
+      decoding="async"
+    />
+  </div>
+  {caption && (
+    <figcaption class="mt-3 text-center text-sm text-[var(--color-muted)] italic">
+      {caption}
+    </figcaption>
+  )}
+</figure>

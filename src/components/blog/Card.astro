@@ -1,0 +1,46 @@
+---
+interface Props {
+  title: string;
+  icon?: string;
+  href?: string;
+}
+
+const { title, icon, href } = Astro.props;
+
+const iconMap: Record<string, string> = {
+  book: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M10.75 16.82A7.462 7.462 0 0115 15.5c.71 0 1.396.098 2.046.282A.75.75 0 0018 15.06V3.56a.75.75 0 00-.497-.708A8.96 8.96 0 0015 2.5a8.963 8.963 0 00-4.25 1.065v13.255zM9.25 4.565A8.963 8.963 0 005 2.5a8.96 8.96 0 00-2.503.352A.75.75 0 002 3.56v11.5a.75.75 0 00.953.708A7.462 7.462 0 015 15.5a7.462 7.462 0 014.25 1.32V4.565z" /></svg>`,
+  chart: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M15.5 2A1.5 1.5 0 0014 3.5v13a1.5 1.5 0 001.5 1.5h1a1.5 1.5 0 001.5-1.5v-13A1.5 1.5 0 0016.5 2h-1zM9.5 6A1.5 1.5 0 008 7.5v9A1.5 1.5 0 009.5 18h1a1.5 1.5 0 001.5-1.5v-9A1.5 1.5 0 0010.5 6h-1zM3.5 10A1.5 1.5 0 002 11.5v5A1.5 1.5 0 003.5 18h1A1.5 1.5 0 006 16.5v-5A1.5 1.5 0 004.5 10h-1z" /></svg>`,
+  rocket: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M4.606 12.97a.75.75 0 01-.134 1.051 2.494 2.494 0 00-.93 2.437 2.494 2.494 0 002.437-.93.75.75 0 111.186.918 3.995 3.995 0 01-4.482 1.332.75.75 0 01-.461-.461 3.994 3.994 0 011.332-4.482.75.75 0 011.052.134z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M13.703 2.442c2.258-.66 4.01.09 4.857.936.847.847 1.596 2.6.936 4.857-.33 1.129-.86 2.35-1.628 3.543a24.322 24.322 0 01-.558.842 3.006 3.006 0 01-.634-.066 3.005 3.005 0 01-2.188-2.188c-.033-.16-.056-.323-.066-.49a.75.75 0 00-1.498.066c.016.244.045.488.088.728a4.49 4.49 0 001.334 2.454A22.897 22.897 0 0110.47 15.5a3 3 0 01-2.436-1.065 3 3 0 01-1.065-2.436c.33-1.544 1.03-2.847 1.647-3.84a24.208 24.208 0 012.584-3.387c1.193-.768 2.414-1.298 3.543-1.628l-.04.098zm-2.39 7.57a.75.75 0 00-.161-1.052.75.75 0 00-1.052.161 20.68 20.68 0 00-1.585 2.576.75.75 0 101.34.674 19.175 19.175 0 011.459-2.36z" clip-rule="evenodd" /></svg>`,
+  code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 010 1.06L2.56 10l3.72 3.72a.75.75 0 01-1.06 1.06L.97 10.53a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 0zm7.44 0a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L17.44 10l-3.72-3.72a.75.75 0 010-1.06z" clip-rule="evenodd" /></svg>`,
+  bolt: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M11.983 1.907a.75.75 0 00-1.292-.657l-8.5 9.5A.75.75 0 002.75 12h6.572l-1.305 6.093a.75.75 0 001.292.657l8.5-9.5A.75.75 0 0017.25 8h-6.572l1.305-6.093z" /></svg>`,
+  gear: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M7.84 1.804A1 1 0 018.82 1h2.36a1 1 0 01.98.804l.331 1.652a6.993 6.993 0 011.929 1.115l1.598-.54a1 1 0 011.186.447l1.18 2.044a1 1 0 01-.205 1.251l-1.267 1.113a7.047 7.047 0 010 2.228l1.267 1.113a1 1 0 01.206 1.25l-1.18 2.045a1 1 0 01-1.187.447l-1.598-.54a6.993 6.993 0 01-1.929 1.115l-.33 1.652a1 1 0 01-.98.804H8.82a1 1 0 01-.98-.804l-.331-1.652a6.993 6.993 0 01-1.929-1.115l-1.598.54a1 1 0 01-1.186-.447l-1.18-2.044a1 1 0 01.205-1.251l1.267-1.114a7.05 7.05 0 010-2.227L1.821 7.773a1 1 0 01-.206-1.25l1.18-2.045a1 1 0 011.187-.447l1.598.54A6.992 6.992 0 017.51 3.456l.33-1.652zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>`,
+  star: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" clip-rule="evenodd" /></svg>`,
+};
+
+const Tag = href ? 'a' : 'div';
+const iconSvg = icon && iconMap[icon] ? iconMap[icon] : null;
+---
+
+<Tag
+  class:list={[
+    'block rounded-lg border border-[var(--color-border)] p-5 bg-[var(--color-surface)] transition-all duration-200',
+    href && 'hover:border-[var(--color-accent-light)] hover:shadow-md cursor-pointer no-underline',
+  ]}
+  {...(href ? { href } : {})}
+>
+  {iconSvg && (
+    <div class="text-[var(--color-accent)] mb-3">
+      <Fragment set:html={iconSvg} />
+    </div>
+  )}
+  <h4 class="font-semibold text-[var(--color-heading)] mb-1 text-sm">{title}</h4>
+  <div class="text-sm text-[var(--color-muted)] leading-relaxed card-content">
+    <slot />
+  </div>
+</Tag>
+
+<style>
+  .card-content :global(p) {
+    margin: 0;
+  }
+</style>
