@@ -1,0 +1,228 @@
+---
+title: "Interaction Models：当 AI 模型原生理解「时间」"
+date: 2026-05-12
+tags: [LLM, 多模态, 语音AI, 架构设计]
+category: "技术分享"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+
+# Interaction Models：当 AI 模型原生理解「时间」
+
+让 GPT-4o Realtime 帮你计时 30 秒。它做不到。让它在你做俯卧撑的时候实时报数。它也做不到。让它在你说错一个单词的瞬间打断你纠正。它还是做不到。
+
+不是因为模型不够聪明。GPT-4o 在几乎所有智能基准上都是顶尖水平。做不到的原因更根本：它不知道「现在」是什么时候。它的世界观是回合制的——你说完，它才开始想；它说完，才轮到你。在两个回合之间，模型的感知是冻结的。
+
+2026 年 5 月，Thinking Machines Lab 发布了一篇叫 [Interaction Models](https://thinkingmachines.ai/blog/interaction-models/) 的技术博客。他们训了一个 276B MoE 模型（12B 激活参数），核心设计是每 200 毫秒交替消费一段输入和生成一段输出。模型不等你说完——它一边听你说话一边看你的视频一边组织回答。中断、重叠、沉默、同时说话，这些人类对话中最自然的行为，不需要任何外部组件，全部是模型的原生能力。
+
+这不是"更快的语音助手"。这是对人机交互底层范式的一次挑战：如果 AI 模型能原生感知时间的流逝，人机协作的形态会变成什么样？
+
+## 回合制的结构性问题
+
+理解 Interaction Models 为什么重要，需要先看清当前语音 AI 架构的一个根本性缺陷。
+
+Clark 和 Brennan 在 1991 年提出过有效协作的三个基础：**共在性**（双方能感知对方正在感知的东西）、**即时性**（信息在产生的同时被接收）、**同时性**（收发信息同时进行）。人类面对面对话天然满足这三个条件。但当前所有商业化的语音 AI——包括 GPT-4o Realtime、Gemini Live、Qwen-omni——都在结构上违反了全部三条。
+
+原因在架构层面。以 OpenAI 的 Realtime API 为例，它的交互流程是：
+
+```mermaid
+graph LR
+    subgraph turnbased["回合制语音 AI 架构"]
+        direction LR
+        USER["用户说话"] --> VAD["VAD 检测<br/>说话结束"]
+        VAD --> PROCESS["模型处理<br/>生成回答"]
+        PROCESS --> TTS["音频输出"]
+        TTS --> WAIT["等待用户<br/>下一次输入"]
+        WAIT --> USER
+    end
+
+    subgraph stream["Interaction Models 架构"]
+        direction LR
+        IN0["输入 chunk 0<br/>200ms"] --> OUT0["输出 chunk 0<br/>200ms"]
+        OUT0 --> IN1["输入 chunk 1<br/>200ms"]
+        IN1 --> OUT1["输出 chunk 1<br/>200ms"]
+        OUT1 --> IN2["输入 chunk 2<br/>200ms"]
+        IN2 --> OUT2["输出 chunk 2<br/>200ms"]
+    end
+
+    style USER fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style VAD fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px
+    style PROCESS fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
+    style TTS fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
+    style WAIT fill:#f8f9fa,stroke:#868e96,stroke-width:1px
+    style IN0 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style OUT0 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
+    style IN1 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style OUT1 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
+    style IN2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style OUT2 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
+```
+
+回合制架构的核心组件是 VAD（Voice Activity Detection）。VAD 是一个独立于 LLM 的信号处理模块，职责是判断用户是否在说话、是否说完了。GPT Realtime API 的 server VAD 有三个可配参数：激活阈值、前置填充时长（默认 300ms）、静默触发时长（默认 500ms）。当 VAD 判断用户停止说话后，音频 buffer 被提交给模型处理。
+
+这意味着什么？意味着在用户说话的整个过程中，模型的感知是冻结的。它不知道用户正在说什么、用什么语气、有什么表情。当用户中途停顿喝了口咖啡，VAD 可能误判为说完了，模型就抢答。当用户说了一半想被打断纠正，模型根本不知道该打断——因为 VAD 告诉它"用户还在说话"。
+
+Thinking Machines Lab 引用了一个来自 Anthropic model card 的观察：用户反馈 Claude 在交互模式下"太慢"，而自主运行的 harness 反而能更好地发挥模型能力。他们的评论很尖锐：这不是模型的能力问题，这是接口的设计缺陷。"想象一下用邮件而不是面对面来解决一个重要分歧。"
+
+## 微回合：把时间建入模型
+
+Interaction Models 的核心设计是 **multi-stream micro-turn**：每 200 毫秒，模型交替消费一段输入和生成一段输出。从模型的角度看，它处理的是一条单一的交替 token 序列：
+
+```
+input_0  output_0  input_1  output_1  input_2  output_2  ...
+```
+
+从人类的角度看，输入和输出是同时发生的——你在说话的同时，模型在思考和回答。200ms 的粒度足够细，以至于从体感上是连续的。
+
+这个设计有几个关键含义：
+
+**没有人工定义的 turn boundary。** 在回合制系统里，"什么时候该说话"是由 VAD 决定的。在 Interaction Models 里，模型在每个 200ms 的时间步都可以选择说话或沉默，这个决策是模型自己做的。中断、重叠、等待、同时说话——这些不是需要特殊处理的边界情况，而是模型在 token 序列中自然表达的行为。
+
+**时间成为模型的原生维度。** 因为模型持续处理时间流，它可以感知"从上次事件到现在过了多久"。这让"帮我计时 30 秒"、"每 4 秒提醒我呼吸一次"这类在回合制模型里不可能的任务，变成了 Interaction Models 的基本能力。
+
+**输入流是多模态的。** 每个 200ms 的输入 chunk 可以包含音频、视频帧和文本的任意组合。音频通过 dMel（discrete Mel spectrogram）编码，用一个轻量的 bag-of-embeddings 层转换——不需要像 Whisper 那样的独立 encoder。视频帧被切成 40x40 的 patch，通过 hMLP（hierarchical MLP）编码。所有编码器和 Transformer backbone 从头联合训练，没有预训练的冻结编码器。
+
+```mermaid
+graph TB
+    subgraph model["TML Interaction Model 架构"]
+        direction TB
+        subgraph input["输入流 每200ms"]
+            AUDIO["音频<br/>dMel 编码"] --> BOE["Bag of Embeddings"]
+            VIDEO["视频帧<br/>40x40 patch"] --> HMLP["hMLP"]
+            TEXT["文本"] --> TEMB["Token Embedding"]
+        end
+
+        BOE --> TRANSFORMER["276B MoE Transformer<br/>12B 激活参数<br/>从头联合训练"]
+        HMLP --> TRANSFORMER
+        TEMB --> TRANSFORMER
+
+        TRANSFORMER --> TEXTOUT["文本输出"]
+        TRANSFORMER --> FLOWHEAD["Flow Head<br/>Mel Spectrogram"]
+        FLOWHEAD --> SPEECH["语音输出"]
+
+        subgraph bg["后台推理"]
+            BGMODEL["Background Model<br/>异步深度推理"]
+        end
+
+        TRANSFORMER -.->|"委托复杂任务"| BGMODEL
+        BGMODEL -.->|"在合适时机<br/>流入对话"| TRANSFORMER
+    end
+
+    style AUDIO fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style VIDEO fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style TEXT fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
+    style BOE fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
+    style HMLP fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
+    style TEMB fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
+    style TRANSFORMER fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
+    style TEXTOUT fill:#c5f6fa,stroke:#0c8599,stroke-width:1px
+    style FLOWHEAD fill:#c5f6fa,stroke:#0c8599,stroke-width:1px
+    style SPEECH fill:#c5f6fa,stroke:#0c8599,stroke-width:1px
+    style BGMODEL fill:#e7f5ff,stroke:#1971c2,stroke-width:2px
+```
+
+模型规模是 276B 参数的 MoE（Mixture of Experts），12B 激活参数。选择 MoE 而不是 dense 是一个关键的工程判断：200ms 的时间预算对推理延迟要求极高，12B 的激活参数量在当前硬件上可以满足延迟约束，而 276B 的总参数量提供了足够的模型容量。
+
+音频输出端使用 flow head（基于 flow matching）直接生成 mel spectrogram，不需要独立的 TTS 模型。整个系统——dMel 编码、hMLP 视觉编码、Transformer backbone、flow head——全部从头联合训练。这是 TML 博客中反复强调的设计原则：**encoder-free early fusion**，用最轻量的编码器把原始信号尽早送入 Transformer，让模型自己学习跨模态的表示。
+
+## 三代实时语音架构
+
+要理解 Interaction Models 在技术演进中的位置，需要把它和前几代实时语音架构放在一起看。
+
+**第零代：Pipeline 架构。** Alexa、Google Assistant、早期的智能音箱。ASR 把语音转文字 → NLU 理解意图 → 后端服务处理 → TTS 把文字转语音。每个环节串行，端到端延迟以秒计。交互模式是严格的命令-响应。
+
+**第一代：端到端回合制。** GPT-4o Realtime（2024.10）、Gemini Live。模型原生处理音频 token，不再需要独立的 ASR 和 TTS pipeline。这大幅降低了延迟，也让模型能理解语调、情绪等音频维度的信息。但交互模式仍然是回合制的——VAD 判断用户说完，模型才开始生成。GPT Realtime 在 FD-bench V1 上的 turn-taking 延迟是 1.18 秒。
+
+**第 1.5 代：双流全双工。** Kyutai 的 Moshi（2024.9）是第一个尝试全双工语音对话的模型。它用一个 7B dense Transformer 建模两条平行的音频流——用户语音流和模型语音流——用 Mimi 神经音频编码器把音频压缩到 1.1kbps。模型可以在用户说话的同时生成回答，理论延迟约 200ms。
+
+Moshi 验证了全双工的可行性，但暴露了一个根本矛盾：**小模型能快但不能聪明。** 7B 参数的 dense 模型在速度上达标了，但智能水平不够用。HN 上的评测者反馈：问 Moshi 现在是哪一年，它回答"2019"；让它聊天，它会不着边际地讨论欧洲足球或俄乌冲突；回答表面上很快，但实际上是用缓存的填充语句应付，真正的答案要等很久才出来。
+
+**第二代：微回合流式。** TML 的 Interaction Models。和 Moshi 的核心区别不仅是模型更大（276B vs 7B），而是架构上的三个跃迁：
+
+| 维度 | Moshi (2024) | TML Interaction (2026) |
+|:-----|:-------------|:-----------------------|
+| 模态 | 纯音频 | 音频 + 视频 + 文本 |
+| 时间感知 | 能同时听说，但不理解时间 | 原生感知时间流逝 |
+| 深度推理 | 无（7B 模型即上限） | Background model 异步处理 |
+| 音频编码 | Mimi 神经编码器 | dMel + 轻量 embedding |
+| 智能水平 | 低（事实性错误频发） | 竞争力水平（IFEval 89.7%） |
+
+一个 HN 评论者在 Moshi 发布时就预言了 TML 的做法："7B 模型不会太聪明。如果 70B 模型的延迟大约 1 秒，那大概存在一种系统架构是用一两个快模型加慢模型配合的。"——两年后 TML 的 interaction model + background model 正是这个思路。
+
+## Bitter Lesson 在交互领域的验证
+
+TML 博客里直接引用了 Sutton 的 Bitter Lesson（2019）："手工设计的系统终将被通用计算方法的进步所超越。"
+
+在实时语音 AI 的语境下，哪些是"手工设计的系统"？
+
+**VAD 是手工组件。** 它用信号处理的方法判断用户是否在说话，这个判断和对话内容完全无关。VAD 不知道用户停顿是在思考还是在喝咖啡，不知道用户的语气是否在寻求打断，不知道用户是不是在和别人说话。TML 的评价是：VAD "比模型本身蠢得多"。
+
+**Turn detection 是手工组件。** 判断用户说完了没有、该不该响应，在当前系统里是 harness 层面的逻辑，和 LLM 的能力无关。
+
+**Dialog management 是手工组件。** 在回合制架构里，多轮对话的状态管理、上下文窗口、历史压缩都是模型之外的工程。
+
+这些手工组件有一个共同的天花板效应：**scaling 模型不会让它们变好。** 你可以把 GPT-4o 升级到 GPT-5，模型变聪明了，但 VAD 还是那个 VAD，turn detection 还是那个 turn detection。模型的智能增长和交互能力增长是脱耦的。
+
+TML 的核心论点是：**交互能力必须成为模型的一部分，scaling 才能同时提升智能和协作能力。** 在 Interaction Models 的架构下，更大的模型不仅更聪明，也更善于判断什么时候该说话、什么时候该等待、什么时候该打断——因为这些决策和理解对话内容是同一个模型在做。
+
+这个论点的说服力在于具体的能力演示。TML 定义了几个新 benchmark 来测量时间感知能力：
+
+- **TimeSpeak**：模型需要在用户指定的时间点说出正确的内容（比如"每 4 秒提醒我呼吸一次"）
+- **CueSpeak**：模型需要在语义触发的正确时刻说话（比如"每次我切换语言就告诉我正确的词"——需要在用户说话的同时响应）
+- **RepCount**：从视频流中实时计数重复动作（比如俯卧撑）
+
+这些任务有一个共同特征：现有模型——包括 GPT-Realtime-2.0——基本无法完成。不是因为不够聪明，而是因为架构上做不到。回合制模型在生成回答的时候感知是冻结的，它不可能在用户做俯卧撑的同时实时看视频并报数。
+
+## Background Model：实时性和深度思考的解耦
+
+Interaction Models 的另一个关键设计是双模型架构：interaction model 负责实时交互，background model 负责深度推理。
+
+这不是简单的"快模型 + 慢模型"分工。TML 强调 interaction model 本身在智能基准上也有竞争力——IFEval 89.7%（GPT-Realtime-2.0 是 89.6%），Audio MultiChallenge 43.4%（GPT-Realtime-2.0 minimal 是 37.6%）。Interaction model 不是一个"弱智前台"。
+
+但有些任务确实需要更深的思考——复杂推理、代码分析、规划——这些在 200ms 的时间步内完成不了。Background model 的工作方式是：
+
+1. Interaction model 判断当前任务需要深度推理，把完整的对话上下文（不是精简的 query）发给 background model
+2. Background model 异步运行，interaction model 继续在线——可以回答后续问题、接收新输入、维持对话流
+3. Background model 的结果在**对话的合适间隙**流入，而不是突然打断当前的交流
+
+这个设计的巧妙之处在于类比人类协作：你和同事边聊天边等他帮你查数据，查到了他在自然的停顿点告诉你结果，而不是不管你在说什么就插嘴。
+
+从基准数据看，background model 的价值很明显：BigBench Audio 上，不加 background model 是 75.7%，加上后跳到 96.5%（GPT-Realtime-2.0 xhigh thinking mode 是 96.6%）。也就是说 interaction model + background model 的组合，在智能水平上追平了 GPT 的 thinking mode，但不需要牺牲实时性。
+
+## 没说的比说的更重要
+
+作为一篇公司技术博客，Interaction Models 的披露是有选择性的。诚实的评估需要关注它没说什么：
+
+**训练数据完全未披露。** 一个 276B MoE 模型从头训练，数据规模、数据来源、数据配比——一个字都没提。这在技术博客中不算罕见，但意味着复现路径是不存在的。
+
+**Background model 的延迟数据缺失。** Interaction model 的 turn-taking 延迟是 0.40 秒（FD-bench V1），但 background model 从接收任务到返回结果要多久？这个关键数据没有给出。如果 background model 需要 10 秒才能回答一个问题，双模型架构的实际体验会和预期有明显差距。
+
+**在视频 QA 上不如竞品。** QIVD benchmark（视频 + 音频问答，流式场景）上，TML 得分 54.0，GPT-Realtime-2.0 是 57.5，Qwen 3.5 是 59.0。这是 TML 公布数据中唯一落后的主要 benchmark——说明在纯粹的视频理解能力上，微回合架构的优势还没有完全转化。
+
+**新 benchmark 是内部定义的。** TimeSpeak、CueSpeak 这些用来展示时间感知能力的 benchmark 是 TML 自己设计的。竞品在这些任务上"基本无法完成"——但这也意味着对比是不完全的。当你定义 benchmark 的时候，你天然占据先手优势。
+
+**长 session 仍是未解问题。** 连续的音视频流会快速累积 context。TML 自己承认"非常长的 session 仍然需要仔细的 context 管理——这是一个活跃的研究方向"。在文本场景里，context 管理已经很难了；在每秒 5 帧视频 + 连续音频的场景里，context 积累速度要快几个数量级。
+
+**关于防御性。** HN 讨论中有人直接问：架构已经公开，什么阻止 Anthropic/Google/OpenAI/Meta 复现？一位评论者的回答很有洞察力：公开的架构只是冰山一角，超参调优、数据配方、自定义 kernel、RL/eval 基础设施代表了大量 PhD 级别的工程积累。但这个回答也意味着：如果大厂决定投入资源做同样的事情，TML 的时间窗口是有限的。
+
+综合来看：**技术方向正确，工程实现令人印象深刻，但当前模型更接近 proof of concept 而非生产就绪的系统。** 这不是贬低——第一个证明"模型可以原生理解时间"的系统本身就有巨大的价值。
+
+## 对从业者的启示
+
+**如果你在做语音 AI 产品：** VAD + 回合制模型的天花板已经可见。核心问题不是"怎么做更好的 VAD"，而是"应不应该继续用 VAD"。Interaction Models 展示的能力（实时视频理解、时间感知、同时说话）在回合制架构上是结构性不可能的——不是优化能解决的。如果你的产品路线图在 2-3 年后需要这些能力，现在就需要开始评估流式架构。
+
+**如果你在做 LLM 推理优化：** 200ms 微回合对 inference framework 提出了完全不同的要求。现有的 LLM inference 库（vLLM、TensorRT-LLM）优化的是大块 prefill + 长序列 decode。微回合架构需要的是频繁的小 prefill、streaming session（跨 request 复用 GPU memory 中的 KV cache）、以及确定性的训推对齐。TML 已经把 streaming session 的部分优化贡献给了开源的 SGLang（PR #19171），包括 batch-invariant kernel 在 Blackwell GPU 上的实现。这个方向的工程挑战——频繁小 prefill 的 overhead 控制、MoE routing 在极低延迟下的效率——会成为下一代 inference 框架的核心议题。
+
+**如果你关注 AI 的长期方向：** Interaction Models 指向的终局不是"更快的语音助手"，而是"持续共在的 AI"。如果模型真的能像 TML 演示的那样——在你工作的时候安静地看着屏幕，发现 bug 就提醒你，你喝咖啡的时候自然地等待而不是抢答——那人机交互的形态会从"你问我答"变成"一直在旁边"。这对产品设计、隐私、计算成本都有深远影响。一个 276B MoE 模型持续运行的计算成本远高于按需调用的回合制模型，但 TML 显然在赌：持续的感知带来的协作价值远超这个成本差异。
+
+回合制接口不是 AI 的本质限制，而是工程上的路径依赖。NLP 世界里的 prompt-response 范式、Web 世界里的 request-response 范式、传统电话系统里的半双工通信——这些都是技术约束导致的设计选择，不是人类协作的自然形态。第一个认真尝试打破这个路径依赖的模型，已经出现了。它还粗糙、还有很多未解的工程问题、还不清楚大厂会不会在 12 个月内追上来。但它证明了一件事：**AI 模型可以原生理解时间，而不是假装理解。**
+
+---
+
+**References:**
+
+- [Interaction Models](https://thinkingmachines.ai/blog/interaction-models/) - Thinking Machines Lab (2026.5)
+- [Moshi: A speech-text foundation model for real time dialogue](https://github.com/kyutai-labs/moshi) - Kyutai (2024.9)
+- [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime) - OpenAI (2024.10)
+- [The Bitter Lesson](http://www.incompleteideas.net/IncIdeas/BitterLesson.html) - Rich Sutton (2019)
+- [Grounding in Communication](https://doi.org/10.1037/10096-006) - Clark & Brennan (1991)
