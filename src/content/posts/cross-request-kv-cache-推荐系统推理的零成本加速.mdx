@@ -1,0 +1,158 @@
+---
+title: "Cross-Request KV Caching：推荐系统推理的零成本加速"
+date: 2026-05-17
+tags: [推荐系统, KV Cache, 推理优化, Serving, 深度学习]
+category: "技术分享"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+KV Caching 在 LLM 领域已经是标准操作——每生成一个新 token 时，不重新计算前面所有 token 的 Key/Value，直接复用缓存。这个技术在推荐系统中同样适用，且加速比更极端：**LLM 的 cache 省的是 O(N) 的重复计算，推荐系统的 cache 省的是 O(C×N) 的跨候选重复计算**，其中 C 是候选数（通常 50-200）。
+
+本文深入分析推荐系统 KV Caching 的设计空间、工程实现和 production-level 的坑。
+
+## 为什么推荐比 LLM 更需要 KV Cache
+
+### LLM 场景
+
+```
+Token 生成: [已生成 t₁...tₙ] → 生成 tₙ₊₁
+Cache 作用: 不重新计算 t₁...tₙ 的 KV
+加速: O(N) → O(1) per token
+```
+
+### 推荐场景
+
+```
+打分: 对 C 个候选打分，共享同一个用户的行为序列
+无 cache: C 次完整前向传播（各含 ~1500 token）
+有 cache: 1 次用户侧计算 + C 次轻量候选计算（~16 token）
+加速: O(C×N) → O(N + C×d)，即 ~30-50x
+```
+
+<TechGraph src="/images/posts/cross-request-kv-cache-推荐系统推理的零成本加速/kv-cache-comparison.svg" title="KV CACHE 对比" caption="无 Cache vs 有 Cache：共享用户侧计算，候选打分轻量化" />
+
+## 实现的前提条件
+
+### 1. Causal Attention Mask（必须）
+
+KV Cache 能工作的数学前提是：**用户侧 token 的 representation 不依赖广告侧 token。**
+
+在 causal mask 下：
+- S-tokens 只 attend to 前面的 S-tokens
+- NS-tokens 可以 attend to 所有 S-tokens + 前面的 NS-tokens
+
+只要把所有用户侧 token 排在广告侧 token 前面，用户的 KV 就与候选无关——可以安全缓存。
+
+**Full attention 不行**：如果使用 bidirectional attention，S-tokens 的 representation 会因为不同候选的存在而改变。这是为什么 BERT-style 的推荐模型无法使用此优化。
+
+### 2. 清晰的 User/Item 分离（必须）
+
+模型输入必须能清晰分为"用户侧"和"候选侧"：
+- 用户侧（cacheable）：行为序列、用户画像、上下文特征
+- 候选侧（per-candidate）：广告/商品特征
+
+如果存在 user-item 交叉特征（如"用户对该品类的历史 CTR"），要么提前算好放用户侧，要么放候选侧重算。
+
+### 3. 固定的用户侧 token 数量（推荐但非必须）
+
+如果用户侧 token 数量变化，cache 的管理会复杂化（需要记录每个 cache entry 的形状）。实践中通过 padding 到固定长度解决。
+
+## 工程实现
+
+### 架构选型
+
+<TechGraph src="/images/posts/cross-request-kv-cache-推荐系统推理的零成本加速/inference-architecture.svg" title="推理服务架构选型" caption="三种缓存方案对比：GPU 本地 / Redis 集群 / 两级混合（生产首选）" />
+
+| 方案 | 延迟 | 命中率 | 内存开销 | 适用场景 |
+|------|------|--------|---------|---------|
+| GPU 本地 | <1ms | 低（同 Pod 才命中） | 占 GPU 显存 | 小规模、固定路由 |
+| Redis | 2-5ms | 高（全局共享） | 独立集群 | 大规模、无状态服务 |
+| 两级混合 | <1ms (hot) / 3ms (cold) | 最高 | 中等 | 生产首选 |
+
+### 缓存 Key 设计
+
+```
+cache_key = f"{user_id}:{seq_hash}:{model_version}"
+```
+
+- `user_id`: 用户标识
+- `seq_hash`: 行为序列的 hash（序列变了 cache 就失效）
+- `model_version`: 模型更新后旧 cache 作废
+
+### TTL 策略
+
+- **短 TTL (秒级)**：同一个 page 内多个广告位共用 cache
+- **中 TTL (分钟级)**：用户连续刷 feed 时复用
+- **长 TTL (小时级)**：配合增量更新，只对新增行为算 delta
+
+实践中：`TTL = min(用户平均请求间隔 × 3, 5分钟)`
+
+### Cache Invalidation
+
+三种失效场景：
+1. **模型更新**：全量 cache 清空（灰度发布时新旧模型各自缓存）
+2. **行为序列变化**：通过 seq_hash 自动失效
+3. **特征变化**（如实时标签更新）：按需失效或接受短暂的 stale data
+
+## Production 踩坑
+
+### 坑 1：Cache stampede
+
+所有请求同时 cache miss → 雪崩式的全量计算 → 服务崩溃。
+
+解法：**staggered TTL + singleflight**
+```python
+# 同一个 user 的并发请求，只有第一个真正计算，其余等待
+async def get_or_compute(user_id, seq):
+    lock = await cache.acquire_lock(f"compute:{user_id}")
+    if lock:
+        kv = compute_user_kv(seq)
+        cache.set(user_id, kv)
+        cache.release_lock(f"compute:{user_id}")
+        return kv
+    else:
+        return await cache.wait_for(user_id, timeout=10ms)
+```
+
+### 坑 2：显存 OOM
+
+KV cache per user ≈ 2 × n_layers × seq_len × d_model × dtype_size
+= 2 × 6 × 1500 × 256 × 2 bytes = 9.2MB / user
+
+1000 个并发用户 → 9.2GB 显存！
+
+解法：
+- 量化 cache 到 INT8（减半）
+- 只 cache 最后 2-3 层的 KV（深层 KV 对结果影响最大）
+- LRU 淘汰 + 按用户活跃度分级
+
+### 坑 3：精度漂移
+
+增量更新累积误差——每次 append 新 token 的 KV 时，LayerNorm 的统计量略有偏差。累积 100 次后精度可能下降。
+
+解法：每 N 次增量后做一次全量刷新（N 通过 offline evaluation 确定，通常 N=50-100）。
+
+## 量化收益
+
+字节跳动公开数据（OneTrans 场景）：
+
+| 指标 | 无 Cache | 有 Cache | 提升 |
+|------|---------|---------|------|
+| P99 延迟 | 45ms | 14ms | 3.2x |
+| 平均延迟 | 25ms | 8ms | 3.1x |
+| GPU 利用率 | 85% | 40% | 节省一半 GPU |
+| 吞吐 (QPS/GPU) | 2000 | 6000 | 3x |
+
+## 对从业者的启示
+
+1. **Causal attention 是战略选择。** 它打开了 KV caching 的大门——这是 3-5x 的免费加速。如果你还在用 full attention，迁移到 causal 是 ROI 最高的优化。
+2. **两级缓存是生产最优解。** GPU 本地存 hot user，Redis 存全量。命中率和延迟的最优平衡。
+3. **Cache 设计要和模型设计一起做。** 模型的 token 排布（用户在前、候选在后）、attention mask 类型，都直接决定了 cache 的可行性。
+4. **监控 cache 命中率。** 低于 70% 说明 TTL 策略或路由有问题。高命中率下的加速比接近理论上限。
+
+---
+
+*本文基于 OneTrans 系统论文、LLM serving 最佳实践 (vLLM/TGI) 迁移到推荐场景的工程经验整理。*

@@ -6,6 +6,7 @@ category: "技术分享"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 # Interaction Models：当 AI 模型原生理解「时间」
 
@@ -25,38 +26,7 @@ Clark 和 Brennan 在 1991 年提出过有效协作的三个基础：**共在性
 
 原因在架构层面。以 OpenAI 的 Realtime API 为例，它的交互流程是：
 
-```mermaid
-graph LR
-    subgraph turnbased["回合制语音 AI 架构"]
-        direction LR
-        USER["用户说话"] --> VAD["VAD 检测<br/>说话结束"]
-        VAD --> PROCESS["模型处理<br/>生成回答"]
-        PROCESS --> TTS["音频输出"]
-        TTS --> WAIT["等待用户<br/>下一次输入"]
-        WAIT --> USER
-    end
-
-    subgraph stream["Interaction Models 架构"]
-        direction LR
-        IN0["输入 chunk 0<br/>200ms"] --> OUT0["输出 chunk 0<br/>200ms"]
-        OUT0 --> IN1["输入 chunk 1<br/>200ms"]
-        IN1 --> OUT1["输出 chunk 1<br/>200ms"]
-        OUT1 --> IN2["输入 chunk 2<br/>200ms"]
-        IN2 --> OUT2["输出 chunk 2<br/>200ms"]
-    end
-
-    style USER fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style VAD fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px
-    style PROCESS fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-    style TTS fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style WAIT fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style IN0 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style OUT0 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-    style IN1 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style OUT1 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-    style IN2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style OUT2 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-```
+<TechGraph src="/images/posts/Interaction-Models-当AI模型原生理解时间/turn-based-vs-streaming.svg" title="交互架构对比" caption="回合制（等 VAD 判断说完才处理）vs 流式（每 200ms 持续输入输出）" />
 
 回合制架构的核心组件是 VAD（Voice Activity Detection）。VAD 是一个独立于 LLM 的信号处理模块，职责是判断用户是否在说话、是否说完了。GPT Realtime API 的 server VAD 有三个可配参数：激活阈值、前置填充时长（默认 300ms）、静默触发时长（默认 500ms）。当 VAD 判断用户停止说话后，音频 buffer 被提交给模型处理。
 
@@ -82,44 +52,7 @@ input_0  output_0  input_1  output_1  input_2  output_2  ...
 
 **输入流是多模态的。** 每个 200ms 的输入 chunk 可以包含音频、视频帧和文本的任意组合。音频通过 dMel（discrete Mel spectrogram）编码，用一个轻量的 bag-of-embeddings 层转换——不需要像 Whisper 那样的独立 encoder。视频帧被切成 40x40 的 patch，通过 hMLP（hierarchical MLP）编码。所有编码器和 Transformer backbone 从头联合训练，没有预训练的冻结编码器。
 
-```mermaid
-graph TB
-    subgraph model["TML Interaction Model 架构"]
-        direction TB
-        subgraph input["输入流 每200ms"]
-            AUDIO["音频<br/>dMel 编码"] --> BOE["Bag of Embeddings"]
-            VIDEO["视频帧<br/>40x40 patch"] --> HMLP["hMLP"]
-            TEXT["文本"] --> TEMB["Token Embedding"]
-        end
-
-        BOE --> TRANSFORMER["276B MoE Transformer<br/>12B 激活参数<br/>从头联合训练"]
-        HMLP --> TRANSFORMER
-        TEMB --> TRANSFORMER
-
-        TRANSFORMER --> TEXTOUT["文本输出"]
-        TRANSFORMER --> FLOWHEAD["Flow Head<br/>Mel Spectrogram"]
-        FLOWHEAD --> SPEECH["语音输出"]
-
-        subgraph bg["后台推理"]
-            BGMODEL["Background Model<br/>异步深度推理"]
-        end
-
-        TRANSFORMER -.->|"委托复杂任务"| BGMODEL
-        BGMODEL -.->|"在合适时机<br/>流入对话"| TRANSFORMER
-    end
-
-    style AUDIO fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style VIDEO fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style TEXT fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style BOE fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style HMLP fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style TEMB fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style TRANSFORMER fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style TEXTOUT fill:#c5f6fa,stroke:#0c8599,stroke-width:1px
-    style FLOWHEAD fill:#c5f6fa,stroke:#0c8599,stroke-width:1px
-    style SPEECH fill:#c5f6fa,stroke:#0c8599,stroke-width:1px
-    style BGMODEL fill:#e7f5ff,stroke:#1971c2,stroke-width:2px
-```
+<TechGraph src="/images/posts/Interaction-Models-当AI模型原生理解时间/tml-architecture.svg" title="TML INTERACTION MODEL" caption="276B MoE Transformer 统一处理音频/视频/文本，encoder-free early fusion" />
 
 模型规模是 276B 参数的 MoE（Mixture of Experts），12B 激活参数。选择 MoE 而不是 dense 是一个关键的工程判断：200ms 的时间预算对推理延迟要求极高，12B 的激活参数量在当前硬件上可以满足延迟约束，而 276B 的总参数量提供了足够的模型容量。
 

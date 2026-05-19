@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420">
+  <defs>
+    <marker id="arrowControl" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b9e8a"/>
+    </marker>
+    <marker id="arrowLoop" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8a8a87"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 18px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 13px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 11px; fill: #5a5a58; }
+    .section-label { font-size: 12px; font-weight: 600; fill: #8a8a87; letter-spacing: 0.05em; }
+    .arrow-label { font-size: 10px; font-weight: 500; fill: #5a5a58; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="420" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="32" text-anchor="middle" class="title">回合制 vs 流式交互架构对比</text>
+
+  <!-- Left: Turn-based -->
+  <rect x="30" y="50" width="440" height="340" rx="10" fill="none" stroke="#ded8cf" stroke-width="1.5"/>
+  <text x="250" y="76" text-anchor="middle" class="section-label">回合制语音 AI（OpenAI Realtime API）</text>
+
+  <!-- Turn-based nodes -->
+  <rect x="60" y="100" width="130" height="44" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="125" y="126" text-anchor="middle" class="node-title">用户说话</text>
+
+  <rect x="220" y="100" width="130" height="44" rx="8" fill="#fff5f5" stroke="#e8a09a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="285" y="120" text-anchor="middle" class="node-title">VAD 检测</text>
+  <text x="285" y="135" text-anchor="middle" class="node-sub">说话结束</text>
+
+  <rect x="155" y="180" width="150" height="44" rx="8" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="230" y="200" text-anchor="middle" class="node-title">模型处理</text>
+  <text x="230" y="215" text-anchor="middle" class="node-sub">生成回答</text>
+
+  <rect x="155" y="255" width="150" height="44" rx="8" fill="#fdf6e3" stroke="#c4956a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="230" y="281" text-anchor="middle" class="node-title">音频输出</text>
+
+  <rect x="155" y="325" width="150" height="44" rx="8" fill="#f5f5f5" stroke="#8a8a87" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="230" y="345" text-anchor="middle" class="node-title">等待用户</text>
+  <text x="230" y="360" text-anchor="middle" class="node-sub">下一次输入</text>
+
+  <!-- Turn-based arrows -->
+  <line x1="190" y1="122" x2="220" y2="122" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <path d="M 285 144 L 285 165 L 255 180" fill="none" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <line x1="230" y1="224" x2="230" y2="255" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <line x1="230" y1="299" x2="230" y2="325" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <path d="M 155 347 L 80 347 L 80 122 L 60 122" fill="none" stroke="#8a8a87" stroke-width="1.2" stroke-dasharray="4,3"/>
+
+  <!-- Right: Streaming -->
+  <rect x="500" y="50" width="430" height="340" rx="10" fill="none" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="715" y="76" text-anchor="middle" class="section-label">Interaction Models（流式 200ms chunk）</text>
+
+  <!-- Streaming chunks -->
+  <rect x="530" y="110" width="110" height="50" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="585" y="132" text-anchor="middle" class="node-title">输入 chunk 0</text>
+  <text x="585" y="148" text-anchor="middle" class="node-sub">200ms</text>
+
+  <rect x="660" y="110" width="110" height="50" rx="8" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="715" y="132" text-anchor="middle" class="node-title">输出 chunk 0</text>
+  <text x="715" y="148" text-anchor="middle" class="node-sub">200ms</text>
+
+  <rect x="530" y="185" width="110" height="50" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="585" y="207" text-anchor="middle" class="node-title">输入 chunk 1</text>
+  <text x="585" y="223" text-anchor="middle" class="node-sub">200ms</text>
+
+  <rect x="660" y="185" width="110" height="50" rx="8" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="715" y="207" text-anchor="middle" class="node-title">输出 chunk 1</text>
+  <text x="715" y="223" text-anchor="middle" class="node-sub">200ms</text>
+
+  <rect x="530" y="260" width="110" height="50" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="585" y="282" text-anchor="middle" class="node-title">输入 chunk 2</text>
+  <text x="585" y="298" text-anchor="middle" class="node-sub">200ms</text>
+
+  <rect x="660" y="260" width="110" height="50" rx="8" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="715" y="282" text-anchor="middle" class="node-title">输出 chunk 2</text>
+  <text x="715" y="298" text-anchor="middle" class="node-sub">200ms</text>
+
+  <!-- Streaming arrows -->
+  <line x1="640" y1="135" x2="660" y2="135" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <path d="M 715 160 L 715 172 L 585 172 L 585 185" fill="none" stroke="#8a8a87" stroke-width="1.2" marker-end="url(#arrowLoop)"/>
+  <line x1="640" y1="210" x2="660" y2="210" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <path d="M 715 235 L 715 247 L 585 247 L 585 260" fill="none" stroke="#8a8a87" stroke-width="1.2" marker-end="url(#arrowLoop)"/>
+  <line x1="640" y1="285" x2="660" y2="285" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+
+  <!-- Key difference callout -->
+  <rect x="790" y="130" width="120" height="110" rx="6" fill="#fdf6e3" stroke="#c4956a" stroke-width="1.2"/>
+  <text x="850" y="155" text-anchor="middle" class="node-sub">输入输出</text>
+  <text x="850" y="172" text-anchor="middle" class="node-sub">同时进行</text>
+  <text x="850" y="195" text-anchor="middle" class="node-sub">无需等待</text>
+  <text x="850" y="212" text-anchor="middle" class="node-sub">说话结束</text>
+  <text x="850" y="232" text-anchor="middle" class="node-sub">延迟 &lt;200ms</text>
+</svg>

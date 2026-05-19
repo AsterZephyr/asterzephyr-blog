@@ -5,6 +5,8 @@ tags: [开发, 思考]
 category: "技术分享"
 ---
 
+import TechGraph from '../../components/blog/TechGraph.astro'
+
 ### **问题一：数据库分片策略选择总结**
 
 ### **核心结论**
@@ -167,19 +169,7 @@ category: "技术分享"
 
 ### **1. 分层优化策略**
 
-```mermaid
-graph TD
-    A[用户请求] --> B(前端防重提交)
-    B --> C(订单服务生成流水号)
-    C --> D{是否热点商品?}
-    D -->|是| E[库存分片扣减]
-    D -->|否| F[直接扣减主库存]
-    E --> G[Redis子库存原子操作]
-    F --> H[MySQL主库存乐观锁]
-    G & H --> I[记录流水至Redis]
-    I --> J[异步同步至MySQL]
-
-```
+<TechGraph src="/images/posts/秒杀场景高并发与防超卖方案总结/layered-optimization.svg" title="分层优化策略" caption="秒杀库存扣减的分层架构：热点识别 → 分片扣减 → 异步同步" />
 
 ### **2. 关键设计点**
 

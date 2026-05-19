@@ -6,6 +6,7 @@ category: "技术分享"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 
 生成式推荐的三阶段训练流程——SFT 建立基础生成能力，Value-Aware FT 注入商业价值信号，RL 探索历史日志之外的高价值路径——已经是跨团队的工业共识。GPR、GR4AD、UniVA 三篇论文独立收敛到了这个结构。但如果仔细看这三个阶段各自的成熟度，差距非常明显：SFT 有十年的推荐系统监督学习积累，Value FT 本质上是加权采样的变体，只有 RL 阶段还在摸索期。
@@ -37,43 +38,7 @@ PPO 的目标函数里有一个 clip 操作，把策略更新比值 r = pi_new /
 
 **负反馈高度同质化。** 推荐系统的负反馈大量来自于同质化推荐——用户看到一堆几乎一样的商品，对所有的都没有正反馈。但对称 clipping 对所有负反馈施加同样的惩罚力度。它无法区分两种本质不同的失败：模型尝试推荐了一个新品类但用户不感兴趣（探索性失败），和模型懒洋洋地推了十个同类商品用户全部忽略（同质化失败）。前者应该被宽容甚至鼓励，后者应该被严惩。对称惩罚会错误地抑制探索性行为，加剧信息茧房。
 
-```mermaid
-graph LR
-    subgraph symmetric["对称 Clipping (PPO/GBPO)"]
-        direction TB
-        SP["正反馈: 上界 1+epsilon"]
-        SN["负反馈: 下界 1-epsilon"]
-        SP --- SN
-        SR["冷启动成功 = 热门成功 = 同一上界"]
-        SF["探索失败 = 同质化失败 = 同一下界"]
-        SR -.-> COLD1["冷启动物品无法突破"]
-        SF -.-> DIV1["多样性持续坍塌"]
-    end
-
-    subgraph asymmetric["非对称 Clipping (SAGE)"]
-        direction TB
-        AP["正反馈: 上界 1+epsilon+boost"]
-        AN["负反馈: 下界随熵值动态调整"]
-        AP --- AN
-        AR["冷启动成功 获得超线性激励"]
-        AF["低熵失败 严惩 / 高熵失败 宽容"]
-        AR -.-> COLD2["冷启动物品突破曝光阈值"]
-        AF -.-> DIV2["多样性持续改善"]
-    end
-
-    style SP fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style SN fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style SR fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style SF fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style COLD1 fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style DIV1 fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style AP fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
-    style AN fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style AR fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style AF fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-    style COLD2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style DIV2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-```
+<TechGraph src="/images/posts/PPO搬到推荐系统后为什么水土不服-从小红书SAGE看生成式推荐的非对称优化设计/symmetric-vs-asymmetric.svg" title="CLIPPING 对比" caption="对称 Clipping 无法区分两种失败模式，SAGE 的非对称设计分别处理" />
 
 ### 和现有广告 GR 系统的 RL 方案对比
 
@@ -107,51 +72,7 @@ SAGE 的方案是"先解耦后聚合"：对每个目标独立做 group normaliza
 
 这是 SAGE 最关键的部分，分两个 case。
 
-```mermaid
-graph TB
-    subgraph sage_flow["SAGE 优化流程"]
-        direction TB
-        INPUT["模型生成推荐列表 Slate"] --> REWARD["多目标奖励计算"]
-        REWARD --> DECOUPLE["信号解耦: 各目标独立标准化"]
-        DECOUPLE --> ADVANTAGE["聚合优势值 A_SAGE"]
-        ADVANTAGE --> CHECK{"A_SAGE > 0 ?"}
-        CHECK -->|Yes| BOOST["正向 Boost"]
-        CHECK -->|No| ENTROPY["计算列表熵 H"]
-        BOOST --> UPDATE["策略更新"]
-        ENTROPY --> PENALTY["熵感知惩罚"]
-        PENALTY --> UPDATE
-    end
-
-    subgraph boost_detail["Case A: 正向冷启动助推"]
-        direction TB
-        B1["上界从 1+epsilon 扩展到 1+epsilon+boost"]
-        B2["冷启动成功推荐获得超线性激励"]
-        B3["突破初始低概率状态"]
-        B1 --> B2 --> B3
-    end
-
-    subgraph penalty_detail["Case B: 熵感知多样性惩罚"]
-        direction TB
-        E1["H 低: 同质化推荐 严厉惩罚"]
-        E2["H 高: 探索性推荐 温和惩罚"]
-        E1 --- E2
-    end
-
-    style INPUT fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
-    style REWARD fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style DECOUPLE fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style ADVANTAGE fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style CHECK fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px
-    style BOOST fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
-    style ENTROPY fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style PENALTY fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px
-    style UPDATE fill:#c5f6fa,stroke:#0c8599,stroke-width:2px
-    style B1 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style B2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style B3 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style E1 fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style E2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-```
+<TechGraph src="/images/posts/PPO搬到推荐系统后为什么水土不服-从小红书SAGE看生成式推荐的非对称优化设计/sage-flow.svg" title="SAGE 优化流程" caption="Slate 级奖励 → 信号解耦 → 正向 boost / 熵感知惩罚 → 策略更新" />
 
 **Case A：正向冷启动助推。** 当 A_SAGE > 0（推荐列表获得正反馈）时，SAGE 引入一个 boost factor，把 clipping 上界从 1+epsilon 扩展到 1+epsilon+boost。效果是：如果模型成功推荐了一个冷启动物品（导致 r_slate 较高），策略更新不会在 1+epsilon 处被截断，而是可以持续到 1+epsilon+boost。这给了冷启动物品突破初始低概率状态的动量——用论文的话说，"超线性激励"。
 

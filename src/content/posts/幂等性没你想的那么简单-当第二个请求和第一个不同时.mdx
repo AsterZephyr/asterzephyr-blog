@@ -6,6 +6,7 @@ category: "技术分享"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 
 谈到 API 的幂等性设计，大多数后端工程师的第一反应是：给请求加一个 Idempotency-Key，服务端存储响应，重试时直接返回存储的结果。Stripe 的经典博客文章把这个模式推广到了整个行业，几乎成为支付 API 的标准实践。
@@ -75,39 +76,7 @@ import Callout from '../../components/blog/Callout.astro'
 
 HN 174 条评论里最激烈的辩论不是关于上面这个 case，而是一个更基础的问题：**幂等层应该承担多少责任？**
 
-```mermaid
-graph LR
-    subgraph minimalist["极简派: 永远 409"]
-        direction TB
-        M1["见过这个 key? 直接 409"]
-        M2["不存储响应 不做重放"]
-        M3["客户端自己负责区分重试结果"]
-        M4["实现成本: 一个 unique constraint"]
-        M1 --> M2 --> M3 --> M4
-    end
-
-    subgraph replay["完整 Replay 派"]
-        direction TB
-        R1["存储请求 hash + 响应 + 状态"]
-        R2["相同请求: 重放存储的响应"]
-        R3["不同请求: 返回 409"]
-        R4["并发请求: 202 或等待"]
-        R1 --> R2 --> R3 --> R4
-    end
-
-    minimalist -.->|"代价: 客户端不知道原请求是否成功"| TRADEOFF["核心分歧"]
-    replay -.->|"代价: 服务端复杂度显著增加"| TRADEOFF
-
-    style M1 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style M2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style M3 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style M4 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style R1 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-    style R2 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-    style R3 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-    style R4 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-    style TRADEOFF fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px
-```
+<TechGraph src="/images/posts/幂等性没你想的那么简单-当第二个请求和第一个不同时/design-debate.svg" title="幂等设计两派之争" caption="极简派（一个 unique constraint）vs 完整 Replay 派（存储请求+响应+状态）" />
 
 **极简派（代表：stickfigure）** 的核心论点是：见到重复的 idempotency key，不管请求内容，一律返回 409。不存储响应，不做重放。客户端收到 409 就知道操作已经被执行过了，至于具体结果，客户端可以用其他接口查询。
 
@@ -127,25 +96,7 @@ HN 上另一个重要的声音来自 scott_w：**支付根本不是原子操作�
 
 不管你选哪一派，并发处理都绕不开。两个相同的请求几乎同时到达两个 API 实例：
 
-```mermaid
-sequenceDiagram
-    participant C1 as Request 1
-    participant C2 as Request 2
-    participant DB as Database
-    participant PAY as 支付服务商
-
-    Note over C1,C2: 同一个 Idempotency-Key, 毫秒级间隔
-    C1->>DB: INSERT idempotency_row (ON CONFLICT DO NOTHING)
-    C2->>DB: INSERT idempotency_row (ON CONFLICT DO NOTHING)
-    DB-->>C1: rows_inserted = 1 (获得执行权)
-    DB-->>C2: rows_inserted = 0 (冲突)
-    C1->>PAY: 调用支付服务商
-    C2->>DB: 查询 idempotency_row 状态
-    Note over C2: 状态 = IN_PROGRESS, locked_until > now()
-    C2-->>C2: 返回 202 / 409 + Retry-After
-    PAY-->>C1: 支付成功
-    C1->>DB: 更新状态为 COMPLETED + 存储响应
-```
+<TechGraph src="/images/posts/幂等性没你想的那么简单-当第二个请求和第一个不同时/concurrent-sequence.svg" title="INSERT-FIRST 并发时序" caption="INSERT ON CONFLICT 原子获取执行权，避免 check-then-insert 竞态" />
 
 关键是 INSERT-first 模式：先尝试插入幂等记录（IN_PROGRESS 状态），再执行业务逻辑。不是先查再插。
 
@@ -221,46 +172,7 @@ COMMIT;
 
 这个场景没有漂亮的本地解。Dochia 的建议是引入一个 `UNKNOWN_REQUIRES_RECOVERY` 状态，重试到达时触发对账流程或返回一个 pending 状态。但对账本身依赖服务商提供查询接口，而且查询结果也可能有延迟。
 
-```mermaid
-graph TB
-    subgraph states["幂等记录状态机"]
-        direction TB
-        NONE["无记录"] -->|"INSERT 成功"| IP["IN_PROGRESS"]
-        IP -->|"操作成功"| DONE["COMPLETED"]
-        IP -->|"操作确认失败"| FAIL_R["FAILED_RETRYABLE"]
-        IP -->|"操作失败 不可重试"| FAIL_NR["FAILED_REPLAYABLE"]
-        IP -->|"进程崩溃 + 外部状态未知"| UNK["UNKNOWN_REQUIRES_RECOVERY"]
-        UNK -->|"对账确认成功"| DONE
-        UNK -->|"对账确认失败"| FAIL_R
-        FAIL_R -->|"允许重试"| IP
-        IP -->|"锁过期 + 无结果"| STALE["STALE (需恢复所有权)"]
-        STALE -->|"原子恢复"| IP
-    end
-
-    subgraph retry_behavior["重试到达时的行为"]
-        direction TB
-        RB1["COMPLETED: 重放响应"]
-        RB2["IN_PROGRESS + 锁有效: 202 / Retry-After"]
-        RB3["IN_PROGRESS + 锁过期: 尝试恢复所有权"]
-        RB4["FAILED_RETRYABLE: 允许重试"]
-        RB5["FAILED_REPLAYABLE: 重放失败响应"]
-        RB6["UNKNOWN: 触发对账 / 返回 pending"]
-    end
-
-    style NONE fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style IP fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style DONE fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
-    style FAIL_R fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style FAIL_NR fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style UNK fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style STALE fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style RB1 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style RB2 fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style RB3 fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style RB4 fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style RB5 fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style RB6 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-```
+<TechGraph src="/images/posts/幂等性没你想的那么简单-当第二个请求和第一个不同时/state-machine.svg" title="幂等记录状态机" caption="完整状态机：6 种状态 + 重试到达时的行为分支" />
 
 这才是幂等性的完整状态机。和"存储响应 + 重放"的 replay cache 相比，复杂度差了一个数量级。
 

@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" height="560">
+  <defs>
+    <marker id="arrowControl" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b9e8a"/>
+    </marker>
+    <marker id="arrowBranch" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c4956a"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 20px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 13px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 11px; fill: #5a5a58; }
+    .section-label { font-size: 11px; font-weight: 600; fill: #8a8a87; letter-spacing: 0.05em; }
+    .arrow-label { font-size: 10px; font-weight: 500; fill: #5a5a58; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="560" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="32" text-anchor="middle" class="title">SAGE 优化流程</text>
+
+  <!-- Main flow -->
+  <rect x="380" y="55" width="200" height="44" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="480" y="81" text-anchor="middle" class="node-title">生成推荐列表 Slate</text>
+
+  <rect x="380" y="125" width="200" height="44" rx="8" fill="#ffffff" stroke="#ded8cf" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="480" y="151" text-anchor="middle" class="node-title">多目标奖励计算</text>
+
+  <rect x="355" y="195" width="250" height="44" rx="8" fill="#ffffff" stroke="#ded8cf" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="480" y="215" text-anchor="middle" class="node-title">信号解耦</text>
+  <text x="480" y="231" text-anchor="middle" class="node-sub">各目标独立标准化</text>
+
+  <rect x="370" y="265" width="220" height="44" rx="8" fill="#fdf6e3" stroke="#c4956a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="480" y="291" text-anchor="middle" class="node-title">聚合优势值 A_SAGE</text>
+
+  <!-- Decision -->
+  <polygon points="480,335 560,365 480,395 400,365" fill="#fdf6e3" stroke="#c4956a" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="480" y="369" text-anchor="middle" class="node-title">A > 0 ?</text>
+
+  <!-- Left branch: Boost -->
+  <rect x="100" y="420" width="260" height="100" rx="10" fill="none" stroke="#6b9e8a" stroke-width="1.2"/>
+  <text x="115" y="438" class="section-label">Case A: 正向冷启动助推</text>
+  <rect x="120" y="450" width="220" height="22" rx="4" fill="#e8eeeb" stroke="none"/>
+  <text x="230" y="465" text-anchor="middle" class="node-sub">上界 1+epsilon → 1+epsilon+boost</text>
+  <rect x="120" y="478" width="220" height="22" rx="4" fill="#e8eeeb" stroke="none"/>
+  <text x="230" y="493" text-anchor="middle" class="node-sub">冷启动成功 → 超线性激励</text>
+
+  <!-- Right branch: Entropy penalty -->
+  <rect x="600" y="420" width="280" height="100" rx="10" fill="none" stroke="#c4956a" stroke-width="1.2"/>
+  <text x="615" y="438" class="section-label">Case B: 熵感知多样性惩罚</text>
+  <rect x="620" y="450" width="240" height="22" rx="4" fill="#fdf6e3" stroke="none"/>
+  <text x="740" y="465" text-anchor="middle" class="node-sub">H 低(同质化) → 严厉惩罚</text>
+  <rect x="620" y="478" width="240" height="22" rx="4" fill="#fdf6e3" stroke="none"/>
+  <text x="740" y="493" text-anchor="middle" class="node-sub">H 高(探索性) → 温和惩罚</text>
+
+  <!-- Update -->
+  <rect x="380" y="530" width="200" height="40" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="480" y="554" text-anchor="middle" class="node-title">策略更新</text>
+
+  <!-- Arrows: main flow -->
+  <line x1="480" y1="99" x2="480" y2="125" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <line x1="480" y1="169" x2="480" y2="195" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <line x1="480" y1="239" x2="480" y2="265" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <line x1="480" y1="309" x2="480" y2="335" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+
+  <!-- Arrows: decision branches -->
+  <path d="M 400 365 L 310 365 L 310 420" fill="none" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <text x="335" y="358" class="arrow-label">Yes</text>
+
+  <path d="M 560 365 L 680 365 L 680 420" fill="none" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrowBranch)"/>
+  <text x="610" y="358" class="arrow-label">No (计算列表熵)</text>
+
+  <!-- Arrows: to update -->
+  <path d="M 230 520 L 230 550 L 380 550" fill="none" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <path d="M 740 520 L 740 550 L 580 550" fill="none" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrowBranch)"/>
+</svg>

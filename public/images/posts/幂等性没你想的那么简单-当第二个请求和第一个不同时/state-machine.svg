@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" height="560">
+  <defs>
+    <marker id="arrowControl" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b9e8a"/>
+    </marker>
+    <marker id="arrowFail" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c4956a"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 20px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 13px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 11px; fill: #5a5a58; }
+    .arrow-label { font-size: 10px; font-weight: 500; fill: #5a5a58; }
+    .section-label { font-size: 11px; font-weight: 600; fill: #8a8a87; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="560" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" class="title">幂等记录状态机</text>
+
+  <!-- State: NONE -->
+  <rect x="60" y="80" width="140" height="44" rx="22" fill="#f5f5f5" stroke="#8a8a87" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="130" y="107" text-anchor="middle" class="node-title">无记录</text>
+
+  <!-- State: IN_PROGRESS -->
+  <rect x="320" y="80" width="160" height="44" rx="22" fill="#fdf6e3" stroke="#c4956a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="400" y="107" text-anchor="middle" class="node-title">IN_PROGRESS</text>
+
+  <!-- State: COMPLETED -->
+  <rect x="620" y="60" width="160" height="44" rx="22" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="700" y="87" text-anchor="middle" class="node-title">COMPLETED</text>
+
+  <!-- State: FAILED_RETRYABLE -->
+  <rect x="590" y="170" width="200" height="44" rx="22" fill="#fff5f5" stroke="#e8a09a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="690" y="197" text-anchor="middle" class="node-title">FAILED_RETRYABLE</text>
+
+  <!-- State: FAILED_REPLAYABLE -->
+  <rect x="590" y="250" width="200" height="44" rx="22" fill="#fff5f5" stroke="#e8a09a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="690" y="277" text-anchor="middle" class="node-title">FAILED_REPLAYABLE</text>
+
+  <!-- State: UNKNOWN -->
+  <rect x="280" y="220" width="260" height="44" rx="22" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="410" y="247" text-anchor="middle" class="node-title">UNKNOWN_REQUIRES_RECOVERY</text>
+
+  <!-- State: STALE -->
+  <rect x="80" y="180" width="140" height="44" rx="22" fill="#f5f0ea" stroke="#8a8a87" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="150" y="207" text-anchor="middle" class="node-title">STALE</text>
+
+  <!-- Arrows -->
+  <!-- NONE → IN_PROGRESS -->
+  <line x1="200" y1="102" x2="320" y2="102" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <text x="260" y="95" text-anchor="middle" class="arrow-label">INSERT 成功</text>
+
+  <!-- IN_PROGRESS → COMPLETED -->
+  <line x1="480" y1="90" x2="620" y2="82" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <text x="550" y="78" text-anchor="middle" class="arrow-label">操作成功</text>
+
+  <!-- IN_PROGRESS → FAILED_RETRYABLE -->
+  <line x1="480" y1="110" x2="590" y2="185" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrowFail)"/>
+  <text x="555" y="140" text-anchor="middle" class="arrow-label">确认失败</text>
+
+  <!-- IN_PROGRESS → FAILED_REPLAYABLE -->
+  <path d="M 480 124 L 530 250 L 590 272" fill="none" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrowFail)"/>
+  <text x="520" y="200" class="arrow-label">不可重试</text>
+
+  <!-- IN_PROGRESS → UNKNOWN -->
+  <line x1="400" y1="124" x2="410" y2="220" stroke="#9b72b0" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <text x="430" y="170" class="arrow-label">崩溃+状态未知</text>
+
+  <!-- UNKNOWN → COMPLETED -->
+  <path d="M 540 232 L 620 232 L 700 104" fill="none" stroke="#6b9e8a" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrowControl)"/>
+  <text x="650" y="165" class="arrow-label">对账确认成功</text>
+
+  <!-- UNKNOWN → FAILED_RETRYABLE -->
+  <line x1="540" y1="250" x2="590" y2="200" stroke="#c4956a" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrowFail)"/>
+  <text x="585" y="230" class="arrow-label">对账确认失败</text>
+
+  <!-- FAILED_RETRYABLE → IN_PROGRESS -->
+  <path d="M 590 192 L 480 130" fill="none" stroke="#6b9e8a" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrowControl)"/>
+  <text x="555" y="157" class="arrow-label">允许重试</text>
+
+  <!-- IN_PROGRESS → STALE -->
+  <path d="M 320 115 L 220 190" fill="none" stroke="#8a8a87" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrowControl)"/>
+  <text x="240" y="155" class="arrow-label">锁过期</text>
+
+  <!-- STALE → IN_PROGRESS -->
+  <path d="M 220 185 L 320 115" fill="none" stroke="#6b9e8a" stroke-width="1.2" marker-end="url(#arrowControl)"/>
+  <text x="300" y="140" class="arrow-label">恢复</text>
+
+  <!-- Retry behavior section -->
+  <rect x="40" y="320" width="880" height="220" rx="10" fill="none" stroke="#ded8cf" stroke-width="1"/>
+  <text x="60" y="345" class="section-label">重试到达时的行为</text>
+
+  <rect x="60" y="360" width="260" height="38" rx="6" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1" filter="url(#shadowSoft)"/>
+  <text x="190" y="383" text-anchor="middle" class="node-title">COMPLETED → 重放响应</text>
+
+  <rect x="350" y="360" width="290" height="38" rx="6" fill="#fdf6e3" stroke="#c4956a" stroke-width="1" filter="url(#shadowSoft)"/>
+  <text x="495" y="383" text-anchor="middle" class="node-title">IN_PROGRESS + 锁有效 → 202</text>
+
+  <rect x="670" y="360" width="230" height="38" rx="6" fill="#fdf6e3" stroke="#c4956a" stroke-width="1" filter="url(#shadowSoft)"/>
+  <text x="785" y="383" text-anchor="middle" class="node-title">IN_PROGRESS + 锁过期 → 恢复</text>
+
+  <rect x="60" y="415" width="260" height="38" rx="6" fill="#fff5f5" stroke="#e8a09a" stroke-width="1" filter="url(#shadowSoft)"/>
+  <text x="190" y="438" text-anchor="middle" class="node-title">FAILED_RETRYABLE → 允许重试</text>
+
+  <rect x="350" y="415" width="290" height="38" rx="6" fill="#fff5f5" stroke="#e8a09a" stroke-width="1" filter="url(#shadowSoft)"/>
+  <text x="495" y="438" text-anchor="middle" class="node-title">FAILED_REPLAYABLE → 重放失败响应</text>
+
+  <rect x="670" y="415" width="230" height="38" rx="6" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1" filter="url(#shadowSoft)"/>
+  <text x="785" y="438" text-anchor="middle" class="node-title">UNKNOWN → 触发对账</text>
+</svg>
