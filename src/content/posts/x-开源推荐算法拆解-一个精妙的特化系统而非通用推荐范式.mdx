@@ -94,8 +94,8 @@ Final Score = w_like * P(like) + w_reply * P(reply) + w_repost * P(repost)
 从代码中可以看到，加权打分后还有一个 `offset_score` 的校正逻辑，把负分数通过一个线性变换映射到正区间。这说明这些权重是人工调参得来的，而不是通过某种系统性的优化（比如 constrained optimization 或 Pareto 前沿搜索）确定的。
 
 <Comparison
-  left=\{{ title: "X 的做法", items: ["静态权重人工调参", "offset_score 线性校正", "负分数映射到正区间", "简单但不可证明最优"] }}
-  right=\{{ title: "国内前沿做法", items: ["RL 信号动态调权 (字节)", "Reward Model 自动平衡 (快手)", "PID 控制器实时调整 (DSP)", "Pareto 前沿多目标优化"] }}
+  left={{ title: "X 的做法", items: ["静态权重人工调参", "offset_score 线性校正", "负分数映射到正区间", "简单但不可证明最优"] }}
+  right={{ title: "国内前沿做法", items: ["RL 信号动态调权 (字节)", "Reward Model 自动平衡 (快手)", "PID 控制器实时调整 (DSP)", "Pareto 前沿多目标优化"] }}
   leftLabel="特化系统"
   rightLabel="通用范式"
 />
@@ -130,7 +130,7 @@ X 的静态权重设计在内容推荐中可以接受（用户体验的"好"没�
 
 读完 X 算法仓库后，我认为最值得业界借鉴的不是 Phoenix 模型本身，而是它的工程实践：
 
-<CardGrid cols=\{{3}}>
+<CardGrid cols={3}>
   <Card title="技术栈分配" icon="bolt">
     Rust 编排层 (低延迟) + Python/JAX ML (灵活计算)。比 Java+C++ TF Serving 更干净。
   </Card>
