@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360">
+  <defs>
+    <marker id="arrowControl" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b9e8a"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c4956a"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 20px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 12px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 10px; fill: #5a5a58; }
+    .section-label { font-size: 11px; font-weight: 600; fill: #8a8a87; letter-spacing: 0.05em; }
+    .date { font-size: 10px; fill: #8a8a87; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="360" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="32" text-anchor="middle" class="title">Mixer 架构行业部署时间线</text>
+
+  <!-- Timeline line -->
+  <line x1="80" y1="100" x2="900" y2="100" stroke="#ded8cf" stroke-width="2"/>
+
+  <!-- RankMixer -->
+  <circle cx="130" cy="100" r="6" fill="#9b72b0" stroke="#9b72b0" stroke-width="2"/>
+  <rect x="60" y="120" width="140" height="70" rx="8" fill="#f0e6f6" stroke="#9b72b0" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="130" y="140" text-anchor="middle" class="node-title">RankMixer</text>
+  <text x="130" y="155" text-anchor="middle" class="node-sub">字节 抖音</text>
+  <text x="130" y="170" text-anchor="middle" class="node-sub">1B 参数 MFU 45%</text>
+  <text x="130" y="185" text-anchor="middle" class="date">2025.7</text>
+
+  <!-- OneTrans -->
+  <circle cx="300" cy="100" r="6" fill="#0c8599" stroke="#0c8599" stroke-width="2"/>
+  <rect x="230" y="120" width="140" height="70" rx="8" fill="#e0f7fa" stroke="#0c8599" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="300" y="140" text-anchor="middle" class="node-title">OneTrans</text>
+  <text x="300" y="155" text-anchor="middle" class="node-sub">字节 电商</text>
+  <text x="300" y="170" text-anchor="middle" class="node-sub">统一特征+序列</text>
+  <text x="300" y="185" text-anchor="middle" class="date">2025.10</text>
+
+  <!-- MTmixAtt -->
+  <circle cx="430" cy="100" r="6" fill="#c4956a" stroke="#c4956a" stroke-width="2"/>
+  <rect x="360" y="15" width="140" height="70" rx="8" fill="#fdf6e3" stroke="#c4956a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="430" y="35" text-anchor="middle" class="node-title">MTmixAtt</text>
+  <text x="430" y="50" text-anchor="middle" class="node-sub">美团 首页</text>
+  <text x="430" y="65" text-anchor="middle" class="node-sub">AutoToken + MoE</text>
+  <text x="430" y="80" text-anchor="middle" class="date">2025.10</text>
+
+  <!-- HyFormer -->
+  <circle cx="560" cy="100" r="6" fill="#0c8599" stroke="#0c8599" stroke-width="2"/>
+  <rect x="490" y="120" width="140" height="70" rx="8" fill="#e0f7fa" stroke="#0c8599" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="560" y="140" text-anchor="middle" class="node-title">HyFormer</text>
+  <text x="560" y="155" text-anchor="middle" class="node-sub">字节 高流量场景</text>
+  <text x="560" y="170" text-anchor="middle" class="node-sub">混合 Transformer</text>
+  <text x="560" y="185" text-anchor="middle" class="date">2026.1</text>
+
+  <!-- TokenMixer-Large -->
+  <circle cx="690" cy="100" r="6" fill="#9b72b0" stroke="#9b72b0" stroke-width="2"/>
+  <rect x="620" y="15" width="140" height="70" rx="8" fill="#f0e6f6" stroke="#9b72b0" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="690" y="35" text-anchor="middle" class="node-title">TokenMixer-Large</text>
+  <text x="690" y="50" text-anchor="middle" class="node-sub">字节 全场景</text>
+  <text x="690" y="65" text-anchor="middle" class="node-sub">7B-15B 参数</text>
+  <text x="690" y="80" text-anchor="middle" class="date">2026.2</text>
+
+  <!-- RankUp -->
+  <circle cx="830" cy="100" r="6" fill="#6b9e8a" stroke="#6b9e8a" stroke-width="2"/>
+  <rect x="760" y="120" width="140" height="70" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="830" y="140" text-anchor="middle" class="node-title">RankUp</text>
+  <text x="830" y="155" text-anchor="middle" class="node-sub">腾讯微信 广告</text>
+  <text x="830" y="170" text-anchor="middle" class="node-sub">修复 collapse</text>
+  <text x="830" y="185" text-anchor="middle" class="date">2026.4</text>
+
+  <!-- Dependency arrows -->
+  <path d="M 160 155 Q 230 155 230 155" fill="none" stroke="#9b72b0" stroke-width="1.2" marker-end="url(#arrowControl)"/>
+  <path d="M 160 135 Q 200 50 360 50" fill="none" stroke="#c4956a" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrowOrange)"/>
+  <path d="M 370 155 L 490 155" fill="none" stroke="#0c8599" stroke-width="1.2" marker-end="url(#arrowControl)"/>
+  <path d="M 370 140 Q 500 30 620 50" fill="none" stroke="#9b72b0" stroke-width="1.2" marker-end="url(#arrowControl)"/>
+  <path d="M 200 155 Q 500 230 760 170" fill="none" stroke="#6b9e8a" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrowControl)"/>
+
+  <!-- Legend -->
+  <rect x="60" y="240" width="840" height="100" rx="10" fill="none" stroke="#ded8cf" stroke-width="1"/>
+  <text x="80" y="265" class="section-label">路线对比</text>
+  <rect x="80" y="278" width="12" height="12" rx="2" fill="#9b72b0"/>
+  <text x="100" y="289" class="node-sub">字节: 纵深推进 (参数量 + 架构统一 + Serving 效率)</text>
+  <rect x="80" y="298" width="12" height="12" rx="2" fill="#6b9e8a"/>
+  <text x="100" y="309" class="node-sub">腾讯: 深度诊断 (100M 级别精分析, 发现 Representation Collapse)</text>
+  <rect x="80" y="318" width="12" height="12" rx="2" fill="#c4956a"/>
+  <text x="100" y="329" class="node-sub">美团: 场景适配 (AutoToken 自动分组, 多场景 sparse expert)</text>
+</svg>

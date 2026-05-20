@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" width="960" height="380">
+  <defs>
+    <marker id="arrowControl" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b9e8a"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 20px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 13px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 11px; fill: #5a5a58; }
+    .section-label { font-size: 11px; font-weight: 600; fill: #8a8a87; letter-spacing: 0.05em; }
+    .problem { font-size: 11px; fill: #c92a2a; font-weight: 500; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="380" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" class="title">字节跳动 Scaling 演进: 从分别 Scale 到统一架构</text>
+
+  <!-- Phase 1 -->
+  <rect x="40" y="60" width="260" height="120" rx="10" fill="none" stroke="#9b72b0" stroke-width="1.5"/>
+  <text x="170" y="82" text-anchor="middle" class="section-label">PHASE 1: 分别 SCALE (2024)</text>
+
+  <rect x="60" y="95" width="100" height="36" rx="6" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="110" y="117" text-anchor="middle" class="node-sub">Wukong</text>
+
+  <rect x="180" y="95" width="100" height="36" rx="6" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="230" y="117" text-anchor="middle" class="node-sub">LONGER</text>
+
+  <text x="110" y="150" text-anchor="middle" class="node-sub">特征交互 Scale</text>
+  <text x="230" y="150" text-anchor="middle" class="node-sub">序列长度 Scale</text>
+
+  <!-- Phase 2 -->
+  <rect x="350" y="60" width="260" height="120" rx="10" fill="none" stroke="#e8a09a" stroke-width="1.5"/>
+  <text x="480" y="82" text-anchor="middle" class="section-label">PHASE 2: 联合 SCALE 的困境</text>
+
+  <rect x="370" y="95" width="220" height="28" rx="4" fill="#fff5f5" stroke="#e8a09a" stroke-width="1"/>
+  <text x="480" y="113" text-anchor="middle" class="problem">参数量叠加: 2x + 2x = 4x</text>
+
+  <rect x="370" y="128" width="220" height="28" rx="4" fill="#fff5f5" stroke="#e8a09a" stroke-width="1"/>
+  <text x="480" y="146" text-anchor="middle" class="problem">Serving 复杂度叠加</text>
+
+  <rect x="370" y="161" width="220" height="28" rx="4" fill="#fff5f5" stroke="#e8a09a" stroke-width="1"/>
+  <text x="480" y="179" text-anchor="middle" class="problem">用户表示割裂</text>
+
+  <!-- Phase 3 -->
+  <rect x="660" y="60" width="260" height="120" rx="10" fill="none" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="790" y="82" text-anchor="middle" class="section-label">PHASE 3: 统一架构 (2025)</text>
+
+  <rect x="690" y="100" width="200" height="50" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="790" y="123" text-anchor="middle" class="node-title">OneTrans</text>
+  <text x="790" y="140" text-anchor="middle" class="node-sub">一个 Transformer 做两件事</text>
+
+  <!-- Phase arrows -->
+  <line x1="300" y1="120" x2="350" y2="120" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <line x1="610" y1="120" x2="660" y2="120" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+
+  <!-- Bottom: advantages -->
+  <rect x="40" y="220" width="880" height="140" rx="10" fill="none" stroke="#ded8cf" stroke-width="1"/>
+  <text x="60" y="245" class="section-label">统一架构的三个结构性优势</text>
+
+  <rect x="60" y="260" width="260" height="80" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="190" y="285" text-anchor="middle" class="node-title">表示共享</text>
+  <text x="190" y="303" text-anchor="middle" class="node-sub">序列建模与特征交互每层交互</text>
+  <text x="190" y="319" text-anchor="middle" class="node-sub">消融: 1+1 > 2 效果</text>
+
+  <rect x="350" y="260" width="260" height="80" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="480" y="285" text-anchor="middle" class="node-title">单模型 Scale</text>
+  <text x="480" y="303" text-anchor="middle" class="node-sub">一套参数, 一次前向, 一份 cache</text>
+  <text x="480" y="319" text-anchor="middle" class="node-sub">Scale 2x = 2x 计算 (非 4x)</text>
+
+  <rect x="640" y="260" width="260" height="80" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="770" y="285" text-anchor="middle" class="node-title">KV Caching 天然成立</text>
+  <text x="770" y="303" text-anchor="middle" class="node-sub">用户侧计算 O(C) → O(1)</text>
+  <text x="770" y="319" text-anchor="middle" class="node-sub">所有候选共享一份缓存</text>
+</svg>

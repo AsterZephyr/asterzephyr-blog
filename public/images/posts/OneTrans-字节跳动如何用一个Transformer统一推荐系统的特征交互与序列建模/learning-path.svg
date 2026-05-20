@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" width="960" height="380">
+  <defs>
+    <marker id="arrowControl" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b9e8a"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 20px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 13px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 11px; fill: #5a5a58; }
+    .section-label { font-size: 11px; font-weight: 600; fill: #8a8a87; letter-spacing: 0.05em; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="380" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" class="title">学习路径: 从推荐基础到统一架构</text>
+
+  <!-- Level 1 -->
+  <rect x="40" y="70" width="200" height="70" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="140" y="93" text-anchor="middle" class="section-label">LEVEL 1: 推荐基础</text>
+  <text x="140" y="113" text-anchor="middle" class="node-sub">DIN/DIEN (序列建模)</text>
+  <text x="140" y="129" text-anchor="middle" class="node-sub">DCN/DeepFM (特征交叉)</text>
+
+  <!-- Level 2 -->
+  <rect x="280" y="70" width="200" height="70" rx="8" fill="#f0e6f6" stroke="#9b72b0" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="380" y="93" text-anchor="middle" class="section-label">LEVEL 2: TRANSFORMER 应用</text>
+  <text x="380" y="113" text-anchor="middle" class="node-sub">SASRec/BERT4Rec</text>
+  <text x="380" y="129" text-anchor="middle" class="node-sub">AutoInt/InterFormer</text>
+
+  <!-- Level 3 -->
+  <rect x="520" y="70" width="200" height="70" rx="8" fill="#fdf6e3" stroke="#c4956a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="620" y="93" text-anchor="middle" class="section-label">LEVEL 3: SCALING</text>
+  <text x="620" y="113" text-anchor="middle" class="node-sub">Wukong (特征交互 Scale)</text>
+  <text x="620" y="129" text-anchor="middle" class="node-sub">LONGER (序列长度 Scale)</text>
+
+  <!-- Level 4 -->
+  <rect x="760" y="70" width="160" height="70" rx="8" fill="#e0f7fa" stroke="#0c8599" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="840" y="93" text-anchor="middle" class="section-label">LEVEL 4: 统一架构</text>
+  <text x="840" y="113" text-anchor="middle" class="node-sub">OneTrans</text>
+  <text x="840" y="129" text-anchor="middle" class="node-sub">OneRec</text>
+
+  <!-- Arrows -->
+  <line x1="240" y1="105" x2="280" y2="105" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <line x1="480" y1="105" x2="520" y2="105" stroke="#9b72b0" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <line x1="720" y1="105" x2="760" y2="105" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+
+  <!-- Key papers for each level -->
+  <rect x="40" y="170" width="880" height="190" rx="10" fill="none" stroke="#ded8cf" stroke-width="1"/>
+  <text x="60" y="195" class="section-label">每层关键论文</text>
+
+  <text x="60" y="220" class="node-sub">L1: Deep Interest Network (Alibaba 2018), DCNv2 (Google 2021)</text>
+  <text x="60" y="240" class="node-sub">L2: SASRec (UCSD 2018), AutoInt (PKU 2019)</text>
+  <text x="60" y="260" class="node-sub">L3: Wukong (ByteDance KDD 2024), LONGER (ByteDance WWW 2025)</text>
+  <text x="60" y="280" class="node-sub">L4: OneTrans (ByteDance WWW 2026), OneRec (Kuaishou 2025)</text>
+
+  <text x="60" y="310" class="section-label">核心演进逻辑</text>
+  <text x="60" y="330" class="node-sub">手工特征交叉 → 注意力自动交叉 → Scale到极限发现瓶颈 → 统一架构突破瓶颈</text>
+  <text x="60" y="348" class="node-sub">分离模块各自迭代 → 发现叠加成本过高 → 用一个模型同时做两件事</text>
+</svg>

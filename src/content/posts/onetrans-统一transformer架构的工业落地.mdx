@@ -1,0 +1,147 @@
+---
+title: "OneTrans：一个 Transformer 统一特征交互与序列建模的工业落地"
+date: 2026-05-17
+tags: [推荐系统, Transformer, CTR, 字节跳动, 深度学习]
+category: "技术分享"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+推荐系统的模型架构在过去十年走了一条"分而治之"的路：特征交互用 DCN/DeepFM，序列建模用 DIN/DIEN/SIM，多任务用 MMOE/PLE。每一个子问题都有专门的模块，拼在一起就是一个几百行 config 的 Frankenmodel。
+
+2025 年末，字节跳动在 WWW 2026 上发表了 OneTrans。核心主张极其简洁：**不再区分特征交互和序列建模——用一个 Transformer 同时做两件事。** 更激进的是，330M 参数的 OneTrans_L 在字节电商场景的推理延迟比 10M 参数的 DCNv2+DIN 还低。
+
+这不是实验室 demo。它在字节跳动的 Feeds 和 Mall 场景上线，带来了 +7.74% 点击率和 +5.69% GMV 的提升。本文深入拆解其架构设计、工程优化和背后的设计哲学。
+
+## 传统范式的结构性问题
+
+<TechGraph src="/images/posts/onetrans-统一transformer架构的工业落地/traditional-architecture.svg" title="传统推荐模型架构" caption="序列建模与特征交互分离, 最后 Concat — 存在信息瓶颈和参数效率问题" />
+
+这个架构的问题在哪？
+
+**1. 信息瓶颈。** 序列建模模块产出一个固定维度的 user representation，然后"塞进"特征交互模块。序列侧学到的细粒度兴趣演化信息，在通过 concat 接口时被压缩成了一个向量。
+
+**2. 参数效率低。** 两个模块各自有独立的参数空间。序列模块的 attention 不知道当前候选广告的特征组合，特征交互模块不知道用户最近三天的行为序列。它们是两个独立的"大脑"，只在最后一步才"对话"。
+
+**3. 工程复杂度。** 两套模块意味着两套推理优化路径。DIN 需要 target attention 的动态计算，DCN 需要低秩矩阵的高效 kernel。运维成本和 bug 面积线性增长。
+
+## OneTrans 的核心设计
+
+OneTrans 的解法是：**把所有输入统一编码为 token 序列，然后用一个标准 causal Transformer 处理。** 不区分"序列特征"和"非序列特征"——它们只是同一个序列里的不同 token。
+
+### Unified Tokenizer
+
+<TechGraph src="/images/posts/onetrans-统一transformer架构的工业落地/unified-tokenizer.svg" title="UNIFIED TOKENIZER" caption="行为序列 → S-tokens (共享参数), 非序列特征 → NS-tokens (独立参数), 按时间戳交错排列" />
+
+两个关键设计决策：
+
+1. **Timestamp-aware fusion**：多行为序列按时间交错排列，而不是按行为类型分段。实验证明这能更好地捕捉"浏览→加购→购买"的跨行为时序模式。
+
+2. **Auto-Split Tokenizer**：非序列特征不手动分组，而是全部 concat 后过一个 MLP，均匀切分成 N 个 token。减少了 kernel launch 开销（一次 MLP 调用 vs 多次小 MLP）。
+
+### Mixed Parameterization
+
+这是 OneTrans 最精妙的设计。同一个 Transformer block 内：
+
+- **S-tokens（序列 token）** 共享一套 Q/K/V 和 FFN 参数。理由：行为序列 token 天然同质（都是"用户做了某事"），共享参数能让模型学到通用的行为演化模式。
+- **NS-tokens（非序列 token）** 每个 token 有独立的参数。理由：年龄、城市、广告品类这些特征语义截然不同，独立参数让模型能对每种特征做专门的变换。
+
+```
+Transformer Block:
+  S-tokens:  Q = W_q^shared × x,  K = W_k^shared × x,  V = W_v^shared × x
+  NS-token₁: Q = W_q^1 × x,     K = W_k^1 × x,     V = W_v^1 × x
+  NS-token₂: Q = W_q^2 × x,     K = W_k^2 × x,     V = W_v^2 × x
+  ...
+```
+
+### Causal Attention Mask
+
+```
+         S₁  S₂  S₃  NS₁ NS₂ NS₃
+S₁  [    ✓   ✗   ✗   ✗   ✗   ✗  ]
+S₂  [    ✓   ✓   ✗   ✗   ✗   ✗  ]
+S₃  [    ✓   ✓   ✓   ✗   ✗   ✗  ]
+NS₁ [    ✓   ✓   ✓   ✓   ✗   ✗  ]
+NS₂ [    ✓   ✓   ✓   ✓   ✓   ✗  ]
+NS₃ [    ✓   ✓   ✓   ✓   ✓   ✓  ]
+```
+
+- S-tokens 只能看前面的 S-tokens（自回归，保持时序因果性）
+- NS-tokens 可以看所有 S-tokens + 前面的 NS-tokens（特征交互需要全局视野）
+- **关键收益**：Causal mask 天然支持 KV caching——已计算的 token 不需要重新计算
+
+### Pyramid Stack
+
+随着层数加深，逐层减少 S-tokens 的 query 数量：
+
+```
+Layer 1: 1500 S-queries (全序列)
+Layer 2: 1000 S-queries (丢弃最旧的)
+Layer 3:  500 S-queries
+...
+Layer N:   16 S-queries (只保留最近行为)
+```
+
+Keys 和 Values 始终覆盖全序列——信息不丢失，但计算量从 O(L²) 降到接近 O(L)。这是 OneTrans 能在 330M 参数下保持 13.2ms 延迟的核心原因。
+
+## 工业落地的系统优化
+
+### Cross-Request KV Caching
+
+在广告场景中，一次请求会同时对多个候选广告打分。候选之间只有"广告特征"不同，用户行为是共享的。
+
+传统做法：每个候选独立计算完整前向传播 → O(C) 次计算。
+
+OneTrans 的做法：
+1. 先计算用户侧 S-tokens 的 KV cache（只做一次）
+2. 对每个候选，只计算其 NS-tokens 的增量 attention
+
+复杂度从 O(C × L) 降到 O(L + C × d)。在字节场景（C=50 候选，L=1500 tokens），这是约 30x 的推理加速。
+
+### Cross-Request 增量更新
+
+跨请求复用 cache：用户两次请求之间只新增了几个行为，只需要计算这些新增 token 的 KV，其余复用上次缓存。实现了"实时更新用户兴趣"几乎零额外开销。
+
+## 实验结果解读
+
+| 对比 | CTR AUC 提升 | CVR AUC 提升 | 说明 |
+|------|-------------|-------------|------|
+| vs DCNv2+DIN (10M) | +1.53% | +1.14% | 330M 参数但延迟更低 |
+| vs RankMixer+Trans (109M) | +0.96% | +0.62% | 更少参数更好效果 |
+
+在线 A/B（字节电商 Feeds）：
+- 点击率 +7.74%
+- 下单率 +4.35%
+- GMV +5.69%
+- 延迟反而降低 3.91%
+
+**延迟降低的原因**：Pyramid Stack + KV Caching 的组合效果。虽然模型参数是 33 倍大，但实际 FLOPs 只有 3 倍多（8.62 vs 2.51 TFLOPs），且大部分计算可以被 cache 跳过。
+
+## Scaling Law 观察
+
+OneTrans 展现出清晰的 log-linear scaling：
+
+- FLOPs 每增加 10x，AUC 提升约 0.5%
+- 序列长度 > 模型深度 > 模型宽度（投入产出比排序）
+- 比 RankMixer 斜率更陡——说明统一架构的 scaling 效率更高
+
+这意味着：如果你有更多算力预算，投在增加序列长度上收益最大。这与 LLM 领域的 Chinchilla scaling law 形成了有趣的对照——在推荐领域，数据侧（更长的行为序列）的价值超过模型侧（更深的网络）。
+
+## 局限性与开放问题
+
+1. **NS-token 的 serving 效率**：每个 NS-token 独立参数意味着无法批处理，在极端高 QPS 场景可能成为瓶颈。
+2. **多序列的简单 merge**：Timestamp-aware fusion 虽然简洁，但丢失了行为类型的先验知识。HyFormer 论文指出独立建模再融合可能更优。
+3. **Full attention 的上界**：Causal mask 在实验中表现与 full attention 接近，但理论上损失了 NS→S 的信息流。极端 scale 下是否依然成立？
+
+## 对从业者的启示
+
+1. **不要过早分模块。** 统一架构的参数效率和 scaling 效率都优于拼装式架构。
+2. **KV Caching 是推荐系统的免费午餐。** Causal attention + cache 是被严重低估的优化手段。
+3. **序列长度是最值得投资的方向。** 与其堆模型深度，不如接入更多行为类型、更长的历史窗口。
+4. **Auto-Split > 手动特征分组。** 让模型自己学如何 tokenize，减少人为先验的引入。
+
+---
+
+*本文基于 [OneTrans 论文](https://arxiv.org/abs/2510.26104) (WWW 2026) 和字节跳动电商广告系统的公开技术分享整理。*

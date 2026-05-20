@@ -5,6 +5,8 @@ tags: [推荐系统, 深度学习, 广告系统, 架构设计]
 category: "技术分享"
 ---
 
+import TechGraph from '../../components/blog/TechGraph.astro'
+
 # 推荐系统的 Mixer 革命：从一篇论文到四家大厂全量上线
 
 2025 年 7 月，字节跳动发了一篇叫 RankMixer 的论文。核心想法很简单：推荐系统的排序模型不需要 self-attention——用一个无参数的 token mixing 操作替掉它，效果更好，速度更快。
@@ -23,41 +25,7 @@ NLP 的 self-attention 之所以有效，是因为语言 token 共享一个统�
 
 RankMixer 的核心洞察是：**推荐系统的特征交互不需要计算 token 之间的相似度，只需要让 token 之间的信息流动起来。** 这把问题从"学习 token 间的注意力权重"简化成了"把 token 的信息混合到一起"。
 
-```mermaid
-graph LR
-    subgraph attention["Self-Attention 特征交互"]
-        direction TB
-        A1["Token 1: 年龄=25"] --> QKV["Q K V 投影"]
-        A2["Token 2: 品类=美妆"] --> QKV
-        A3["Token 3: 设备=iPhone"] --> QKV
-        QKV --> ATTN["计算 T x T 注意力矩阵"]
-        ATTN --> OUT1["加权聚合"]
-        OUT1 --> FFN1["共享 FFN"]
-    end
-
-    subgraph mixer["RankMixer 特征交互"]
-        direction TB
-        M1["Token 1: 年龄=25"] --> MIX["Multi-head Token Mixing<br/>无参数 代数变换"]
-        M2["Token 2: 品类=美妆"] --> MIX
-        M3["Token 3: 设备=iPhone"] --> MIX
-        MIX --> OUT2["混合后的 Token"]
-        OUT2 --> PFFN["Per-token FFN<br/>每个 Token 独立参数"]
-    end
-
-    style A1 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style A2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style A3 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style QKV fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style ATTN fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px
-    style OUT1 fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style FFN1 fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-    style M1 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style M2 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style M3 fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style MIX fill:#c5f6fa,stroke:#0c8599,stroke-width:2px
-    style OUT2 fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style PFFN fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-```
+<TechGraph src="/images/posts/推荐系统的Mixer革命-从一篇论文到四家大厂全量上线/attention-vs-mixer.svg" title="特征交互对比" caption="Self-Attention (O(T^2), MFU 4.5%) vs RankMixer Token Mixing (O(T), MFU 45%)" />
 
 RankMixer Block 的核心由两个组件构成：
 
@@ -113,28 +81,7 @@ TokenMixer-Large 在字节跳动的三个核心场景全量部署：
 
 RankUp（2026.4）的出发点是一个反直觉的观察：在基于 RankMixer 的 MetaFormer 架构上，把参数量从 10M scale 到 100M，**token 表示的 effective rank 并没有随参数量增长，反而呈现衰减振荡的轨迹**——在某些层甚至低于更小的模型。
 
-```mermaid
-graph TB
-    subgraph collapse["Representation Collapse 现象"]
-        direction TB
-        OBS["观察: 参数量 10M to 100M<br/>Effective rank 呈衰减振荡<br/>深层 rank 反而低于浅层"]
-        CAUSE1["Token Mixing 提供有界的 rank 扩展<br/>无法持续增加表示多样性"]
-        CAUSE2["Per-token FFN 在 channel 维度<br/>具有 rank 压缩效应"]
-        CAUSE3["多任务学习中不同目标<br/>在共享空间里互相压缩"]
-        OBS --> CAUSE1
-        OBS --> CAUSE2
-        OBS --> CAUSE3
-        CAUSE1 --> CONCLUSION["结论: 加参数 ≠ 加表示能力<br/>需要扩展的是输入空间 不是计算空间"]
-        CAUSE2 --> CONCLUSION
-        CAUSE3 --> CONCLUSION
-    end
-
-    style OBS fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px
-    style CAUSE1 fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style CAUSE2 fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style CAUSE3 fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style CONCLUSION fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-```
+<TechGraph src="/images/posts/推荐系统的Mixer革命-从一篇论文到四家大厂全量上线/representation-collapse.svg" title="REPRESENTATION COLLAPSE" caption="腾讯发现: 加参数不等于加表示能力, 需要扩展的是输入空间" />
 
 Effective rank 是用奇异值分布的 Shannon 熵来度量表示矩阵实际利用了多少维度。如果一个 1024 维的表示空间里 90% 的信息集中在前 50 个奇异值上，它的 effective rank 远低于 1024——剩下的维度是浪费的。
 
@@ -170,24 +117,7 @@ RankUp 的核心判断是：**问题不在于计算不够（不需要更多参�
 
 现在把视角拉远，看整个行业在 12 个月里发生了什么。
 
-```mermaid
-graph TB
-    subgraph timeline["Mixer 架构行业部署时间线"]
-        direction LR
-        RM["2025.7 RankMixer<br/>字节 抖音<br/>1B 参数 MFU 45%"] --> OT["2025.10 OneTrans<br/>字节 电商<br/>统一特征交互+序列建模"]
-        RM --> MT["2025.10 MTmixAtt<br/>美团 首页<br/>AutoToken+MoE"]
-        OT --> HF["2026.1 HyFormer<br/>字节 高流量场景<br/>混合 Transformer"]
-        OT --> TML["2026.2 TokenMixer-Large<br/>字节 全场景<br/>7B-15B 参数"]
-        RM --> RU["2026.4 RankUp<br/>腾讯微信 广告<br/>修复 representation collapse"]
-    end
-
-    style RM fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style OT fill:#c5f6fa,stroke:#0c8599,stroke-width:1px
-    style MT fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style HF fill:#c5f6fa,stroke:#0c8599,stroke-width:1px
-    style TML fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style RU fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
-```
+<TechGraph src="/images/posts/推荐系统的Mixer革命-从一篇论文到四家大厂全量上线/industry-timeline.svg" title="行业部署时间线" caption="12 个月内, 四家大厂从不同路线全量部署 Mixer 架构" />
 
 **字节跳动的路线：纵深推进。** 从 RankMixer（1B）出发，一方面纵向 scale 到 TokenMixer-Large（7B-15B），另一方面横向统一到 OneTrans（特征交互 + 序列建模），再到 HyFormer（进一步优化统一架构的序列建模部分）。字节的策略是最激进的——它同时在参数量、架构统一性、和 serving 效率三条线上推进。
 

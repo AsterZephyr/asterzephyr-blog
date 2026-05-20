@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440">
+  <defs>
+    <marker id="arrowControl" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b9e8a"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 20px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 13px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 11px; fill: #5a5a58; }
+    .section-label { font-size: 11px; font-weight: 600; fill: #8a8a87; letter-spacing: 0.05em; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="440" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" class="title">传统双模块架构 vs OneTrans 统一架构</text>
+
+  <!-- Left: Traditional -->
+  <rect x="30" y="55" width="430" height="365" rx="10" fill="none" stroke="#e8a09a" stroke-width="1.5"/>
+  <text x="245" y="78" text-anchor="middle" class="section-label">传统双模块架构</text>
+
+  <!-- Feature Interaction module -->
+  <rect x="60" y="100" width="180" height="120" rx="8" fill="none" stroke="#c4956a" stroke-width="1.2"/>
+  <text x="150" y="118" text-anchor="middle" class="section-label">特征交互模块</text>
+  <rect x="75" y="128" width="80" height="28" rx="4" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="115" y="146" text-anchor="middle" class="node-sub">用户画像</text>
+  <rect x="75" y="162" width="80" height="28" rx="4" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="115" y="180" text-anchor="middle" class="node-sub">物品属性</text>
+  <rect x="160" y="145" width="65" height="28" rx="4" fill="#fdf6e3" stroke="#c4956a" stroke-width="1.5"/>
+  <text x="192" y="163" text-anchor="middle" class="node-sub">FM/DCN</text>
+
+  <!-- Sequence module -->
+  <rect x="270" y="100" width="170" height="120" rx="8" fill="none" stroke="#9b72b0" stroke-width="1.2"/>
+  <text x="355" y="118" text-anchor="middle" class="section-label">序列建模模块</text>
+  <rect x="285" y="130" width="90" height="28" rx="4" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1"/>
+  <text x="330" y="148" text-anchor="middle" class="node-sub">行为序列</text>
+  <rect x="285" y="168" width="90" height="28" rx="4" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1.5"/>
+  <text x="330" y="186" text-anchor="middle" class="node-sub">DIN/SASRec</text>
+
+  <!-- Concat + MLP -->
+  <rect x="150" y="250" width="120" height="38" rx="8" fill="#ffffff" stroke="#8a8a87" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="210" y="273" text-anchor="middle" class="node-title">拼接</text>
+
+  <rect x="150" y="310" width="120" height="38" rx="8" fill="#e0f7fa" stroke="#0c8599" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="210" y="333" text-anchor="middle" class="node-title">MLP 输出</text>
+
+  <!-- Arrows left side -->
+  <line x1="180" y1="220" x2="180" y2="250" stroke="#c4956a" stroke-width="1.2" marker-end="url(#arrowControl)"/>
+  <line x1="330" y1="220" x2="250" y2="250" stroke="#9b72b0" stroke-width="1.2" marker-end="url(#arrowControl)"/>
+  <line x1="210" y1="288" x2="210" y2="310" stroke="#8a8a87" stroke-width="1.2" marker-end="url(#arrowControl)"/>
+
+  <!-- Problem annotation -->
+  <rect x="60" y="370" width="380" height="38" rx="6" fill="#fff5f5" stroke="#e8a09a" stroke-width="1"/>
+  <text x="250" y="393" text-anchor="middle" class="node-sub" style="fill:#c92a2a">信息瓶颈: 两个模块各自为政, 最后才对话</text>
+
+  <!-- Right: OneTrans -->
+  <rect x="500" y="55" width="430" height="365" rx="10" fill="none" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="715" y="78" text-anchor="middle" class="section-label">OneTrans 统一架构</text>
+
+  <rect x="590" y="100" width="250" height="44" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="715" y="120" text-anchor="middle" class="node-title">所有特征 + 行为序列</text>
+  <text x="715" y="136" text-anchor="middle" class="node-sub">异构输入统一输入</text>
+
+  <rect x="590" y="170" width="250" height="44" rx="8" fill="#fdf6e3" stroke="#c4956a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="715" y="190" text-anchor="middle" class="node-title">统一 Tokenizer</text>
+  <text x="715" y="206" text-anchor="middle" class="node-sub">S-tokens + NS-tokens</text>
+
+  <rect x="590" y="240" width="250" height="44" rx="8" fill="#f0e6f6" stroke="#9b72b0" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="715" y="260" text-anchor="middle" class="node-title">一个 Transformer</text>
+  <text x="715" y="276" text-anchor="middle" class="node-sub">Mixed Parameterization + Pyramid Stack</text>
+
+  <rect x="590" y="310" width="250" height="44" rx="8" fill="#e0f7fa" stroke="#0c8599" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="715" y="333" text-anchor="middle" class="node-title">统一输出</text>
+
+  <!-- Arrows right side -->
+  <line x1="715" y1="144" x2="715" y2="170" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <line x1="715" y1="214" x2="715" y2="240" stroke="#9b72b0" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <line x1="715" y1="284" x2="715" y2="310" stroke="#0c8599" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+
+  <!-- Advantage annotation -->
+  <rect x="530" y="370" width="380" height="38" rx="6" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="720" y="393" text-anchor="middle" class="node-sub" style="fill:#2f6b55">特征交互与序列建模每层都交互, 1+1 > 2</text>
+</svg>

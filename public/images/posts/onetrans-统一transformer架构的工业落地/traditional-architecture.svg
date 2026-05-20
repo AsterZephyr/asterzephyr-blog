@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420">
+  <defs>
+    <marker id="arrowControl" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b9e8a"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c4956a"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 20px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 13px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 11px; fill: #5a5a58; }
+    .section-label { font-size: 11px; font-weight: 600; fill: #8a8a87; letter-spacing: 0.05em; }
+    .problem { font-size: 11px; fill: #c92a2a; font-weight: 500; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="420" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" class="title">传统推荐模型架构</text>
+
+  <!-- Input -->
+  <rect x="380" y="60" width="200" height="44" rx="8" fill="#ffffff" stroke="#8a8a87" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="480" y="86" text-anchor="middle" class="node-title">原始特征</text>
+
+  <!-- Embedding -->
+  <rect x="380" y="130" width="200" height="44" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="480" y="156" text-anchor="middle" class="node-title">Embedding Layer</text>
+
+  <!-- Two branches -->
+  <rect x="160" y="210" width="240" height="50" rx="8" fill="#f0e6f6" stroke="#9b72b0" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="280" y="233" text-anchor="middle" class="node-title">序列建模</text>
+  <text x="280" y="250" text-anchor="middle" class="node-sub">DIN / DIEN / SIM</text>
+
+  <rect x="560" y="210" width="240" height="50" rx="8" fill="#fdf6e3" stroke="#c4956a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="680" y="233" text-anchor="middle" class="node-title">特征交互</text>
+  <text x="680" y="250" text-anchor="middle" class="node-sub">DCN / DeepFM</text>
+
+  <!-- Concat -->
+  <rect x="380" y="295" width="200" height="40" rx="8" fill="#ffffff" stroke="#8a8a87" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="480" y="319" text-anchor="middle" class="node-title">Concat</text>
+
+  <!-- MLP -->
+  <rect x="380" y="360" width="200" height="44" rx="8" fill="#ffffff" stroke="#8a8a87" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="480" y="386" text-anchor="middle" class="node-title">MLP Tower → CTR / CVR</text>
+
+  <!-- Arrows -->
+  <line x1="480" y1="104" x2="480" y2="130" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <path d="M 420 174 L 320 210" fill="none" stroke="#9b72b0" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <path d="M 540 174 L 640 210" fill="none" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <path d="M 320 260 L 420 295" fill="none" stroke="#9b72b0" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+  <path d="M 640 260 L 540 295" fill="none" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <line x1="480" y1="335" x2="480" y2="360" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+
+  <!-- Problem annotations -->
+  <rect x="30" y="290" width="260" height="100" rx="8" fill="#fff5f5" stroke="#e8a09a" stroke-width="1"/>
+  <text x="50" y="310" class="problem">问题 1: 信息瓶颈</text>
+  <text x="50" y="326" class="node-sub">序列兴趣被压缩为单一向量</text>
+  <text x="50" y="348" class="problem">问题 2: 参数效率低</text>
+  <text x="50" y="364" class="node-sub">两个模块独立参数, 最后才对话</text>
+  <text x="50" y="380" class="problem">问题 3: 工程复杂度高</text>
+
+  <!-- Bottleneck indicator -->
+  <path d="M 290 295 L 380 315" fill="none" stroke="#e8a09a" stroke-width="1" stroke-dasharray="4,3"/>
+</svg>

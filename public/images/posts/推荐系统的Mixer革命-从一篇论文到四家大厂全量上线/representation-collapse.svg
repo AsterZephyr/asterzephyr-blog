@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420">
+  <defs>
+    <marker id="arrowControl" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b9e8a"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 20px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 13px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 11px; fill: #5a5a58; }
+    .section-label { font-size: 11px; font-weight: 600; fill: #8a8a87; letter-spacing: 0.05em; }
+    .problem { font-size: 12px; fill: #c92a2a; font-weight: 600; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="420" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" class="title">Representation Collapse 现象与 RankUp 解法</text>
+
+  <!-- Observation -->
+  <rect x="300" y="60" width="360" height="56" rx="8" fill="#fff5f5" stroke="#c92a2a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="480" y="83" text-anchor="middle" class="problem">观察: 参数量 10M → 100M</text>
+  <text x="480" y="101" text-anchor="middle" class="node-sub">Effective rank 呈衰减振荡, 深层反而低于浅层</text>
+
+  <!-- Three causes -->
+  <rect x="40" y="155" width="270" height="50" rx="8" fill="#fdf6e3" stroke="#c4956a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="175" y="177" text-anchor="middle" class="node-title">Token Mixing 有界</text>
+  <text x="175" y="195" text-anchor="middle" class="node-sub">无法持续增加表示多样性</text>
+
+  <rect x="345" y="155" width="270" height="50" rx="8" fill="#fdf6e3" stroke="#c4956a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="480" y="177" text-anchor="middle" class="node-title">Per-token FFN 压缩</text>
+  <text x="480" y="195" text-anchor="middle" class="node-sub">Channel 维度的 rank 压缩效应</text>
+
+  <rect x="650" y="155" width="270" height="50" rx="8" fill="#fdf6e3" stroke="#c4956a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="785" y="177" text-anchor="middle" class="node-title">多任务梯度干扰</text>
+  <text x="785" y="195" text-anchor="middle" class="node-sub">Dominant task 压缩共享空间</text>
+
+  <!-- Arrows from obs to causes -->
+  <path d="M 380 116 L 200 155" fill="none" stroke="#c4956a" stroke-width="1.2" marker-end="url(#arrowControl)"/>
+  <line x1="480" y1="116" x2="480" y2="155" stroke="#c4956a" stroke-width="1.2" marker-end="url(#arrowControl)"/>
+  <path d="M 580 116 L 760 155" fill="none" stroke="#c4956a" stroke-width="1.2" marker-end="url(#arrowControl)"/>
+
+  <!-- Conclusion -->
+  <rect x="250" y="240" width="460" height="44" rx="8" fill="#f0e6f6" stroke="#9b72b0" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="480" y="260" text-anchor="middle" class="node-title">结论: 加参数 ≠ 加表示能力</text>
+  <text x="480" y="276" text-anchor="middle" class="node-sub">需要扩展的是输入空间, 不是计算空间</text>
+
+  <!-- Arrow to conclusion -->
+  <line x1="480" y1="205" x2="480" y2="240" stroke="#9b72b0" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+
+  <!-- RankUp solutions -->
+  <rect x="40" y="315" width="880" height="85" rx="10" fill="none" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="60" y="340" class="section-label">RANKUP: 五个输入多样性机制 (不动 Mixer 架构本身)</text>
+
+  <rect x="60" y="352" width="155" height="34" rx="6" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="137" y="373" text-anchor="middle" class="node-sub">随机排列分组</text>
+
+  <rect x="230" y="352" width="155" height="34" rx="6" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="307" y="373" text-anchor="middle" class="node-sub">Multi-embedding</text>
+
+  <rect x="400" y="352" width="155" height="34" rx="6" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="477" y="373" text-anchor="middle" class="node-sub">全局 Token 聚合</text>
+
+  <rect x="570" y="352" width="170" height="34" rx="6" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="655" y="373" text-anchor="middle" class="node-sub">Cross Pretrained Emb</text>
+
+  <rect x="755" y="352" width="150" height="34" rx="6" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="830" y="373" text-anchor="middle" class="node-sub">Task Token 解耦</text>
+
+  <!-- Arrow from conclusion to solutions -->
+  <line x1="480" y1="284" x2="480" y2="315" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrowControl)"/>
+</svg>

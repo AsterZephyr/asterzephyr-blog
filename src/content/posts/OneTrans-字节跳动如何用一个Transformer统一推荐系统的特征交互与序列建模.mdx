@@ -6,6 +6,7 @@ category: "技术分享"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 
 推荐系统的 ranking 模型做两件事：特征交互（用户画像、物品属性、上下文之间的交叉）和序列建模（从用户行为历史里捕捉兴趣演化）。过去十年，这两件事一直由两套独立的模块完成——DNN/FM 系列做特征交互，DIN/SASRec 系列做序列建模。两套模块各自迭代，各自 scale，各自维护。
@@ -28,45 +29,7 @@ import Callout from '../../components/blog/Callout.astro'
 
 传统做法是把两个模块拼接在一起：序列建模模块输出一个用户兴趣向量，和特征交互模块的输出拼接后送入最终的 MLP 预测点击率。
 
-```mermaid
-graph LR
-    subgraph traditional["传统双模块架构"]
-        direction TB
-        subgraph fi["特征交互模块"]
-            direction LR
-            UF["用户画像"] --> FM["FM/DCN"]
-            IF["物品属性"] --> FM
-            CF["上下文"] --> FM
-        end
-        subgraph sm["序列建模模块"]
-            direction LR
-            SEQ["行为序列"] --> ATT["DIN/SASRec"]
-        end
-        FM --> CONCAT["拼接"]
-        ATT --> CONCAT
-        CONCAT --> MLP["MLP 输出"]
-    end
-
-    subgraph unified["OneTrans 统一架构"]
-        direction TB
-        ALL["所有特征 + 行为序列"] --> TOK["统一 Tokenizer"]
-        TOK --> TF["一个 Transformer"]
-        TF --> OUT["统一输出"]
-    end
-
-    style UF fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style IF fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style CF fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style SEQ fill:#e5dbff,stroke:#5f3dc4,stroke-width:1px
-    style FM fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style ATT fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style CONCAT fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style MLP fill:#c5f6fa,stroke:#0c8599,stroke-width:2px
-    style ALL fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style TOK fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style TF fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style OUT fill:#c5f6fa,stroke:#0c8599,stroke-width:2px
-```
+<TechGraph src="/images/posts/OneTrans-字节跳动如何用一个Transformer统一推荐系统的特征交互与序列建模/dual-vs-unified.svg" title="架构对比" caption="传统双模块架构 (信息瓶颈) vs OneTrans 统一架构 (每层交互)" />
 
 ### OneTrans 的四个核心设计
 
@@ -108,35 +71,7 @@ OneTrans 的方案是：在 Transformer 的每一层，序列 token 共享同一
 
 第三，也是最根本的——**两个模块对用户表示的理解是割裂的**。特征交互模块学到的"这个用户对美妆品类有偏好"和序列建模模块学到的"这个用户最近在看耳机"，在最终拼接之前没有任何交互。拼接层的 MLP 需要从两个独立表示中重新发现它们之间的关联，这是一个不必要的信息瓶颈。
 
-```mermaid
-graph TB
-    subgraph phase1["Phase 1: 分别 Scale (2024)"]
-        direction LR
-        W["Wukong<br/>特征交互 Scale"] --- L["LONGER<br/>序列长度 Scale"]
-    end
-
-    subgraph phase2["Phase 2: 联合 Scale 的困境"]
-        direction TB
-        P1["参数量叠加 2x+2x=4x"]
-        P2["Serving 复杂度叠加"]
-        P3["用户表示割裂"]
-    end
-
-    subgraph phase3["Phase 3: 统一架构 (2025)"]
-        direction LR
-        OT["OneTrans<br/>一个 Transformer 做两件事"]
-    end
-
-    phase1 --> phase2
-    phase2 --> phase3
-
-    style W fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style L fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style P1 fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style P2 fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style P3 fill:#ffe3e3,stroke:#c92a2a,stroke-width:1px
-    style OT fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
-```
+<TechGraph src="/images/posts/OneTrans-字节跳动如何用一个Transformer统一推荐系统的特征交互与序列建模/scaling-evolution.svg" title="SCALING 演进" caption="分别 Scale → 发现叠加困境 → 统一架构突破瓶颈" />
 
 ### 统一的三个结构性优势
 
@@ -200,41 +135,7 @@ OneRec 最值得关注的不是效果数字，而是 OPEX 数字。传统 pipeli
 
 这个方向涉及推荐系统、Transformer 架构、大规模系统工程三个知识域。以下是一条从基础到前沿的路径。
 
-```mermaid
-graph TB
-    subgraph level1["Level 1: 推荐系统基础"]
-        direction LR
-        DIN["DIN/DIEN<br/>注意力做序列建模"] --> DCN["DCN/DeepFM<br/>显式特征交叉"]
-    end
-
-    subgraph level2["Level 2: Transformer 在推荐中的应用"]
-        direction LR
-        SAS["SASRec/BERT4Rec<br/>自注意力序列建模"] --> AUTO["AutoInt/InterFormer<br/>Transformer做特征交互"]
-    end
-
-    subgraph level3["Level 3: Scaling"]
-        direction LR
-        WK["Wukong<br/>特征交互 Scaling"] --> LG["LONGER<br/>序列长度 Scaling"]
-    end
-
-    subgraph level4["Level 4: 统一架构"]
-        direction LR
-        OT2["OneTrans<br/>统一 Backbone"] --> OR["OneRec<br/>生成式统一"]
-    end
-
-    level1 --> level2
-    level2 --> level3
-    level3 --> level4
-
-    style DIN fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
-    style DCN fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
-    style SAS fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style AUTO fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style WK fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style LG fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style OT2 fill:#c5f6fa,stroke:#0c8599,stroke-width:2px
-    style OR fill:#c5f6fa,stroke:#0c8599,stroke-width:2px
-```
+<TechGraph src="/images/posts/OneTrans-字节跳动如何用一个Transformer统一推荐系统的特征交互与序列建模/learning-path.svg" title="学习路径" caption="从推荐基础 → Transformer 应用 → Scaling → 统一架构" />
 
 **Level 1：推荐系统基础。** 理解推荐系统 ranking 模型的基本框架。重点读两篇：DIN（阿里，2018）解释了为什么用注意力机制做序列建模，DeepFM/DCN（华为/Google）解释了为什么需要显式的特征交叉。这两篇是后续所有工作的基础。如果时间有限，只看 DIN 和 DCN v2 就够了。
 

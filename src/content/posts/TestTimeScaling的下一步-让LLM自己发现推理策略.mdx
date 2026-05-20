@@ -6,6 +6,7 @@ category: "技术分享"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 
 Test-Time Scaling（TTS）的核心思想很简单：推理时多花计算，换取更好的结果。Self-Consistency 采样 64 条推理路径然后投票，Best-of-N 生成多个答案然后用验证器选最好的，Adaptive Stopping 在确信度足够时提前停止——这些方法在数学推理基准上带来了实质性的提升。
@@ -24,39 +25,7 @@ Google 的 [AutoTTS](https://arxiv.org/abs/2605.08083) 论文（HuggingFace #1 P
 
 现有的 TTS 策略看起来形态各异——有的做并行采样，有的做序列延伸，有的做树搜索，有的做自适应停止——但论文指出，大部分策略可以在一个统一的"宽度-深度"控制空间中表示。宽度是并行推理分支的数量，深度是每条分支的推理步数。在这个空间里，每种策略就是一条特定的轨迹：
 
-```mermaid
-graph TB
-    subgraph strategies["TTS 策略在宽度-深度空间中的轨迹"]
-        direction TB
-        SC["Self-Consistency SC@64<br/>固定宽度=64 固定深度=max<br/>最暴力: 全预算全展开"]
-        ASC["ASC 自适应采样<br/>逐步增加宽度 直到确信度达标<br/>只调宽度 不调深度"]
-        ESC["ESC 分块早停<br/>批量生成 滑动窗口检测稳定性<br/>宽度内的局部自适应"]
-        PP["Parallel-Probe<br/>宽启动 渐进剪枝 同时加深<br/>宽度和深度同时动态调整"]
-        STBON["ST-BoN<br/>先宽展开 选最优一条 再加深<br/>宽度先扩后缩 深度单调增"]
-    end
-
-    SC ---|"全固定"| STATIC["静态策略"]
-    ASC ---|"单维自适应"| SEMI["半自适应"]
-    ESC ---|"单维自适应"| SEMI
-    PP ---|"双维自适应"| ADAPTIVE["全自适应"]
-    STBON ---|"分阶段"| PHASED["分阶段策略"]
-
-    ADAPTIVE -.->|"但仍然是人工设计"| HUMAN["人类设计的启发式"]
-    STATIC -.-> HUMAN
-    SEMI -.-> HUMAN
-    PHASED -.-> HUMAN
-
-    style SC fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style ASC fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style ESC fill:#d3f9d8,stroke:#2f9e44,stroke-width:1px
-    style PP fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style STBON fill:#ffe8cc,stroke:#d9480f,stroke-width:1px
-    style HUMAN fill:#ffe3e3,stroke:#c92a2a,stroke-width:2px
-    style STATIC fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style SEMI fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style ADAPTIVE fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style PHASED fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-```
+<TechGraph src="/images/posts/TestTimeScaling的下一步-让LLM自己发现推理策略/strategy-space.svg" title="TTS 策略空间" caption="所有 TTS 策略都是宽度-深度控制空间中手工选取的轨迹" />
 
 这个统一视角的价值在于：它把"设计 TTS 策略"的问题从"发明一个新启发式"变成了"在控制空间中搜索一条好轨迹"。而搜索是可以自动化的——前提是你能让搜索的成本变得可控。
 
@@ -70,36 +39,7 @@ LLM agent 的工作是在这个环境中迭代提出候选策略（以代码形�
 
 这个分工的精妙之处在于：环境定义是相对稳定的（宽度-深度空间不太会变），但策略空间是开放的——agent 可以发现任何人类可能想不到的分支/剪枝/停止的组合模式。
 
-```mermaid
-graph TB
-    subgraph autotts_flow["AutoTTS 流程"]
-        direction TB
-        DATA["离线数据采集<br/>每个问题预采样 128 条推理轨迹"] --> ENV["构建 Replay 环境<br/>所有 LLM 调用提前完成"]
-        ENV --> LOOP["发现循环"]
-
-        subgraph discovery["发现循环 (5 轮)"]
-            direction TB
-            PROPOSE["Explorer LLM 阅读历史 提出新策略代码"]
-            EVAL["在 replay 环境中评估<br/>扫描 beta 参数 记录 scaling curve"]
-            TRACE["记录执行轨迹<br/>agent 可以诊断『为什么这个策略失败了』"]
-            HISTORY["追加到历史记录"]
-            PROPOSE --> EVAL --> TRACE --> HISTORY
-            HISTORY -->|"下一轮"| PROPOSE
-        end
-
-        LOOP --> SELECT["选择最优策略 + beta 值"]
-        SELECT --> GENERALIZE["在 held-out benchmark 上验证泛化性"]
-    end
-
-    style DATA fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
-    style ENV fill:#d3f9d8,stroke:#2f9e44,stroke-width:2px
-    style PROPOSE fill:#e5dbff,stroke:#5f3dc4,stroke-width:2px
-    style EVAL fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style TRACE fill:#ffe8cc,stroke:#d9480f,stroke-width:2px
-    style HISTORY fill:#f8f9fa,stroke:#868e96,stroke-width:1px
-    style SELECT fill:#c5f6fa,stroke:#0c8599,stroke-width:2px
-    style GENERALIZE fill:#c5f6fa,stroke:#0c8599,stroke-width:2px
-```
+<TechGraph src="/images/posts/TestTimeScaling的下一步-让LLM自己发现推理策略/autotts-flow.svg" title="AUTOTTS 流程" caption="离线数据采集 → Replay 环境 → 发现循环 (5 轮) → 选择最优 → 泛化验证" />
 
 ## 三个关键创新让搜索变得可行
 
