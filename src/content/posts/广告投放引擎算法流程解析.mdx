@@ -7,6 +7,7 @@ category: "技术分享"
 
 import Callout from '../../components/blog/Callout.astro'
 import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 
 ## 目录
@@ -2967,40 +2968,7 @@ comparison_summary = {
 
 ### 5.2.2 Horovod核心原理
 
-```mermaid
-graph TB
-    subgraph "Horovod Ring-AllReduce 算法（4 Worker 示例）"
-        % 定义 Worker 初始节点（每个节点单独成行，避免解析冲突）
-        W1[Worker 1<br />梯度: [1,2,3,4]]
-        W2[Worker 2<br />梯度: [5,6,7,8]]
-        W3[Worker 3<br />梯度: [9,10,11,12]]
-        W4[Worker 4<br />梯度: [13,14,15,16]]
-
-        % 定义最终平均梯度节点
-        W1F[Worker 1<br />平均梯度]
-        W2F[Worker 2<br />平均梯度]
-        W3F[Worker 3<br />平均梯度]
-        W4F[Worker 4<br />平均梯度]
-
-        % 第一轮梯度发送（环形通信，每个 Worker 发送部分梯度给下一个）
-        W1 -->|发送分片 [1]| W2
-        W2 -->|发送分片 [6]| W3
-        W3 -->|发送分片 [11]| W4
-        W4 -->|发送分片 [16]| W1
-
-        % 多轮通信后得到平均梯度（虚线表示最终结果）
-        W1 -.->|N-1 轮通信后| W1F
-        W2 -.->|N-1 轮通信后| W2F
-        W3 -.->|N-1 轮通信后| W3F
-        W4 -.->|N-1 轮通信后| W4F
-
-        % 美化最终节点样式
-        style W1F fill:#90EE90, stroke:#333, stroke-width:1px
-        style W2F fill:#90EE90, stroke:#333, stroke-width:1px
-        style W3F fill:#90EE90, stroke:#333, stroke-width:1px
-        style W4F fill:#90EE90, stroke:#333, stroke-width:1px
-    end
-```
+<TechGraph src="/images/posts/广告投放引擎算法流程解析/horovod-ring-allreduce.svg" title="Horovod Ring-AllReduce" caption="4 Worker 环形通信示例：每个 Worker 仅与相邻节点交换梯度分片，N-1 轮后所有节点获得全局平均梯度" />
 
 **Ring-AllReduce优势**：
 
@@ -3632,34 +3600,7 @@ func buildFloat32TensorProto(data []float32, batchSize int) *tfFramework.TensorP
 
 ### 5.4.1 服务架构设计
 
-```mermaid
-graph TB
-    A[RTB请求] --> B[Load Balancer]
-
-    B --> C1[TF Serving 1<br />CTR Model v1]
-    B --> C2[TF Serving 2<br />CTR Model v1]
-    B --> C3[TF Serving 3<br />CTR Model v1]
-
-    B --> D1[TF Serving 4<br />CVR Model v1]
-    B --> D2[TF Serving 5<br />CVR Model v1]
-
-    C1 --> E[(Model Storage<br />NFS/S3)]
-    C2 --> E
-    C3 --> E
-    D1 --> E
-    D2 --> E
-
-    F[Model Tr算法ning] --> |新版本| E
-
-    G[Health Check] -.-> C1
-    G -.-> C2
-    G -.-> C3
-    G -.-> D1
-    G -.-> D2
-
-    style E fill:#f9f
-    style G fill:#9f9
-```
+<TechGraph src="/images/posts/广告投放引擎算法流程解析/tf-serving-architecture.svg" title="TF Serving 高可用架构" caption="无状态 TF Serving 实例通过 Load Balancer 分流，Health Check 自动剔除故障节点" />
 
 **核心设计原则**：
 
@@ -4148,25 +4089,7 @@ OCPC：
 
 ### 7.1.1 离线 vs 在线的鸿沟
 
-```mermaid
-graph TD
-    A[离线评估] --> B[历史数据]
-    B --> C[AUC, LogLoss, GAUC]
-    C --> D{指标提升?}
-    D -->|是| E[上线A/B测试]
-    D -->|否| F[继续优化模型]
-
-    E --> G[在线评估]
-    G --> H[CTR, CVR, ROI, Revenue]
-    H --> I{业务指标提升?}
-    I -->|是| J[全量发布]
-    I -->|否| K[回滚]
-
-    style C fill:#90EE90
-    style H fill:#FFB6C1
-    style J fill:#00FF00
-    style K fill:#FF0000
-```
+<TechGraph src="/images/posts/广告投放引擎算法流程解析/offline-online-evaluation.svg" title="模型评估流程" caption="离线指标通过后上线 A/B 测试，在线业务指标提升才全量发布，否则回滚" />
 
 **关键矛盾**：
 

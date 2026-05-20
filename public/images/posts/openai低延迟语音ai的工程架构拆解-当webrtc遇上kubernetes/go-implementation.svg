@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#8a8a87" stroke-width="1"/>
+    </marker>
+  </defs>
+  <rect width="960" height="400" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">Go 实现: 不需要内核旁路</text>
+
+  <!-- Kernel layer -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="70" width="300" height="130" rx="8" fill="#fff" stroke="#0c8599" stroke-width="2"/>
+    <rect x="40" y="70" width="300" height="28" rx="8" fill="#0c8599"/>
+    <rect x="40" y="90" width="300" height="8" fill="#0c8599"/>
+    <text x="190" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">Linux 内核网络栈</text>
+  </g>
+  <rect x="70" y="110" width="100" height="35" rx="6" fill="#e7f5ff" stroke="#0c8599" stroke-width="1"/>
+  <text x="120" y="132" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#0c8599">网卡</text>
+
+  <path d="M170 127 L210 127" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="210" y="110" width="110" height="35" rx="6" fill="#e7f5ff" stroke="#0c8599" stroke-width="1"/>
+  <text x="265" y="132" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#0c8599">内核 Socket</text>
+
+  <!-- Workers -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="230" width="300" height="130" rx="8" fill="#fff" stroke="#6b9e8a" stroke-width="2"/>
+    <rect x="40" y="230" width="300" height="28" rx="8" fill="#6b9e8a"/>
+    <rect x="40" y="250" width="300" height="8" fill="#6b9e8a"/>
+    <text x="190" y="250" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">用户态 Relay (Go)</text>
+  </g>
+  <rect x="60" y="270" width="80" height="35" rx="6" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="100" y="292" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#2f6b4f">Worker 1</text>
+
+  <rect x="155" y="270" width="80" height="35" rx="6" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="195" y="292" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#2f6b4f">Worker 2</text>
+
+  <rect x="250" y="270" width="80" height="35" rx="6" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="290" y="292" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#2f6b4f">Worker N</text>
+
+  <text x="190" y="340" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">SO_REUSEPORT: 多 Worker 绑定同端口</text>
+
+  <!-- Kernel -> Workers arrows -->
+  <path d="M265 155 L100 270" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+  <path d="M265 155 L195 270" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+  <path d="M265 155 L290 270" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="200" y="215" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">内核分发</text>
+
+  <!-- Optimizations -->
+  <g filter="url(#shadowSoft)">
+    <rect x="430" y="70" width="490" height="290" rx="8" fill="#fff" stroke="#c4956a" stroke-width="2"/>
+    <rect x="430" y="70" width="490" height="28" rx="8" fill="#c4956a"/>
+    <rect x="430" y="90" width="490" height="8" fill="#c4956a"/>
+    <text x="675" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">性能优化手段</text>
+  </g>
+
+  <rect x="460" y="110" width="430" height="55" rx="6" fill="#fef3e2" stroke="#c4956a" stroke-width="1"/>
+  <text x="480" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#8b5e3c">SO_REUSEPORT</text>
+  <text x="480" y="152" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">多个 Worker 绑定同一个 UDP 端口，内核负责分发入包</text>
+
+  <rect x="460" y="180" width="430" height="55" rx="6" fill="#fef3e2" stroke="#c4956a" stroke-width="1"/>
+  <text x="480" y="202" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#8b5e3c">runtime.LockOSThread</text>
+  <text x="480" y="222" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">goroutine 固定到 OS 线程，提升 CPU 缓存局部性</text>
+
+  <rect x="460" y="250" width="430" height="55" rx="6" fill="#fef3e2" stroke="#c4956a" stroke-width="1"/>
+  <text x="480" y="272" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#8b5e3c">预分配 buffer + 最小拷贝</text>
+  <text x="480" y="292" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">降低解析和分配开销，减少 Go GC 压力</text>
+
+  <!-- Bottom conclusion -->
+  <rect x="430" y="320" width="490" height="30" rx="6" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="675" y="340" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#2f6b4f">结论: 不需要 DPDK 或 XDP 内核旁路技术，Go 用户态已足够</text>
+</svg>

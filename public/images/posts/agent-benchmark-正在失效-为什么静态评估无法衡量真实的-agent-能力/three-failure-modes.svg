@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrowGray" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#8a8a87"/>
+    </marker>
+  </defs>
+  <rect width="960" height="520" rx="12" fill="#f8f6f3"/>
+
+  <!-- Center: Static Benchmark -->
+  <g filter="url(#shadowSoft)">
+    <rect x="370" y="40" width="220" height="60" rx="8" fill="#ffffff" stroke="#0c8599" stroke-width="2"/>
+  </g>
+  <text x="480" y="67" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#0c8599">静态 Benchmark</text>
+  <text x="480" y="87" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">发布时冻结的任务集</text>
+
+  <!-- Mode 1 -->
+  <rect x="40" y="150" width="260" height="140" rx="8" fill="none" stroke="#c92a2a" stroke-width="1.5"/>
+  <text x="60" y="175" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#c92a2a">失效模式 1</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="60" y="190" width="220" height="40" rx="8" fill="#fff5f5" stroke="#c92a2a" stroke-width="1.5"/>
+  </g>
+  <text x="170" y="215" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="500" fill="#c92a2a">任务分布漂移</text>
+
+  <text x="170" y="255" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">需求侧持续演化</text>
+  <text x="170" y="273" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">季度间权重剧烈变动</text>
+
+  <!-- Mode 2 -->
+  <rect x="350" y="150" width="260" height="140" rx="8" fill="none" stroke="#c4956a" stroke-width="1.5"/>
+  <text x="370" y="175" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#c4956a">失效模式 2</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="370" y="190" width="220" height="40" rx="8" fill="#fff8e1" stroke="#c4956a" stroke-width="1.5"/>
+  </g>
+  <text x="480" y="215" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="500" fill="#c4956a">评估表面单一化</text>
+
+  <text x="480" y="255" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">只覆盖单一执行表面</text>
+  <text x="480" y="273" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">高估 Agent 实际能力</text>
+
+  <!-- Mode 3 -->
+  <rect x="660" y="150" width="260" height="140" rx="8" fill="none" stroke="#9b72b0" stroke-width="1.5"/>
+  <text x="680" y="175" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#9b72b0">失效模式 3</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="680" y="190" width="220" height="40" rx="8" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1.5"/>
+  </g>
+  <text x="790" y="215" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="500" fill="#9b72b0">结果评分欺骗</text>
+
+  <text x="790" y="255" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">只检查最终输出</text>
+  <text x="790" y="273" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">"听起来对" 不等于 "做对了"</text>
+
+  <!-- Arrows from center to modes -->
+  <path d="M420 100 L220 150" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+  <path d="M480 100 L480 150" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+  <path d="M540 100 L740 150" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <!-- Bottom: Result -->
+  <g filter="url(#shadowSoft)">
+    <rect x="270" y="380" width="420" height="70" rx="8" fill="#fff8e1" stroke="#c4956a" stroke-width="2"/>
+  </g>
+  <text x="480" y="410" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="15" font-weight="600" fill="#c4956a">排行榜排名 ≠ 实际 Agent 能力</text>
+  <text x="480" y="435" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">通过率相近的模型在不同任务家族上失败模式完全不同</text>
+
+  <!-- Arrows to result -->
+  <path d="M170 290 L380 380" stroke="#c92a2a" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+  <path d="M480 290 L480 380" stroke="#c4956a" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+  <path d="M790 290 L580 380" stroke="#9b72b0" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <!-- Footer note -->
+  <text x="480" y="500" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#8a8a87">三种力量持续侵蚀 benchmark 的有效性，使得一维排名丧失实际指导意义</text>
+</svg>

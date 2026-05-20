@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#8a8a87" stroke-width="1"/>
+    </marker>
+  </defs>
+  <rect width="960" height="280" rx="12" fill="#f8f6f3"/>
+
+  <text x="480" y="30" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="600" fill="#141413">场景三: 后台自动整理资料</text>
+
+  <!-- Only plugin -->
+  <rect x="40" y="55" width="880" height="80" rx="8" fill="#fff7ed" stroke="#c4956a" stroke-width="1"/>
+  <text x="60" y="75" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#c4956a">只用 Claudian:</text>
+  <rect x="60" y="85" width="130" height="30" rx="4" fill="#fef3e2" stroke="#c4956a" stroke-width="1"/>
+  <text x="125" y="105" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#8b5e3c">电脑休眠/插件不运行</text>
+  <path d="M190 100 L215 100" stroke="#c4956a" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="218" y="85" width="130" height="30" rx="4" fill="#fef3e2" stroke="#c4956a" stroke-width="1"/>
+  <text x="283" y="105" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#8b5e3c">早上打开 Obsidian</text>
+  <path d="M348 100 L373 100" stroke="#c4956a" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="376" y="85" width="140" height="30" rx="4" fill="#fef3e2" stroke="#c4956a" stroke-width="1"/>
+  <text x="446" y="105" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#8b5e3c">手动点击让插件现抓</text>
+
+  <!-- CLI path -->
+  <rect x="40" y="155" width="880" height="80" rx="8" fill="#f0faf0" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="60" y="175" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#6b9e8a">用 CLI:</text>
+  <rect x="60" y="185" width="130" height="30" rx="4" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="125" y="205" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#2f6b4f">cron 凌晨 4 点触发</text>
+  <path d="M190 200 L215 200" stroke="#6b9e8a" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="218" y="185" width="100" height="30" rx="4" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="268" y="205" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#2f6b4f">脚本抓数据</text>
+  <path d="M318 200 L343 200" stroke="#6b9e8a" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="346" y="185" width="110" height="30" rx="4" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="401" y="205" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#2f6b4f">CLI 写入日记</text>
+  <path d="M456 200 L481 200" stroke="#6b9e8a" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="484" y="185" width="170" height="30" rx="4" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="569" y="205" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" font-weight="600" fill="#2f6b4f">早上打开直接看报告</text>
+
+  <text x="480" y="265" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">系统级定时任务，凌晨后台脚本抓完数据，存进笔记库</text>
+</svg>

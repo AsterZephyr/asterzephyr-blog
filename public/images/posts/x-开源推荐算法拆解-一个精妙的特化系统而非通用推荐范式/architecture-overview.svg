@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#8a8a87" stroke-width="1"/>
+    </marker>
+  </defs>
+  <rect width="960" height="620" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">X FOR YOU 推荐系统架构</text>
+
+  <!-- Request -->
+  <g filter="url(#shadowSoft)">
+    <rect x="380" y="55" width="200" height="36" rx="8" fill="#0c8599"/>
+    <text x="480" y="78" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#fff">用户请求 For You 信息流</text>
+  </g>
+  <path d="M480 91 L480 110" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Home Mixer -->
+  <g filter="url(#shadowSoft)">
+    <rect x="60" y="115" width="840" height="240" rx="8" fill="#fff" stroke="#8a8a87" stroke-width="1.5"/>
+    <rect x="60" y="115" width="840" height="28" rx="8" fill="#8a8a87"/>
+    <rect x="60" y="135" width="840" height="8" fill="#8a8a87"/>
+    <text x="480" y="135" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#fff">Home Mixer - Rust 编排层</text>
+  </g>
+
+  <!-- Pipeline steps -->
+  <rect x="90" y="160" width="110" height="45" rx="6" fill="#e7f5ff" stroke="#0c8599" stroke-width="1"/>
+  <text x="145" y="180" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#0c8599">Query Hydration</text>
+  <text x="145" y="195" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">用户上下文加载</text>
+
+  <path d="M200 182 L220 182" stroke="#8a8a87" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="220" y="160" width="110" height="45" rx="6" fill="#e7f5ff" stroke="#0c8599" stroke-width="1"/>
+  <text x="275" y="180" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#0c8599">Candidate Sources</text>
+  <text x="275" y="195" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">候选源获取</text>
+
+  <path d="M330 182 L350 182" stroke="#8a8a87" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="350" y="160" width="110" height="45" rx="6" fill="#e7f5ff" stroke="#0c8599" stroke-width="1"/>
+  <text x="405" y="180" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#0c8599">Hydration</text>
+  <text x="405" y="195" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">特征填充</text>
+
+  <path d="M460 182 L480 182" stroke="#8a8a87" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="480" y="160" width="90" height="45" rx="6" fill="#e7f5ff" stroke="#0c8599" stroke-width="1"/>
+  <text x="525" y="180" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#0c8599">Filters</text>
+  <text x="525" y="195" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">过滤</text>
+
+  <path d="M570 182 L590 182" stroke="#8a8a87" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="590" y="160" width="110" height="45" rx="6" fill="#fef3e2" stroke="#c4956a" stroke-width="1.5"/>
+  <text x="645" y="180" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#c4956a">Scoring</text>
+  <text x="645" y="195" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">打分 Pipeline</text>
+
+  <path d="M700 182 L720 182" stroke="#8a8a87" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="720" y="160" width="110" height="45" rx="6" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="775" y="180" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#6b9e8a">Top-K Selection</text>
+  <text x="775" y="195" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">最终输出</text>
+
+  <!-- Candidate Sources detail -->
+  <g filter="url(#shadowSoft)">
+    <rect x="90" y="230" width="180" height="55" rx="6" fill="#fff" stroke="#6b9e8a" stroke-width="1.5"/>
+    <text x="180" y="252" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#6b9e8a">Thunder</text>
+    <text x="180" y="270" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">关注者帖子 | Kafka + 内存</text>
+  </g>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="300" y="230" width="180" height="55" rx="6" fill="#fff" stroke="#9b72b0" stroke-width="1.5"/>
+    <text x="390" y="252" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#9b72b0">Phoenix Retrieval</text>
+    <text x="390" y="270" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">全局 Two-Tower | ANN 检索</text>
+  </g>
+
+  <!-- Scoring detail -->
+  <g filter="url(#shadowSoft)">
+    <rect x="520" y="230" width="360" height="105" rx="6" fill="#fff" stroke="#c4956a" stroke-width="1.5"/>
+    <text x="540" y="252" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#c4956a">打分体系:</text>
+    <text x="540" y="272" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">Phoenix Scorer (Grok Transformer)</text>
+    <text x="540" y="290" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">Weighted Scorer (19 行为加权)</text>
+    <text x="540" y="308" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">Author Diversity (同作者衰减)</text>
+    <text x="540" y="326" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">OON Scorer (站外降权)</text>
+  </g>
+
+  <!-- Bottom: 4 components summary -->
+  <text x="480" y="395" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#141413">四个核心组件</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="415" width="200" height="80" rx="8" fill="#fff" stroke="#8a8a87" stroke-width="1.5"/>
+    <text x="140" y="445" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#141413">Home Mixer</text>
+    <text x="140" y="465" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">Rust 编排层</text>
+    <text x="140" y="482" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">Pipeline 执行顺序</text>
+  </g>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="270" y="415" width="200" height="80" rx="8" fill="#fff" stroke="#6b9e8a" stroke-width="1.5"/>
+    <text x="370" y="445" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#6b9e8a">Thunder</text>
+    <text x="370" y="465" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">Kafka 实时帖子存储</text>
+    <text x="370" y="482" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">亚毫秒级检索</text>
+  </g>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="500" y="415" width="200" height="80" rx="8" fill="#fff" stroke="#9b72b0" stroke-width="1.5"/>
+    <text x="600" y="445" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#9b72b0">Phoenix</text>
+    <text x="600" y="465" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">Grok Transformer ML</text>
+    <text x="600" y="482" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">召回 + 排序</text>
+  </g>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="730" y="415" width="200" height="80" rx="8" fill="#fff" stroke="#c4956a" stroke-width="1.5"/>
+    <text x="830" y="445" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#c4956a">Grox</text>
+    <text x="830" y="465" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">内容理解引擎</text>
+    <text x="830" y="482" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">垃圾检测 / 安全审核</text>
+  </g>
+
+  <!-- Bottom note -->
+  <rect x="40" y="520" width="880" height="70" rx="8" fill="#f0efec" stroke="#e0dfdc" stroke-width="1"/>
+  <text x="60" y="545" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413" font-weight="600">关键观察</text>
+  <text x="60" y="570" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">架构本身是清晰的。但深入代码后发现，几乎每个设计决策都深度绑定了 X 的特定场景。</text>
+</svg>

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+  </defs>
+  <rect width="960" height="380" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">数据规模差异决定了特征策略</text>
+  <text x="480" y="56" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">日活跃交互量对比 (对数坐标)</text>
+
+  <!-- Y-axis -->
+  <line x1="140" y1="80" x2="140" y2="310" stroke="#8a8a87" stroke-width="1"/>
+  <text x="60" y="175" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666" transform="rotate(-90,60,175)">日交互量 (log scale)</text>
+
+  <!-- Y-axis labels -->
+  <text x="130" y="310" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">10^6</text>
+  <text x="130" y="264" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">10^7</text>
+  <text x="130" y="218" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">10^8</text>
+  <text x="130" y="172" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">10^9</text>
+  <text x="130" y="126" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">10^10</text>
+  <text x="130" y="90" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">10^11</text>
+
+  <!-- Grid lines -->
+  <line x1="140" y1="90" x2="850" y2="90" stroke="#e0dfdc" stroke-width="0.5"/>
+  <line x1="140" y1="126" x2="850" y2="126" stroke="#e0dfdc" stroke-width="0.5"/>
+  <line x1="140" y1="172" x2="850" y2="172" stroke="#e0dfdc" stroke-width="0.5"/>
+  <line x1="140" y1="218" x2="850" y2="218" stroke="#e0dfdc" stroke-width="0.5"/>
+  <line x1="140" y1="264" x2="850" y2="264" stroke="#e0dfdc" stroke-width="0.5"/>
+
+  <!-- X-axis -->
+  <line x1="140" y1="310" x2="850" y2="310" stroke="#8a8a87" stroke-width="1"/>
+
+  <!-- Bars -->
+  <!-- X platform: 10.5 -> height maps to between 10^10 and 10^11 -->
+  <rect x="200" y="95" width="120" height="215" rx="4" fill="#9b72b0" opacity="0.85"/>
+  <text x="260" y="330" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">X 平台</text>
+  <text x="260" y="88" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#9b72b0">~300 亿</text>
+
+  <!-- Top short video: 10 -> 10^10 -->
+  <rect x="380" y="118" width="120" height="192" rx="4" fill="#6b9e8a" opacity="0.85"/>
+  <text x="440" y="330" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">头部短视频</text>
+  <text x="440" y="111" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#6b9e8a">~100 亿</text>
+
+  <!-- Medium DSP: 8 -> 10^8 -->
+  <rect x="560" y="210" width="120" height="100" rx="4" fill="#c4956a" opacity="0.85"/>
+  <text x="620" y="330" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">中型 DSP</text>
+  <text x="620" y="203" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#c4956a">~1 亿</text>
+
+  <!-- Vertical e-commerce: 7 -> 10^7 -->
+  <rect x="740" y="256" width="120" height="54" rx="4" fill="#0c8599" opacity="0.85"/>
+  <text x="800" y="330" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">垂直电商</text>
+  <text x="800" y="249" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#0c8599">~1000 万</text>
+
+  <!-- Conclusion -->
+  <rect x="140" y="345" width="710" height="25" rx="4" fill="#fef3e2" stroke="#c4956a" stroke-width="1"/>
+  <text x="495" y="362" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#8b5e3c">日交互量不足 X 千分之一时，纯 ID + 行为序列学不出有意义的 embedding，手工特征是必要的归纳偏置</text>
+</svg>

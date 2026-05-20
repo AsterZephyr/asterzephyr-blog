@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrowGray" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#8a8a87"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#c4956a"/>
+    </marker>
+  </defs>
+  <rect width="960" height="420" rx="12" fill="#f8f6f3"/>
+
+  <!-- Static Benchmark lifecycle -->
+  <rect x="40" y="40" width="400" height="330" rx="8" fill="none" stroke="#8a8a87" stroke-width="1.5"/>
+  <text x="60" y="68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#8a8a87">静态 Benchmark 生命周期</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="120" y="90" width="240" height="44" rx="8" fill="#ffffff" stroke="#8a8a87" stroke-width="1.5"/>
+  </g>
+  <text x="240" y="117" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#141413">发布任务集</text>
+
+  <path d="M240 134 L240 156" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="120" y="160" width="240" height="44" rx="8" fill="#ffffff" stroke="#8a8a87" stroke-width="1.5"/>
+  </g>
+  <text x="240" y="187" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#141413">模型评测</text>
+
+  <path d="M240 204 L240 226" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="120" y="230" width="240" height="44" rx="8" fill="#ffffff" stroke="#8a8a87" stroke-width="1.5"/>
+  </g>
+  <text x="240" y="257" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#141413">排行榜发布</text>
+
+  <path d="M240 274 L240 296" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="120" y="300" width="240" height="44" rx="8" fill="#fff5f5" stroke="#c92a2a" stroke-width="2"/>
+  </g>
+  <text x="240" y="327" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="500" fill="#c92a2a">逐渐过时失效</text>
+
+  <!-- Live Benchmark lifecycle -->
+  <rect x="520" y="40" width="400" height="330" rx="8" fill="none" stroke="#8a8a87" stroke-width="1.5"/>
+  <text x="540" y="68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#6b9e8a">Live Benchmark 生命周期</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="600" y="90" width="240" height="44" rx="8" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1.5"/>
+  </g>
+  <text x="720" y="117" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#141413">采集需求信号</text>
+
+  <path d="M720 134 L720 156" stroke="#6b9e8a" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="600" y="160" width="240" height="44" rx="8" fill="#e0f7fa" stroke="#0c8599" stroke-width="1.5"/>
+  </g>
+  <text x="720" y="187" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#141413">构建时间戳快照</text>
+
+  <path d="M720 204 L720 226" stroke="#0c8599" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="600" y="230" width="240" height="44" rx="8" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1.5"/>
+  </g>
+  <text x="720" y="257" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#141413">评测 + 评分</text>
+
+  <path d="M720 274 L720 296" stroke="#9b72b0" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="600" y="300" width="240" height="44" rx="8" fill="#fff8e1" stroke="#c4956a" stroke-width="2"/>
+  </g>
+  <text x="720" y="327" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="500" fill="#c4956a">季度刷新信号</text>
+
+  <!-- Loop arrow back -->
+  <path d="M840 322 C 900 322, 900 110, 840 110" stroke="#c4956a" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#arrowOrange)"/>
+
+  <!-- Bottom comparison -->
+  <text x="240" y="400" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#8a8a87">线性退化，不可逆</text>
+  <text x="720" y="400" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#6b9e8a">循环演化，持续校准</text>
+</svg>

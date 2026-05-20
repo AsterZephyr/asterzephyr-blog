@@ -8,6 +8,7 @@ tags: [工具, 开发, AI]
 
 import Callout from '../../components/blog/Callout.astro'
 import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 
 ## 目录
@@ -32,34 +33,7 @@ import Figure from '../../components/blog/Figure.astro'
 
 ## 一、架构总览
 
-```mermaid
-block-beta
-    columns 4
-    block:ob["Obsidian\n(前端)"]:1
-        ob1["笔记编辑"]
-        ob2["知识图谱"]
-        ob3["可视化"]
-        ob4["数据查询"]
-    end
-    block:cc["Claude Code\n(AI 代理)"]:1
-        cc1["智能创建笔记"]
-        cc2["批量重构笔记"]
-        cc3["代码执行"]
-        cc4["网页抓取"]
-    end
-    block:ic["iCloud\n(同步)"]:1
-        ic1["Mac/iPhone"]
-        ic2["/iPad 同步"]
-        ic3["实时同步"]
-        ic4["全平台可用"]
-    end
-    block:gt["Git\n(版本控制)"]:1
-        gt1["自动备份"]
-        gt2["变更追踪"]
-        gt3["远程备份"]
-        gt4["协作分享"]
-    end
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/architecture-overview.svg" title="架构总览" caption="Obsidian 前端 + Claude Code AI 代理 + iCloud 同步 + Git 版本控制" />
 
 ### 数据流
 
@@ -845,34 +819,7 @@ Agents 是 Claude Code 的专业分身，放置在 `~/.claude/agents/` 目录。
 
 分层的规则系统确保 Claude Code 在不同语言环境下遵循最佳实践，放置在 `~/.claude/rules/` 目录:
 
-```mermaid
-flowchart LR
-    subgraph rules["~/.claude/rules/"]
-        direction TB
-        subgraph common["common/ 通用规则"]
-            c1["security.md\n安全"]
-            c2["coding-style.md\n代码风格"]
-            c3["git-workflow.md\nGit"]
-            c4["testing.md\n测试"]
-            c5["agents.md\nAgent 协调"]
-            c6["hooks.md\nHook"]
-            c7["patterns.md\n设计模式"]
-            c8["performance.md\n性能"]
-        end
-        subgraph golang["golang/ Go 专属"]
-            g1["security.md"]
-            g2["hooks.md"]
-            g3["patterns.md"]
-        end
-        subgraph typescript["typescript/ TS 专属"]
-            t1["security.md"]
-            t2["coding-style.md"]
-            t3["patterns.md"]
-            t4["testing.md"]
-            t5["hooks.md"]
-        end
-    end
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/rules-system.svg" title="Rules 规则系统" caption="分层的规则目录结构，按语言和职责组织" />
 
 <Callout type="tip" title="按需配置">
 </Callout>
@@ -937,25 +884,7 @@ Obsidian 1.12 引入了官方 CLI（命令行接口），它和 Claudian 插件�
 
 ### 8.1 定位对比
 
-```mermaid
-flowchart TB
-    subgraph 插件["Claudian 插件"]
-        direction TB
-        p1["运行在 Obsidian 内部"]
-        p2["需要 Obsidian GUI 打开"]
-        p3["AI 对话式交互"]
-        p4["适合在写笔记时使用"]
-    end
-    subgraph cli["Obsidian CLI"]
-        direction TB
-        c1["运行在系统终端"]
-        c2["不需要 Obsidian 界面"]
-        c3["命令式精准操作"]
-        c4["适合脚本/自动化/外部集成"]
-    end
-    插件 -.- 核心区别 -.- cli
-    核心区别["一个在里面帮你干活\n一个在外面帮你送信"]
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/claudian-vs-cli.svg" title="Claudian 插件 vs Obsidian CLI 定位对比" caption="一个在 Obsidian 里面帮你干活，一个在外面帮你送信" />
 
 | 维度 | Claudian 插件 | Obsidian CLI |
 | --- | --- | --- |
@@ -1001,17 +930,7 @@ Obsidian CLI 随 v1.12 发布（2026-02-27 public release）。安装后在终�
 
 你正在浏览网页，突然冒出一个好点子，想立刻记到今天的日记里。
 
-```mermaid
-flowchart LR
-    subgraph only_plugin["只用 Claudian"]
-        a1["复制文字"] --> a2["切到桌面"] --> a3["打开 Obsidian"] --> a4["点开 Claudian"] --> a5["粘贴并处理"]
-    end
-    subgraph with_cli["用 CLI"]
-        b1["选中文字"] --> b2["按全局快捷键"] --> b3["后台脚本通过 CLI\n直接写入日记"]
-    end
-    style only_plugin fill:#fff3e0
-    style with_cli fill:#e8f5e9
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/scenario-quick-note.svg" title="场景一：随手记点东西不想被打断" caption="CLI 配合全局快捷键，无需切换应用即可写入日记" />
 
 **只用插件**: 复制 -> 切回桌面 -> 呼出 Obsidian -> 打开 Claudian -> 粘贴处理。来回切换打断思路。
 
@@ -1028,17 +947,7 @@ obsidian daily:append content="-$(date +%H:%M)$CONTENT"
 
 你刚提交了一段代码到 GitHub，想在项目笔记里自动留底。
 
-```mermaid
-flowchart LR
-    subgraph only_plugin["只用 Claudian"]
-        a1["git commit"] --> a2["手动复制\n提交记录"] --> a3["切到 Obsidian"] --> a4["交给插件排版"]
-    end
-    subgraph with_cli["用 CLI"]
-        b1["git commit"] --> b2["post-commit hook\n自动调用 CLI"] --> b3["提交信息写入\n项目笔记"]
-    end
-    style only_plugin fill:#fff3e0
-    style with_cli fill:#e8f5e9
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/scenario-git-workflow.svg" title="场景二：和其他软件打通工作流" caption="Git Hook 自动调用 CLI，开发环境和笔记库直接连通" />
 
 **只用插件**: 插件被关在 Obsidian 内部，它不知道终端里发生了什么。只能手动复制提交记录，切到 Obsidian 交给插件排版。
 
@@ -1057,17 +966,7 @@ obsidian append file="work/project-log.md" \
 
 你想每天早上醒来，笔记里已经准备好了昨天的工作摘要、今天的天气和抓取的新闻。
 
-```mermaid
-flowchart LR
-    subgraph only_plugin["只用 Claudian"]
-        a1["电脑休眠\n插件不运行"] --> a2["早上打开 Obsidian"] --> a3["手动点击\n让插件现抓"]
-    end
-    subgraph with_cli["用 CLI"]
-        b1["cron 凌晨 4 点触发"] --> b2["脚本抓数据"] --> b3["CLI 写入日记"] --> b4["早上打开\n直接看报告"]
-    end
-    style only_plugin fill:#fff3e0
-    style with_cli fill:#e8f5e9
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/scenario-automation.svg" title="场景三：后台自动整理资料" caption="cron 定时任务 + CLI，早上打开 Obsidian 直接看现成报告" />
 
 **只用插件**: 插件依赖 Obsidian 软件开着才能跑。电脑休眠或没开软件，定时任务就失效。只能早上手动触发。
 
@@ -1087,17 +986,7 @@ obsidian daily:prepend content="## Morning Briefing\n-$WEATHER"
 
 你在终端用 Claude Code 重构项目，想让它顺手把架构变动更新到笔记里。
 
-```mermaid
-flowchart LR
-    subgraph only_plugin["只用文件操作"]
-        a1["Claude Code"] --> a2["直接改 .md 文件"] --> a3["可能破坏 wikilinks\n或 frontmatter"]
-    end
-    subgraph with_cli["用 CLI"]
-        b1["Claude Code"] --> b2["调用 obsidian\nappend/create"] --> b3["CLI 按 Obsidian 规范\n安全写入"]
-    end
-    style only_plugin fill:#fff3e0
-    style with_cli fill:#e8f5e9
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/scenario-safe-ai.svg" title="场景四：让终端里的 AI 操作更安全" caption="CLI 按 Obsidian 规范安全写入，不需要 AI 自己拼接 Markdown 格式" />
 
 **只用文件操作**: 终端里的 AI 够不着 Obsidian 插件，只能强行修改 Markdown 文件，容易把双向链接或 frontmatter 搞乱。
 
@@ -1105,16 +994,7 @@ flowchart LR
 
 ### 8.4 最佳搭配策略
 
-```mermaid
-flowchart TB
-    Q{"你在哪里工作?"}
-    Q -->|在 Obsidian 里| A["用 Claudian 插件\n对话式 AI 辅助"]
-    Q -->|在终端 / IDE 里| B["用 Claude Code + CLI\n命令式精准操作"]
-    Q -->|不在电脑前| C["cron + CLI\n后台自动化"]
-    A --> D["写笔记、画图、查知识库\n重构笔记、网页整理"]
-    B --> E["代码提交后记笔记\nAI 批量操作笔记库"]
-    C --> F["每日简报、数据抓取\n定时归档、自动清理"]
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/best-strategy.svg" title="最佳搭配策略" caption="根据工作场景选择 Claudian 插件、Claude Code + CLI 或 cron + CLI" />
 
 <Callout type="tip" title="一句话总结">
 </Callout>
@@ -1128,16 +1008,7 @@ flowchart TB
 
 ### 9.1 原理
 
-```mermaid
-flowchart TB
-    subgraph Mac
-        path1["~/Library/Mobile Documents/\niCloud~md~obsidian/Documents/vault/"]
-    end
-    subgraph iOS
-        path2["Obsidian App → iCloud Drive → vault"]
-    end
-    path1 <-->|iCloud 同步| path2
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/icloud-sync.svg" title="iCloud 三端同步原理" caption="Obsidian 在 iOS 上原生支持 iCloud Drive 作为 vault 存储位置，系统自动双向同步" />
 
 Obsidian 在 iOS 上原生支持 iCloud Drive 作为 vault 存储位置。Mac 上的 vault 位于 iCloud Drive 目录下，系统自动双向同步。
 
@@ -1211,15 +1082,7 @@ ln -s node_modules.nosync node_modules
 
 ### 9.5 iCloud + Git 双保险策略
 
-```mermaid
-flowchart LR
-    Notes["你的笔记"] --> iCloud["iCloud\n实时同步"]
-    Notes --> Git["Git\n版本控制 + 远程备份"]
-    iCloud --> Mac["Mac"]
-    iCloud --> iPhone["iPhone"]
-    iCloud --> iPad["iPad"]
-    Git --> GitHub["GitHub"]
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/icloud-git-backup.svg" title="iCloud + Git 双保险策略" caption="iCloud 负责实时同步，Git 负责版本控制和灾难恢复" />
 
 - **iCloud**: 负责设备间的实时同步，包括所有配置和插件
 - **Git**: 负责版本控制和灾难恢复
@@ -1312,23 +1175,7 @@ node_modules/
 
 ### 11.1 推荐目录结构
 
-```mermaid
-flowchart LR
-    vault["vault/"] --> inbox["inbox/\n快速捕获"]
-    vault --> daily["daily/\n每日笔记"]
-    vault --> tech["tech/\n技术学习"]
-    vault --> ai["ai/\nAI-ML-LLM"]
-    vault --> work["work/\n工作笔记"]
-    vault --> reading["reading/\n读书笔记"]
-    vault --> life["life/\n个人成长"]
-    vault --> blog["blog/\n博客草稿"]
-    vault --> tools["tools/\n工具配置"]
-    vault --> templates["templates/\n笔记模板"]
-    vault --> attachments["attachments/\n附件"]
-    vault --> clippings["Clippings/\n网页剪藏"]
-    vault --> excalidraw["Excalidraw/\n手绘图形"]
-    vault --> home["Home.md\n仪表盘"]
-```
+<TechGraph src="/images/posts/obsidian-claude-code-个人配置最优解/vault-directory.svg" title="Vault 目录规划" caption="Inbox Zero 工作流 + 主要目录各有入口，用 Dataview 动态生成内容列表" />
 
 ### 11.2 各目录使用指南
 

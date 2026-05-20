@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+  </defs>
+  <rect width="960" height="300" rx="12" fill="#f8f6f3"/>
+
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">Claudian 插件 vs Obsidian CLI: 定位对比</text>
+
+  <!-- Claudian -->
+  <g filter="url(#shadowSoft)">
+    <rect x="60" y="65" width="380" height="160" rx="8" fill="#fff" stroke="#9b72b0" stroke-width="2"/>
+    <rect x="60" y="65" width="380" height="28" rx="8" fill="#9b72b0"/>
+    <rect x="60" y="85" width="380" height="8" fill="#9b72b0"/>
+    <text x="250" y="85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#fff">Claudian 插件</text>
+  </g>
+  <text x="90" y="120" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">运行在 Obsidian 内部</text>
+  <text x="90" y="145" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">需要 Obsidian GUI 打开</text>
+  <text x="90" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">AI 对话式交互</text>
+  <text x="90" y="195" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">适合在写笔记时使用</text>
+
+  <!-- CLI -->
+  <g filter="url(#shadowSoft)">
+    <rect x="520" y="65" width="380" height="160" rx="8" fill="#fff" stroke="#6b9e8a" stroke-width="2"/>
+    <rect x="520" y="65" width="380" height="28" rx="8" fill="#6b9e8a"/>
+    <rect x="520" y="85" width="380" height="8" fill="#6b9e8a"/>
+    <text x="710" y="85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#fff">Obsidian CLI</text>
+  </g>
+  <text x="550" y="120" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">运行在系统终端</text>
+  <text x="550" y="145" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">不需要 Obsidian 界面</text>
+  <text x="550" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">命令式精准操作</text>
+  <text x="550" y="195" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">适合脚本 / 自动化 / 外部集成</text>
+
+  <!-- Center distinction -->
+  <rect x="340" y="240" width="280" height="40" rx="8" fill="#f0efec" stroke="#e0dfdc" stroke-width="1"/>
+  <text x="480" y="265" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">一个在里面帮你干活 | 一个在外面帮你送信</text>
+</svg>

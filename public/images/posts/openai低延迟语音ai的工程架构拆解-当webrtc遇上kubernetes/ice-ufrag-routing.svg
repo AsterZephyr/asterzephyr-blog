@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#8a8a87" stroke-width="1"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#0c8599" stroke-width="1"/>
+    </marker>
+  </defs>
+  <rect width="960" height="620" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">首包路由: ICE ufrag 中编码路由信息</text>
+
+  <!-- Participants -->
+  <g filter="url(#shadowSoft)">
+    <rect x="60" y="60" width="100" height="36" rx="8" fill="#0c8599"/>
+    <text x="110" y="83" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#fff">客户端</text>
+  </g>
+  <g filter="url(#shadowSoft)">
+    <rect x="280" y="60" width="100" height="36" rx="8" fill="#c4956a"/>
+    <text x="330" y="83" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#fff">信令服务</text>
+  </g>
+  <g filter="url(#shadowSoft)">
+    <rect x="530" y="60" width="120" height="36" rx="8" fill="#9b72b0"/>
+    <text x="590" y="83" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#fff">Transceiver</text>
+  </g>
+  <g filter="url(#shadowSoft)">
+    <rect x="770" y="60" width="100" height="36" rx="8" fill="#6b9e8a"/>
+    <text x="820" y="83" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#fff">Relay</text>
+  </g>
+
+  <!-- Lifelines -->
+  <line x1="110" y1="96" x2="110" y2="600" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="330" y1="96" x2="330" y2="600" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="590" y1="96" x2="590" y2="600" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="820" y1="96" x2="820" y2="600" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- Step 1: Client -> Signaling -->
+  <path d="M110 130 L330 130" stroke="#0c8599" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <text x="220" y="124" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">WebSocket 连接</text>
+
+  <!-- Step 2: Signaling -> Transceiver -->
+  <path d="M330 160 L590 160" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="460" y="154" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">分配会话, 路由到就近集群</text>
+
+  <!-- Step 3: Transceiver generates ufrag -->
+  <rect x="530" y="180" width="120" height="30" rx="4" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1"/>
+  <text x="590" y="200" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#6b3fa0">生成 ufrag (含路由)</text>
+
+  <!-- Step 4: Transceiver -> Signaling -->
+  <path d="M590 225 L330 225" stroke="#9b72b0" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="460" y="219" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">SDP Answer (Relay VIP:port + ufrag)</text>
+
+  <!-- Step 5: Signaling -> Client -->
+  <path d="M330 250 L110 250" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="220" y="244" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">SDP Answer</text>
+
+  <!-- Phase separator -->
+  <rect x="40" y="275" width="880" height="24" rx="4" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="480" y="291" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#2f6b4f">ICE 连通性检查开始</text>
+
+  <!-- Step 6: Client -> Relay STUN -->
+  <path d="M110 320 L820 320" stroke="#0c8599" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <text x="465" y="314" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">STUN Binding Request (含 ufrag)</text>
+
+  <!-- Step 7: Relay parses -->
+  <rect x="760" y="335" width="120" height="30" rx="4" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="820" y="355" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#2f6b4f">解析 ufrag 路由</text>
+
+  <!-- Step 8: Relay -> Transceiver -->
+  <path d="M820 380 L590 380" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="705" y="374" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">转发 STUN 包</text>
+
+  <!-- Step 9: Transceiver -> Relay -> Client response -->
+  <path d="M590 410 L820 410" stroke="#9b72b0" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M820 430 L110 430" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="705" y="404" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">STUN Response</text>
+
+  <!-- Phase separator 2 -->
+  <rect x="40" y="450" width="880" height="24" rx="4" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1"/>
+  <text x="480" y="466" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#6b3fa0">DTLS 握手 + 媒体流</text>
+
+  <!-- Step 10: Media flow -->
+  <path d="M110 495 L820 495" stroke="#0c8599" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <text x="465" y="489" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">DTLS/SRTP 包</text>
+
+  <rect x="760" y="505" width="120" height="25" rx="4" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="820" y="522" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#2f6b4f">查内存映射转发</text>
+
+  <path d="M820 540 L590 540" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M590 565 L820 565" stroke="#9b72b0" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M820 585 L110 585" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="705" y="559" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">响应包</text>
+</svg>

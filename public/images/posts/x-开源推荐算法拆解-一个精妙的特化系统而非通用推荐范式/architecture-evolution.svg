@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 580" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#8a8a87" stroke-width="1"/>
+    </marker>
+  </defs>
+  <rect width="960" height="580" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">推荐系统架构代际演进</text>
+
+  <!-- Gen 1 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="70" width="200" height="130" rx="8" fill="#fff" stroke="#8a8a87" stroke-width="1.5"/>
+    <rect x="40" y="70" width="200" height="26" rx="8" fill="#8a8a87"/>
+    <rect x="40" y="88" width="200" height="8" fill="#8a8a87"/>
+    <text x="140" y="88" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#fff">第一代: 手工特征 + 浅层模型</text>
+  </g>
+  <text x="70" y="120" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">FM / DeepFM</text>
+  <text x="70" y="140" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">二阶交互 + MLP</text>
+  <text x="70" y="165" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">Wide and Deep</text>
+  <text x="70" y="185" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">记忆 + 泛化</text>
+
+  <!-- Gen 2 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="230" width="200" height="160" rx="8" fill="#fff" stroke="#9b72b0" stroke-width="1.5"/>
+    <rect x="40" y="230" width="200" height="26" rx="8" fill="#9b72b0"/>
+    <rect x="40" y="248" width="200" height="8" fill="#9b72b0"/>
+    <text x="140" y="248" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#fff">第二代: 深度模型 + 分模块</text>
+  </g>
+  <text x="70" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">DIN / DIEN</text>
+  <text x="70" y="297" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">序列注意力</text>
+  <text x="70" y="320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">DCN-v2</text>
+  <text x="70" y="337" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">显式高阶交叉</text>
+  <text x="70" y="360" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">PLE / MMOE</text>
+  <text x="70" y="377" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">多任务门控</text>
+
+  <!-- Gen 3 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="340" y="230" width="300" height="160" rx="8" fill="#fff" stroke="#9b72b0" stroke-width="1.5"/>
+    <rect x="340" y="230" width="300" height="26" rx="8" fill="#9b72b0"/>
+    <rect x="340" y="248" width="300" height="8" fill="#9b72b0"/>
+    <text x="490" y="248" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#fff">第三代: Transformer 统一</text>
+  </g>
+  <rect x="360" y="270" width="130" height="30" rx="4" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1"/>
+  <text x="425" y="290" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#6b3fa0">OneTrans (字节)</text>
+
+  <rect x="360" y="310" width="130" height="30" rx="4" fill="#fef3e2" stroke="#c4956a" stroke-width="1.5"/>
+  <text x="425" y="330" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#c4956a">X Phoenix</text>
+
+  <rect x="360" y="350" width="130" height="30" rx="4" fill="#e7f5ff" stroke="#0c8599" stroke-width="1"/>
+  <text x="425" y="370" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#0c8599">RankMixer (字节)</text>
+
+  <!-- Gen 4 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="720" y="230" width="200" height="100" rx="8" fill="#fff" stroke="#6b9e8a" stroke-width="2"/>
+    <rect x="720" y="230" width="200" height="26" rx="8" fill="#6b9e8a"/>
+    <rect x="720" y="248" width="200" height="8" fill="#6b9e8a"/>
+    <text x="820" y="248" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#fff">第四代: 端到端生成</text>
+  </g>
+  <rect x="745" y="270" width="150" height="30" rx="4" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="820" y="290" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" font-weight="600" fill="#2f6b4f">OneRec (快手)</text>
+  <text x="820" y="315" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">Encoder-Decoder 生成</text>
+
+  <!-- Evolution arrows -->
+  <path d="M140 200 L140 230" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M240 310 L340 310" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M640 285 L720 285" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Conclusion box -->
+  <rect x="40" y="420" width="880" height="130" rx="8" fill="#f0efec" stroke="#e0dfdc" stroke-width="1"/>
+  <text x="60" y="445" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#141413">关键区别: 通用性</text>
+
+  <rect x="60" y="460" width="12" height="12" rx="2" fill="#9b72b0"/>
+  <text x="80" y="471" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">OneTrans / RankMixer: 通用架构 — 字节在推荐、广告、电商、直播四个场景全量上线同一套框架</text>
+
+  <rect x="60" y="490" width="12" height="12" rx="2" fill="#c4956a"/>
+  <text x="80" y="501" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">X Phoenix: 专用设计 — Candidate Isolation、零特征都深度绑定 X 的特定场景假设</text>
+
+  <rect x="60" y="520" width="12" height="12" rx="2" fill="#6b9e8a"/>
+  <text x="80" y="531" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">OneRec: 下一代方向 — 端到端生成式推荐，已发现推荐系统的 Scaling Law</text>
+</svg>

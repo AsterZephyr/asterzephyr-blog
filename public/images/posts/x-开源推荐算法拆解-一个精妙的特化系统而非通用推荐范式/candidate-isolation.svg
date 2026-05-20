@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+  </defs>
+  <rect width="960" height="340" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">Candidate Isolation Attention Mask</text>
+
+  <!-- User + History zone -->
+  <g filter="url(#shadowSoft)">
+    <rect x="60" y="70" width="380" height="100" rx="8" fill="#fff" stroke="#6b9e8a" stroke-width="2"/>
+    <text x="250" y="105" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#6b9e8a">User + History 区域</text>
+    <text x="250" y="130" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">完全双向 Attention</text>
+    <text x="250" y="150" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#8a8a87">127-token 用户行为序列</text>
+  </g>
+
+  <!-- Candidates zone -->
+  <g filter="url(#shadowSoft)">
+    <rect x="500" y="70" width="420" height="100" rx="8" fill="#fff" stroke="#c92a2a" stroke-width="2"/>
+    <text x="710" y="105" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#c92a2a">Candidates 区域</text>
+    <text x="710" y="130" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">只能看 User + History</text>
+    <text x="710" y="150" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#c92a2a" font-weight="600">不能看其他 Candidate</text>
+  </g>
+
+  <!-- Arrow from Candidates to User -->
+  <path d="M500 120 L440 120" stroke="#6b9e8a" stroke-width="2" fill="none" marker-end="url(#arrowGreen)"/>
+  <defs>
+    <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#6b9e8a" stroke-width="1"/>
+    </marker>
+  </defs>
+  <text x="470" y="112" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#6b9e8a">可以 attend</text>
+
+  <!-- Result -->
+  <g filter="url(#shadowSoft)">
+    <rect x="200" y="210" width="560" height="70" rx="8" fill="#fff" stroke="#0c8599" stroke-width="2"/>
+    <text x="480" y="240" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#0c8599">结果: 每个 Candidate 分数独立于 batch 组成</text>
+    <text x="480" y="265" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">分数可缓存 → 大幅降低推理成本 | 前提: 候选之间无交互关系</text>
+  </g>
+
+  <!-- Bottom note -->
+  <text x="480" y="315" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#c92a2a">广告系统中此假设不成立: 竞价互斥、频控约束、品类多样性、组合效应</text>
+</svg>

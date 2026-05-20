@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 240" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#8a8a87" stroke-width="1"/>
+    </marker>
+  </defs>
+  <rect width="960" height="240" rx="12" fill="#f8f6f3"/>
+
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">iCloud + Git 双保险策略</text>
+
+  <!-- Notes center -->
+  <g filter="url(#shadowSoft)">
+    <rect x="380" y="65" width="200" height="50" rx="8" fill="#fff" stroke="#141413" stroke-width="2"/>
+    <text x="480" y="95" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#141413">你的笔记</text>
+  </g>
+
+  <!-- iCloud branch -->
+  <path d="M430 115 L250 150" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g filter="url(#shadowSoft)">
+    <rect x="150" y="150" width="200" height="40" rx="8" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1.5"/>
+    <text x="250" y="175" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#6b9e8a">iCloud — 实时同步</text>
+  </g>
+  <text x="90" y="215" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">Mac | iPhone | iPad</text>
+
+  <!-- Git branch -->
+  <path d="M530 115 L710 150" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g filter="url(#shadowSoft)">
+    <rect x="610" y="150" width="200" height="40" rx="8" fill="#fef3e2" stroke="#c4956a" stroke-width="1.5"/>
+    <text x="710" y="175" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#c4956a">Git — 版本控制 + 远程备份</text>
+  </g>
+  <text x="650" y="215" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">GitHub (最终 source of truth)</text>
+</svg>

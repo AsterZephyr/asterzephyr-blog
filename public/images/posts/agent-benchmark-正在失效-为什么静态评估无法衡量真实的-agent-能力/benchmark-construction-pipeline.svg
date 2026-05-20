@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrowGray" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#8a8a87"/>
+    </marker>
+    <marker id="arrowCyan" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#0c8599"/>
+    </marker>
+  </defs>
+  <rect width="960" height="380" rx="12" fill="#f8f6f3"/>
+
+  <!-- Step 1 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="60" width="140" height="80" rx="8" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="2"/>
+  </g>
+  <text x="110" y="88" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#6b9e8a">1 信号收集</text>
+  <text x="110" y="108" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">ClawHub Top-500</text>
+  <text x="110" y="124" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">时间戳快照</text>
+
+  <!-- Step 2 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="220" y="60" width="140" height="80" rx="8" fill="#f3e8ff" stroke="#9b72b0" stroke-width="2"/>
+  </g>
+  <text x="290" y="88" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#9b72b0">2 模式聚类</text>
+  <text x="290" y="108" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">碎片 Skill 名称</text>
+  <text x="290" y="124" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">聚合为工作流模式</text>
+
+  <!-- Step 3 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="400" y="60" width="140" height="80" rx="8" fill="#fff8e1" stroke="#c4956a" stroke-width="2"/>
+  </g>
+  <text x="470" y="88" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#c4956a">3 家族加权</text>
+  <text x="470" y="108" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">信号权重</text>
+  <text x="470" y="124" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">计算目标分布</text>
+
+  <!-- Step 4 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="580" y="60" width="140" height="80" rx="8" fill="#e0f7fa" stroke="#0c8599" stroke-width="2"/>
+  </g>
+  <text x="650" y="88" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#0c8599">4 种子扩展</text>
+  <text x="650" y="108" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">加权模式展开</text>
+  <text x="650" y="124" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">可执行任务候选</text>
+
+  <!-- Step 5 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="760" y="60" width="160" height="80" rx="8" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="2"/>
+  </g>
+  <text x="840" y="88" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#6b9e8a">5 MILP 选择</text>
+  <text x="840" y="108" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">最大化区分度</text>
+  <text x="840" y="124" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">+ 覆盖约束</text>
+
+  <!-- Arrows between steps -->
+  <path d="M180 100 L220 100" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+  <path d="M360 100 L400 100" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+  <path d="M540 100 L580 100" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+  <path d="M720 100 L760 100" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <!-- Output -->
+  <g filter="url(#shadowSoft)">
+    <rect x="350" y="200" width="260" height="60" rx="8" fill="#ffffff" stroke="#0c8599" stroke-width="2"/>
+  </g>
+  <text x="480" y="227" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#0c8599">固定版本快照 (可复现)</text>
+  <text x="480" y="247" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">105 个任务 + fixture + 评分器</text>
+
+  <path d="M840 140 L580 200" stroke="#0c8599" stroke-width="1.5" fill="none" marker-end="url(#arrowCyan)"/>
+
+  <!-- Constraints -->
+  <g filter="url(#shadowSoft)">
+    <rect x="700" y="200" width="160" height="40" rx="8" fill="#fff8e1" stroke="#c4956a" stroke-width="1.5"/>
+  </g>
+  <text x="780" y="225" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#c4956a">家族覆盖度</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="700" y="250" width="160" height="40" rx="8" fill="#fff8e1" stroke="#c4956a" stroke-width="1.5"/>
+  </g>
+  <text x="780" y="275" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#c4956a">排行榜分辨率</text>
+
+  <!-- Dotted lines from constraints to MILP -->
+  <path d="M780 200 L840 140" stroke="#c4956a" stroke-width="1" fill="none" stroke-dasharray="4,3"/>
+  <path d="M780 250 L850 145" stroke="#c4956a" stroke-width="1" fill="none" stroke-dasharray="4,3"/>
+
+  <!-- Key insight -->
+  <rect x="100" y="310" width="760" height="50" rx="8" fill="#ffffff" stroke="#8a8a87" stroke-width="1"/>
+  <text x="480" y="340" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">核心设计：信号层随时间变化（季度刷新），但每个发布版本内部完全固定（保证可复现比较）</text>
+</svg>

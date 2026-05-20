@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrowGray" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#8a8a87"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#9b72b0"/>
+    </marker>
+  </defs>
+  <rect width="960" height="520" rx="12" fill="#f8f6f3"/>
+
+  <text x="480" y="35" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="15" font-weight="600" fill="#141413">Horovod Ring-AllReduce 算法（4 Worker 示例）</text>
+
+  <!-- Worker 1 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="80" y="70" width="180" height="55" rx="8" fill="#ffffff" stroke="#9b72b0" stroke-width="2"/>
+  </g>
+  <text x="170" y="93" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#9b72b0">Worker 1</text>
+  <text x="170" y="113" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">梯度: [1, 2, 3, 4]</text>
+
+  <!-- Worker 2 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="380" y="70" width="180" height="55" rx="8" fill="#ffffff" stroke="#9b72b0" stroke-width="2"/>
+  </g>
+  <text x="470" y="93" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#9b72b0">Worker 2</text>
+  <text x="470" y="113" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">梯度: [5, 6, 7, 8]</text>
+
+  <!-- Worker 3 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="680" y="70" width="180" height="55" rx="8" fill="#ffffff" stroke="#9b72b0" stroke-width="2"/>
+  </g>
+  <text x="770" y="93" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#9b72b0">Worker 3</text>
+  <text x="770" y="113" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">梯度: [9, 10, 11, 12]</text>
+
+  <!-- Worker 4 (below center) -->
+  <g filter="url(#shadowSoft)">
+    <rect x="380" y="200" width="180" height="55" rx="8" fill="#ffffff" stroke="#9b72b0" stroke-width="2"/>
+  </g>
+  <text x="470" y="223" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#9b72b0">Worker 4</text>
+  <text x="470" y="243" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">梯度: [13, 14, 15, 16]</text>
+
+  <!-- Ring arrows (showing ring topology) -->
+  <path d="M260 97 L380 97" stroke="#c4956a" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+  <text x="320" y="88" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#c4956a">发送分片 [1]</text>
+
+  <path d="M560 97 L680 97" stroke="#c4956a" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+  <text x="620" y="88" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#c4956a">发送分片 [6]</text>
+
+  <path d="M770 125 L560 200" stroke="#c4956a" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+  <text x="680" y="170" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#c4956a">发送分片 [11]</text>
+
+  <path d="M380 227 L170 125" stroke="#c4956a" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+  <text x="260" y="185" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#c4956a">发送分片 [16]</text>
+
+  <!-- N-1 rounds label -->
+  <text x="480" y="300" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#8a8a87">经过 N-1 轮环形通信后</text>
+  <line x1="200" y1="305" x2="760" y2="305" stroke="#8a8a87" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Final averaged results -->
+  <g filter="url(#shadowSoft)">
+    <rect x="80" y="330" width="180" height="45" rx="8" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="2"/>
+  </g>
+  <text x="170" y="357" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="500" fill="#6b9e8a">Worker 1 平均梯度</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="290" y="330" width="180" height="45" rx="8" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="2"/>
+  </g>
+  <text x="380" y="357" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="500" fill="#6b9e8a">Worker 2 平均梯度</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="500" y="330" width="180" height="45" rx="8" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="2"/>
+  </g>
+  <text x="590" y="357" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="500" fill="#6b9e8a">Worker 3 平均梯度</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="710" y="330" width="180" height="45" rx="8" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="2"/>
+  </g>
+  <text x="800" y="357" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="500" fill="#6b9e8a">Worker 4 平均梯度</text>
+
+  <!-- Key advantages -->
+  <rect x="80" y="410" width="800" height="85" rx="8" fill="#ffffff" stroke="#8a8a87" stroke-width="1"/>
+  <text x="100" y="435" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#141413">Ring-AllReduce 优势</text>
+  <text x="100" y="458" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">- 无中心节点，消除单点通信瓶颈（vs Parameter Server）</text>
+  <text x="100" y="478" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">- 带宽利用率高，每个 Worker 通信与计算可并行</text>
+  <text x="540" y="458" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">- 总通信量: 2(N-1)/N x model_size（接近常数）</text>
+  <text x="540" y="478" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">- 加速比近似线性（16 GPU 可达 14.9x）</text>
+</svg>

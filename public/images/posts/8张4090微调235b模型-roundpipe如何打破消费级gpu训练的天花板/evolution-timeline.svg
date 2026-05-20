@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrowGray" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#8a8a87"/>
+    </marker>
+  </defs>
+  <rect width="960" height="320" rx="12" fill="#f8f6f3"/>
+
+  <text x="480" y="32" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#141413">消费级 GPU 训练的技术演进脉络</text>
+
+  <!-- ZeRO-Offload 2021 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="70" width="170" height="60" rx="8" fill="#e0f7fa" stroke="#0c8599" stroke-width="2"/>
+  </g>
+  <text x="125" y="95" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#0c8599">ZeRO-Offload</text>
+  <text x="125" y="117" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">2021</text>
+
+  <!-- Arrow 1 -->
+  <path d="M210 100 L270 100" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+  <text x="240" y="85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#6b9e8a">解决: 能放下</text>
+  <text x="240" y="120" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#c92a2a">瓶颈: 通信 70%</text>
+
+  <!-- LoRA/QLoRA 2022 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="275" y="70" width="150" height="60" rx="8" fill="#f3e8ff" stroke="#9b72b0" stroke-width="2"/>
+  </g>
+  <text x="350" y="95" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#9b72b0">LoRA/QLoRA</text>
+  <text x="350" y="117" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">2022</text>
+
+  <!-- Arrow 2 -->
+  <path d="M425 100 L485 100" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+  <text x="455" y="85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#6b9e8a">解决: 单卡可行</text>
+  <text x="455" y="120" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#c92a2a">瓶颈: 规模受限</text>
+
+  <!-- Mobius 2023 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="490" y="70" width="150" height="60" rx="8" fill="#fff8e1" stroke="#c4956a" stroke-width="2"/>
+  </g>
+  <text x="565" y="95" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#c4956a">Mobius</text>
+  <text x="565" y="117" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">2023</text>
+
+  <!-- Arrow 3 -->
+  <path d="M640 100 L700 100" stroke="#8a8a87" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+  <text x="670" y="85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#6b9e8a">解决: 通信少</text>
+  <text x="670" y="120" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#c92a2a">瓶颈: bubble 30%</text>
+
+  <!-- RoundPipe 2026 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="705" y="70" width="170" height="60" rx="8" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="2"/>
+  </g>
+  <text x="790" y="95" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#6b9e8a">RoundPipe</text>
+  <text x="790" y="117" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">2026</text>
+
+  <!-- Result box -->
+  <path d="M790 130 L790 165" stroke="#6b9e8a" stroke-width="1.5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="560" y="170" width="360" height="110" rx="8" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="2"/>
+  </g>
+  <text x="740" y="198" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#6b9e8a">RoundPipe 成果</text>
+  <text x="740" y="222" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">无状态 GPU 池 + 非对称切分</text>
+  <text x="740" y="244" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">Pipeline Bubble ≈ 0</text>
+  <text x="740" y="266" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">8x4090 跑 235B MoE, 吞吐 ≥ 76% A800</text>
+
+  <!-- Bottom insight -->
+  <text x="480" y="305" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#8a8a87">每代方案解决上一代核心瓶颈，消费级 GPU 训练的可行边界持续向上推移</text>
+</svg>

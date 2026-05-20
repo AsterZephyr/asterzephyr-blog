@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#8a8a87" stroke-width="1"/>
+    </marker>
+  </defs>
+  <rect width="960" height="420" rx="12" fill="#f8f6f3"/>
+
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">Vault 目录规划</text>
+
+  <!-- Root -->
+  <g filter="url(#shadowSoft)">
+    <rect x="420" y="55" width="120" height="35" rx="8" fill="#141413"/>
+    <text x="480" y="77" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#fff">vault/</text>
+  </g>
+
+  <!-- Level 1 directories -->
+  <!-- Row 1 -->
+  <path d="M440 90 L120 115" stroke="#8a8a87" stroke-width="1"/>
+  <path d="M460 90 L280 115" stroke="#8a8a87" stroke-width="1"/>
+  <path d="M480 90 L440 115" stroke="#8a8a87" stroke-width="1"/>
+  <path d="M490 90 L580 115" stroke="#8a8a87" stroke-width="1"/>
+  <path d="M500 90 L720 115" stroke="#8a8a87" stroke-width="1"/>
+  <path d="M520 90 L860 115" stroke="#8a8a87" stroke-width="1"/>
+
+  <rect x="60" y="115" width="120" height="30" rx="6" fill="#fff" stroke="#c4956a" stroke-width="1.5"/>
+  <text x="120" y="135" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#c4956a" font-weight="600">inbox/</text>
+
+  <rect x="220" y="115" width="120" height="30" rx="6" fill="#fff" stroke="#8a8a87" stroke-width="1.5"/>
+  <text x="280" y="135" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87" font-weight="600">daily/</text>
+
+  <rect x="380" y="115" width="120" height="30" rx="6" fill="#fff" stroke="#0c8599" stroke-width="1.5"/>
+  <text x="440" y="135" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#0c8599" font-weight="600">tech/</text>
+
+  <rect x="520" y="115" width="120" height="30" rx="6" fill="#fff" stroke="#9b72b0" stroke-width="1.5"/>
+  <text x="580" y="135" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#9b72b0" font-weight="600">ai/</text>
+
+  <rect x="660" y="115" width="120" height="30" rx="6" fill="#fff" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="720" y="135" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#6b9e8a" font-weight="600">work/</text>
+
+  <rect x="800" y="115" width="120" height="30" rx="6" fill="#fff" stroke="#c92a2a" stroke-width="1"/>
+  <text x="860" y="135" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#c92a2a" font-weight="600">reading/</text>
+
+  <!-- Row 2 descriptions -->
+  <text x="120" y="162" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">快速捕获</text>
+  <text x="280" y="162" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">每日笔记</text>
+  <text x="440" y="162" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">技术学习</text>
+  <text x="580" y="162" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">AI-ML-LLM</text>
+  <text x="720" y="162" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">工作笔记</text>
+  <text x="860" y="162" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">读书笔记</text>
+
+  <!-- Row 3 -->
+  <rect x="60" y="190" width="120" height="30" rx="6" fill="#fff" stroke="#c4956a" stroke-width="1"/>
+  <text x="120" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#c4956a">life/</text>
+
+  <rect x="220" y="190" width="120" height="30" rx="6" fill="#fff" stroke="#c4956a" stroke-width="1"/>
+  <text x="280" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#c4956a">blog/</text>
+
+  <rect x="380" y="190" width="120" height="30" rx="6" fill="#fff" stroke="#8a8a87" stroke-width="1"/>
+  <text x="440" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87">tools/</text>
+
+  <rect x="520" y="190" width="120" height="30" rx="6" fill="#fff" stroke="#8a8a87" stroke-width="1"/>
+  <text x="580" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87">templates/</text>
+
+  <rect x="660" y="190" width="120" height="30" rx="6" fill="#fff" stroke="#8a8a87" stroke-width="1"/>
+  <text x="720" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87">attachments/</text>
+
+  <rect x="800" y="190" width="120" height="30" rx="6" fill="#fff" stroke="#8a8a87" stroke-width="1"/>
+  <text x="860" y="210" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87">Excalidraw/</text>
+
+  <text x="120" y="237" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">个人成长</text>
+  <text x="280" y="237" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">博客草稿</text>
+  <text x="440" y="237" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">工具配置</text>
+  <text x="580" y="237" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">笔记模板</text>
+  <text x="720" y="237" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">附件</text>
+  <text x="860" y="237" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#666">手绘图形</text>
+
+  <!-- Home.md -->
+  <g filter="url(#shadowSoft)">
+    <rect x="380" y="270" width="200" height="35" rx="8" fill="#fff" stroke="#0c8599" stroke-width="1.5"/>
+    <text x="480" y="293" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#0c8599">Home.md — 仪表盘入口</text>
+  </g>
+
+  <!-- Principles -->
+  <rect x="60" y="330" width="840" height="70" rx="8" fill="#f0efec" stroke="#e0dfdc" stroke-width="1"/>
+  <text x="80" y="355" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#141413">核心原则</text>
+  <text x="80" y="378" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">Inbox Zero 工作流: 所有新内容先进 inbox/，定期整理 | 不要过度分类，让链接和标签自然形成知识网络</text>
+  <text x="80" y="395" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#666">每个主要目录有一个 _index.md 或 _dashboard.md 作为入口，用 Dataview 动态生成内容列表</text>
+</svg>

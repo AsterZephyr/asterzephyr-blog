@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+  </defs>
+  <rect width="960" height="340" rx="12" fill="#f8f6f3"/>
+
+  <text x="480" y="32" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#8a8a87">GPU 计算与 PCIe 传输时间线（优先级调度）</text>
+
+  <!-- Timeline headers -->
+  <text x="80" y="70" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#9b72b0">GPU 计算</text>
+  <text x="80" y="190" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#0c8599">PCIe 传输</text>
+
+  <!-- Time axis -->
+  <line x1="180" y1="290" x2="900" y2="290" stroke="#8a8a87" stroke-width="1"/>
+  <text x="180" y="310" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87">0</text>
+  <text x="360" y="310" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87">t1</text>
+  <text x="540" y="310" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87">t2</text>
+  <text x="720" y="310" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87">t3</text>
+  <text x="890" y="310" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87">t4</text>
+  <text x="540" y="330" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8a8a87">时间 →</text>
+
+  <!-- GPU computation blocks -->
+  <g filter="url(#shadowSoft)">
+    <rect x="180" y="50" width="170" height="50" rx="6" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1.5"/>
+  </g>
+  <text x="265" y="80" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#9b72b0">Stage F1 (前向)</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="360" y="50" width="170" height="50" rx="6" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1.5"/>
+  </g>
+  <text x="445" y="80" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#9b72b0">Stage B2 (反向)</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="540" y="50" width="170" height="50" rx="6" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1.5"/>
+  </g>
+  <text x="625" y="80" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#9b72b0">Stage F4 (前向)</text>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="720" y="50" width="170" height="50" rx="6" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1.5"/>
+  </g>
+  <text x="805" y="80" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#9b72b0">Stage B5 (反向)</text>
+
+  <!-- PCIe transfer blocks - alternating priority -->
+  <!-- Slot 1: activation upload (priority) -->
+  <rect x="180" y="170" width="60" height="40" rx="4" fill="#c92a2a" opacity="0.85"/>
+  <text x="210" y="194" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#ffffff">激活值↑</text>
+
+  <!-- Slot 1: param prefetch (fill idle) -->
+  <rect x="245" y="170" width="105" height="40" rx="4" fill="#6b9e8a" opacity="0.6"/>
+  <text x="297" y="194" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#ffffff">参数预取</text>
+
+  <!-- Slot 2: activation download (priority) -->
+  <rect x="360" y="170" width="60" height="40" rx="4" fill="#c92a2a" opacity="0.85"/>
+  <text x="390" y="194" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#ffffff">激活值↓</text>
+
+  <!-- Slot 2: param prefetch (fill idle) -->
+  <rect x="425" y="170" width="105" height="40" rx="4" fill="#6b9e8a" opacity="0.6"/>
+  <text x="477" y="194" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#ffffff">参数预取</text>
+
+  <!-- Slot 3: activation upload (priority) -->
+  <rect x="540" y="170" width="60" height="40" rx="4" fill="#c92a2a" opacity="0.85"/>
+  <text x="570" y="194" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#ffffff">激活值↑</text>
+
+  <!-- Slot 3: gradient writeback (fill idle) -->
+  <rect x="605" y="170" width="105" height="40" rx="4" fill="#c4956a" opacity="0.6"/>
+  <text x="657" y="194" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#ffffff">梯度回传</text>
+
+  <!-- Slot 4: activation (priority) -->
+  <rect x="720" y="170" width="60" height="40" rx="4" fill="#c92a2a" opacity="0.85"/>
+  <text x="750" y="194" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#ffffff">激活值↓</text>
+
+  <!-- Slot 4: param -->
+  <rect x="785" y="170" width="105" height="40" rx="4" fill="#6b9e8a" opacity="0.6"/>
+  <text x="837" y="194" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#ffffff">参数预取</text>
+
+  <!-- Legend -->
+  <rect x="180" y="240" width="16" height="16" rx="3" fill="#c92a2a" opacity="0.85"/>
+  <text x="202" y="253" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">激活值传输 (最高优先级 — 关键路径)</text>
+
+  <rect x="500" y="240" width="16" height="16" rx="3" fill="#6b9e8a" opacity="0.6"/>
+  <text x="522" y="253" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">参数预取 (填入空闲窗口)</text>
+
+  <rect x="720" y="240" width="16" height="16" rx="3" fill="#c4956a" opacity="0.6"/>
+  <text x="742" y="253" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">梯度回传</text>
+
+  <!-- Overlap indicator -->
+  <path d="M180 120 L180 165" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+  <path d="M360 120 L360 165" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+  <path d="M540 120 L540 165" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+  <path d="M720 120 L720 165" stroke="#8a8a87" stroke-width="1" stroke-dasharray="3,3"/>
+</svg>

@@ -7,6 +7,7 @@ summary: "Claw-Eval-Live 揭示静态 Agent 评估的三种失效模式，提出
 ---
 
 import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 
 Claw-Eval-Live 在 105 个工作流任务上评估了 13 个前沿模型。最好的模型通过率 66.7%，没有任何模型突破 70%。这个数字本身不算意外——意外的是，通过率相近的模型在任务维度上的失败模式完全不同，排行榜上的名次差异并不能反映实际能力差异。
@@ -17,44 +18,7 @@ Claw-Eval-Live 在 105 个工作流任务上评估了 13 个前沿模型。最�
 
 ## 静态 Benchmark 的三种失效模式
 
-```mermaid
-graph TB
-    subgraph center["静态 Benchmark"]
-        B["发布时冻结的任务集"]
-    end
-
-    subgraph mode1["失效模式 1"]
-        M1["任务分布漂移"]
-        M1D["需求侧持续演化<br/>季度间权重剧烈变动"]
-    end
-
-    subgraph mode2["失效模式 2"]
-        M2["评估表面单一化"]
-        M2D["只覆盖单一执行表面<br/>高估 Agent 实际能力"]
-    end
-
-    subgraph mode3["失效模式 3"]
-        M3["结果评分欺骗"]
-        M3D["只检查最终输出<br/>「听起来对」不等于「做对了」"]
-    end
-
-    B --> M1
-    B --> M2
-    B --> M3
-    M1 --> M1D
-    M2 --> M2D
-    M3 --> M3D
-
-    M1D --> R["排行榜排名 ≠ 实际 Agent 能力"]
-    M2D --> R
-    M3D --> R
-
-    style mode1 fill:#ffe3e3,stroke:#c92a2a
-    style mode2 fill:#ffe8cc,stroke:#d9480f
-    style mode3 fill:#e5dbff,stroke:#5f3dc4
-    style center fill:#dbe4ff,stroke:#1971c2
-    style R fill:#fff3bf,stroke:#e67700
-```
+<TechGraph src="/images/posts/agent-benchmark-正在失效-为什么静态评估无法衡量真实的-agent-能力/three-failure-modes.svg" title="静态 Benchmark 的三种失效模式" caption="任务分布漂移、评估表面单一化、结果评分欺骗三种力量持续侵蚀 benchmark 有效性" />
 
 Agent benchmark 的失效不是突然发生的，而是三种力量持续侵蚀的结果。
 
@@ -86,30 +50,7 @@ Claw-Eval-Live 的核心创新是将 benchmark 构建分为两层：一个随时
 
 整个构建流程分为五个阶段：
 
-```mermaid
-graph LR
-    S1["1 信号收集<br/>ClawHub Top-500<br/>时间戳快照"]
-    S2["2 模式聚类<br/>碎片 Skill 名称<br/>聚合为工作流模式"]
-    S3["3 家族加权<br/>信号权重<br/>计算目标分布"]
-    S4["4 种子扩展<br/>加权模式展开<br/>可执行任务候选"]
-    S5["5 MILP 选择<br/>最大化区分度<br/>+ 覆盖约束"]
-
-    S1 --> S2 --> S3 --> S4 --> S5
-
-    S5 --> OUT["固定版本快照<br/>(可复现)"]
-
-    C1["家族覆盖度"] -.-> S5
-    C2["排行榜分辨率"] -.-> S5
-
-    style S1 fill:#d3f9d8,stroke:#2f9e44
-    style S2 fill:#e5dbff,stroke:#5f3dc4
-    style S3 fill:#ffe8cc,stroke:#d9480f
-    style S4 fill:#c5f6fa,stroke:#0c8599
-    style S5 fill:#b2f2bb,stroke:#2f9e44
-    style OUT fill:#e7f5ff,stroke:#1971c2
-    style C1 fill:#fff3bf,stroke:#e67700
-    style C2 fill:#fff3bf,stroke:#e67700
-```
+<TechGraph src="/images/posts/agent-benchmark-正在失效-为什么静态评估无法衡量真实的-agent-能力/benchmark-construction-pipeline.svg" title="Claw-Eval-Live 构建流程" caption="五阶段流水线：信号收集 → 模式聚类 → 家族加权 → 种子扩展 → MILP 选择，输出固定版本快照" />
 
 1. **信号收集**：从 ClawHub Top-500 获取时间戳快照
 2. **模式聚类**：将碎片化的 skill 名称聚合为工作流模式
@@ -143,24 +84,7 @@ MILP 的目标函数值得注意。它最大化的是：被选中的任务能在
 
 ## 更广泛的趋势：从一次性发布到持续校准
 
-```mermaid
-graph LR
-    subgraph static["静态 Benchmark 生命周期"]
-        direction TB
-        A1["发布任务集"] --> A2["模型评测"] --> A3["排行榜发布"] --> A4["逐渐过时失效"]
-    end
-
-    subgraph live["Live Benchmark 生命周期"]
-        direction TB
-        B1["采集需求信号"] --> B2["构建时间戳快照"] --> B3["评测 + 评分"] --> B4["季度刷新信号"]
-        B4 -.-> B1
-    end
-
-    style A4 fill:#ffc9c9,stroke:#c92a2a
-    style B4 fill:#ffd8a8,stroke:#d9480f
-    style static fill:#f8f9fa,stroke:#868e96
-    style live fill:#f8f9fa,stroke:#868e96
-```
+<TechGraph src="/images/posts/agent-benchmark-正在失效-为什么静态评估无法衡量真实的-agent-能力/static-vs-live-lifecycle.svg" title="静态 vs Live Benchmark 生命周期" caption="静态 benchmark 线性退化不可逆，Live benchmark 通过季度刷新实现循环演化持续校准" />
 
 Claw-Eval-Live 不是孤例。LiveCodeBench 通过持续从编程竞赛中抽取新题目来对抗数据污染。EvoClaw 通过挖掘仓库演化历史来构建时间感知的评估。WebArena-Verified 在发现原始评估结论因任务质量问题而不可靠后，做了大规模的重新验证。
 

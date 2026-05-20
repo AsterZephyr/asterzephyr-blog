@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+  </defs>
+  <rect width="960" height="380" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">架构哲学: 复杂性应该加在哪里</text>
+
+  <!-- Anti-pattern 1 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="60" width="270" height="140" rx="8" fill="#fff" stroke="#c92a2a" stroke-width="1.5"/>
+    <rect x="40" y="60" width="270" height="28" rx="8" fill="#c92a2a"/>
+    <rect x="40" y="80" width="270" height="8" fill="#c92a2a"/>
+    <text x="175" y="80" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">反模式 1: 复杂性放在后端</text>
+  </g>
+  <text x="70" y="115" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">推理服务 + WebRTC 终结</text>
+  <text x="70" y="140" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">推理服务 + WebRTC 终结</text>
+  <text x="70" y="165" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">推理服务 + WebRTC 终结</text>
+  <text x="70" y="190" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#c92a2a">每次后端变更都需要考虑实时协议影响</text>
+
+  <!-- Anti-pattern 2 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="345" y="60" width="270" height="140" rx="8" fill="#fff" stroke="#c92a2a" stroke-width="1.5"/>
+    <rect x="345" y="60" width="270" height="28" rx="8" fill="#c92a2a"/>
+    <rect x="345" y="80" width="270" height="8" fill="#c92a2a"/>
+    <text x="480" y="80" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">反模式 2: 复杂性放在客户端</text>
+  </g>
+  <text x="375" y="115" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">自定义协议</text>
+  <text x="375" y="140" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">非标准行为</text>
+  <text x="375" y="165" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">特殊 SDK</text>
+  <text x="375" y="190" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#c92a2a">破坏浏览器/移动端互操作性</text>
+
+  <!-- Correct pattern -->
+  <g filter="url(#shadowSoft)">
+    <rect x="650" y="60" width="270" height="140" rx="8" fill="#fff" stroke="#6b9e8a" stroke-width="2"/>
+    <rect x="650" y="60" width="270" height="28" rx="8" fill="#6b9e8a"/>
+    <rect x="650" y="80" width="270" height="8" fill="#6b9e8a"/>
+    <text x="785" y="80" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">OpenAI 的选择: 薄路由层</text>
+  </g>
+  <text x="680" y="115" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#6b9e8a" font-weight="600">Relay: 极简转发逻辑</text>
+  <text x="680" y="140" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#9b72b0" font-weight="600">Transceiver: WebRTC 终结</text>
+  <text x="680" y="165" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#8a8a87" font-weight="600">后端: 普通服务</text>
+  <text x="680" y="190" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#2f6b4f">各层单一职责，互不干扰</text>
+
+  <!-- Quote -->
+  <rect x="40" y="230" width="880" height="60" rx="8" fill="#f0efec" stroke="#e0dfdc" stroke-width="1"/>
+  <text x="480" y="255" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413" font-style="italic">"The best place to add complexity is in a thin routing layer, not in every backend service,</text>
+  <text x="480" y="275" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413" font-style="italic">and not in custom client behavior."</text>
+
+  <!-- Analogy -->
+  <rect x="40" y="310" width="880" height="50" rx="8" fill="#e7f5ff" stroke="#0c8599" stroke-width="1"/>
+  <text x="480" y="335" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#0c8599">与微服务架构中 Sidecar Proxy (如 Envoy) 的设计理念一脉相承: 把跨切关注点集中到基础设施层，让业务服务保持纯粹</text>
+</svg>

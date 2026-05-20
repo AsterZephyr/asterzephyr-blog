@@ -7,6 +7,7 @@ summary: "RoundPipe 通过无状态 GPU 池和非对称流水线切分，在 8 �
 ---
 
 import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 
 一张 RTX 4090 的算力和 A100 相当，价格却只有后者的 20%。但在 LLM 微调场景里，几乎没人用它。原因很简单：24GB 显存放不下 8B 模型的训练状态（需要 128GB），PCIe 带宽不到 NVLink 的 20%，一做多卡并行通信就成瓶颈。
@@ -62,30 +63,7 @@ RoundPipe 提出的方案本质上是在 Pipeline 并行这条路上的突破—
 
 ## RoundPipe 的核心洞察
 
-```mermaid
-graph LR
-    subgraph traditional["传统 Pipeline: Weight Binding"]
-        direction TB
-        G0T["GPU 0<br/>固定 Layer 1-3"]
-        G1T["GPU 1<br/>固定 Layer 4-6+Head"]
-        G0T --- |"Stage 绑定"| G1T
-        BUB["Bubble 30%"]
-    end
-
-    subgraph roundpipe["RoundPipe: Stateless Worker Pool"]
-        direction TB
-        CPU["CPU Memory<br/>全部参数 + 激活值"]
-        CPU --> |"按需分发"| G0R["GPU 0"]
-        CPU --> |"按需分发"| G1R["GPU 1"]
-        CPU --> |"按需分发"| G2R["GPU ..."]
-        RR["Round-Robin 调度<br/>任意 Stage 到任意 GPU"]
-    end
-
-    style traditional fill:#ffc9c9,stroke:#c92a2a
-    style roundpipe fill:#b2f2bb,stroke:#2f9e44
-    style BUB fill:#ffc9c9,stroke:#c92a2a
-    style RR fill:#d3f9d8,stroke:#2f9e44
-```
+<TechGraph src="/images/posts/8张4090微调235b模型-roundpipe如何打破消费级gpu训练的天花板/traditional-vs-roundpipe.svg" title="传统 Pipeline vs RoundPipe" caption="传统方案 GPU 绑定固定 Stage 导致 30% bubble，RoundPipe 将 GPU 变为无状态执行池实现 bubble≈0" />
 
 RoundPipe 的核心洞察用一句话概括：**既然参数已经卸载到了 CPU，那 GPU 就不需要"绑定"特定的 stage。**
 
@@ -117,26 +95,7 @@ RoundPipe 为前向和反向维护独立的切分方案。比如前向每 3 层�
 
 ### 优先级感知的传输调度
 
-```mermaid
-gantt
-    title GPU 计算与 PCIe 传输时间线
-    dateFormat X
-    axisFormat %s
-
-    section GPU 计算
-    Stage F1           :active, f1, 0, 3
-    Stage B2           :active, b2, 3, 6
-    Stage F4           :active, f4, 6, 9
-    Stage B5           :active, b5, 9, 12
-
-    section PCIe 传输
-    激活值上传 (优先)   :crit, a1, 0, 1
-    参数预取 (填空闲)   :done, p1, 1, 3
-    激活值下载 (优先)   :crit, a2, 3, 4
-    参数预取 (填空闲)   :done, p2, 4, 6
-    激活值上传 (优先)   :crit, a3, 6, 7
-    梯度回传 (填空闲)   :done, g1, 7, 9
-```
+<TechGraph src="/images/posts/8张4090微调235b模型-roundpipe如何打破消费级gpu训练的天花板/pcie-transfer-scheduling.svg" title="优先级感知的 PCIe 传输调度" caption="激活值传输最高优先级（关键路径），参数预取和梯度回传填入空闲窗口，计算与传输完全重叠" />
 
 GPU 和 CPU 之间持续有大量数据搬运：参数上传、梯度下载、激活值上传下载。如果不做优先级管理，大块的参数传输会阻塞关键路径上的激活值传输。
 
@@ -179,25 +138,7 @@ RoundPipe 不是万能的。几个需要注意的边界：
 
 ## 消费级 GPU 训练的技术演进脉络
 
-```mermaid
-graph LR
-    Z["ZeRO-Offload<br/>2021"]
-    L["LoRA/QLoRA<br/>2022"]
-    M["Mobius<br/>2023"]
-    R["RoundPipe<br/>2026"]
-
-    Z --> |"解决: 能放下<br/>瓶颈: 通信 70%"| L
-    L --> |"解决: 单卡可行<br/>瓶颈: 规模受限"| M
-    M --> |"解决: 通信少<br/>瓶颈: bubble 30%"| R
-
-    R --> RES["无状态 GPU 池<br/>bubble 接近 0<br/>8x4090 跑 235B<br/>吞吐 >= 76% A800"]
-
-    style Z fill:#a5d8ff,stroke:#1971c2
-    style L fill:#d0bfff,stroke:#5f3dc4
-    style M fill:#ffd8a8,stroke:#d9480f
-    style R fill:#b2f2bb,stroke:#2f9e44
-    style RES fill:#d3f9d8,stroke:#2f9e44
-```
+<TechGraph src="/images/posts/8张4090微调235b模型-roundpipe如何打破消费级gpu训练的天花板/evolution-timeline.svg" title="消费级 GPU 训练技术演进" caption="ZeRO-Offload → LoRA → Mobius → RoundPipe，每代解决上代核心瓶颈，可行边界持续上移" />
 
 把 RoundPipe 放在更大的技术演进中来看：
 

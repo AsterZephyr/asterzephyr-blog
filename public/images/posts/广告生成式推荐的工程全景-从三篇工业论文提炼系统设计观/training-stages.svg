@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 680" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#8a8a87" stroke-width="1"/>
+    </marker>
+  </defs>
+  <rect width="960" height="680" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="40" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">三阶段训练结构: SFT → Value FT → RL</text>
+
+  <!-- Stage 1 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="70" width="880" height="170" rx="8" fill="#fff" stroke="#6b9e8a" stroke-width="2"/>
+    <rect x="40" y="70" width="880" height="32" rx="8" fill="#6b9e8a"/>
+    <rect x="40" y="94" width="880" height="8" fill="#6b9e8a"/>
+    <text x="480" y="92" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#fff">Stage 1: SFT 监督学习</text>
+  </g>
+  <text x="80" y="130" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#141413">从历史日志学习用户行为模式</text>
+  <text x="80" y="155" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">监督信号: 用户下一个交互的广告 SID</text>
+  <rect x="80" y="170" width="800" height="50" rx="6" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1"/>
+  <text x="100" y="192" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#2f6b4f">MTP: 4 个预测头并行预测多条兴趣路径  →  +17.9% HitR (最大单组件增益)</text>
+  <text x="100" y="210" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">实现成本: 只在 backbone 顶端加 3 个额外的预测头</text>
+
+  <!-- Arrow 1->2 -->
+  <path d="M480 240 L480 270" stroke="#8a8a87" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Stage 2 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="275" width="880" height="170" rx="8" fill="#fff" stroke="#c4956a" stroke-width="2"/>
+    <rect x="40" y="275" width="880" height="32" rx="8" fill="#c4956a"/>
+    <rect x="40" y="299" width="880" height="8" fill="#c4956a"/>
+    <text x="480" y="297" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#fff">Stage 2: Value-Aware Fine-Tuning</text>
+  </g>
+  <text x="80" y="335" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#141413">在 loss 上乘价值权重系数</text>
+  <text x="80" y="365" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">转化样本权重: eCPM / pCTR * pCVR</text>
+  <text x="80" y="387" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">点击样本权重: eCPM / pCTR</text>
+  <text x="80" y="409" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">曝光样本权重: eCPM</text>
+  <rect x="480" y="348" width="410" height="40" rx="6" fill="#fef3e2" stroke="#c4956a" stroke-width="1"/>
+  <text x="500" y="372" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#8b5e3c">必须在 Stage 1 之后: 基础生成能力未稳定时高 eCPM 样本稀疏性会导致训练发散</text>
+
+  <!-- Arrow 2->3 -->
+  <path d="M480 445 L480 475" stroke="#8a8a87" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Stage 3 -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="480" width="880" height="170" rx="8" fill="#fff" stroke="#9b72b0" stroke-width="2"/>
+    <rect x="40" y="480" width="880" height="32" rx="8" fill="#9b72b0"/>
+    <rect x="40" y="504" width="880" height="8" fill="#9b72b0"/>
+    <text x="480" y="502" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#fff">Stage 3: RL 探索</text>
+  </g>
+  <text x="80" y="540" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" fill="#141413">离线 simulator 中自由探索，发现历史系统遗漏的高价值广告</text>
+  <rect x="80" y="555" width="800" height="50" rx="6" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1"/>
+  <text x="100" y="575" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#6b3fa0">HEPO: 层级过程奖励解决信用分配</text>
+  <text x="100" y="595" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">从 DPO 换到 HEPO: 最高价值得分 0.6659 → 0.7619 (+14.4%)</text>
+  <text x="80" y="630" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">核心难点: SID 有 L 层，terminal reward 只在最后一层，均匀惩罚错误导致负迁移</text>
+</svg>

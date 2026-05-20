@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#8a8a87" stroke-width="1"/>
+    </marker>
+  </defs>
+  <rect width="960" height="420" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">LazyAR: 利用 Transformer 层间依赖的不对称性</text>
+
+  <!-- Standard AR side -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="60" width="400" height="320" rx="8" fill="#fff" stroke="#8a8a87" stroke-width="1.5"/>
+  </g>
+  <text x="240" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#666">标准 AR: 每个 beam 独立走全部层</text>
+
+  <rect x="80" y="110" width="320" height="50" rx="6" fill="#f8f9fa" stroke="#8a8a87" stroke-width="1"/>
+  <text x="240" y="140" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">Layer 1 - N: 全部串行计算</text>
+
+  <path d="M240 160 L240 180" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="80" y="185" width="320" height="50" rx="6" fill="#f8f9fa" stroke="#8a8a87" stroke-width="1"/>
+  <text x="240" y="215" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">每个 beam 独立计算 (大量重复)</text>
+
+  <path d="M240 235 L240 255" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="80" y="260" width="320" height="50" rx="6" fill="#fff0f0" stroke="#c92a2a" stroke-width="1.5"/>
+  <text x="240" y="290" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#c92a2a">QPS 受限</text>
+
+  <!-- LazyAR side -->
+  <g filter="url(#shadowSoft)">
+    <rect x="520" y="60" width="400" height="320" rx="8" fill="#fff" stroke="#6b9e8a" stroke-width="1.5"/>
+  </g>
+  <text x="720" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="600" fill="#2f6b4f">LazyAR: 前 2/3 层共享</text>
+
+  <rect x="560" y="110" width="320" height="60" rx="6" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="720" y="135" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#2f6b4f">Layer 1 到 2N/3: 提前计算</text>
+  <text x="720" y="155" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">所有 beam 共享，不依赖生成 token</text>
+
+  <path d="M720 170 L720 195" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="560" y="200" width="320" height="60" rx="6" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1.5"/>
+  <text x="720" y="225" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#6b3fa0">Layer 2N/3 到 N: 串行依赖上一个 token</text>
+  <text x="720" y="245" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">只有这部分需要逐 token 计算</text>
+
+  <path d="M720 260 L720 285" stroke="#8a8a87" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="560" y="290" width="320" height="50" rx="6" fill="#e8f5e9" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="720" y="315" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#2f6b4f">QPS 翻倍，收入损失仅 -0.15%</text>
+
+  <!-- Comparison arrow -->
+  <text x="480" y="400" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">不改模型结构，不加参数，只改执行顺序</text>
+</svg>

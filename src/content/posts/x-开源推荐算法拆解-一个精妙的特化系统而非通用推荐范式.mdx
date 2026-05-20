@@ -11,6 +11,7 @@ import Diagram from '../../components/blog/Diagram.astro'
 import Comparison from '../../components/blog/Comparison.astro'
 import CardGrid from '../../components/blog/CardGrid.astro'
 import Card from '../../components/blog/Card.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 2026 年 5 月 15 日，xAI 开源了 X 平台 "For You" 信息流的推荐算法。我花了两天时间把整个仓库的代码读完——从 Phoenix 的 JAX Transformer 模型到 Home Mixer 的 Rust 编排层，从 Thunder 的内存存储到 Grox 的内容理解管线。
 
@@ -24,53 +25,7 @@ import Card from '../../components/blog/Card.astro'
 
 X 的推荐系统由四个主要组件组成：
 
-<Diagram title="X FOR YOU 推荐系统架构" caption="四个组件的数据流与协作关系">
-```mermaid
-graph TB
-    subgraph request["用户请求 For You 信息流"]
-        REQ["Request"]
-    end
-
-    subgraph homemixer["Home Mixer - Rust 编排层"]
-        QH["Query Hydration<br/>用户上下文加载"]
-        SRC["Candidate Sources"]
-        HYD["Candidate Hydration"]
-        FLT["Filters"]
-        SCR["Scoring Pipeline"]
-        SEL["Top-K Selection"]
-    end
-
-    subgraph sources["候选源"]
-        THD["Thunder<br/>关注者帖子<br/>Kafka + 内存"]
-        PHR["Phoenix Retrieval<br/>全局 Two-Tower<br/>ANN 检索"]
-    end
-
-    subgraph scoring["打分体系"]
-        PHS["Phoenix Scorer<br/>Grok Transformer"]
-        WTS["Weighted Scorer<br/>19 行为加权"]
-        ADS["Author Diversity<br/>同作者衰减"]
-        OON["OON Scorer<br/>站外降权"]
-    end
-
-    REQ --> QH
-    QH --> SRC
-    SRC --> THD
-    SRC --> PHR
-    THD --> HYD
-    PHR --> HYD
-    HYD --> FLT
-    FLT --> SCR
-    SCR --> PHS
-    PHS --> WTS
-    WTS --> ADS
-    ADS --> OON
-    OON --> SEL
-
-    style THD fill:#d3f9d8,stroke:#2f9e44
-    style PHR fill:#e5dbff,stroke:#5f3dc4
-    style PHS fill:#ffe8cc,stroke:#d9480f
-```
-</Diagram>
+<TechGraph src="/images/posts/x-开源推荐算法拆解-一个精妙的特化系统而非通用推荐范式/architecture-overview.svg" title="X FOR YOU 推荐系统架构" caption="四个组件的数据流与协作关系" />
 
 - **Home Mixer**: Rust 编写的编排层，定义了整个 pipeline 的执行顺序
 - **Thunder**: 基于 Kafka 的实时帖子存储，提供关注者内容的亚毫秒级检索
@@ -83,24 +38,7 @@ graph TB
 
 Phoenix Ranking 模型最核心的设计是 **Candidate Isolation**：在 Transformer 推理时，候选帖子之间不能互相 attend，只能 attend to 用户上下文和历史序列。
 
-<Diagram title="CANDIDATE ISOLATION ATTENTION MASK" caption="候选帖子只能看到用户上下文，不能互相 attend">
-```mermaid
-graph LR
-    subgraph mask["Attention Mask 结构"]
-        direction TB
-        M1["User + History 区域<br/>完全双向 Attention"]
-        M2["Candidates 区域<br/>只能看 User+History<br/>不能看其他 Candidate"]
-        M3["结果：每个 Candidate<br/>分数独立于 batch 组成"]
-    end
-
-    M1 --> M2
-    M2 --> M3
-
-    style M1 fill:#d3f9d8,stroke:#2f9e44
-    style M2 fill:#ffe3e3,stroke:#c92a2a
-    style M3 fill:#c5f6fa,stroke:#0c8599
-```
-</Diagram>
+<TechGraph src="/images/posts/x-开源推荐算法拆解-一个精妙的特化系统而非通用推荐范式/candidate-isolation.svg" title="Candidate Isolation Attention Mask" caption="候选帖子只能看到用户上下文，不能互相 attend" />
 
 **为什么这么设计？**
 
@@ -135,15 +73,7 @@ Phoenix 模型只接收三类输入：用户 Hash ID、帖子 Hash ID、用户�
 
 X 有 5 亿日活用户，每天产生数十亿次互动。在这个数据规模下，Transformer 有足够的样本去学习"帖子 ID A 在什么上下文下会被点击"这种纯粹靠共现统计学到的模式。
 
-<Diagram title="数据规模差异决定了特征策略" caption="日活跃交互量对比（对数坐标）">
-```mermaid
-xychart-beta
-    title "日活跃交互量对比 (log scale)"
-    x-axis ["X 平台", "头部短视频", "中型 DSP", "垂直电商"]
-    y-axis "日交互量 (log scale)" 6 --> 11
-    bar [10.5, 10, 8, 7]
-```
-</Diagram>
+<TechGraph src="/images/posts/x-开源推荐算法拆解-一个精妙的特化系统而非通用推荐范式/data-scale-comparison.svg" title="数据规模差异决定了特征策略" caption="日活跃交互量对比（对数坐标）" />
 
 当你的日交互量只有 X 的千分之一时，纯 ID + 行为序列根本学不出有意义的 embedding。这时候手工特征工程不是"落后"，而是**必要的归纳偏置**——你在用领域知识弥补数据量的不足。
 
@@ -176,45 +106,7 @@ X 的静态权重设计在内容推荐中可以接受（用户体验的"好"没�
 
 把 X 的算法放到更大的推荐系统演进图谱中：
 
-<Diagram title="推荐系统架构代际演进" caption="X Phoenix 属于第三代，但通用性不如同代的 OneTrans 和 RankMixer">
-```mermaid
-graph TB
-    subgraph gen1["第一代：手工特征加浅层模型"]
-        FM["FM / DeepFM<br/>二阶交互 + MLP"]
-        WD["Wide and Deep<br/>记忆 + 泛化"]
-    end
-
-    subgraph gen2["第二代：深度模型加分模块"]
-        DIN["DIN/DIEN<br/>序列注意力"]
-        DCN["DCN-v2<br/>显式高阶交叉"]
-        PLE["PLE/MMOE<br/>多任务门控"]
-    end
-
-    subgraph gen3["第三代：Transformer 统一"]
-        OT["OneTrans<br/>统一 Tokenizer + Causal"]
-        XP["X Phoenix<br/>Candidate Isolation"]
-        MX["RankMixer/TokenMixer<br/>Token Mixing 替代 Attention"]
-    end
-
-    subgraph gen4["第四代：端到端生成"]
-        OR["OneRec<br/>Encoder-Decoder 生成"]
-    end
-
-    FM --> DIN
-    WD --> DCN
-    DIN --> OT
-    DCN --> OT
-    PLE --> OT
-    DIN --> XP
-    OT --> MX
-    OT --> OR
-
-    style XP fill:#ffe8cc,stroke:#d9480f
-    style OT fill:#e5dbff,stroke:#5f3dc4
-    style OR fill:#d3f9d8,stroke:#2f9e44
-    style MX fill:#c5f6fa,stroke:#0c8599
-```
-</Diagram>
+<TechGraph src="/images/posts/x-开源推荐算法拆解-一个精妙的特化系统而非通用推荐范式/architecture-evolution.svg" title="推荐系统架构代际演进" caption="X Phoenix 属于第三代，但通用性不如同代的 OneTrans 和 RankMixer" />
 
 三种第三代范式的设计哲学差异：
 

@@ -7,6 +7,7 @@ summary: "Ctx2Skill 提出自演化的多 Agent 自博弈框架，从上下文�
 ---
 
 import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 
 "In-context learning" 这个词在 2022 年之后几乎变成了 LLM 的核心卖点之一。GPT-3 论文中展示的 few-shot 能力——给模型几个示例，它就能执行新任务——让很多人相信 LLM 能够"从上下文中学习"。但这个叙事有一个被低估的裂缝：当上下文不是简单的输入-输出示例对，而是一份 50 页的技术规范或一套复杂的业务规则时，LLM 真的能从中"学会"如何执行吗？
@@ -17,28 +18,7 @@ Ctx2Skill（arXiv:2604.27660）直面了这个问题。它的核心发现是：�
 
 先厘清一个概念混淆。业界常说的 "in-context learning"（ICL）通常指 few-shot prompting：给模型几个示例，模型推断出模式并应用到新输入。但 Ctx2Skill 讨论的是一个更难的问题：**context learning**——从一份长而复杂的上下文文档中学习解决问题所需的知识。
 
-```mermaid
-graph LR
-    subgraph icl["传统 In-Context Learning"]
-        E1["示例 1: 输入 -> 输出"]
-        E2["示例 2: 输入 -> 输出"]
-        E3["示例 3: 输入 -> 输出"]
-        Q["新输入 -> ?"]
-    end
-
-    subgraph cl["Context Learning (本文)"]
-        DOC["50 页技术规范<br/>复杂业务规则<br/>多步骤程序"]
-        TASK["基于文档的<br/>推理/执行任务"]
-    end
-
-    icl --> |"LLM 擅长"| OK["准确率高"]
-    cl --> |"LLM 挣扎"| HARD["准确率低<br/>遗漏规则<br/>步骤出错"]
-
-    style icl fill:#d3f9d8,stroke:#2f9e44
-    style cl fill:#ffe3e3,stroke:#c92a2a
-    style OK fill:#d3f9d8,stroke:#2f9e44
-    style HARD fill:#ffe3e3,stroke:#c92a2a
-```
+<TechGraph src="/images/posts/in-context-learning能力的真实边界-llm从上下文学会技能了吗/icl-vs-context-learning.svg" title="ICL vs Context Learning" caption="传统 few-shot ICL 模式清晰可推断，而 Context Learning 需要从长文档中提取隐含规则" />
 
 区别在于：few-shot ICL 的"上下文"是几个结构化的示例对，模式清晰可推断；而 context learning 的"上下文"是一份非结构化的长文档，规则隐含在叙述中，需要多步推理才能应用。
 
@@ -65,37 +45,7 @@ Ctx2Skill 的解决方案是一个**多 Agent 自博弈循环**——不需要�
 
 ## 多 Agent 自博弈：自演化的技能发现
 
-```mermaid
-graph TB
-    subgraph loop["自博弈循环"]
-        CH["Challenger<br/>生成探测任务 + 评分标准"]
-        RE["Reasoner<br/>用当前技能集尝试解决"]
-        JU["Judge<br/>提供二元反馈 (对/错)"]
-    end
-
-    subgraph evolve["技能演化"]
-        PR["Proposer<br/>分析失败案例"]
-        GN["Generator<br/>合成新技能/更新旧技能"]
-    end
-
-    subgraph safety["对抗崩塌防护"]
-        CR["Cross-time Replay<br/>跨历史版本回测<br/>选择最佳平衡点"]
-    end
-
-    CH --> |"任务"| RE
-    RE --> |"答案"| JU
-    JU --> |"失败"| PR
-    PR --> |"改进方向"| GN
-    GN --> |"更新技能集"| CH
-    GN --> |"更新技能集"| RE
-
-    CR --> |"防止过拟合"| RE
-    CR --> |"防止极端化"| CH
-
-    style loop fill:#e5dbff,stroke:#5f3dc4
-    style evolve fill:#ffe8cc,stroke:#d9480f
-    style safety fill:#d3f9d8,stroke:#2f9e44
-```
+<TechGraph src="/images/posts/in-context-learning能力的真实边界-llm从上下文学会技能了吗/self-play-loop.svg" title="多 Agent 自博弈循环" caption="Challenger-Reasoner-Judge 循环配合 Proposer-Generator 技能演化，Cross-time Replay 防止对抗崩塌" />
 
 自博弈循环包含三个 Agent：
 
@@ -139,26 +89,7 @@ Ctx2Skill 引入 **Cross-time Replay** 机制来防止这种退化：
 
 ## 对工程实践的启示
 
-```mermaid
-graph LR
-    subgraph traditional["传统 RAG 流程"]
-        direction LR
-        TR1["检索文档"] --> TR2["拼接上下文"] --> TR3["生成回答"]
-    end
-
-    subgraph enhanced["Ctx2Skill 增强流程"]
-        direction LR
-        ER1["检索文档"] --> ER2["技能提取<br/>(自动/预计算)"] --> ER3["技能指导推理"] --> ER4["生成回答"]
-    end
-
-    traditional --> |"复杂规则场景<br/>准确率不足"| FAIL["遗漏条件<br/>步骤出错"]
-    enhanced --> |"显式规则化"| OK["规则完整覆盖<br/>可审计"]
-
-    style traditional fill:#ffe3e3,stroke:#c92a2a
-    style enhanced fill:#d3f9d8,stroke:#2f9e44
-    style FAIL fill:#ffe3e3,stroke:#c92a2a
-    style OK fill:#d3f9d8,stroke:#2f9e44
-```
+<TechGraph src="/images/posts/in-context-learning能力的真实边界-llm从上下文学会技能了吗/rag-enhanced-flow.svg" title="RAG 流程对比" caption="传统 RAG 直接拼接上下文生成回答，Ctx2Skill 增强流程在中间插入技能提取步骤" />
 
 **RAG 系统的中间层价值**。当前主流 RAG 流程是"检索 → 拼接上下文 → 生成回答"。Ctx2Skill 提示了一个可能的改进方向：在检索和生成之间插入一个"技能提取"步骤。不是直接把原始文档塞给 LLM，而是先从文档中提取可操作的规则，再用规则指导推理。这对规则密集型任务（合规检查、政策执行、技术规范遵循）可能有显著价值。
 

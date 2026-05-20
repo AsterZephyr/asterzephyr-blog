@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 500" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#8a8a87" stroke-width="1"/>
+    </marker>
+  </defs>
+  <rect width="960" height="500" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">全球 Relay 和地理感知信令</text>
+
+  <!-- Users -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="70" width="160" height="140" rx="8" fill="#fff" stroke="#0c8599" stroke-width="2"/>
+    <rect x="40" y="70" width="160" height="28" rx="8" fill="#0c8599"/>
+    <rect x="40" y="90" width="160" height="8" fill="#0c8599"/>
+    <text x="120" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">全球用户</text>
+  </g>
+  <text x="120" y="125" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">亚洲用户</text>
+  <text x="120" y="150" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">欧洲用户</text>
+  <text x="120" y="175" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">美洲用户</text>
+
+  <!-- Cloudflare -->
+  <g filter="url(#shadowSoft)">
+    <rect x="280" y="70" width="170" height="60" rx="8" fill="#fff" stroke="#c4956a" stroke-width="2"/>
+    <text x="365" y="97" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" font-weight="600" fill="#c4956a">Cloudflare</text>
+    <text x="365" y="117" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#666">地理引导信令</text>
+  </g>
+
+  <!-- Global Relay layer -->
+  <g filter="url(#shadowSoft)">
+    <rect x="280" y="170" width="170" height="140" rx="8" fill="#fff" stroke="#6b9e8a" stroke-width="2"/>
+    <rect x="280" y="170" width="170" height="28" rx="8" fill="#6b9e8a"/>
+    <rect x="280" y="190" width="170" height="8" fill="#6b9e8a"/>
+    <text x="365" y="190" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">Global Relay 层</text>
+  </g>
+  <text x="365" y="225" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">亚洲 Relay</text>
+  <text x="365" y="250" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">欧洲 Relay</text>
+  <text x="365" y="275" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">美洲 Relay</text>
+
+  <!-- Transceiver clusters -->
+  <g filter="url(#shadowSoft)">
+    <rect x="560" y="70" width="360" height="240" rx="8" fill="#fff" stroke="#9b72b0" stroke-width="2"/>
+    <rect x="560" y="70" width="360" height="28" rx="8" fill="#9b72b0"/>
+    <rect x="560" y="90" width="360" height="8" fill="#9b72b0"/>
+    <text x="740" y="90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">Transceiver 集群</text>
+  </g>
+  <rect x="590" y="110" width="140" height="40" rx="6" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1"/>
+  <text x="660" y="135" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#6b3fa0">亚洲集群</text>
+
+  <rect x="590" y="165" width="140" height="40" rx="6" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1"/>
+  <text x="660" y="190" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#6b3fa0">欧洲集群</text>
+
+  <rect x="590" y="220" width="140" height="40" rx="6" fill="#f3e8ff" stroke="#9b72b0" stroke-width="1"/>
+  <text x="660" y="245" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#6b3fa0">美洲集群</text>
+
+  <!-- Arrows: Users -> CF (signaling) -->
+  <path d="M200 100 L280 100" stroke="#c4956a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- CF -> Transceiver (signaling) -->
+  <path d="M450 100 L560 130" stroke="#c4956a" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <path d="M450 100 L560 185" stroke="#c4956a" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <path d="M450 100 L560 240" stroke="#c4956a" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+  <!-- Users -> Relay (media) -->
+  <path d="M200 160 L280 240" stroke="#0c8599" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="215" y="210" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="9" fill="#0c8599">媒体</text>
+
+  <!-- Relay -> Transceiver -->
+  <path d="M450 220 L590 130" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M450 245 L590 185" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M450 270 L590 240" stroke="#6b9e8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="560" y="280" width="340" height="24" rx="4" fill="#fef3e2"/>
+  <text x="730" y="296" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="10" fill="#8b5e3c">虚线 = 信令路径 (HTTP/WS)  |  实线 = 媒体路径 (UDP)</text>
+
+  <!-- Bottom explanation -->
+  <rect x="40" y="350" width="880" height="120" rx="8" fill="#f0efec" stroke="#e0dfdc" stroke-width="1"/>
+  <text x="60" y="375" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="13" font-weight="600" fill="#141413">设计要点</text>
+  <text x="60" y="400" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">1. Global Relay 缩短第一跳: UDP 包只需很短的公网路径到达最近的 Relay</text>
+  <text x="60" y="422" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">2. Cloudflare 地理引导: 信令请求到达就近 Transceiver 集群</text>
+  <text x="60" y="444" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#141413">3. ufrag 编码跨集群路由: Global Relay 知道把包路由到哪个集群</text>
+  <text x="60" y="466" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="12" fill="#666">效果: 信令和媒体都走就近入口，减少 ICE 连通性检查的往返时间</text>
+</svg>

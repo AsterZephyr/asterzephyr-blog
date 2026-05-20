@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" fill="none">
+  <defs>
+    <filter id="shadowSoft"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/></filter>
+  </defs>
+  <rect width="960" height="420" rx="12" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="600" fill="#141413">Rules 规则系统: ~/.claude/rules/</text>
+
+  <!-- Common rules -->
+  <g filter="url(#shadowSoft)">
+    <rect x="40" y="65" width="280" height="330" rx="8" fill="#fff" stroke="#9b72b0" stroke-width="2"/>
+    <rect x="40" y="65" width="280" height="28" rx="8" fill="#9b72b0"/>
+    <rect x="40" y="85" width="280" height="8" fill="#9b72b0"/>
+    <text x="180" y="85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">common/ 通用规则</text>
+  </g>
+  <text x="70" y="120" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">security.md — 安全</text>
+  <text x="70" y="145" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">coding-style.md — 代码风格</text>
+  <text x="70" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">git-workflow.md — Git</text>
+  <text x="70" y="195" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">testing.md — 测试</text>
+  <text x="70" y="220" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">agents.md — Agent 协调</text>
+  <text x="70" y="245" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">hooks.md — Hook</text>
+  <text x="70" y="270" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">patterns.md — 设计模式</text>
+  <text x="70" y="295" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">performance.md — 性能</text>
+
+  <!-- Golang rules -->
+  <g filter="url(#shadowSoft)">
+    <rect x="360" y="65" width="260" height="180" rx="8" fill="#fff" stroke="#0c8599" stroke-width="2"/>
+    <rect x="360" y="65" width="260" height="28" rx="8" fill="#0c8599"/>
+    <rect x="360" y="85" width="260" height="8" fill="#0c8599"/>
+    <text x="490" y="85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">golang/ Go 专属</text>
+  </g>
+  <text x="390" y="120" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">security.md</text>
+  <text x="390" y="145" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">hooks.md</text>
+  <text x="390" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">patterns.md</text>
+
+  <!-- TypeScript rules -->
+  <g filter="url(#shadowSoft)">
+    <rect x="660" y="65" width="260" height="230" rx="8" fill="#fff" stroke="#c4956a" stroke-width="2"/>
+    <rect x="660" y="65" width="260" height="28" rx="8" fill="#c4956a"/>
+    <rect x="660" y="85" width="260" height="8" fill="#c4956a"/>
+    <text x="790" y="85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" fill="#fff">typescript/ TS 专属</text>
+  </g>
+  <text x="690" y="120" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">security.md</text>
+  <text x="690" y="145" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">coding-style.md</text>
+  <text x="690" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">patterns.md</text>
+  <text x="690" y="195" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">testing.md</text>
+  <text x="690" y="220" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="11" fill="#141413">hooks.md</text>
+</svg>
