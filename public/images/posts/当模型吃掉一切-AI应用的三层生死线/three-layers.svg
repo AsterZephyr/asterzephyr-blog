@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8a8a87"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 20px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 13px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 11px; fill: #5a5a58; }
+    .section-label { font-size: 11px; font-weight: 600; fill: #8a8a87; letter-spacing: 0.05em; }
+    .layer-num { font-size: 28px; font-weight: 700; fill: #ffffff; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="420" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" class="title">AI 应用层三层生死线</text>
+
+  <!-- Danger arrow on left -->
+  <text x="30" y="150" class="section-label" style="fill:#c92a2a">危</text>
+  <text x="30" y="165" class="section-label" style="fill:#c92a2a">险</text>
+  <line x1="38" y1="175" x2="38" y2="370" stroke="#c92a2a" stroke-width="2" marker-end="url(#arrowDown)"/>
+  <text x="30" y="390" class="section-label" style="fill:#6b9e8a">安</text>
+  <text x="30" y="405" class="section-label" style="fill:#6b9e8a">全</text>
+
+  <!-- Layer 1: Capability Patch -->
+  <rect x="70" y="60" width="860" height="100" rx="10" fill="#fff5f5" stroke="#c92a2a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <circle cx="110" cy="110" r="22" fill="#c92a2a"/>
+  <text x="110" y="118" text-anchor="middle" class="layer-num">1</text>
+  <text x="150" y="88" class="node-title">能力补丁层 — 正在被模型吃掉</text>
+  <text x="150" y="108" class="node-sub">Prompt 工程 | 上下文拼接 | RAG | 工具调用编排</text>
+  <text x="150" y="128" class="node-sub">命运: 被原生模型能力快速收编 (6-18 个月生命周期)</text>
+  <text x="150" y="148" class="node-sub">案例: RAG 被 2M token 上下文替代, multi-agent 被 subagent tool 替代</text>
+
+  <!-- Layer 2: Workflow -->
+  <rect x="70" y="180" width="860" height="100" rx="10" fill="#fdf6e3" stroke="#c4956a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <circle cx="110" cy="230" r="22" fill="#c4956a"/>
+  <text x="110" y="238" text-anchor="middle" class="layer-num">2</text>
+  <text x="150" y="208" class="node-title">工作流封装层 — 一半被平台收编, 一半留给垂直产品</text>
+  <text x="150" y="228" class="node-sub">多步骤 Agent 调度 | 长任务记忆 | 跨应用状态同步</text>
+  <text x="150" y="248" class="node-sub">命运: 通用工作流被 Google/Microsoft/Apple 内建, 垂直工作流暂时安全</text>
+  <text x="150" y="268" class="node-sub">案例: 法律文件审查、医疗影像分析、金融合规检查</text>
+
+  <!-- Layer 3: Scene & Relationship -->
+  <rect x="70" y="300" width="860" height="100" rx="10" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <circle cx="110" cy="350" r="22" fill="#6b9e8a"/>
+  <text x="110" y="358" text-anchor="middle" class="layer-num">3</text>
+  <text x="150" y="328" class="node-title">场景与关系层 — 模型短期吃不动, 可能永远吃不动</text>
+  <text x="150" y="348" class="node-sub">用户身份 | 数据资产 | 信任关系 | 协作网络 | 合规边界</text>
+  <text x="150" y="368" class="node-sub">命运: 积累速度远慢于模型训练速度, 替代成本是社交性的而非技术性的</text>
+  <text x="150" y="388" class="node-sub">案例: 企业客户关系、行业合规认证、平台双边网络</text>
+</svg>

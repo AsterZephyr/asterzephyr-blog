@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" width="960" height="400">
+  <defs>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b9e8a"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c92a2a"/>
+    </marker>
+    <filter id="shadowSoft" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#141413" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 20px; font-weight: 700; fill: #141413; }
+    .node-title { font-size: 13px; font-weight: 600; fill: #141413; }
+    .node-sub { font-size: 11px; fill: #5a5a58; }
+    .section-label { font-size: 11px; font-weight: 600; fill: #8a8a87; letter-spacing: 0.05em; }
+    .danger { font-size: 12px; fill: #c92a2a; font-weight: 600; }
+  </style>
+
+  <!-- Background -->
+  <rect width="960" height="400" fill="#f8f6f3"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" class="title">一步之遥法则</text>
+
+  <!-- Model provider box -->
+  <rect x="340" y="60" width="280" height="50" rx="10" fill="#f0e6f6" stroke="#9b72b0" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="480" y="82" text-anchor="middle" class="node-title">模型厂商 (OpenAI / Anthropic / Google)</text>
+  <text x="480" y="100" text-anchor="middle" class="node-sub">原生能力持续增长, 每 6 个月一代</text>
+
+  <!-- Three examples -->
+  <!-- Cursor -->
+  <rect x="60" y="160" width="260" height="80" rx="8" fill="#fff5f5" stroke="#c92a2a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="190" y="183" text-anchor="middle" class="node-title">Cursor → Claude Code</text>
+  <text x="190" y="200" text-anchor="middle" class="node-sub">AI Coding 中间件</text>
+  <text x="190" y="218" text-anchor="middle" class="node-sub">上游 token 成本 + 集成深度碾压</text>
+  <text x="190" y="234" text-anchor="middle" class="danger">距离: 一步</text>
+
+  <!-- Lovart -->
+  <rect x="350" y="160" width="260" height="80" rx="8" fill="#fff5f5" stroke="#c92a2a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="480" y="183" text-anchor="middle" class="node-title">Lovart → GPT Image / Claude Design</text>
+  <text x="480" y="200" text-anchor="middle" class="node-sub">AI 设计中间件</text>
+  <text x="480" y="218" text-anchor="middle" class="node-sub">上游能力直接长出来</text>
+  <text x="480" y="234" text-anchor="middle" class="danger">距离: 一步</text>
+
+  <!-- Browser plugins -->
+  <rect x="640" y="160" width="260" height="80" rx="8" fill="#fff5f5" stroke="#c92a2a" stroke-width="1.5" filter="url(#shadowSoft)"/>
+  <text x="770" y="183" text-anchor="middle" class="node-title">RAG / 浏览器插件</text>
+  <text x="770" y="200" text-anchor="middle" class="node-sub">Context 收集和理解中间层</text>
+  <text x="770" y="218" text-anchor="middle" class="node-sub">2M token 上下文窗口已替代</text>
+  <text x="770" y="234" text-anchor="middle" class="danger">距离: 零步 (已被吃)</text>
+
+  <!-- Arrows from model to products -->
+  <path d="M 400 110 L 220 160" fill="none" stroke="#c92a2a" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+  <path d="M 480 110 L 480 160" fill="none" stroke="#c92a2a" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+  <path d="M 560 110 L 740 160" fill="none" stroke="#c92a2a" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+
+  <!-- Rule box -->
+  <rect x="200" y="280" width="560" height="50" rx="10" fill="#fdf6e3" stroke="#c4956a" stroke-width="2" filter="url(#shadowSoft)"/>
+  <text x="480" y="302" text-anchor="middle" class="node-title">判断标准</text>
+  <text x="480" y="322" text-anchor="middle" class="node-sub">如果模型厂商再走一步就能吃掉你的核心价值 → 不该做</text>
+
+  <!-- Safe zone hint -->
+  <rect x="200" y="350" width="560" height="36" rx="8" fill="#e8eeeb" stroke="#6b9e8a" stroke-width="1.5"/>
+  <text x="480" y="373" text-anchor="middle" class="node-sub" style="fill:#2f6b55">安全区: 用户关系、数据资产、行业合规、场景理解 — 模型够不到的地方</text>
+</svg>
