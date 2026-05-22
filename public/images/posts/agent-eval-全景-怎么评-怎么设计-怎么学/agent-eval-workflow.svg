@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 650">
+  <style>
+    text { font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
+    .title { font-size: 18px; font-weight: 700; fill: #1a1a2e; }
+    .step-label { font-size: 13px; font-weight: 600; fill: #ffffff; }
+    .step-sub { font-size: 11px; fill: #495057; }
+    .detail { font-size: 10px; fill: #6b7280; }
+    .arrow-label { font-size: 10px; fill: #495057; }
+  </style>
+  <defs>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#495057"/>
+    </marker>
+    <filter id="sh" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <rect width="960" height="650" fill="#ffffff" rx="8"/>
+  <text x="480" y="40" text-anchor="middle" class="title">Agent Eval Workflow: From Goal to Insight</text>
+
+  <!-- Step 1: Define Goal -->
+  <rect x="60" y="80" width="200" height="70" rx="10" fill="#2f9e44" filter="url(#sh)"/>
+  <text x="160" y="110" text-anchor="middle" class="step-label">Step 1: Define Goal</text>
+  <text x="160" y="130" text-anchor="middle" style="font-size:10px;fill:#d3f9d8">Capability x Granularity</text>
+
+  <rect x="60" y="160" width="200" height="60" rx="6" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  <text x="70" y="178" class="detail">- What scenario?</text>
+  <text x="70" y="193" class="detail">- Which dimensions?</text>
+  <text x="70" y="208" class="detail">- Decision granularity?</text>
+
+  <line x1="260" y1="115" x2="310" y2="115" stroke="#495057" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <!-- Step 2: Choose/Build Benchmark -->
+  <rect x="320" y="80" width="200" height="70" rx="10" fill="#1971c2" filter="url(#sh)"/>
+  <text x="420" y="110" text-anchor="middle" class="step-label">Step 2: Benchmark</text>
+  <text x="420" y="130" text-anchor="middle" style="font-size:10px;fill:#e7f5ff">Existing vs Custom</text>
+
+  <rect x="320" y="160" width="200" height="80" rx="6" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  <text x="330" y="178" class="detail">Existing: SWE-bench, WebArena</text>
+  <text x="330" y="193" class="detail">Custom: production logs sample</text>
+  <text x="330" y="208" class="detail">Label: difficulty + context level</text>
+  <text x="330" y="223" class="detail">50-100 cases minimum</text>
+
+  <line x1="520" y1="115" x2="570" y2="115" stroke="#495057" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <!-- Step 3: Evaluation Criteria -->
+  <rect x="580" y="80" width="200" height="70" rx="10" fill="#d9480f" filter="url(#sh)"/>
+  <text x="680" y="110" text-anchor="middle" class="step-label">Step 3: Judge Design</text>
+  <text x="680" y="130" text-anchor="middle" style="font-size:10px;fill:#ffe8cc">Auto + LLM + Human</text>
+
+  <rect x="580" y="160" width="200" height="100" rx="6" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  <rect x="595" y="172" width="170" height="22" rx="4" fill="#d3f9d8" stroke="#2f9e44" stroke-width="0.5"/>
+  <text x="680" y="187" text-anchor="middle" class="detail" style="fill:#2f9e44;font-weight:600">Layer 1: Auto Test (gate)</text>
+  <rect x="595" y="198" width="170" height="22" rx="4" fill="#fff4e6" stroke="#d9480f" stroke-width="0.5"/>
+  <text x="680" y="213" text-anchor="middle" class="detail" style="fill:#d9480f;font-weight:600">Layer 2: LLM-as-Judge</text>
+  <rect x="595" y="224" width="170" height="22" rx="4" fill="#f3f0ff" stroke="#5f3dc4" stroke-width="0.5"/>
+  <text x="680" y="239" text-anchor="middle" class="detail" style="fill:#5f3dc4;font-weight:600">Layer 3: Human Sample</text>
+
+  <path d="M 680,270 L 680,310 L 480,310 L 480,340" stroke="#495057" stroke-width="1.5" fill="none" marker-end="url(#arrowG)"/>
+
+  <!-- Step 4: Execute -->
+  <rect x="380" y="350" width="200" height="70" rx="10" fill="#5f3dc4" filter="url(#sh)"/>
+  <text x="480" y="380" text-anchor="middle" class="step-label">Step 4: Execute</text>
+  <text x="480" y="400" text-anchor="middle" style="font-size:10px;fill:#e5dbff">Run + Collect Results</text>
+
+  <line x1="480" y1="420" x2="480" y2="470" stroke="#495057" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <!-- Step 5: Analyze -->
+  <rect x="380" y="480" width="200" height="70" rx="10" fill="#0c8599" filter="url(#sh)"/>
+  <text x="480" y="510" text-anchor="middle" class="step-label">Step 5: Analyze</text>
+  <text x="480" y="530" text-anchor="middle" style="font-size:10px;fill:#c5f6fa">Failure Modes + Trends</text>
+
+  <rect x="600" y="460" width="240" height="110" rx="6" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  <text x="610" y="480" class="detail" style="font-weight:600">Analysis Dimensions:</text>
+  <text x="610" y="498" class="detail">- By difficulty tier</text>
+  <text x="610" y="513" class="detail">- By context dependency level</text>
+  <text x="610" y="528" class="detail">- Failure mode clustering</text>
+  <text x="610" y="543" class="detail">- Cost-performance curve</text>
+  <text x="610" y="558" class="detail">- Calibration drift over time</text>
+
+  <!-- Feedback loop -->
+  <path d="M 380,515 L 160,515 L 160,150 L 160,115 L 60,115" stroke="#c92a2a" stroke-width="1.2" fill="none" stroke-dasharray="5,3"/>
+  <rect x="85" y="505" width="110" height="20" rx="4" fill="#ffffff" opacity="0.95"/>
+  <text x="140" y="518" text-anchor="middle" class="arrow-label" style="fill:#c92a2a">Iterate: refine goal</text>
+
+  <rect x="130" y="600" width="700" height="35" rx="6" fill="#fff3bf" stroke="#ffd43b" stroke-width="1"/>
+  <text x="480" y="622" text-anchor="middle" class="detail" style="fill:#664d03;font-size:11px">Key Insight: METR data shows 24pp gap between auto-test and human-review. Always calibrate Layer 1 against Layer 3.</text>
+
+</svg>

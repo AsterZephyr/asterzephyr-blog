@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 680">
+  <style>
+    text { font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
+    .title { font-size: 18px; font-weight: 700; fill: #1a1a2e; }
+    .dim-title { font-size: 14px; font-weight: 700; }
+    .level { font-size: 11px; fill: #495057; }
+    .level-bold { font-size: 11px; fill: #1a1a2e; font-weight: 600; }
+    .note { font-size: 10px; fill: #868e96; }
+    .connector { stroke: #adb5bd; stroke-width: 1; }
+  </style>
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#6b7280"/>
+    </marker>
+    <filter id="ds" x="-5%" y="-5%" width="110%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <rect width="960" height="680" fill="#ffffff" rx="8"/>
+  <text x="480" y="38" text-anchor="middle" class="title">Agent Eval Design: 4-Dimension Framework</text>
+
+  <!-- Central hub -->
+  <circle cx="480" cy="340" r="50" fill="#f8f9fa" stroke="#1a1a2e" stroke-width="2"/>
+  <text x="480" y="335" text-anchor="middle" style="font-size:12px;font-weight:700;fill:#1a1a2e">Eval</text>
+  <text x="480" y="352" text-anchor="middle" style="font-size:12px;font-weight:700;fill:#1a1a2e">Design</text>
+
+  <!-- D1: Granularity Spectrum (left) -->
+  <rect x="40" y="180" width="260" height="320" rx="10" fill="#f0f9ff" stroke="#1971c2" stroke-width="1.5" filter="url(#ds)"/>
+  <text x="170" y="210" text-anchor="middle" class="dim-title" fill="#1971c2">D1: Granularity</text>
+  <rect x="60" y="235" width="40" height="22" rx="4" fill="#dbeafe"/>
+  <text x="68" y="250" class="level-bold">Function</text>
+  <text x="113" y="250" class="level">HumanEval</text>
+  <rect x="60" y="267" width="70" height="22" rx="4" fill="#bfdbfe"/>
+  <text x="68" y="282" class="level-bold">File</text>
+  <text x="143" y="282" class="level">CoderEval L3</text>
+  <rect x="60" y="299" width="100" height="22" rx="4" fill="#93c5fd"/>
+  <text x="68" y="314" class="level-bold">Module</text>
+  <text x="173" y="314" class="level">SWE-bench</text>
+  <rect x="60" y="331" width="140" height="22" rx="4" fill="#60a5fa"/>
+  <text x="68" y="346" class="level-bold">Project</text>
+  <text x="213" y="346" class="level">DevEval</text>
+  <rect x="60" y="363" width="180" height="22" rx="4" fill="#3b82f6"/>
+  <text x="68" y="378" class="level-bold">System</text>
+  <text x="253" y="378" class="level">ProgramBench</text>
+  <text x="170" y="405" text-anchor="middle" class="note">70%+ real code is Level 3-5</text>
+
+  <line x1="300" y1="340" x2="430" y2="340" class="connector" marker-end="url(#arr)"/>
+
+  <!-- D2: Context Dependency (top) -->
+  <rect x="360" y="60" width="240" height="200" rx="10" fill="#f0fdf4" stroke="#2f9e44" stroke-width="1.5" filter="url(#ds)"/>
+  <text x="480" y="88" text-anchor="middle" class="dim-title" fill="#2f9e44">D2: Context Dependency</text>
+  <text x="480" y="106" text-anchor="middle" class="note">CoderEval 6-Level Model</text>
+  <rect x="380" y="118" width="100" height="18" rx="3" fill="#2f9e44" opacity="0.30"/>
+  <text x="390" y="131" style="font-size:10px;fill:#1a1a2e">L0: Self-contained</text>
+  <rect x="380" y="140" width="120" height="18" rx="3" fill="#2f9e44" opacity="0.44"/>
+  <text x="390" y="153" style="font-size:10px;fill:#1a1a2e">L1: Std Library</text>
+  <rect x="380" y="162" width="140" height="18" rx="3" fill="#2f9e44" opacity="0.58"/>
+  <text x="390" y="175" style="font-size:10px;fill:#1a1a2e">L2: Third-party</text>
+  <rect x="380" y="184" width="160" height="18" rx="3" fill="#2f9e44" opacity="0.72"/>
+  <text x="390" y="197" style="font-size:10px;fill:#1a1a2e">L3: Same File</text>
+  <rect x="380" y="206" width="180" height="18" rx="3" fill="#2f9e44" opacity="0.86"/>
+  <text x="390" y="219" style="font-size:10px;fill:#1a1a2e">L4: Same Project</text>
+  <rect x="380" y="228" width="200" height="18" rx="3" fill="#2f9e44" opacity="1.00"/>
+  <text x="390" y="241" style="font-size:10px;fill:#1a1a2e">L5: Cross-project</text>
+
+  <line x1="480" y1="260" x2="480" y2="290" class="connector" marker-end="url(#arr)"/>
+
+  <!-- D3: Interaction Complexity (right) -->
+  <rect x="660" y="180" width="260" height="320" rx="10" fill="#fdf2f8" stroke="#c92a2a" stroke-width="1.5" filter="url(#ds)"/>
+  <text x="790" y="210" text-anchor="middle" class="dim-title" fill="#c92a2a">D3: Interaction</text>
+  <rect x="680" y="235" width="220" height="55" rx="6" fill="#ffffff" stroke="#fecdd3" stroke-width="1"/>
+  <text x="690" y="255" class="level-bold">Single-turn</text>
+  <text x="690" y="270" class="level">Give instruction, get output</text>
+  <text x="690" y="283" class="note">SWE-bench</text>
+  <rect x="680" y="303" width="220" height="55" rx="6" fill="#ffffff" stroke="#fecdd3" stroke-width="1"/>
+  <text x="690" y="323" class="level-bold">Multi-turn</text>
+  <text x="690" y="338" class="level">Dialogue-based iteration</text>
+  <text x="690" y="351" class="note">Human review + iterate</text>
+  <rect x="680" y="371" width="220" height="55" rx="6" fill="#ffffff" stroke="#fecdd3" stroke-width="1"/>
+  <text x="690" y="391" class="level-bold">Proactive</text>
+  <text x="690" y="406" class="level">Agent finds hidden needs</text>
+  <text x="690" y="419" class="note">pi-Bench (2026)</text>
+
+  <line x1="660" y1="340" x2="530" y2="340" class="connector" marker-end="url(#arr)"/>
+
+  <!-- D4: Judgment Method (bottom) -->
+  <rect x="310" y="430" width="340" height="200" rx="10" fill="#fefce8" stroke="#d9480f" stroke-width="1.5" filter="url(#ds)"/>
+  <text x="480" y="458" text-anchor="middle" class="dim-title" fill="#d9480f">D4: Judgment Method</text>
+  <rect x="330" y="475" width="300" height="30" rx="6" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+  <rect x="330" y="475" width="100" height="30" rx="6" fill="#dcfce7"/>
+  <rect x="430" y="475" width="100" height="30" fill="#fef3c7"/>
+  <rect x="530" y="475" width="100" height="30" rx="6" fill="#fce7f3"/>
+  <text x="380" y="495" text-anchor="middle" style="font-size:10px;font-weight:600;fill:#166534">Auto Test</text>
+  <text x="480" y="495" text-anchor="middle" style="font-size:10px;font-weight:600;fill:#92400e">LLM Judge</text>
+  <text x="580" y="495" text-anchor="middle" style="font-size:10px;font-weight:600;fill:#9d174d">Human</text>
+  <text x="330" y="530" class="level">Auto vs Human gap: 24 percentage points (METR)</text>
+  <text x="330" y="548" class="level">Golden baseline noise: 68% merge rate</text>
+  <text x="330" y="566" class="level">LLM-Judge: scalable but gameable</text>
+
+  <rect x="330" y="580" width="300" height="36" rx="5" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="480" y="598" text-anchor="middle" style="font-size:10px;font-weight:600;fill:#92400e">Recommended: Auto gate + LLM filter + Human calibration</text>
+  <text x="480" y="611" text-anchor="middle" class="note">Monthly calibration cycle to correct drift</text>
+
+  <line x1="480" y1="430" x2="480" y2="390" class="connector" marker-end="url(#arr)"/>
+
+  <text x="480" y="660" text-anchor="middle" class="note">Each dimension is independent. Your eval system should explicitly score on all four.</text>
+
+</svg>

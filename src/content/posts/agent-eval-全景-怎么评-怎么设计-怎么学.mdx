@@ -1,0 +1,404 @@
+---
+title: "Agent Eval 全景：怎么评、怎么设计、怎么学"
+date: 2026-05-22
+tags: [agent, evaluation, benchmark, methodology]
+summary: "评测范式正在断裂。SWE-bench 退役后，Agent 产品团队该如何衡量真实能力？本文从实操流程、设计方法论、学习路径三个维度拆解 Agent Eval 全景。"
+draft: false
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+import Callout from '../../components/blog/Callout.astro'
+
+2026 年 4 月，OpenAI 发了一篇博文，标题直白得像一纸休书：《Why We No Longer Evaluate SWE-bench Verified》。同月，METR 的研究更是给了这个曾经的黄金标准一记重击——他们让真实的开源维护者审查了 296 份通过 SWE-bench 自动测试的 AI PR，结论是：**约 50% 不会被合并**。
+
+这不是 benchmark 的小修小补。这是评测范式的断裂。
+
+如果你正在做 Agent 产品，你面对的问题不再是「我的 Agent 在 SWE-bench 上能跑多少分」，而是一个更本质的问题：**我们到底该怎么衡量一个 Agent 的真实能力？**
+
+本文试图回答三个问题：评测怎么做、评测怎么设计、以及怎么系统性地学习这些内容。
+
+## 一把退役的尺子
+
+先看 SWE-bench 到底出了什么问题。
+
+SWE-bench 的设计很简洁：从 GitHub 仓库的历史 issue 中抽取问题，让 Agent 生成修复 patch，然后跑原始 PR 的测试用例验证正确性。SWE-bench Verified 是它的精选版——由人工验证过测试用例的可靠性。截至 2026 年初，顶尖模型在 Verified 上已经跑到 80%+。
+
+但三个问题让这个数字变得不可信：
+
+**问题一：Git 历史泄露。** 2025 年 9 月，社区发现模型可能通过训练数据中的 Git history 「记住」了部分答案，而非真正推理解题。这不是 benchmark 设计者的过错，但它让分数的可解释性大打折扣。
+
+**问题二：自动测试 ≠ 真实质量。** METR 的研究量化了这个 gap。他们的核心发现：
+
+- 自动测试通过率与维护者合并率之间存在 **24 个百分点的稳定偏差**
+- 被拒绝的 PR 中，最大的问题不是「功能不对」，而是代码质量：不遵循仓库规范、引入不必要的复杂度、破坏其他代码
+- 甚至是人类写的原始 PR，维护者也只有 68% 的合并率（这是 golden baseline）——说明人审本身就有噪声
+
+**问题三：天花板效应。** 当多个模型都跑到 75-80% 时，SWE-bench 失去了区分前沿能力的功能。OpenAI 的原话：「It no longer measures frontier coding capabilities.」
+
+这三个问题指向同一个结论：**过测试 ≠ 能写出生产级代码**。评测需要进化。
+
+## 评测地图：每个 Benchmark 测什么
+
+<TechGraph src="/images/posts/agent-eval-全景-怎么评-怎么设计-怎么学/agent-eval-quadrant.svg" title="BENCHMARK POSITIONING" caption="当前主流 Agent 评测 benchmark 的定位象限（X 轴=粒度，Y 轴=评判方式）" />
+
+当前 Agent 评测领域已经分化出多条赛道，每条赛道测量不同的能力维度。理解这张地图，是设计自己评测体系的前提。
+
+### SWE-bench：单 Issue 修复
+
+- **测什么**：给定一个 GitHub issue 描述，Agent 能否生成正确的 patch
+- **评判方式**：运行原始 PR 的测试用例
+- **粒度**：单个 bug fix 或小 feature，平均改动 17 行
+- **局限**：只测「改对」，不测「改好」；不涉及架构、设计、集成
+
+尽管有上述问题，SWE-bench 仍然是理解 Agent 评测机制的最佳入门材料——它的 harness 设计清晰、数据公开、工具链成熟。
+
+### DevEval/DevBench：软件开发全周期
+
+- **测什么**：从需求到交付的完整流程——软件设计、环境配置、代码实现、验收测试、单元测试
+- **评判方式**：每个阶段有独立的评测指标
+- **粒度**：项目级，涉及多文件协作
+- **价值**：揭示了模型在「写代码」之外的严重短板——设计阶段的失败率远高于实现阶段
+
+DevEval 涵盖 4 种语言、多个领域，真正回答「LLM 能不能独立完成一个软件项目」。
+
+### CoderEval：上下文依赖的精确分类
+
+- **测什么**：代码生成能力随上下文依赖深度的变化
+- **评判方式**：自动执行正确性验证
+- **核心贡献**：提出了六级上下文依赖分类
+
+CoderEval 的分类法是我见过最精确的代码生成能力拆解框架：
+
+| 级别 | 依赖范围 | 示例 |
+|------|---------|------|
+| Level 0 | Self-contained | 纯算法函数，无外部依赖 |
+| Level 1 | Built-in/Standard Lib | 使用标准库但无项目依赖 |
+| Level 2 | Third-party Library | 依赖外部包的 API 调用 |
+| Level 3 | Current File | 依赖同文件内的类型/变量 |
+| Level 4 | Current Project | 依赖项目内其他文件的定义 |
+| Level 5 | Cross-project | 依赖多个项目的交互 |
+
+研究发现：模型在 Level 0-1 的表现远优于 Level 4-5。**standalone 函数的生成能力不能代表 pragmatic 场景的能力。** 这意味着如果你的 Agent 产品主要处理项目级代码（几乎所有真实场景都是），用 HumanEval 那类 benchmark 得到的信心是虚假的。
+
+### WebArena：Web 环境交互
+
+- **测什么**：Agent 在真实网站（论坛、电商、GitLab、地图）上完成任务的能力
+- **评判方式**：基于最终状态的功能正确性验证
+- **粒度**：多步骤、多页面跳转的完整用户任务
+- **价值**：唯一一个测试 Agent「操作 GUI」而非「写代码」的主流 benchmark
+
+WebArena 部署了完整的 web 应用栈，Agent 需要通过浏览器 API 与真实网站交互。这对做 Web Agent、RPA、UI 自动化的团队来说是必看的评测设计。
+
+### Chatbot Arena（LMSYS）：人类偏好对齐
+
+- **测什么**：两个模型的输出谁更好（由人类投票决定）
+- **评判方式**：ELO 排名系统，基于成对比较
+- **粒度**：单轮/多轮对话
+- **价值**：唯一大规模对齐人类偏好的评测方式
+
+Arena 的设计哲学与其他 benchmark 截然不同：它不预设「正确答案」，而是让众包用户做 A/B 选择。这解决了自动评测无法捕获的「偏好」维度，但也带来了成本高、偏见难消除的问题。
+
+### ProgramBench（2026 新）：从零构建完整程序
+
+- **测什么**：给定一个可执行文件及其文档，从零重新实现
+- **评判方式**：248,000+ 行为测试，对比原始程序的输入输出
+- **粒度**：整个项目（从 jq 到 FFmpeg 到 PHP 编译器）
+- **当前最强成绩**：GPT 5.5 (xhigh) = 0.5%
+
+ProgramBench 是 SWE-bench 团队的「下一代作品」，设计理念完全不同：不是修 bug，而是**架构 + 实现一个完整系统**。Agent 不能上网、不能反编译，只能观察程序行为然后重建。这测的是真正的系统设计能力。
+
+### SaaSBench（2026 新）：企业全栈系统集成
+
+- **测什么**：Agent 能否搭建复杂的企业 SaaS 系统（8 种语言、6 种数据库、13 个框架）
+- **评判方式**：依赖感知的混合验证（5370 个验证节点）
+- **核心发现**：**95%+ 的失败发生在系统配置和集成阶段，而非业务逻辑编写**
+
+<Callout type="warning" title="对 Agent 产品团队的启示">
+SaaSBench 的发现说明当前 Agent 的瓶颈不是「写不出代码」，而是「搞不定多组件之间的连接」。模型往往过度自信，在基础设施还没配通时就宣告完成。
+</Callout>
+
+## 怎么做评测：实操全流程
+
+<TechGraph src="/images/posts/agent-eval-全景-怎么评-怎么设计-怎么学/agent-eval-workflow.svg" title="EVALUATION WORKFLOW" caption="Agent 产品团队从零搭建评测体系的五步流程" />
+
+理解了评测地图，下面进入实操。以下是一个 Agent 产品团队从零开始搭建评测体系的完整流程。
+
+### Step 1: 定义评测目标
+
+不要上来就跑 SWE-bench。先回答这几个问题：
+
+1. **你的 Agent 服务的场景是什么？** 代码修复？全栈开发？文档生成？Web 操作？
+2. **你关心哪些能力维度？** 正确性、代码质量、速度、成本、用户满意度？
+3. **你的决策粒度是什么？** 比较两个模型？评估一次 prompt 改动？还是追踪长期趋势？
+
+不同目标导向完全不同的评测设计。如果你只想比较 Claude vs GPT 在你场景下谁更好，一个 50 case 的 A/B test 可能就够了。如果你想建立持续回归体系，需要的是完全不同的工程投入。
+
+### Step 2: 选择或构建 Benchmark
+
+**选现成的**——当你的场景与已有 benchmark 高度重合时：
+
+```python
+# 用 BenchFlow 跑 SWE-bench 评测的最小示例
+# https://github.com/benchflow-ai/benchflow
+
+from benchflow import BenchClient
+
+client = BenchClient(api_key="your-key")
+
+# 定义你的 Agent
+agent_config = {
+    "name": "my-coding-agent",
+    "endpoint": "http://localhost:8000/agent/run",
+    "timeout": 300,
+}
+
+# 在 SWE-bench Verified 子集上跑
+results = client.run_benchmark(
+    benchmark="swe-bench-verified",
+    agent=agent_config,
+    subset="lite",  # 先跑 lite 验证流程通
+    max_parallel=5,
+)
+
+print(f"Pass rate: {results.pass_rate:.1%}")
+print(f"Avg time: {results.avg_time:.0f}s")
+print(f"Avg cost: ${results.avg_cost:.2f}")
+```
+
+**自建**——当现有 benchmark 不覆盖你的场景时：
+
+核心原则：从你的生产数据中抽样。你的用户真实发给 Agent 的任务，就是最好的评测集。
+
+```python
+# 自建评测集的骨架设计
+eval_case = {
+    "id": "case-001",
+    "input": {
+        "instruction": "用户的原始指令",
+        "context": "提供给 Agent 的上下文信息",
+        "workspace": "初始文件状态快照",
+    },
+    "expected": {
+        "files_changed": ["path/to/file.py"],
+        "tests_pass": ["test_feature_x.py"],
+        "criteria": [
+            "不引入新的 lint 错误",
+            "不修改无关文件",
+            "保持向后兼容",
+        ],
+    },
+    "metadata": {
+        "difficulty": "medium",
+        "context_dependency": 4,  # CoderEval 六级分类
+        "domain": "backend",
+    },
+}
+```
+
+### Step 3: 设计评判标准
+
+这是最关键也最容易出错的环节。三种评判方式各有适用场景：
+
+| 方式 | 适用场景 | 优点 | 缺点 |
+|------|---------|------|------|
+| 自动测试 | 功能正确性验证 | 快、便宜、确定性 | 无法捕获质量维度（METR 证明了 24pp 偏差） |
+| 人工审查 | 代码质量、架构决策 | 最接近真实标准 | 贵、慢、有噪声（golden baseline = 68%） |
+| LLM-as-Judge | 大规模初筛、主观维度 | 可扩展、成本可控 | 与人类判断的一致性有限，易被 gaming |
+
+**实用建议：混合使用。** 自动测试做正确性门槛，LLM-as-Judge 做初步质量筛选，人工审查做最终判定和 calibration。
+
+```python
+# 三层评判的伪代码
+
+def evaluate(agent_output, case):
+    # Layer 1: 自动测试（gate）
+    test_result = run_tests(agent_output, case["expected"]["tests_pass"])
+    if not test_result.passed:
+        return Score(correctness=0, quality=None, verdict="FAIL_TESTS")
+
+    # Layer 2: LLM-as-Judge（筛选）
+    quality_score = llm_judge(
+        agent_output,
+        criteria=case["expected"]["criteria"],
+        model="claude-sonnet-4-6",
+    )
+
+    # Layer 3: 人工审查（抽样 calibration）
+    if case in sampled_for_human_review:
+        human_score = submit_for_review(agent_output, case)
+        calibration_data.append((quality_score, human_score))
+
+    return Score(
+        correctness=test_result.score,
+        quality=quality_score,
+        verdict="PASS" if quality_score > 0.7 else "NEEDS_REVIEW",
+    )
+```
+
+### Step 4: 执行与结果分析
+
+跑完评测后，不要只看一个 pass rate 数字。METR 的研究给了一个很好的示范——他们把失败原因分成了四类（core functionality / breaks other code / code quality / other），这让你能定向改进。
+
+关键分析维度：
+
+- **按难度分层**：你的 Agent 在 easy case 上是不是已经 100% 了？如果是，说明 easy case 对你已经没有区分度
+- **按上下文依赖分层**：用 CoderEval 的六级分类，看你的 Agent 在哪个 level 开始显著下降
+- **失败模式聚类**：是模型能力不够，还是 prompt 设计有问题，还是工具调用链路出了 bug？
+- **成本-性能曲线**：同一模型用更高 token 上限/更多重试能提升多少？值不值？
+
+## 怎么设计评测：方法论框架
+
+<TechGraph src="/images/posts/agent-eval-全景-怎么评-怎么设计-怎么学/agent-eval-design-framework.svg" title="4-DIMENSION FRAMEWORK" caption="Agent 评测设计的四维分析框架" />
+
+如果你需要为自己的 Agent 产品设计评测体系，以下是一个四维分析框架。
+
+### 维度一：粒度光谱
+
+```
+函数级 → 文件级 → 模块级 → 项目级 → 系统级
+HumanEval   CoderEval   SWE-bench   DevEval   SaaSBench/ProgramBench
+```
+
+你的评测粒度应该匹配你的产品场景。如果你的 Agent 帮用户写单个函数，HumanEval 级别就够了。如果它帮用户搭建整个项目，你需要的是 DevEval 或 SaaSBench 级别的评测。
+
+### 维度二：上下文依赖
+
+CoderEval 的六级分类是目前最精确的框架。核心洞察：**大多数真实代码生成任务处于 Level 3-5**（依赖文件/项目/跨项目上下文），但大多数 benchmark 只测 Level 0-2。
+
+设计自己的评测时，明确标注每个 case 的上下文依赖级别。这样你才能发现「我的 Agent 在 standalone 场景下很强，但一旦需要理解项目上下文就崩了」这类问题。
+
+### 维度三：交互复杂度
+
+```
+单轮（给指令出结果） → 多轮（对话式修改） → 自主（发现问题并解决）
+SWE-bench              人工审查+迭代          π-Bench
+```
+
+π-Bench（2026-05）引入了一个重要概念：**proactive assistance**——Agent 能否识别用户没说出来的隐含需求。这对产品级 Agent 至关重要，但目前几乎没有 benchmark 测量这个维度。
+
+### 维度四：评判方式光谱
+
+```
+确定性（测试通过/失败） → 半自动（LLM-as-Judge） → 人工（维护者审查/用户投票）
+SWE-bench                 自动代码审查             METR / Arena
+```
+
+METR 的数据给出了一个精确的校准：自动评判与人工评判之间有 24 个百分点的系统性偏差。如果你只用自动评判，你的 Agent 看起来比实际好 24%。
+
+### 避坑指南
+
+**1. Contamination（数据泄露）**
+
+SWE-bench 的 Git history leak 是典型案例。防范方法：
+- 使用 post-training cutoff 的数据
+- 定期更新评测集
+- ProgramBench 的做法：要求从零实现，即使记住了源码也需要真正理解才能重写
+
+**2. Harness overfitting**
+
+SaaSBench 特意使用了通用 harness（mini-SWE-agent），不做针对性调优。他们发现「headline scores from a tuned harness on a curated handful of tasks can substantially overstate how capable agents really are」。
+
+如果你的评测只在你自己的 Agent 框架上跑，分数可能虚高。解药：用通用 harness 跑 baseline，与你自己的框架分数做对比。
+
+**3. Metric gaming**
+
+当你公开评测结果或用它做内部 KPI 时，Goodhart's Law 立即生效。防范：
+- 保留一部分评测集不公开（hidden test set）
+- 定期替换评测 case
+- 多维度评分而非单一数字
+
+**4. 代表性偏差**
+
+SWE-bench Verified 的平均改动只有 17 行。如果你的 Agent 主要处理大规模重构（500+ 行），SWE-bench 的分数对你没有参考价值。始终检查 benchmark 的 case 分布是否匹配你的场景。
+
+## 怎么学：系统学习路径
+
+### Level 1：跑通一个 Benchmark（1-2 周）
+
+**目标**：理解评测的机械结构——harness 怎么跑、数据怎么组织、结果怎么算。
+
+**推荐路径**：
+
+1. Clone [SWE-bench](https://github.com/princeton-nlp/SWE-bench) 仓库，读 README 和 harness 代码
+2. 用 [BenchFlow](https://github.com/benchflow-ai/benchflow) 或 [mini-SWE-agent](https://github.com/swe-agent/mini-swe-agent/) 跑 5-10 个 case
+3. 手动检查一个通过的 case 和一个失败的 case，理解评判逻辑
+
+**你会学到**：
+- Docker 化的评测环境如何隔离
+- 测试用例如何从 PR history 中抽取
+- 自动评判的精确机制（patch apply → run tests → check exit code）
+
+### Level 2：读懂评测设计哲学（2-4 周）
+
+**目标**：理解不同 benchmark 的设计权衡——为什么这样设计、牺牲了什么、获得了什么。
+
+**必读论文**：
+
+| 论文 | 核心收获 |
+|------|---------|
+| METR: Many SWE-bench PRs Not Merged | 自动评判与人审的校准方法论 |
+| CoderEval (ICSE 2024) | 上下文依赖六级分类法 |
+| DevEval (arXiv 2403.08604) | 全周期评测的阶段拆分方法 |
+| ProgramBench (arXiv 2605.03546) | 从零构建的防作弊设计 |
+| SaaSBench (arXiv 2605.17526) | 依赖感知的混合验证范式 |
+
+**重点关注**：
+- 每篇论文的 Limitations 和 Threats to Validity 部分
+- 它们如何处理 contamination
+- 评判标准的设计推导过程
+
+### Level 3：自建 Domain-Specific Benchmark（4-8 周）
+
+**目标**：为你的产品场景构建评测体系，能持续运行、能驱动改进。
+
+**步骤**：
+
+1. **数据收集**：从生产日志中抽取 50-100 个真实任务（覆盖 easy/medium/hard）
+2. **标注**：按上下文依赖级别、领域、难度标注每个 case
+3. **评判设计**：参考本文的三层评判方法，确定自动 gate + LLM judge + 人工抽样的比例
+4. **工程化**：CI 集成，每次 prompt/模型变更自动跑评测
+5. **校准循环**：定期对比 LLM-as-Judge 和人工审查的结果，调整 prompt
+
+**工具链推荐**：
+
+- 评测运行：[BenchFlow](https://github.com/benchflow-ai/benchflow) / 自建 Docker harness
+- LLM-as-Judge：直接调用 Claude/GPT API，few-shot prompt 定义评分标准
+- 人工审查：简单的 web UI + 随机分配 + 双审
+- 结果追踪：Grafana dashboard 或简单的 SQLite + 定期报告
+
+### 持续学习资源
+
+- **HuggingFace Daily Papers**：关注带 `bench` / `eval` / `agent` 关键词的论文
+- **METR 博客**：持续产出高质量的 Agent 能力评估研究
+- **SWE-bench GitHub Issues**：社区对评测方法论的讨论往往比论文更接地气
+- **Chatbot Arena Blog**：人类偏好评测的前沿实践
+
+## 评测的终局：从 Benchmark 到 Continuous Eval
+
+静态 Benchmark 正在失效。SWE-bench 的生命周期就是证明：发布 → 刷分 → 饱和 → 发现问题 → 退役。ProgramBench 现在 0% 解决率，但按照 Agent 能力增长的速度，两年内可能也会面临同样的命运。
+
+对 Agent 产品团队来说，真正需要的不是「在某个公开 benchmark 上拿高分」，而是：
+
+**1. 建立你自己的 eval 管线。** 用你的真实用户任务做评测集，每次模型/prompt 变更都跑一遍。这比任何公开 benchmark 都更能预测你的用户体验。
+
+**2. 多维度、不公开。** 参考 METR 的做法——区分 correctness、code quality、integration、proactiveness。保留 hidden test set 防止 overfitting。
+
+**3. 人审做 calibration，不做日常。** 人审太贵不能天天跑，但每月做一次 calibration（对比人审结果和自动评判结果）能让你持续校正自动体系的偏差。
+
+**4. 关注失败模式，不只是通过率。** SaaSBench 的发现（95% 失败在集成阶段）比任何通过率数字都更有行动指导意义。
+
+评测不是一次性的考试，而是一个持续运行的质量信号系统。最好的 Agent 团队，都在用评测驱动迭代——每天看 eval dashboard，就像看产品 DAU 一样自然。
+
+---
+
+**参考资料**
+
+- [Many SWE-bench-Passing PRs Would Not Be Merged (METR, 2026-03)](https://metr.org/notes/2026-03-10-many-swe-bench-passing-prs-would-not-be-merged-into-main/)
+- [Why We No Longer Evaluate SWE-bench Verified (OpenAI, 2026-04)](https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)
+- [ProgramBench (SWE-bench team, 2026-05)](https://programbench.com/)
+- [SaaSBench (arXiv, 2026-05)](https://arxiv.org/abs/2605.17526)
+- [π-Bench (arXiv, 2026-05)](https://arxiv.org/abs/2605.14678)
+- [CoderEval (ICSE 2024)](https://arxiv.org/abs/2302.00288)
+- [DevEval (arXiv, 2024-03)](https://arxiv.org/abs/2403.08604)
+- [BenchFlow - Run AI Benchmarks as API](https://github.com/benchflow-ai/benchflow)
+- [SWE-bench Git History Leaks (GitHub Issue #465)](https://github.com/SWE-bench/SWE-bench/issues/465)
