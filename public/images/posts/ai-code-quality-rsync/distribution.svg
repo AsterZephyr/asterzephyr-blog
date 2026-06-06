@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 680" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="680" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="480" y="36" font-size="18" font-weight="600" fill="#111827" text-anchor="middle">rsync Bug Rate Distribution: Claude Versions in Historical Context</text>
+  <text x="480" y="58" font-size="13" fill="#6b7280" text-anchor="middle">Metric: severity-weighted bugs per 10 commits (sev/10c) | 36 releases, v2.4.6 - v3.4.3</text>
+
+  <!-- Legend -->
+  <g transform="translate(80, 72)">
+    <circle cx="8" cy="8" r="6" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+    <text x="22" y="12" font-size="12" fill="#6b7280">Historical (no AI)</text>
+    <circle cx="168" cy="8" r="7" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+    <text x="183" y="12" font-size="12" fill="#2563eb">Claude-assisted</text>
+    <circle cx="328" cy="8" r="7" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+    <text x="343" y="12" font-size="12" fill="#dc2626">Outlier (no AI, worst ever)</text>
+    <rect x="528" y="0" width="50" height="16" rx="3" fill="#dcfce7" stroke="#86efac" stroke-width="1" opacity="0.6"/>
+    <text x="586" y="12" font-size="12" fill="#16a34a">IQR (middle 50%)</text>
+  </g>
+
+  <!-- Main chart area -->
+  <!-- IQR band -->
+  <rect x="260" y="120" width="360" height="240" rx="6" fill="#dcfce7" opacity="0.3" stroke="#86efac" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="440" y="138" font-size="11" fill="#16a34a" text-anchor="middle">IQR: 0.29 - 2.59 sev/10c</text>
+
+  <!-- X-axis (log scale representation) -->
+  <line x1="80" y1="380" x2="880" y2="380" stroke="#d1d5db" stroke-width="1.5"/>
+  <!-- Tick marks -->
+  <line x1="120" y1="376" x2="120" y2="384" stroke="#9ca3af" stroke-width="1"/>
+  <text x="120" y="398" font-size="11" fill="#6b7280" text-anchor="middle">0</text>
+  <line x1="260" y1="376" x2="260" y2="384" stroke="#9ca3af" stroke-width="1"/>
+  <text x="260" y="398" font-size="11" fill="#6b7280" text-anchor="middle">0.29</text>
+  <line x1="440" y1="376" x2="440" y2="384" stroke="#9ca3af" stroke-width="1"/>
+  <text x="440" y="398" font-size="11" fill="#6b7280" text-anchor="middle">1.0</text>
+  <line x1="620" y1="376" x2="620" y2="384" stroke="#9ca3af" stroke-width="1"/>
+  <text x="620" y="398" font-size="11" fill="#6b7280" text-anchor="middle">2.59</text>
+  <line x1="740" y1="376" x2="740" y2="384" stroke="#9ca3af" stroke-width="1"/>
+  <text x="740" y="398" font-size="11" fill="#6b7280" text-anchor="middle">5.0</text>
+  <line x1="830" y1="376" x2="830" y2="384" stroke="#9ca3af" stroke-width="1"/>
+  <text x="830" y="398" font-size="11" fill="#6b7280" text-anchor="middle">10+</text>
+  <text x="480" y="418" font-size="12" fill="#6b7280" text-anchor="middle">sev/10c (log scale)</text>
+
+  <!-- Historical dots (scattered in y for visibility) -->
+  <circle cx="160" cy="200" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="190" cy="240" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="220" cy="180" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="240" cy="310" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="280" cy="160" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="310" cy="220" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="340" cy="280" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="370" cy="190" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="400" cy="250" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="430" cy="300" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="460" cy="170" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="490" cy="230" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="520" cy="320" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="550" cy="260" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="580" cy="190" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="610" cy="340" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="640" cy="210" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="670" cy="270" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="700" cy="150" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="720" cy="240" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="750" cy="180" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="770" cy="290" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="200" cy="350" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="300" cy="340" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="380" cy="330" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="500" cy="290" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="560" cy="350" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="420" cy="150" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="350" cy="350" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="480" cy="340" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="270" cy="270" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="450" cy="360" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="530" cy="160" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+  <circle cx="660" cy="350" r="5" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1"/>
+
+  <!-- v3.4.1 - worst ever (no AI) -->
+  <circle cx="860" cy="200" r="9" fill="#fee2e2" stroke="#dc2626" stroke-width="2.5"/>
+  <text x="860" y="180" font-size="12" font-weight="600" fill="#dc2626" text-anchor="middle">v3.4.1</text>
+  <text x="860" y="230" font-size="11" fill="#dc2626" text-anchor="middle">39.39 sev/10c</text>
+  <text x="860" y="244" font-size="10" fill="#9ca3af" text-anchor="middle">NO AI - worst ever</text>
+
+  <!-- v3.4.2 - Claude, zero bugs -->
+  <circle cx="120" cy="280" r="9" fill="#dbeafe" stroke="#2563eb" stroke-width="2.5"/>
+  <text x="120" y="260" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">v3.4.2</text>
+  <text x="120" y="310" font-size="11" fill="#2563eb" text-anchor="middle">0.00 sev/10c</text>
+  <text x="120" y="324" font-size="10" fill="#6b7280" text-anchor="middle">9 Claude commits</text>
+
+  <!-- v3.4.3 - Claude, 77th percentile -->
+  <circle cx="650" cy="250" r="9" fill="#dbeafe" stroke="#2563eb" stroke-width="2.5"/>
+  <text x="650" y="230" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">v3.4.3</text>
+  <text x="650" y="278" font-size="11" fill="#2563eb" text-anchor="middle">3.29 sev/10c</text>
+  <text x="650" y="292" font-size="10" fill="#6b7280" text-anchor="middle">28 Claude commits</text>
+
+  <!-- Statistical results panel -->
+  <rect x="80" y="440" width="800" height="220" rx="8" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="480" y="468" font-size="15" font-weight="600" fill="#111827" text-anchor="middle">Statistical Tests Summary</text>
+
+  <!-- Test 1: Permutation -->
+  <rect x="100" y="485" width="240" height="155" rx="6" fill="#ede9fe" stroke="#c4b5fd" stroke-width="1"/>
+  <text x="220" y="508" font-size="12" font-weight="600" fill="#5b21b6" text-anchor="middle">Exact Permutation Test</text>
+  <text x="220" y="548" font-size="28" font-weight="600" fill="#5b21b6" text-anchor="middle">p = 46%</text>
+  <text x="220" y="578" font-size="11" fill="#6b7280" text-anchor="middle">272 of 595 random pairs</text>
+  <text x="220" y="595" font-size="11" fill="#6b7280" text-anchor="middle">scored as bad or worse</text>
+  <text x="220" y="624" font-size="11" font-weight="600" fill="#5b21b6" text-anchor="middle">Nothing unusual.</text>
+
+  <!-- Test 2: Fisher -->
+  <rect x="360" y="485" width="240" height="155" rx="6" fill="#fff7ed" stroke="#fed7aa" stroke-width="1"/>
+  <text x="480" y="508" font-size="12" font-weight="600" fill="#c2410c" text-anchor="middle">Fisher's Exact Test</text>
+  <text x="480" y="548" font-size="28" font-weight="600" fill="#c2410c" text-anchor="middle">p = 74%</text>
+  <text x="480" y="578" font-size="11" fill="#6b7280" text-anchor="middle">Claude releases above median?</text>
+  <text x="480" y="595" font-size="11" fill="#6b7280" text-anchor="middle">Odds ratio: 1.06 (essentially 1:1)</text>
+  <text x="480" y="624" font-size="11" font-weight="600" fill="#c2410c" text-anchor="middle">No more likely than random.</text>
+
+  <!-- Test 3: Lines Changed -->
+  <rect x="620" y="485" width="240" height="155" rx="6" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="740" y="508" font-size="12" font-weight="600" fill="#15803d" text-anchor="middle">Code Volume vs Bugs</text>
+  <text x="740" y="548" font-size="28" font-weight="600" fill="#15803d" text-anchor="middle">5.4x code</text>
+  <text x="740" y="578" font-size="11" fill="#6b7280" text-anchor="middle">3756 vs 696 lines changed</text>
+  <text x="740" y="595" font-size="11" fill="#6b7280" text-anchor="middle">But bug count: p = 77%</text>
+  <text x="740" y="624" font-size="11" font-weight="600" fill="#15803d" text-anchor="middle">More code, NOT more bugs.</text>
+</svg>
