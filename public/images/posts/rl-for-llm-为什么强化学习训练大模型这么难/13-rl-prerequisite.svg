@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" width="960" height="520">
+  <style>
+    text { font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  </style>
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+    <marker id="arr-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#16a34a"/>
+    </marker>
+    <marker id="arr-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#dc2626"/>
+    </marker>
+  </defs>
+  <rect width="960" height="520" fill="#ffffff"/>
+  <text x="480" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#111827">RL for LLM: The Critical Prerequisite</text>
+  <text x="480" y="52" text-anchor="middle" font-size="12" fill="#6b7280">RL can only improve what the base model can already (sometimes) do</text>
+
+  <!-- Left: Base Model Capability -->
+  <rect x="60" y="80" width="360" height="420" rx="10" fill="#f9fafb" stroke="#d1d5db" stroke-width="1"/>
+  <text x="240" y="108" text-anchor="middle" font-size="14" font-weight="700" fill="#374151">Base Model Capability (pass@k)</text>
+  <text x="240" y="126" text-anchor="middle" font-size="11" fill="#6b7280">"Can the model solve this task at least once in k samples?"</text>
+
+  <!-- Strong base -->
+  <rect x="80" y="145" width="320" height="100" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="240" y="170" text-anchor="middle" font-size="13" font-weight="600" fill="#16a34a">Strong Base (20B+ / Large MoE)</text>
+  <text x="240" y="192" text-anchor="middle" font-size="11" fill="#374151">pass@64 on AIME: 30-60%</text>
+  <text x="240" y="210" text-anchor="middle" font-size="11" fill="#374151">Can sometimes find the right path</text>
+  <text x="240" y="228" text-anchor="middle" font-size="11" fill="#16a34a">RL can reinforce these rare successes</text>
+
+  <!-- Weak base -->
+  <rect x="80" y="260" width="320" height="100" rx="8" fill="#fecaca" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="240" y="285" text-anchor="middle" font-size="13" font-weight="600" fill="#dc2626">Weak Base (7B Dense)</text>
+  <text x="240" y="307" text-anchor="middle" font-size="11" fill="#374151">pass@64 on AIME: ~0%</text>
+  <text x="240" y="325" text-anchor="middle" font-size="11" fill="#374151">Cannot solve the task at all</text>
+  <text x="240" y="343" text-anchor="middle" font-size="11" fill="#dc2626">RL has no positive signal to reinforce</text>
+
+  <!-- The key insight -->
+  <rect x="80" y="375" width="320" height="100" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="240" y="400" text-anchor="middle" font-size="12" font-weight="600" fill="#1d4ed8">Key Insight</text>
+  <text x="240" y="420" text-anchor="middle" font-size="11" fill="#374151">RL does NOT teach new capabilities.</text>
+  <text x="240" y="438" text-anchor="middle" font-size="11" fill="#374151">It increases P(correct path) when one exists.</text>
+  <text x="240" y="456" text-anchor="middle" font-size="11" fill="#374151">If pass@k = 0, RL reward is always 0.</text>
+  <text x="240" y="474" text-anchor="middle" font-size="11" font-weight="600" fill="#1d4ed8">No gradient signal = no learning.</text>
+
+  <!-- Right: RL Effect -->
+  <rect x="500" y="80" width="420" height="420" rx="10" fill="#f9fafb" stroke="#d1d5db" stroke-width="1"/>
+  <text x="710" y="108" text-anchor="middle" font-size="14" font-weight="700" fill="#374151">What RL Actually Does</text>
+
+  <!-- GRPO mechanism -->
+  <rect x="520" y="130" width="380" height="160" rx="8" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="710" y="155" text-anchor="middle" font-size="13" font-weight="600" fill="#374151">GRPO Mechanism</text>
+  <text x="530" y="178" font-size="11" fill="#374151">1. Sample k responses for each prompt</text>
+  <text x="530" y="198" font-size="11" fill="#374151">2. Score them (correct/incorrect)</text>
+  <text x="530" y="218" font-size="11" fill="#374151">3. Compute advantage: A = (r - mean(r)) / std(r)</text>
+  <text x="530" y="238" font-size="11" fill="#374151">4. Increase P(good) / decrease P(bad)</text>
+  <text x="530" y="258" font-size="11" font-weight="600" fill="#ea580c">If ALL samples wrong: A=0 for all. No update.</text>
+  <text x="530" y="278" font-size="11" font-weight="600" fill="#ea580c">If ALL samples correct: A=0 for all. No update.</text>
+
+  <!-- What happens with strong model -->
+  <rect x="520" y="305" width="380" height="80" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="710" y="330" text-anchor="middle" font-size="12" font-weight="600" fill="#16a34a">Strong Model: Reward Signal Exists</text>
+  <text x="530" y="350" font-size="11" fill="#374151">Some samples correct, some wrong</text>
+  <text x="530" y="368" font-size="11" fill="#374151">Advantage has variance -> gradient flows</text>
+  <text x="530" y="386" font-size="11" fill="#16a34a">Model learns to favor correct reasoning paths</text>
+
+  <!-- What happens with weak model -->
+  <rect x="520" y="400" width="380" height="80" rx="8" fill="#fecaca" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="710" y="425" text-anchor="middle" font-size="12" font-weight="600" fill="#dc2626">Weak Model: No Signal</text>
+  <text x="530" y="445" font-size="11" fill="#374151">All k samples wrong -> reward = 0 for all</text>
+  <text x="530" y="463" font-size="11" fill="#374151">Advantage = 0 everywhere -> zero gradient</text>
+  <text x="530" y="481" font-size="11" fill="#dc2626">Model cannot learn anything. Acc stays at 0.</text>
+</svg>

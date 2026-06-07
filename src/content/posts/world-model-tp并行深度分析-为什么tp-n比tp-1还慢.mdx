@@ -1,0 +1,304 @@
+---
+title: "World Model TP 并行深度分析：为什么 TP=N 比 TP=1 还慢"
+date: 2026-06-07
+tags: [AI, 推理优化, GPU, 并行计算, 视频生成]
+summary: "从 SGLang Omni 架构到 DiT/World Model 的并行策略选择，理解何时 TP 是负收益，以及正确的多卡方案 Sequence Parallelism。附大厂技术报告中不对 DiT 开 TP 的实证分析。"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+
+> 从 SGLang Omni 架构到 DiT/World Model 的并行策略选择，理解何时 TP 是负收益，以及正确的多卡方案。
+
+---
+
+## 1. 问题背景
+
+### 1.1 现象
+
+在 SGLang Omni 接入 World Model 后，启用 TP=N 进行推理，发现：
+
+- TP=N 延迟 **高于** TP=1
+- 这与 LLM 推理的直觉完全相反（LLM prefill 阶段 TP 通常有明显加速）
+
+### 1.2 核心结论（前置）
+
+```text
+TP 加速的前提条件:
+  单步 compute_time >> all-reduce_time
+
+World Model 的情况:
+  单步 compute_time ~ all-reduce_time (甚至更小)
+  -> TP 通信成为净负担
+  -> TP=N 比 TP=1 更慢
+```
+
+### 1.3 涉及的组件
+
+```text
+SGLang Omni Architecture:
++----------------------------------------------------+
+| LLM Backbone (大模型, 70B+)                         |  <- TP 有效
++----------------------------------------------------+
+| Vision Encoder (ViT, 几百M-几B)                     |  <- TP 无效或未支持
++----------------------------------------------------+
+| Audio Encoder (Whisper 等, 几百M)                   |  <- TP 无效或未支持
++----------------------------------------------------+
+| World Model (DiT, 2-5B)                            |  <- TP 负收益, 应用 SP
++----------------------------------------------------+
+| Refiner (可选, 二阶段精修)                           |  <- 取决于模型大小
++----------------------------------------------------+
+```
+
+---
+
+## 2. LLM TP vs DiT/WM TP 的本质区别
+
+### 2.1 TP 的基本原理
+
+Tensor Parallelism 将每层的 weight 矩阵按列/行切到 N 卡，每卡做 1/N 的计算，然后 all-reduce 合并结果。
+
+```text
+每层开销:
+  compute = original_compute / N
+  communication = 2 x all-reduce (forward + backward of each linear)
+
+加速条件:
+  compute_saved > communication_added
+  即: original_compute x (1 - 1/N) > all_reduce_latency x num_allreduce_per_layer
+```
+
+### 2.2 LLM 为什么 TP 有效
+
+以 70B LLM, prefill 4K tokens 为例：
+
+```text
+单卡耗时: ~533ms
+TP=4:
+  compute: 533ms / 4 = 133ms
+  all-reduce: 80 layers x 2 x ~0.1ms = 16ms
+  total: ~149ms
+  加速比: 533 / 149 ~ 3.6x  -- 有效
+```
+
+### 2.3 World Model (DiT) 为什么 TP 无效
+
+以 SANA-WM (2.6B, 720p video) 为例：
+
+```text
+单卡耗时: ~16ms per step
+TP=4:
+  compute: 16ms / 4 = 4ms
+  all-reduce: 20 blocks x 2 x ~0.3ms = 12ms
+  total: ~16ms -> 无加速!
+  实际可能更慢 (kernel launch overhead, 内存不连续等)
+```
+
+### 2.4 关键差异对比
+
+| 维度 | LLM (70B prefill) | World Model (2.6B DiT) |
+|-|-|-|
+| 模型参数 | 70B | 2-5B |
+| Hidden dim | 8192 | 2240 |
+| 单步 FLOPs | 528 TFLOPs | 15.5 TFLOPs |
+| TP=4 compute | 133ms | 4ms |
+| TP=4 all-reduce | 16ms | 12ms |
+| **compute / comm** | **8.3x** | **0.33x** |
+| **TP 是否有效** | **有效 (3.6x)** | **负收益** |
+
+---
+
+## 3. World Model 自回归计算量分析
+
+### 3.1 LLM 自回归 vs WM 自回归
+
+```text
+LLM Autoregressive:
+  单位: 1 token per step
+  Prefill: 一次处理 N tokens (计算密集, TP 有效)
+  Decode: 逐 token 生成 (memory-bound, TP 也无效)
+
+World Model Autoregressive (Causal Video):
+  单位: 1 chunk (几帧) per step
+  每 chunk: N 步 denoising (每步做完整 DiT forward)
+
+关键区别:
+  LLM decode: 1 token, compute 极小 -> memory-bound
+  WM step: 数千 latent tokens, compute 中等 -> 但模型小, 不够 amortize TP 通信
+```
+
+### 3.2 Denoising Step 的计算量
+
+| 模型 | Blocks | Seq (latents) | Hidden | FLOPs/step | H100 耗时 |
+|-|-|-|-|-|-|
+| SANA-WM (2.6B) | 20 | 6,440 | 2,240 | 15.5T | ~16ms |
+| Wan-5B | 40 | 3,600 | 3,072 | 43.3T | ~44ms |
+| LLM-70B prefill 4K | 80 | 4,096 | 8,192 | 528T | ~533ms |
+
+### 3.3 关键洞察
+
+```text
+WM (2.6B): 15.5 TFLOPs/step
+LLM prefill (70B): 528 TFLOPs
+比值: 528 / 15.5 = 34x
+
+LLM prefill 单次计算量是 WM 单步的 34 倍
+WM 根本没有足够的计算量来 "喂饱" TP 的通信开销
+```
+
+**TP 的粒度在单步 forward，不是整个 pipeline。每步太小就是负收益。**
+
+---
+
+## 4. TP 的收益/亏损临界点
+
+### 4.1 隐藏的开销
+
+实际中 all-reduce 比理论慢得多：
+
+1. **Kernel Launch Overhead**：小 kernel launch overhead 比例更大
+2. **内存碎片化**：TP 切分后权重不连续，memory access pattern 变差
+3. **NCCL 初始化开销**：每次 collective 有固定开销
+4. **Pipeline Bubble**：不同组件间的 sync barrier
+
+### 4.2 临界模型大小
+
+经验公式（H100 NVLink）：
+
+```text
+TP 有正收益的最小模型规模:
+  TP=2: 模型 > ~10B, 且单步 tokens > 1000
+  TP=4: 模型 > ~30B, 且单步 tokens > 2000
+  TP=8: 模型 > ~65B
+
+World Model 通常 2-5B -> TP 几乎不可能有正收益
+```
+
+---
+
+## 5. SGLang 的正确多卡方案：SP 而非 TP
+
+### 5.1 Sequence Parallelism (SP) 原理
+
+SP 沿着 **序列/空间维度** 切分，而不是切 model weight：
+
+```text
+TP (切 weight):
+  每卡: 全部 tokens x 部分 weight -> all-reduce 合并
+
+SP (切 sequence):
+  每卡: 部分 tokens x 全部 weight -> all-to-all 交换
+
+关键区别:
+  TP: 数据全量, 计算分片 -> 适合计算密集
+  SP: 数据分片, 计算全量 -> 适合序列长/显存受限
+```
+
+### 5.2 为什么 SP 对 World Model 更合适
+
+World Model 的特点：
+1. 序列长（spatial x temporal latents）：3000-50000 tokens
+2. 模型参数小：2-5B（单卡放得下权重）
+3. 显存瓶颈在 activation 和 KV cache，不在 weight
+
+### 5.3 SGLang 中的 SP 实现
+
+```bash
+# Ulysses SP
+sglang serve --model-path ... --num-gpus 4 --ulysses-degree 4
+
+# Ring SP
+sglang serve --model-path ... --num-gpus 4 --ring-degree 4
+
+# Hybrid
+sglang serve --model-path ... --num-gpus 4 --ulysses-degree 2 --ring-degree 2
+```
+
+### 5.4 SP 实测性能 (来自 PR #20998)
+
+Wan2.2-TI2V-5B, 2xRTX4090 (48G):
+
+| 阶段 | SP=2 (ring) | Baseline | 加速 |
+|-|-|-|-|
+| TextEncoding | 1.40s | 2.23s | 1.59x |
+| Denoising | 52.6s | 71.7s | **1.36x** |
+| Decoding (VAE) | 7.67s | 13.4s | 1.75x |
+| **Total** | **63.7s** | **90.6s** | **1.42x** |
+
+Peak GPU memory: 20.07 vs 27.40 GB，省 7.3 GB。
+
+---
+
+## 6. Omni 架构下的分组件并行策略
+
+### 6.1 各组件并行策略建议
+
+| 组件 | 推荐策略 | 原因 |
+|-|-|-|
+| LLM Backbone (70B) | TP=4/8 | 必须，装不下 |
+| Vision Encoder (300M-4B) | 不并行 / DP | 单卡够 |
+| Audio Encoder (300M-1.5B) | 不并行 | 一次性 encode |
+| World Model Stage 1 (DiT, 2-5B) | SP (Ulysses/Ring) | TP 负收益 |
+| Refiner Stage 2 (5-10B) | SP | tokens 更多 |
+
+### 6.2 Cross-Attention 的优化 (PR #19419)
+
+WM 中 cross-attention 的 KV 来自 text/image encoder，在所有 SP rank 上是 replicated 的。对 replicated KV 做 all-to-all 纯属浪费：
+
+```text
+优化后 (skip_sp=True for cross-attention):
+  text KV: 512 tokens, use directly
+  Local attention: Q_local x KV_full -> 正确且高效
+  No communication needed
+
+实测加速: 7-15% per denoising step (B200)
+```
+
+---
+
+## 7. 为什么大厂技术报告不对 DiT/WM 开 TP
+
+<Callout type="info">
+**核心原因**：TP 把 GEMM 切小后，Tensor Core 占用率（occupancy）急剧下降。小模型（2-5B）的 matmul 本身就不大，再切 1/N 后 wave 数不足以填满 SM，kernel 退化为 memory-bound。
+</Callout>
+
+| 论文 / 项目 | 模型规模 | 并行策略 |
+|-|-|-|
+| **SANA-WM** (NVIDIA) | 2.6B | Temporal SP (Ulysses) |
+| **Movie Gen** (Meta) | 30B video DiT | Context Parallelism (SP) |
+| **Open-Sora** (HPC-AI Tech) | 1.1B / 3B | SP (Ulysses + Ring) |
+| **CogVideoX** (Zhipu AI) | 5B | SP (序列切分) |
+| **Wan Video** (Alibaba) | 5B / 14B | Ring SP + Ulysses |
+| **Hunyuan Video** (Tencent) | 13B | SP (USP) |
+| **FLUX.1** (Black Forest Labs) | 12B | SP |
+
+Meta Movie Gen 的典型说法：
+
+> "We use context parallelism to distribute the long video sequences across GPUs, rather than tensor parallelism which would reduce per-GPU GEMM sizes below the efficiency threshold of modern accelerators."
+
+---
+
+## 8. 决策树
+
+```text
+你的模型需要多卡吗?
++-- 单卡装不下权重 -> 必须并行
+|   +-- LLM (>40B) -> TP
+|   +-- DiT (>10B?) -> SP 或 PP
++-- 单卡装得下但想加速 -> 看计算密度
+|   +-- 单步 FLOPs > 100T -> TP 可能有效
+|   +-- 单步 FLOPs 10-100T -> SP 更优
+|   +-- 单步 FLOPs < 10T -> 不要并行, 用 DP
++-- 想扩大 batch / 显存 -> DP 或 SP
+```
+
+<Callout type="info">
+**经验法则**：只有当模型 hidden_dim/TP_size > 2048 且单步 tokens > 2000 时，TP 才可能有正收益。绝大部分 DiT/WM 不满足这个条件。
+</Callout>
+
+---
+
+## 相关文章
+
+- [视频生成推理的 GPU 算力：从一道算术题说起](/posts/视频生成推理的gpu算力-从一道算术题说起) -- 视频生成的计算量为什么这么大
+- [AI Inference 学习 Roadmap 2026 全景图](/posts/ai-inference-学习-roadmap-2026全景图) -- 推理工程全景学习路线

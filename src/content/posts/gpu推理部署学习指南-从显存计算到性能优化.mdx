@@ -1,0 +1,245 @@
+---
+title: "GPU 推理部署学习指南：从显存计算到性能优化"
+date: 2026-05-18
+tags: [GPU, 推理, 量化, Roofline Model, 部署]
+summary: "给你 16GB 显存，你最大能跑多大的模型？从显存计算、存储层级、Roofline Model 到量化策略，建立 GPU 推理部署的完整认知框架。"
+draft: false
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+import Callout from '../../components/blog/Callout.astro'
+
+<Callout type="info">
+**文档定位**：这是一份按知识递进层级组织的学习文档，从最基础的"模型需要多少显存"出发，逐步深入到性能瓶颈分析和优化策略。
+
+**核心问题**：假设给你一台 16GB 显存的 GPU，你能部署多大的模型？部署后推理速度如何？如何优化？
+</Callout>
+
+---
+
+## Level 1：模型显存占用计算
+
+### 核心公式
+
+模型推理时的显存占用由三部分组成：
+
+```text
+显存占用 = 参数量(B) × 每参数字节数 + KV Cache + 激活值
+```
+
+其中：
+
+- **参数量**：模型的"大小"，如 7B = 70 亿个参数
+- **每参数字节数**：取决于精度（FP32=4, FP16=2, INT8=1, INT4=0.5）
+- **KV Cache**：推理时缓存的注意力状态，通常预留 ~2GB
+- **激活值**：前向传播中的中间结果，通常比前两者小得多
+
+### 不同精度下的显存需求
+
+| 精度 | 每参数字节 | 7B 模型占用 | 16GB 能装 | 典型用途 |
+|-|-|-|-|-|
+| FP32 | 4 bytes | 28 GB | ~3.5B | 训练（极少用于推理） |
+| FP16/BF16 | 2 bytes | 14 GB | ~7B（紧凑） | 标准推理精度 |
+| INT8/FP8 | 1 byte | 7 GB | ~14B | 量化推理（质量好） |
+| INT4 | 0.5 bytes | 3.5 GB | ~28B | 极限量化（有精度损失） |
+
+### 费曼解释
+
+把模型想象成一本书。"参数量"是字数，"精度"是每个字占多大空间。FP32 像手写大字（每字 4cm），FP16 像印刷体（每字 2cm），INT4 像微缩胶片（每字 0.5cm）。16GB 显存就是你的书架 — 你要把书塞进去才能"读"（推理）。
+
+<Callout type="tip">
+**实用结论**：16GB 显存（如 RTX 4080/4090），FP16 部署约 6~7B 模型；INT4 量化可塞入 ~28B 模型，但速度和精度都有代价。实际部署还需预留 ~2GB 给 KV Cache 和激活值。
+</Callout>
+
+<TechGraph src="/images/posts/gpu推理部署学习指南-从显存计算到性能优化/10-model-memory-footprint.svg" title="模型显存占用计算" caption="不同精度下的显存需求可视化" />
+
+---
+
+## Level 2：存储层级与 Offload
+
+### 核心认知：速度决定一切
+
+模型权重可以存在三个地方：GPU 显存、CPU 内存、磁盘。理论上，CPU 内存 + 磁盘"无限大"，什么模型都装得下。但**推理速度**取决于数据搬运到计算单元的带宽。
+
+### 存储层级对比
+
+<TechGraph src="/images/posts/gpu推理部署学习指南-从显存计算到性能优化/08-storage-hierarchy.svg" title="GPU 存储层级" caption="从 HBM 到 HDD，带宽差距达 16,750 倍" />
+
+| 层级 | 带宽 | 延迟 | 加载 7B FP16 (14GB) | 角色 |
+|-|-|-|-|-|
+| HBM (GPU显存) | 3,350 GB/s | ns 级 | ~4 ms | 权重 + KV Cache |
+| DDR5 (CPU内存) | ~100 GB/s | 百 ns | ~140 ms（慢 33x） | Offload 溢出权重 |
+| NVMe SSD | ~7 GB/s | us 级 | ~2.0 s（慢 478x） | 冷数据/Checkpoint |
+| HDD | ~0.2 GB/s | ms 级 | ~70 s（慢 16,750x） | 存档（不可用于推理） |
+
+### 费曼解释
+
+把推理比作做菜。显存是灶台旁的调料架（伸手就拿到），CPU 内存是厨房里的柜子（走几步），SSD 是储藏室（得走一段路），HDD 是超市（来回要半小时）。你不可能每次炒菜都从超市拿盐 — 虽然超市盐无限多。
+
+### 工业级解决方案：KV Cache 冷热分离
+
+月之暗面（Moonshot AI）提出的 **Mooncake** 方案：
+
+- 热数据（当前正在推理的 KV Cache）留在显存
+- 冷数据（历史对话的 KV Cache）转移到远端内存/SSD 池
+- 通过预测性预取，在需要时提前搬回显存
+
+类似的思路还有 vLLM 的 **PagedAttention**：把 KV Cache 按"页"管理，避免内存碎片化，提高显存利用率。
+
+<Callout type="warning">
+**关键判断**："能装下"不等于"能用"。磁盘装 KV Cache 理论可行，但推理速度慢 500 倍以上，对在线服务来说等于不可用。做部署决策时，**速度（吞吐/延迟）才是核心指标**。
+</Callout>
+
+---
+
+## Level 3：Roofline Model — 性能瓶颈分析框架
+
+<TechGraph src="/images/posts/gpu推理部署学习指南-从显存计算到性能优化/07-roofline-model.svg" title="Roofline Model" caption="判断 GPU 计算任务是 Memory-Bound 还是 Compute-Bound 的统一分析框架" />
+
+### 核心概念：算术强度
+
+```text
+算术强度 (Arithmetic Intensity) = 计算量(FLOPS) / 数据搬运量(Bytes)
+```
+
+这个比值衡量的是：每搬运 1 字节数据，能做多少次计算。
+
+### Roofline 模型的两个区域
+
+- **Memory-Bound（左半区）**：算术强度低，数据搬运是瓶颈。计算单元在"等数据"。
+- **Compute-Bound（右半区）**：算术强度高，计算能力是瓶颈。数据已经就位，算力跟不上。
+- **Ridge Point（拐点）**：峰值 FLOPS / 峰值带宽。H100 的拐点约在 295 FLOPS/Byte。
+
+### LLM Decode 为什么是 Memory-Bound？
+
+Decode 阶段每次只生成 1 个 token：
+
+1. 做的是 GEMV（矩阵 x 向量）：计算量 = 2 x 参数量
+2. 但权重矩阵必须完整加载：数据搬运量 = 参数量 x 字节数
+3. 以 7B FP16 为例：FLOPS = 14G，搬运 = 14GB → 算术强度 = 1.0
+4. H100 拐点在 295 → 算术强度 1.0 远在左侧 → **极端 Memory-Bound**
+
+**直观理解**：GPU 的算力利用率不到 1%，几乎所有时间都在等数据从显存搬到计算单元。
+
+### 判断方法
+
+使用 NVIDIA **NSight Compute (NCU)** 工具，profile 每个 kernel 的算术强度，看它落在 Roofline 图的左半区（mem-bound）还是右半区（compute-bound）。
+
+<Callout type="info">
+**关键数据**：4B 模型在 H20 上实测，访存带宽比达到 70+，意味着 GPU 算力被严重浪费。这就是为什么小模型 decode 时 GPU 利用率极低。
+</Callout>
+
+---
+
+## Level 4：量化如何改变性能格局
+
+<TechGraph src="/images/posts/gpu推理部署学习指南-从显存计算到性能优化/09-quantization-effect.svg" title="量化对算术强度的影响" caption="量化的本质是改变算术强度，把 memory-bound 问题转化为 compute-bound 问题" />
+
+### 量化改变算术强度的两个机制
+
+**机制一：同等数据量，计算量增加**
+
+- FP16：加载 2 bytes，做 1 次乘加
+- INT4：加载 0.5 bytes，做 1 次乘加 + 反量化计算（dequantize）
+- 结果：每字节数据的"含金量"（计算量）增加 → 算术强度提高
+
+**机制二：KV Cache 量化减少带宽需求**
+
+- FP16 KV Cache：每 token 占 2 bytes x heads x head_dim
+- INT8 KV Cache：占用减半 → 加载到 SM 的数据量减半 → 带宽瓶颈缓解
+
+### 量化的"天花板效应"
+
+量化把算术强度**往右推**，从 memory-bound 区域移向 compute-bound 区域。但有上限：
+
+| 场景 | 量化效果 | 原因 |
+|-|-|-|
+| 小模型 + 小 batch + Decode | 效果显著 | 原始状态深度 memory-bound，量化大幅缓解 |
+| 大模型 + 大 batch + Decode | 收益递减 | 已接近 compute-bound，瓶颈不在搬运上了 |
+| Prefill 阶段（长 prompt） | 几乎无效 | 本身就是 compute-bound（大矩阵 GEMM） |
+
+### 费曼解释
+
+量化就像把快递箱子压缩。如果快递站搬运速度是瓶颈（memory-bound），压缩箱子让同样速度搬运更多内容 → 有效。但如果瓶颈是拆箱检查的速度（compute-bound），压缩反而更麻烦（还得解压） → 无效甚至更慢。
+
+<Callout type="tip">
+**核心洞察**：量化的本质不是"省显存"，而是**改变算术强度**，把 memory-bound 问题转化为 compute-bound 问题。理解这一点，就能判断量化在你的场景下是否有效。
+</Callout>
+
+---
+
+## Level 5：综合策略判断
+
+### 决策矩阵
+
+| 场景 | 瓶颈类型 | 推荐优化手段 | 量化收益 |
+|-|-|-|-|
+| 小模型 + 小 batch + Decode | Memory-Bound | 权重量化（INT4/INT8） | 显著 |
+| 大模型 + 大 batch + Decode | Compute-Bound | 多卡并行（TP/PP） | 递减 |
+| Prefill 阶段（长 prompt） | Compute-Bound | Flash Attention、张量并行 | 几乎无 |
+| KV Cache 占用大 | Memory-Bound | KV Cache 量化、PagedAttention | 显著 |
+| 显存容量不足 | 容量瓶颈 | 量化 / Offload / 多卡切分 | 直接解决问题 |
+
+### 实际部署决策流程
+
+1. **先算能不能装**：参数量 x 字节数 + 2GB 预留 ≤ 显存？
+2. **装不下 → 量化或换卡**：INT4 能缩 4x，INT8 缩 2x
+3. **能装 → 测速**：跑 benchmark 看 throughput 和 latency
+4. **速度不够 → 分析瓶颈**：NCU profile，判断 mem-bound vs compute-bound
+5. **Memory-bound → 量化有效**；**Compute-bound → 加卡/加算力**
+
+---
+
+## 关键 Takeaways
+
+1. **16GB 显存实用上限**：FP16 约 6~7B，INT4 约 14B（速度因反量化会下降）
+2. **"能装"和"能跑"是两个问题**：核心指标永远是速度（吞吐 / 延迟），不是能否 fit
+3. **量化的本质是改变算术强度**：把 memory-bound 问题变成 compute-bound 问题
+4. **大模型 + 大 batch 本身就是 compute-bound**：此时量化的加速效果有限
+5. **Roofline Model 是统一分析框架**：学会用 NCU 看算子在拐点的哪一侧
+
+---
+
+## 推荐学习路径
+
+### 入门（Level 1-2）
+
+- **llm-memory-calculator**：在线计算模型显存需求的工具
+- **Hugging Face Model Cards**：查看模型参数量和推荐精度
+- **GGUF/GPTQ/AWQ 格式对比**：了解不同量化格式的适用场景
+
+### 进阶（Level 3-4）
+
+- **NVIDIA Roofline Analysis with NSight Compute**：官方 Roofline 分析教程
+- **vLLM 源码 + PagedAttention 论文**：KV Cache 管理的工业标准
+- **Mooncake 论文**（月之暗面）：KV Cache 池化存储方案
+
+### 深入（Level 5）
+
+- [GPTQ](https://arxiv.org/abs/2210.17323) — Post-training quantization for GPT models
+- [AWQ](https://arxiv.org/abs/2306.00978) — Activation-aware weight quantization
+- [FlashAttention](https://arxiv.org/abs/2205.14135) — IO-aware exact attention
+- [vLLM / PagedAttention](https://arxiv.org/abs/2309.06180) — Efficient Memory Management for LLM Serving
+- [Mooncake](https://arxiv.org/abs/2407.00079) — Disaggregated KV Cache Management
+- [SmoothQuant](https://arxiv.org/abs/2211.10438) — Accurate post-training quantization for LLMs
+
+---
+
+## 附录：GPU 规格速查
+
+| 指标 | H100 SXM | H20 | A100 80GB | RTX 4090 | RTX 4080 |
+|-|-|-|-|-|-|
+| BF16 TFLOPS | 989 | 148 | 312 | 165 | 97 |
+| HBM 带宽 | 3.35 TB/s | 4.0 TB/s | 2.0 TB/s | 1.0 TB/s | 0.72 TB/s |
+| 显存容量 | 80 GB | 96 GB | 80 GB | 24 GB | 16 GB |
+| Ridge Point | ~295 | ~37 | ~156 | ~165 | ~135 |
+
+*Ridge Point = Peak FLOPS / Peak BW (FLOPS/Byte)。数值越高，越不容易 memory-bound。*
+
+---
+
+## 相关文章
+
+- [视频生成推理的 GPU 算力：从一道算术题说起](/posts/视频生成推理的gpu算力-从一道算术题说起) — 视频生成为什么是算力密度最高的任务
+- [vLLM KV Cache Block Manager 深度教程](/posts/vllm-kv-cache-block-manager-深度教程) — PagedAttention 的实现细节
+- [AI Inference 学习 Roadmap 2026 全景图](/posts/ai-inference-学习-roadmap-2026全景图) — 推理领域的完整学习路线

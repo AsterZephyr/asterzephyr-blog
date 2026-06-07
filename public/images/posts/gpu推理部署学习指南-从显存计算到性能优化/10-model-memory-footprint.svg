@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 500" width="960" height="500">
+  <style>
+    text { font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  </style>
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <rect width="960" height="500" fill="#ffffff"/>
+  <text x="480" y="30" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Model Memory Footprint: Precision vs Capacity</text>
+  <text x="480" y="50" text-anchor="middle" font-size="12" fill="#6b7280">How much VRAM does a model need at different precisions?</text>
+  <line x1="260.0" y1="70" x2="260.0" y2="480" stroke="#dc2626" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="260.0" y="68" text-anchor="middle" font-size="11" font-weight="600" fill="#dc2626">16 GB VRAM Limit</text>
+  <line x1="660.0" y1="70" x2="660.0" y2="480" stroke="#9333ea" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="660.0" y="68" text-anchor="middle" font-size="11" font-weight="600" fill="#9333ea">80 GB (H100)</text>
+  <text x="80" y="125" text-anchor="middle" font-size="14" font-weight="600" fill="#111827">3B</text>
+  <rect x="160" y="80" width="75.0" height="28" rx="4" fill="#6b7280" opacity="1.0"/>
+  <text x="241.0" y="98" font-size="10" fill="#6b7280" font-weight="600">FP32: 12 GB</text>
+  <text x="140" y="99" text-anchor="middle" font-size="12" fill="#16a34a">OK</text>
+  <rect x="160" y="112" width="37.5" height="28" rx="4" fill="#2563eb" opacity="1.0"/>
+  <text x="203.5" y="130" font-size="10" fill="#2563eb" font-weight="600">FP16/BF16: 6 GB</text>
+  <text x="140" y="131" text-anchor="middle" font-size="12" fill="#16a34a">OK</text>
+  <rect x="160" y="144" width="18.75" height="28" rx="4" fill="#16a34a" opacity="1.0"/>
+  <text x="184.75" y="162" font-size="10" fill="#16a34a" font-weight="600">INT8/FP8: 3 GB</text>
+  <text x="140" y="163" text-anchor="middle" font-size="12" fill="#16a34a">OK</text>
+  <rect x="160" y="176" width="9.375" height="28" rx="4" fill="#ea580c" opacity="1.0"/>
+  <text x="175.375" y="194" font-size="10" fill="#ea580c" font-weight="600">INT4: 2 GB</text>
+  <text x="140" y="195" text-anchor="middle" font-size="12" fill="#16a34a">OK</text>
+  <text x="80" y="197" text-anchor="middle" font-size="14" font-weight="600" fill="#111827">7B</text>
+  <rect x="160" y="152" width="175.0" height="28" rx="4" fill="#6b7280" opacity="0.5"/>
+  <text x="327.0" y="170" text-anchor="end" font-size="10" fill="#ffffff" font-weight="600">FP32: 28 GB</text>
+  <rect x="160" y="184" width="87.5" height="28" rx="4" fill="#2563eb" opacity="1.0"/>
+  <text x="253.5" y="202" font-size="10" fill="#2563eb" font-weight="600">FP16/BF16: 14 GB</text>
+  <text x="140" y="203" text-anchor="middle" font-size="12" fill="#16a34a">OK</text>
+  <rect x="160" y="216" width="43.75" height="28" rx="4" fill="#16a34a" opacity="1.0"/>
+  <text x="209.75" y="234" font-size="10" fill="#16a34a" font-weight="600">INT8/FP8: 7 GB</text>
+  <text x="140" y="235" text-anchor="middle" font-size="12" fill="#16a34a">OK</text>
+  <rect x="160" y="248" width="21.875" height="28" rx="4" fill="#ea580c" opacity="1.0"/>
+  <text x="187.875" y="266" font-size="10" fill="#ea580c" font-weight="600">INT4: 4 GB</text>
+  <text x="140" y="267" text-anchor="middle" font-size="12" fill="#16a34a">OK</text>
+  <text x="80" y="269" text-anchor="middle" font-size="14" font-weight="600" fill="#111827">13B</text>
+  <rect x="160" y="224" width="325.0" height="28" rx="4" fill="#6b7280" opacity="0.5"/>
+  <text x="477.0" y="242" text-anchor="end" font-size="10" fill="#ffffff" font-weight="600">FP32: 52 GB</text>
+  <rect x="160" y="256" width="162.5" height="28" rx="4" fill="#2563eb" opacity="0.5"/>
+  <text x="314.5" y="274" text-anchor="end" font-size="10" fill="#ffffff" font-weight="600">FP16/BF16: 26 GB</text>
+  <rect x="160" y="288" width="81.25" height="28" rx="4" fill="#16a34a" opacity="1.0"/>
+  <text x="247.25" y="306" font-size="10" fill="#16a34a" font-weight="600">INT8/FP8: 13 GB</text>
+  <text x="140" y="307" text-anchor="middle" font-size="12" fill="#16a34a">OK</text>
+  <rect x="160" y="320" width="40.625" height="28" rx="4" fill="#ea580c" opacity="1.0"/>
+  <text x="206.625" y="338" font-size="10" fill="#ea580c" font-weight="600">INT4: 6 GB</text>
+  <text x="140" y="339" text-anchor="middle" font-size="12" fill="#16a34a">OK</text>
+  <text x="80" y="341" text-anchor="middle" font-size="14" font-weight="600" fill="#111827">30B</text>
+  <rect x="160" y="296" width="500" height="28" rx="4" fill="#6b7280" opacity="0.5"/>
+  <text x="652" y="314" text-anchor="end" font-size="10" fill="#ffffff" font-weight="600">FP32: 120 GB</text>
+  <rect x="160" y="328" width="375.0" height="28" rx="4" fill="#2563eb" opacity="0.5"/>
+  <text x="527.0" y="346" text-anchor="end" font-size="10" fill="#ffffff" font-weight="600">FP16/BF16: 60 GB</text>
+  <rect x="160" y="360" width="187.5" height="28" rx="4" fill="#16a34a" opacity="0.5"/>
+  <text x="339.5" y="378" text-anchor="end" font-size="10" fill="#ffffff" font-weight="600">INT8/FP8: 30 GB</text>
+  <rect x="160" y="392" width="93.75" height="28" rx="4" fill="#ea580c" opacity="1.0"/>
+  <text x="259.75" y="410" font-size="10" fill="#ea580c" font-weight="600">INT4: 15 GB</text>
+  <text x="140" y="411" text-anchor="middle" font-size="12" fill="#16a34a">OK</text>
+  <text x="80" y="413" text-anchor="middle" font-size="14" font-weight="600" fill="#111827">70B</text>
+  <rect x="160" y="368" width="500" height="28" rx="4" fill="#6b7280" opacity="0.5"/>
+  <text x="652" y="386" text-anchor="end" font-size="10" fill="#ffffff" font-weight="600">FP32: 280 GB</text>
+  <rect x="160" y="400" width="500" height="28" rx="4" fill="#2563eb" opacity="0.5"/>
+  <text x="652" y="418" text-anchor="end" font-size="10" fill="#ffffff" font-weight="600">FP16/BF16: 140 GB</text>
+  <rect x="160" y="432" width="437.5" height="28" rx="4" fill="#16a34a" opacity="0.5"/>
+  <text x="589.5" y="450" text-anchor="end" font-size="10" fill="#ffffff" font-weight="600">INT8/FP8: 70 GB</text>
+  <rect x="160" y="464" width="218.75" height="28" rx="4" fill="#ea580c" opacity="0.5"/>
+  <text x="370.75" y="482" text-anchor="end" font-size="10" fill="#ffffff" font-weight="600">INT4: 35 GB</text>
+</svg>

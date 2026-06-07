@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 500" width="960" height="500">
+  <style>
+    text { font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  </style>
+  <rect width="960" height="500" fill="#ffffff"/>
+  <text x="480" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#111827">Entropy Collapse in RL Training</text>
+  <text x="480" y="50" text-anchor="middle" font-size="12" fill="#6b7280">Why GRPO training often fails: the policy loses diversity and degenerates</text>
+
+  <!-- Axes -->
+  <line x1="100" y1="420" x2="880" y2="420" stroke="#374151" stroke-width="1.5"/>
+  <line x1="100" y1="420" x2="100" y2="80" stroke="#374151" stroke-width="1.5"/>
+  <text x="490" y="455" text-anchor="middle" font-size="12" fill="#374151">Training Steps</text>
+  <text x="50" y="250" text-anchor="middle" font-size="12" fill="#374151" transform="rotate(-90, 50, 250)">Entropy</text>
+
+  <!-- Step markers -->
+  <text x="100" y="440" text-anchor="middle" font-size="10" fill="#6b7280">0</text>
+  <text x="295" y="440" text-anchor="middle" font-size="10" fill="#6b7280">100</text>
+  <text x="490" y="440" text-anchor="middle" font-size="10" fill="#6b7280">200</text>
+  <text x="685" y="440" text-anchor="middle" font-size="10" fill="#6b7280">300</text>
+  <text x="880" y="440" text-anchor="middle" font-size="10" fill="#6b7280">400</text>
+
+  <!-- Y axis markers -->
+  <text x="88" y="420" text-anchor="end" font-size="10" fill="#6b7280">0</text>
+  <text x="88" y="340" text-anchor="end" font-size="10" fill="#6b7280">2</text>
+  <text x="88" y="260" text-anchor="end" font-size="10" fill="#6b7280">4</text>
+  <text x="88" y="180" text-anchor="end" font-size="10" fill="#6b7280">6</text>
+  <text x="88" y="100" text-anchor="end" font-size="10" fill="#6b7280">8</text>
+
+  <!-- Grid lines -->
+  <line x1="100" y1="340" x2="880" y2="340" stroke="#e5e7eb" stroke-width="0.5"/>
+  <line x1="100" y1="260" x2="880" y2="260" stroke="#e5e7eb" stroke-width="0.5"/>
+  <line x1="100" y1="180" x2="880" y2="180" stroke="#e5e7eb" stroke-width="0.5"/>
+
+  <!-- Qwen3 8B GRPO: starts ~6, drops rapidly to ~2, stays -->
+  <path d="M 100 160 C 140 160, 160 180, 200 250 C 240 320, 280 360, 350 370 C 420 380, 500 370, 600 360 C 700 350, 800 345, 880 340" stroke="#2563eb" stroke-width="2.5" fill="none"/>
+  <circle cx="100" cy="160" r="4" fill="#2563eb"/>
+  <text x="120" y="145" font-size="11" font-weight="600" fill="#2563eb">qwen3_8b_grpo</text>
+
+  <!-- Qwen3 8B DAPO: starts ~6, drops then recovers to ~3-4 -->
+  <path d="M 100 160 C 140 170, 170 220, 220 300 C 270 380, 300 390, 350 370 C 400 350, 450 310, 500 280 C 550 250, 600 240, 700 230 C 800 220, 850 215, 880 210" stroke="#9333ea" stroke-width="2.5" fill="none"/>
+  <circle cx="100" cy="160" r="4" fill="#9333ea"/>
+  <text x="820" y="200" font-size="11" font-weight="600" fill="#9333ea">qwen3_8b_dapo</text>
+
+  <!-- Llama DAPO: starts high ~6.5, stays relatively high -->
+  <path d="M 100 140 C 200 145, 300 150, 400 155 C 500 160, 600 162, 700 165 C 800 168, 850 170, 880 170" stroke="#dc2626" stroke-width="2.5" fill="none"/>
+  <circle cx="100" cy="140" r="4" fill="#dc2626"/>
+  <text x="820" y="162" font-size="11" font-weight="600" fill="#dc2626">llama_dapo</text>
+
+  <!-- Llama GRPO -->
+  <path d="M 100 140 C 200 142, 300 145, 400 150 C 500 155, 600 158, 700 160 C 800 162, 850 163, 880 164" stroke="#374151" stroke-width="2" fill="none" stroke-dasharray="6,3"/>
+  <circle cx="100" cy="140" r="4" fill="#374151"/>
+  <text x="820" y="178" font-size="11" font-weight="600" fill="#374151">llama_grpo</text>
+
+  <!-- Danger zone -->
+  <rect x="100" y="370" width="780" height="50" rx="0" fill="#fef2f2" opacity="0.3"/>
+  <text x="490" y="400" text-anchor="middle" font-size="11" font-weight="600" fill="#dc2626">Entropy Collapse Zone: policy degenerates, mode collapse</text>
+
+  <!-- Annotation -->
+  <rect x="130" y="460" width="700" height="35" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="480" y="482" text-anchor="middle" font-size="11" fill="#374151">Qwen entropy drops = model is learning (good). Llama entropy stays flat = model cannot solve tasks (acc=0, no signal)</text>
+</svg>

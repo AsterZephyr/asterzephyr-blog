@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600">
+  <style>
+    text { font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  </style>
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/>
+    </marker>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+  <rect width="960" height="600" fill="#ffffff"/>
+  <text x="480" y="35" text-anchor="middle" font-size="18" font-weight="600" fill="#111827">1600x H100 Cluster QPS Calculation Logic</text>
+  <text x="480" y="55" text-anchor="middle" font-size="12" fill="#6b7280">Formula: 300s / 8 * 43 / 1600 = 1.0 (GPU utilization = 100%)</text>
+  <rect x="60" y="90" width="200" height="80" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="2" filter="url(#shadow)"/>
+  <text x="160" y="118" text-anchor="middle" font-size="12" fill="#c2410c">H20 Single Card</text>
+  <text x="160" y="142" text-anchor="middle" font-size="22" font-weight="600" fill="#c2410c">300s</text>
+  <text x="160" y="160" text-anchor="middle" font-size="11" fill="#6b7280">= 5 min per 10s video</text>
+  <line x1="260" y1="130" x2="318" y2="130" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  <rect x="268" y="116" width="40" height="16" rx="3" fill="#ffffff" opacity="0.95"/>
+  <text x="288" y="128" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">/ 8</text>
+  <rect x="320" y="90" width="200" height="80" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="2" filter="url(#shadow)"/>
+  <text x="420" y="118" text-anchor="middle" font-size="12" fill="#1d4ed8">H100 Single Card</text>
+  <text x="420" y="142" text-anchor="middle" font-size="22" font-weight="600" fill="#1d4ed8">37.5s</text>
+  <text x="420" y="160" text-anchor="middle" font-size="11" fill="#6b7280">8x faster than H20</text>
+  <path d="M 420 170 L 420 208" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#arrow-blue)"/>
+  <rect x="426" y="180" width="80" height="16" rx="3" fill="#ffffff" opacity="0.95"/>
+  <text x="466" y="192" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">x 1600 cards</text>
+  <rect x="280" y="210" width="280" height="80" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="2" filter="url(#shadow)"/>
+  <text x="420" y="238" text-anchor="middle" font-size="12" fill="#059669">1600x H100 Cluster Throughput</text>
+  <text x="420" y="262" text-anchor="middle" font-size="22" font-weight="600" fill="#059669">42.7 QPS</text>
+  <text x="420" y="280" text-anchor="middle" font-size="11" fill="#6b7280">1600 / 37.5 = 42.7 requests/sec</text>
+  <rect x="60" y="330" width="840" height="100" rx="10" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>
+  <text x="480" y="358" text-anchor="middle" font-size="14" font-weight="600" fill="#111827">Verification: GPU Utilization Check</text>
+  <rect x="100" y="370" width="130" height="45" rx="6" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
+  <text x="165" y="390" text-anchor="middle" font-size="11" fill="#6b7280">H20 Latency</text>
+  <text x="165" y="408" text-anchor="middle" font-size="14" font-weight="600" fill="#c2410c">300s</text>
+  <text x="245" y="398" text-anchor="middle" font-size="16" font-weight="600" fill="#374151">/</text>
+  <rect x="260" y="370" width="100" height="45" rx="6" fill="#eff6ff" stroke="#93c5fd" stroke-width="1"/>
+  <text x="310" y="390" text-anchor="middle" font-size="11" fill="#6b7280">Perf Ratio</text>
+  <text x="310" y="408" text-anchor="middle" font-size="14" font-weight="600" fill="#1d4ed8">8</text>
+  <text x="375" y="398" text-anchor="middle" font-size="16" font-weight="600" fill="#374151">x</text>
+  <rect x="390" y="370" width="100" height="45" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-width="1"/>
+  <text x="440" y="390" text-anchor="middle" font-size="11" fill="#6b7280">Concurrent</text>
+  <text x="440" y="408" text-anchor="middle" font-size="14" font-weight="600" fill="#059669">43</text>
+  <text x="505" y="398" text-anchor="middle" font-size="16" font-weight="600" fill="#374151">/</text>
+  <rect x="520" y="370" width="120" height="45" rx="6" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1"/>
+  <text x="580" y="390" text-anchor="middle" font-size="11" fill="#6b7280">GPU Count</text>
+  <text x="580" y="408" text-anchor="middle" font-size="14" font-weight="600" fill="#7c3aed">1,600</text>
+  <text x="660" y="398" text-anchor="middle" font-size="16" font-weight="600" fill="#374151">=</text>
+  <rect x="680" y="370" width="120" height="45" rx="6" fill="#dcfce7" stroke="#4ade80" stroke-width="2"/>
+  <text x="740" y="390" text-anchor="middle" font-size="11" fill="#6b7280">Utilization</text>
+  <text x="740" y="408" text-anchor="middle" font-size="14" font-weight="600" fill="#059669">1.0 (100%)</text>
+  <rect x="60" y="460" width="840" height="120" rx="10" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="480" y="488" text-anchor="middle" font-size="14" font-weight="600" fill="#dc2626">Key Insight: Why only ~42 QPS from 1600 H100s?</text>
+  <text x="480" y="512" text-anchor="middle" font-size="12" fill="#374151">Each H100 processes exactly 1 request at a time, taking ~37.5 seconds</text>
+  <text x="480" y="532" text-anchor="middle" font-size="12" fill="#374151">At any given moment, all 1600 cards are occupied = GPU utilization near 100%</text>
+  <text x="480" y="556" text-anchor="middle" font-size="12" fill="#dc2626">Production optimization needed: step distillation (50 steps -> 4-8 steps), FP8 quantization, TP parallelism</text>
+</svg>

@@ -1,0 +1,283 @@
+---
+title: "RL for LLM：为什么强化学习训练大模型这么难？"
+date: 2026-05-25
+tags: [强化学习, LLM, GRPO, DAPO, DeepSeek-R1]
+summary: "为什么 DeepSeek-R1 用 RL 能成功，但大多数学术界复现全失败？从 pass@k 的视角理解 RL 训练 LLM 的本质限制和失败模式。"
+draft: false
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+import Callout from '../../components/blog/Callout.astro'
+
+<Callout type="info">
+**文档定位**：这是一份面向所有人（无论是否接触过 RL）的学习文档。它将帮助你理解：
+- 什么是 LLM 的强化学习（RL）训练？
+- 为什么 DeepSeek-R1 用 RL 能成功，但大多数学术界复现却 work 不了？
+- 如何判断 RL 在你的场景下是否有效？
+- 怎么开始学习这个领域？
+
+**背景**：2025 年以来，以 DeepSeek-R1 为标志，RL 训练 LLM 成为热点。但实践中，大量论文仅在 Qwen 系列模型上"work"，换到其他模型则完全失败。本文分析这一现象的根本原因。
+</Callout>
+
+---
+
+## Part 1：背景 — 什么是 LLM 的 RL 训练？
+
+### 从 SFT 到 RL：后训练的三个阶段
+
+大模型从"预训练完成"到"可以使用"，要经历**后训练（Post-Training）**阶段：
+
+| 阶段 | 方法 | 做什么 | 类比 |
+|-|-|-|-|
+| Stage 1 | SFT（监督微调） | 学习指令格式和回答范式 | 学生读教科书，学解题格式 |
+| Stage 2 | RLHF / DPO | 学习偏好，避免有害输出 | 老师批改作业，标出好坏 |
+| Stage 3 | RL (GRPO/DAPO) | 在可验证任务上自我强化 | 学生刷题，对答案，强化正确思路 |
+
+关键区分：
+
+- **SFT**：告诉模型"正确答案长什么样" — 模仿学习
+- **RLHF/DPO**：告诉模型"哪个更好" — 偏好学习
+- **RL (reasoning)**：让模型"自己试，对答案" — 探索 + 强化
+
+### 为什么 RL 突然变热了？
+
+2025 年 1 月，DeepSeek-R1 论文展示了一个惊人结果：
+
+> 纯 RL 训练（GRPO），不需要 SFT 数据，就能让 671B MoE 模型在 AIME 数学竞赛上达到 96.3% 准确率，接近 OpenAI o1 水平。
+
+这让整个学术界疯狂：如果不需要昂贵的人工标注数据，只需要一个 reward 函数就能提升推理能力，那岂不是"无限刷题"就能变强？
+
+于是大量 paper 涌现，宣称在 7B/8B 模型上复现了类似效果……
+
+---
+
+## Part 2：目前的进展 — 谁在做，效果如何？
+
+### 主流 RL 算法一览
+
+<TechGraph src="/images/posts/rl-for-llm-为什么强化学习训练大模型这么难/11-rl-landscape.svg" title="RL for LLM 方法全景" caption="从 PPO 到 GRPO/DAPO，强化学习方法的演进路线" />
+
+| 算法 | 核心思想 | 代表作 | 关键特点 |
+|-|-|-|-|
+| PPO | 策略梯度 + 裁剪 + Critic | InstructGPT, o1 | 需要 4 个模型，稳定但昂贵 |
+| DPO | 偏好对直接优化策略 | Zephyr, Mistral | 离线，简单，但无法探索 |
+| GRPO | 组内相对优势估计 | DeepSeek-R1 | 无 Critic，在线采样，容易 entropy collapse |
+| DAPO | 解耦 KL + 动态温度 | ByteDance proRL | 缓解 entropy collapse，但仍需强 base |
+| RLOO | Leave-one-out 基线 | 学术研究 | PPO 的简化变体 |
+
+### 工业界实际成果
+
+| 模型 | 规模 | RL 方法 | AIME 2024 | 是否公开验证 |
+|-|-|-|-|-|
+| OpenAI o1 | ~200B+（传闻） | PPO + PRM | 96.4% | 否 |
+| DeepSeek-R1 | 671B MoE | GRPO | 96.3% | 是（开源） |
+| Qwen3 (A3B MoE) | A3B (30B+ total) | RL few steps | 90+ | 部分 |
+| Qwen 2.5 72B | 72B Dense | RL | ~80+ | 部分 |
+
+### 学术界"复现"现状
+
+大量论文声称用 GRPO/DAPO 在小模型（7B/8B）上取得了"显著提升"。但存在严重问题：
+
+<Callout type="warning">
+**核心争议**：几乎所有能"work"的学术 RL 论文，都是在 Qwen 2.5 或 Qwen 3 上跑的。换到 Llama 等其他模型，同样的算法效果为零。
+
+原因分析：
+- Wu et al. (2026) 的研究表明，Qwen 系列在 AIME 等 benchmark 上可能存在**数据泄露**（benchmark contamination）
+- 如果模型已经"背下了"部分答案，RL 只是在强化记忆，不是真正学会推理
+- Llama 3.2 用 DAPO 跑 AIME：**准确率始终为 0**
+</Callout>
+
+---
+
+## Part 3：为什么 RL 在大多数场景下 work 不了？
+
+### 根本原因：RL 不能教会模型新能力
+
+<TechGraph src="/images/posts/rl-for-llm-为什么强化学习训练大模型这么难/13-rl-prerequisite.svg" title="RL 的前提条件：pass@k > 0" caption="如果模型从未答对过，RL 没有任何梯度信号" />
+
+这是理解 RL for LLM 最重要的一句话：
+
+> **RL 只能强化模型已经（偶尔）能做到的事情。如果 pass@k = 0，RL 没有任何梯度信号。**
+
+解释：
+
+- **pass@k**：采样 k 次，至少有一次正确的概率
+- GRPO 的工作方式：对每个 prompt 采样 k 个回答，正确的给正优势，错误的给负优势
+- 如果 k 个回答**全部错误**：优势全为 0，梯度为 0，**什么都学不到**
+- 如果 k 个回答**全部正确**：优势也全为 0，同样学不到新东西
+
+**费曼解释**：RL 像一个教练，只能说"这个好，那个不好"。如果运动员**根本跳不过**横杆（pass@k=0），教练说再多也没用 — 问题不在策略，在能力。
+
+### GRPO 的具体机制与局限
+
+```python
+for prompt in dataset:
+    responses = model.sample(prompt, k=64)  # 采样 k 个回答
+    rewards = [verify(r) for r in responses]  # 0 or 1
+
+    mean_r = mean(rewards)
+    std_r = std(rewards)
+    advantages = [(r - mean_r) / std_r for r in rewards]
+
+    # 如果 rewards 全为 0: advantages 全为 0 -> 无更新
+    # 如果 rewards 全为 1: advantages 全为 0 -> 无更新
+    # 只有"有的对有的错"时，才有梯度信号
+
+    policy_gradient_update(model, responses, advantages)
+```
+
+### 五大失败模式
+
+| 失败模式 | 现象 | 根因 |
+|-|-|-|
+| 1. 零信号 | Acc 始终为 0，loss 不变 | Base model 太弱，pass@k=0，无梯度 |
+| 2. Entropy Collapse | Entropy 急剧下降，输出重复 | 策略过早收敛到少数高奖励路径，丧失多样性 |
+| 3. pass@k 下降 | mean@1 上升但 pass@k 下降 | RL 杀死了多样性，虽然平均更好但覆盖面变窄 |
+| 4. Reward Hacking | Reward 上升但实际质量下降 | 模型找到 reward 漏洞，产生"看起来对但实际错"的答案 |
+| 5. 假性提升 | 仅在特定 benchmark 提升 | Base model 已"背"了答案，RL 只是强化记忆 |
+
+### Entropy Collapse 详解
+
+<TechGraph src="/images/posts/rl-for-llm-为什么强化学习训练大模型这么难/12-entropy-collapse.svg" title="Entropy Collapse 现象" caption="健康的 RL 训练 entropy 缓慢下降；不健康的 entropy 急剧降到 0" />
+
+Entropy（熵）衡量模型输出的**多样性**。正常 RL 训练的 entropy 变化：
+
+- **健康**：entropy 缓慢下降（策略在聚焦），但保持在合理范围
+- **不健康**：entropy 急剧降到接近 0（策略退化为确定性输出）
+
+从实验数据看：
+
+- **Qwen3 8B + GRPO**：entropy 从 ~6 快速降到 ~2，对应的 acc 在上升 — 这是正常学习
+- **Qwen3 8B + DAPO**：entropy 先降后升（DAPO 的动态温度在对抗 collapse）
+- **Llama + DAPO/GRPO**：entropy 保持 ~6 不变 — 因为 acc=0，没有信号推动策略变化
+
+<Callout type="info">
+**关键洞察**：Llama 的 entropy 不降不是"好事"（保持了多样性），而是"坏事"（模型根本没在学）。GRPO 不 entropy collapse 的前提是 entropy collapse 才代表有问题 — 如果从未开始学习，entropy 自然不会变。
+</Callout>
+
+### 为什么只有 Qwen 系列"work"？
+
+目前学术界能跑通 RL 的 base model 几乎只有 Qwen3。原因分析：
+
+1. **Qwen3 预训练质量极高**：A3B MoE 即使不 RL，base model 的 pass@64 已经不为零
+2. **AIME benchmark 泄露嫌疑**：Wu et al. (2026) 指出 Qwen 系列在 AIME 等 benchmark 上表现异常好，可能预训练数据包含了这些题目
+3. **GPT-class 120B+ 才是真正分界线**：只有达到这个规模的模型，generation 的 uncertainty 才足够低，RL calibration 才有效
+4. **学术界用 Qwen 小模型做的 RL paper 应该被质疑**：因为结论可能不可推广到其他模型
+
+---
+
+## Part 4：正确的心智模型 — 如何理解 RL for LLM
+
+### RL 不是魔法，是选拔机制
+
+<TechGraph src="/images/posts/rl-for-llm-为什么强化学习训练大模型这么难/14-rl-algorithms-compare.svg" title="RL 算法对比" caption="PPO vs GRPO vs DAPO：不同场景下的选择" />
+
+把 RL 想象成一个**选拔考试**，而不是一个**教学过程**：
+
+|  | RL 的实际作用 | RL 不能做的 |
+|-|-|-|
+| 能力维度 | 把 pass@64 的偶尔正确变成 pass@1 | 让 pass@64=0 的任务变得可解 |
+| 策略维度 | 强化高概率正确路径 | 创造全新的推理路径 |
+| 知识维度 | 更好地调用已有知识 | 注入新知识 |
+
+### 什么时候 RL 有效？
+
+满足以下**全部**条件：
+
+1. **Base model 足够强**：pass@k > 0（模型"偶尔"能做对）
+2. **Reward 可验证**：有明确的对错判断（数学答案、代码执行、逻辑推理）
+3. **模型足够大**：20B+ 或 large MoE — 小模型能力天花板太低
+4. **训练基础设施完善**：大规模在线采样、分布式 rollout 生成
+
+### pass@k 与 RL 效果的关系
+
+| pass@64 范围 | RL 效果 | 解释 |
+|-|-|-|
+| 0% | 完全无效 | 无正样本 → 无梯度 → Acc 永远为 0 |
+| 1~10% | 困难但可能 | 稀疏信号，需大量采样和长时间训练 |
+| 10~50% | 理想区间 | 有明确的好/坏对比，梯度信号充足 |
+| 50~90% | 收益递减 | 模型已经很好了，提升空间小 |
+| >90% | 几乎无效 | 全部正确时 advantage=0，同样无梯度 |
+
+---
+
+## Part 5：学习路线图 — 怎么入门 RL for LLM
+
+### Level 1：概念理解（1-2 天）
+
+- 读 DeepSeek-R1 论文的 Section 2-3（GRPO 方法描述）
+- 理解 policy gradient 基本公式：∇J = E[∇log π(a|s) · A(s,a)]
+- 理解 GRPO 和 PPO 的区别（有无 Critic）
+
+### Level 2：动手实验（1-2 周）
+
+- 用 **OpenRLHF** 或 **veRL** 框架跑一个简单实验
+- 选一个足够强的 base model（建议 Qwen3-30B+ 或 DeepSeek 系列）
+- 在简单数学任务（GSM8K）上验证 RL 流程
+- 观察 entropy、reward、KL divergence 的变化曲线
+
+### Level 3：深入理解（1 个月+）
+
+- 读 DAPO 论文 — 理解 entropy collapse 的对抗机制
+- 读 proRL (ByteDance) — 理解工业界如何稳定训练
+- 实验不同 base model（对比 Qwen vs Llama），亲自观察"不 work"的现象
+- 研究 Process Reward Model (PRM) vs Outcome Reward Model (ORM)
+
+### Level 4：前沿问题（持续关注）
+
+- RL 能否真正扩展模型能力边界？还是只能在已有能力范围内优化？
+- 如何设计更好的 reward（beyond binary correct/incorrect）？
+- VLM（视觉语言模型）的 RL 为何特别难？
+- 大 MoE 模型跑 RL 的工程挑战（router collapse, expert imbalance）
+
+---
+
+## Part 6：关键论文与资源
+
+### 必读论文
+
+- **DeepSeek-R1** (2025) — GRPO 方法和大规模 RL 训练的完整描述
+- **DAPO** (ByteDance, 2025) — 解耦对齐策略优化，解决 entropy collapse
+- **DPO** (Rafailov et al., 2023) — Direct Preference Optimization 原始论文
+- **InstructGPT** (Ouyang et al., 2022) — RLHF 的开山之作
+- **Wu et al., 2026** — Qwen AIME benchmark contamination 分析
+
+### 框架与工具
+
+- **OpenRLHF** — 开源 RLHF/GRPO 训练框架
+- **veRL** (Volcano Engine) — 字节跳动的 RL 训练框架
+- **TRL** (Hugging Face) — Transformer Reinforcement Learning 库
+- **DeepSpeed-Chat** — 微软的 RLHF 训练方案
+
+### 推荐阅读顺序
+
+1. InstructGPT → 理解为什么需要 RLHF
+2. DPO → 理解"不需要 RL 也能做偏好学习"
+3. DeepSeek-R1 → 理解"为什么又需要 RL 了"
+4. DAPO → 理解"RL 的坑和修复方案"
+5. Wu et al. → 理解"为什么很多结果不可信"
+
+---
+
+## 结论与思考
+
+1. **RL 不是万能药**：它只能强化已有能力，不能创造新能力
+2. **模型规模是前提**：7B 模型在难任务上 pass@k=0，RL 完全无效
+3. **学术界 vs 工业界的鸿沟**：工业界用 200B+ 模型 + 大规模基础设施；学术界用 7B + 单机 — 根本不在同一个赛道
+4. **Qwen 实验结论需谨慎**：可能存在 benchmark contamination，结论不一定可推广
+5. **Entropy collapse 是关键指标**：监控训练过程中的 entropy 变化，是判断 RL 是否正常工作的核心手段
+
+<Callout type="tip">
+**留给你的思考题**：
+1. 如果 RL 只能强化已有能力，那 DeepSeek-R1 展示的"emergent reasoning"是怎么来的？
+2. 为什么 OpenAI 坚持用 PPO（更贵），而不像学术界一样转向 GRPO（更便宜）？
+3. 如果 Qwen 的 AIME 分数是"背出来的"，怎么设计一个不可能被污染的 benchmark？
+4. RL 在代码生成（可执行验证）领域是否比数学推理更有前景？为什么？
+</Callout>
+
+---
+
+## 相关文章
+
+- [AI Inference 学习 Roadmap 2026 全景图](/posts/ai-inference-学习-roadmap-2026全景图) — 推理领域的完整学习路线，RL 训练是其中重要环节
+- [多模态大模型学习路线：面向 Inference 同学](/posts/多模态大模型学习路线-面向inference同学) — 多模态场景下 RL 的额外挑战

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="960" height="480">
+  <style>
+    text { font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  </style>
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arr-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#2563eb"/>
+    </marker>
+  </defs>
+  <rect width="960" height="480" fill="#ffffff"/>
+  <text x="480" y="30" text-anchor="middle" font-size="16" font-weight="600" fill="#111827">Quantization: How It Changes the Performance Landscape</text>
+  <rect x="40" y="50" width="420" height="400" rx="10" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="250" y="75" text-anchor="middle" font-size="14" font-weight="600" fill="#374151">Before: FP16 Decode</text>
+  <rect x="70" y="95" width="160" height="45" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="150" y="115" text-anchor="middle" font-size="11" fill="#6b7280">Weight Matrix</text>
+  <text x="150" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="#1d4ed8">14 GB (FP16)</text>
+  <rect x="270" y="95" width="160" height="45" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="350" y="115" text-anchor="middle" font-size="11" fill="#6b7280">Token Vector</text>
+  <text x="350" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="#16a34a">Tiny (KB)</text>
+  <rect x="140" y="165" width="200" height="40" rx="8" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="240" y="190" text-anchor="middle" font-size="12" font-weight="600" fill="#dc2626">GEMV: W * x = y</text>
+  <rect x="70" y="230" width="360" height="80" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="250" y="255" text-anchor="middle" font-size="12" font-weight="600" fill="#374151">Arithmetic Intensity</text>
+  <text x="250" y="278" text-anchor="middle" font-size="11" fill="#6b7280">FLOPS: 2 * params = 14 GFLOPS</text>
+  <text x="250" y="296" text-anchor="middle" font-size="11" fill="#6b7280">Bytes loaded: 14 GB</text>
+  <text x="250" y="314" text-anchor="middle" font-size="13" font-weight="600" fill="#dc2626">AI = 14G / 14G = 1.0 FLOPS/Byte</text>
+  <rect x="100" y="330" width="280" height="40" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+  <text x="240" y="355" text-anchor="middle" font-size="13" font-weight="600" fill="#dc2626">MEMORY-BOUND (AI=1.0)</text>
+  <text x="250" y="400" text-anchor="middle" font-size="11" fill="#6b7280">H100 Ridge Point: ~295 FLOPS/Byte</text>
+  <text x="250" y="418" text-anchor="middle" font-size="11" fill="#6b7280">GPU compute utilization: &lt;1%</text>
+  <text x="250" y="436" text-anchor="middle" font-size="11" fill="#dc2626">Almost all time spent waiting for data</text>
+  <rect x="500" y="50" width="420" height="400" rx="10" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="710" y="75" text-anchor="middle" font-size="14" font-weight="600" fill="#374151">After: INT4 Quantized Decode</text>
+  <rect x="530" y="95" width="160" height="45" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="610" y="115" text-anchor="middle" font-size="11" fill="#6b7280">Weight Matrix</text>
+  <text x="610" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="#1d4ed8">3.5 GB (INT4)</text>
+  <rect x="730" y="95" width="160" height="45" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="810" y="115" text-anchor="middle" font-size="11" fill="#6b7280">Token Vector</text>
+  <text x="810" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="#16a34a">Tiny (KB)</text>
+  <rect x="580" y="165" width="240" height="40" rx="8" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.5"/>
+  <text x="700" y="190" text-anchor="middle" font-size="12" font-weight="600" fill="#7c3aed">Dequant + GEMV: dq(W)*x</text>
+  <rect x="530" y="230" width="360" height="80" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="710" y="255" text-anchor="middle" font-size="12" font-weight="600" fill="#374151">Arithmetic Intensity</text>
+  <text x="710" y="278" text-anchor="middle" font-size="11" fill="#6b7280">FLOPS: 14G (compute) + 7G (dequant) = 21 GFLOPS</text>
+  <text x="710" y="296" text-anchor="middle" font-size="11" fill="#6b7280">Bytes loaded: 3.5 GB</text>
+  <text x="710" y="314" text-anchor="middle" font-size="13" font-weight="600" fill="#16a34a">AI = 21G / 3.5G = 6.0 FLOPS/Byte</text>
+  <rect x="560" y="330" width="280" height="40" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+  <text x="700" y="355" text-anchor="middle" font-size="13" font-weight="600" fill="#16a34a">LESS MEMORY-BOUND (AI=6.0)</text>
+  <text x="710" y="400" text-anchor="middle" font-size="11" fill="#6b7280">6x higher arithmetic intensity</text>
+  <text x="710" y="418" text-anchor="middle" font-size="11" fill="#6b7280">GPU compute utilization: ~6%</text>
+  <text x="710" y="436" text-anchor="middle" font-size="11" fill="#16a34a">Significantly less time waiting for data</text>
+</svg>

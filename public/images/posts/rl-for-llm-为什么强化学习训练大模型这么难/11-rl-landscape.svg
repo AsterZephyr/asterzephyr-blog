@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600">
+  <style>
+    text { font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  </style>
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#374151"/>
+    </marker>
+  </defs>
+  <rect width="960" height="600" fill="#ffffff"/>
+  <text x="480" y="30" text-anchor="middle" font-size="18" font-weight="700" fill="#111827">LLM Post-Training: RL Methods Landscape</text>
+  <text x="480" y="52" text-anchor="middle" font-size="12" fill="#6b7280">From SFT to RL: the evolution and current state of alignment techniques</text>
+
+  <!-- Timeline arrow -->
+  <line x1="80" y1="100" x2="880" y2="100" stroke="#374151" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="80" y="90" font-size="10" fill="#6b7280">2020</text>
+  <text x="280" y="90" font-size="10" fill="#6b7280">2022</text>
+  <text x="480" y="90" font-size="10" fill="#6b7280">2023</text>
+  <text x="680" y="90" font-size="10" fill="#6b7280">2024</text>
+  <text x="860" y="90" font-size="10" fill="#6b7280">2025+</text>
+
+  <!-- SFT era -->
+  <rect x="60" y="115" width="180" height="55" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="150" y="138" text-anchor="middle" font-size="13" font-weight="600" fill="#1d4ed8">SFT</text>
+  <text x="150" y="155" text-anchor="middle" font-size="10" fill="#6b7280">Supervised Fine-Tuning</text>
+  <text x="150" y="167" text-anchor="middle" font-size="9" fill="#6b7280">InstructGPT, Alpaca</text>
+
+  <!-- RLHF era -->
+  <rect x="260" y="115" width="180" height="55" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="350" y="138" text-anchor="middle" font-size="13" font-weight="600" fill="#16a34a">RLHF / PPO</text>
+  <text x="350" y="155" text-anchor="middle" font-size="10" fill="#6b7280">Reward Model + PPO</text>
+  <text x="350" y="167" text-anchor="middle" font-size="9" fill="#6b7280">ChatGPT, Claude</text>
+
+  <!-- DPO era -->
+  <rect x="460" y="115" width="180" height="55" rx="8" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="550" y="138" text-anchor="middle" font-size="13" font-weight="600" fill="#7c3aed">DPO / Offline RL</text>
+  <text x="550" y="155" text-anchor="middle" font-size="10" fill="#6b7280">Direct Preference Opt.</text>
+  <text x="550" y="167" text-anchor="middle" font-size="9" fill="#6b7280">Zephyr, Mistral</text>
+
+  <!-- GRPO/DAPO era -->
+  <rect x="660" y="115" width="200" height="55" rx="8" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="760" y="138" text-anchor="middle" font-size="13" font-weight="600" fill="#ea580c">GRPO / DAPO</text>
+  <text x="760" y="155" text-anchor="middle" font-size="10" fill="#6b7280">Group/Decoupled RL</text>
+  <text x="760" y="167" text-anchor="middle" font-size="9" fill="#6b7280">DeepSeek-R1, Qwen3</text>
+
+  <!-- Bottom: What works vs what doesn't -->
+  <rect x="60" y="200" width="420" height="370" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="270" y="225" text-anchor="middle" font-size="14" font-weight="700" fill="#16a34a">Works (Industrial Scale)</text>
+
+  <rect x="80" y="240" width="380" height="50" rx="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="90" y="260" font-size="12" font-weight="600" fill="#111827">DeepSeek-R1 (671B MoE)</text>
+  <text x="90" y="278" font-size="10" fill="#6b7280">GRPO on massive base model. AIME 96.3%</text>
+
+  <rect x="80" y="300" width="380" height="50" rx="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="90" y="320" font-size="12" font-weight="600" fill="#111827">OpenAI o1/o3 (rumored 200B+)</text>
+  <text x="90" y="338" font-size="10" fill="#6b7280">PPO/RLHF + process reward. Chain-of-thought RL</text>
+
+  <rect x="80" y="360" width="380" height="50" rx="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="90" y="380" font-size="12" font-weight="600" fill="#111827">Qwen3 (A3B, 30B+ dense or large MoE)</text>
+  <text x="90" y="398" font-size="10" fill="#6b7280">RL few steps on strong base, AIME 90+</text>
+
+  <rect x="80" y="420" width="380" height="50" rx="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="90" y="440" font-size="12" font-weight="600" fill="#111827">Claude (Anthropic)</text>
+  <text x="90" y="458" font-size="10" fill="#6b7280">Constitutional AI + RLHF, large-scale models</text>
+
+  <rect x="80" y="480" width="380" height="70" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1"/>
+  <text x="270" y="500" text-anchor="middle" font-size="11" font-weight="600" fill="#16a34a">Common Pattern:</text>
+  <text x="270" y="518" text-anchor="middle" font-size="11" fill="#374151">Strong base model (20B+ or large MoE)</text>
+  <text x="270" y="534" text-anchor="middle" font-size="11" fill="#374151">+ RL as fine-tuning (few steps)</text>
+  <text x="270" y="550" text-anchor="middle" font-size="11" fill="#374151">+ Process/outcome reward on verifiable tasks</text>
+
+  <!-- Right: Doesn't work -->
+  <rect x="500" y="200" width="420" height="370" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="710" y="225" text-anchor="middle" font-size="14" font-weight="700" fill="#dc2626">Struggles (Academic / Small Scale)</text>
+
+  <rect x="520" y="240" width="380" height="50" rx="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="530" y="260" font-size="12" font-weight="600" fill="#111827">7B models + GRPO on AIME</text>
+  <text x="530" y="278" font-size="10" fill="#6b7280">Llama3.2 DAPO: accuracy stays at 0. Cannot solve tasks.</text>
+
+  <rect x="520" y="300" width="380" height="50" rx="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="530" y="320" font-size="12" font-weight="600" fill="#111827">Qwen 2.5/3 8B + RL papers</text>
+  <text x="530" y="338" font-size="10" fill="#6b7280">Suspected benchmark contamination (AIME leaked)</text>
+
+  <rect x="520" y="360" width="380" height="50" rx="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="530" y="380" font-size="12" font-weight="600" fill="#111827">VLM (Vision-Language) + RL</text>
+  <text x="530" y="398" font-size="10" fill="#6b7280">vLM/veRL/SLIME: hard to train, unstable reward</text>
+
+  <rect x="520" y="420" width="380" height="50" rx="6" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="530" y="440" font-size="12" font-weight="600" fill="#111827">Large MoE + RL (without proper infra)</text>
+  <text x="530" y="458" font-size="10" fill="#6b7280">Entropy collapse, reward hacking, mode collapse</text>
+
+  <rect x="520" y="480" width="380" height="70" rx="6" fill="#fecaca" stroke="#dc2626" stroke-width="1"/>
+  <text x="710" y="500" text-anchor="middle" font-size="11" font-weight="600" fill="#dc2626">Common Failures:</text>
+  <text x="710" y="518" text-anchor="middle" font-size="11" fill="#374151">Base model too weak (can't solve task at all)</text>
+  <text x="710" y="534" text-anchor="middle" font-size="11" fill="#374151">Entropy collapse (policy degenerates)</text>
+  <text x="710" y="550" text-anchor="middle" font-size="11" fill="#374151">pass@k drops (diversity killed by RL)</text>
+</svg>

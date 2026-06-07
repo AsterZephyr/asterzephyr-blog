@@ -1,0 +1,260 @@
+---
+title: "AI Inference 学习 Roadmap · 2026 全景图"
+date: 2026-06-07
+tags: [AI, 推理优化, vLLM, SGLang, CUDA, GPU]
+summary: "一份给所有 IT 工程师的 AI 推理学习地图：从调过 vLLM API 到给 vLLM 写算子，找到自己的入口、知道学什么、明白往哪走。核心立场：推理是 IT 工程师反向卷进 AI 底层的最高 ROI 入口。"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+
+> 一份给所有 IT 工程师的 AI 推理学习地图：从「调过 vLLM API」到「给 vLLM 写算子」，找到自己的入口、知道学什么、明白往哪走。
+
+> 核心立场：**训练是 ML 研究员的主场，但推理是 IT 工程师反向卷进 AI 底层的最高 ROI 入口。**
+
+> 最后修订：2026-05-26
+
+---
+
+## Part 0 -- 谁该读 + 怎么读
+
+| 你是谁 | 主线 | 推荐路径 |
+|-|-|-|
+| 完全新手（没碰过 CUDA） | 先理解推理引擎在做什么 | Part 1 - Part 2 - Part 7（动手） |
+| 应用开发者（调过 vLLM API） | 从「用引擎」到「改引擎」 | Part 2 - Part 4 - Part 5（社区） |
+| 后端 / Infra 工程师 | KV / 网络 / 调度切入 | Part 1 - Part 4 - Part 6 |
+| CUDA / Kernel 工程师 | 算子优化主线 | Part 3（GEMM-PTX-CUTLASS）- Part 4 |
+| 架构师 / 决策者 | 选型 + ROI 判断 | Part 2 - Part 6 - Part 8 |
+
+**推荐阅读法**：
+
+1. 30 分钟扫读（看完所有图 + 每章前两段）- 建立全局心智图
+2. 2 小时精读 1-2 章（按身份选）- 在自己领域内做笔记
+3. 选一个 PR 试着提交，**比读 10 篇博客都管用**
+
+---
+
+## Part 1 -- 推理工程总览
+
+### 1.1 推理 vs 训练的工程差异
+
+很多 ML 工程师习惯把推理当训练的副产品，**这是误区**。推理在工程上更接近一个高 QPS 在线服务：
+
+| 维度 | 训练 | 推理 |
+|-|-|-|
+| **流量模式** | 稳定、批处理 | 突发、长尾 |
+| **SLO** | 收敛即可 | TTFT < 500ms / ITL < 50ms |
+| **显存压力** | 模型 + 梯度 + 优化器 | 模型 + KV Cache（往往 KV 比模型还大） |
+| **首要瓶颈** | 计算 / 通信 | 显存带宽 / KV 命中率 / 长尾延迟 |
+| **迭代节奏** | 月级 | 日级（vLLM 一周三个 release 不稀奇） |
+| **入门成本** | 多机多卡集群 | **单卡能跑 7B**，最低成本 800 块租一张 H100 |
+
+**反直觉判断**：大家都说「推理比训练简单」，其实**推理工程的复杂度只是从「数学」转移到了「调度」**。Continuous batching、Prefill / Decode 分离、KV Cache 复用、Speculative decoding -- 每一项都是独立的工程难题。
+
+### 1.2 三种切入姿势
+
+| 姿势 | 你做什么 | 典型岗位 | 学习重点 |
+|-|-|-|-|
+| **调用方** | 写 prompt、调 OpenAI 兼容 API | Agent / 应用开发 | OpenAI Spec、流式协议 |
+| **应用层 Harness** | 部署 vLLM/SGLang、做 serving 优化 | LLM 平台 / MLOps | 引擎参数、量化、KV 调优 |
+| **底层 Kernel** | 写 / 改 CUDA / Triton 算子 | GPU / Infra | GEMM、Attention、CUTLASS |
+
+**反直觉判断**：很多人以为「Kernel 工程师 > Harness 工程师 > 调用方」是个鄙视链，**其实在当前生态里 Harness 工程师 hc 最多、薪资最稳、晋升最快**。
+
+---
+
+## Part 2 -- 推理引擎社区现状
+
+数据全部 `gh repo view` 实拉于 2026-05-26。
+
+### 2.1 vLLM -- 事实标准
+
+- **仓库**：[vllm-project/vllm](https://github.com/vllm-project/vllm)
+- **最新版本**：v0.21.0（2026-05-15）
+- **Stars**：81k+
+- **定位**：LLM 推理事实标准。PagedAttention 起家，现在已是 KV Cache + Continuous Batching + Speculative + 量化的全家桶。
+- **入门路径**：先读 [nano-vllm](https://github.com/GeeeekExplorer/nano-vllm)（2000 行）- 再看 vLLM 真仓的 `vllm/v1/` 新引擎核心
+
+### 2.2 SGLang -- RadixAttention 流派
+
+- **仓库**：[sgl-project/sglang](https://github.com/sgl-project/sglang)
+- **最新版本**：v0.5.12（2026-05-16）
+- **Stars**：28k+
+- **定位**：LMSYS 出品。RadixAttention 让多轮对话 / Few-shot 场景的 KV 命中率提升一个量级。
+
+**反直觉判断**：大家都说 SGLang 是 vLLM 的「弟弟」，**其实 SGLang 在 Speculative decoding（SpecForge）和多模态调度上走得比 vLLM 更远**。
+
+### 2.3 vLLM-Omni / SGLang-Omni
+
+- [vllm-project/vllm-omni](https://github.com/vllm-project/vllm-omni)（4.7k+ stars）-- 多模态扩展
+- [sgl-project/sglang-omni](https://github.com/sgl-project/sglang-omni) -- 多阶段 Pipeline
+
+### 2.4 TensorRT-LLM / LMDeploy / 其他
+
+- **TensorRT-LLM**（NVIDIA）：性能上限最高，但社区贡献不友好
+- **LMDeploy**（商汤/InternLM）：国产模型部署的优选
+- **llama.cpp**（113k+ stars）：CPU/Mac/Edge 第一选择
+- **nano-vllm**（13.6k+ stars）：入门必读，2000 行读懂 vLLM 核心
+
+---
+
+## Part 3 -- 学习路线 -- 用户验证版
+
+### 3.1 为什么是这个顺序
+
+正确顺序：GEMM - PTX - CUTLASS - vLLM 算子源码。
+
+**反直觉判断**：很多 CUDA 教程从「Hello World 矩阵加法」开始，**其实直接从 GEMM 开始更高效**。GEMM 本身就是 80% 推理算子的核心。
+
+### 3.2 GEMM 精通（地基）
+
+- [HPC4AI/HopperGEMM](https://github.com/HPC4AI/HopperGEMM) -- WGMMA + TMA + persistent kernel
+- [deepseek-ai/DeepGEMM](https://github.com/deepseek-ai/DeepGEMM)（7.3k+ stars）-- FP8 GEMM 标杆
+- [xlite-dev/LeetCUDA](https://github.com/xlite-dev/LeetCUDA)（11.1k+ stars）-- 200+ 算子题库
+
+**掌握标准**：能写出一个比 cuBLAS 慢 < 30% 的 FP16 Hopper GEMM。
+
+### 3.3 PTX 底层指令集
+
+学习路径：先读 CUTLASS 内联 PTX - 再读 NVCC 编译产物 - 最后写自己的 PTX。
+
+Hopper 必学指令族：
+- `wgmma.mma_async.sync.aligned.*` -- 异步矩阵乘
+- `cp.async.bulk.tensor.*` -- TMA（Tensor Memory Accelerator）
+- `barrier.cluster.*` -- Cluster 内同步
+
+### 3.4 CUTLASS / CUTE DSL
+
+- [NVIDIA/CUTLASS](https://github.com/NVIDIA/cutlass)（v4.5.0，9.7k+ stars）
+- [triton-lang/triton](https://github.com/triton-lang/triton)（v3.7.0，19.2k+ stars）
+
+**反直觉判断**：「CUTLASS 是最强的」是事实，但**Triton 在生产里写得最多**。真实工作里：会 Triton 是必备，会 CUTLASS 是加分项。
+
+### 3.5 vLLM / SGLang 底层算子源码精读
+
+- **入门**：[nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) -- 一周精读完
+- **进阶**：[flash-attention](https://github.com/Dao-AILab/flash-attention)（FA4 v4.0.0 beta）+ [flashinfer](https://github.com/flashinfer-ai/flashinfer)（v0.6.12rc2）
+- **高阶**：vLLM `csrc/` 与 `vllm/v1/attention/` 目录精读
+
+---
+
+## Part 4 -- 周边生态
+
+### 4.1 KV Cache 层
+
+| 项目 | 定位 | Stars |
+|-|-|-|
+| Mooncake | Prefill / Decode 分离 + 远程 KV | 5.4k+ |
+| LMCache | KV Cache 中间件层 | 8.3k+ |
+| Dynamo | NVIDIA 数据中心级分布式推理 | 7.0k+ |
+
+**反直觉判断**：大家把 KV Cache 当显存优化，**其实它本质是个分布式存储问题**。做过 Redis / 分布式 KV 的后端工程师有先天优势。
+
+### 4.2 通信层
+
+- **NCCL**（4.7k+ stars）：AllReduce / AllGather 优化
+- **DeepEP**（9.6k+ stars）：MoE Expert 并行通信
+
+**反直觉判断**：MoE 时代，**DeepEP 这种 EP 通信库的重要性 >= NCCL**。
+
+### 4.3 量化与 Speculative Decoding
+
+- [llm-compressor](https://github.com/vllm-project/llm-compressor)（3.3k+ stars）
+- [SpecForge](https://github.com/sgl-project/SpecForge)（848+ stars）
+
+---
+
+## Part 5 -- 怎么参与社区
+
+### 入门 PR 路径
+
+1. 找一个 good first issue
+2. 修一个文档错字（10 分钟获得 first commit）
+3. 修一个真实 bug
+4. 实现一个 RFC 子任务
+5. 自己提 RFC 并实现
+
+**反直觉判断**：「写 PR 才能涨技能」是 IT 圈的执念，**审 PR 实际信息密度更高**。
+
+### 社区话语权进化
+
+```text
+报 bug（issue） - 修 bug（PR） - 提 RFC - 主 reviewer - maintainer
+   | 1-2 周         | 1-3 个月       | 半年        | 1 年       | 2 年+
+```
+
+---
+
+## Part 6 -- 进展追踪机制
+
+### Release Notes 订阅（必做）
+
+- vLLM / SGLang / TensorRT-LLM / CUTLASS / Triton / FlashInfer
+
+### 必读 Blog
+
+- [vLLM Blog](https://blog.vllm.ai/) / [LMSYS Blog](https://lmsys.org/blog/) / [HazyResearch Blog](https://hazyresearch.stanford.edu/blog)
+
+---
+
+## Part 7 -- 动手 Roadmap
+
+### 主线 A -- Kernel 主线
+
+目标：能给 vLLM / SGLang 写算子。
+
+- M1：跑通 nano-vllm，能解释一次推理生命周期
+- M2：写一个比 cuBLAS 慢 < 30% 的 Hopper GEMM
+- M3：实现一个 FlashAttention v2 简化版
+- M4：给 vLLM kernels 提一个 perf PR
+- M5：实现一个完整的 Hopper FP8 GEMM（CUTE DSL）
+
+### 主线 B -- Engine 主线
+
+目标：能在生产里部署 + 调优 vLLM / SGLang。
+
+- M1：单卡部署 vLLM，跑通 Llama 系列
+- M2：多卡 TP 部署，理解 PP / DP / TP 切分
+- M3：接入 LMCache 做 KV Cache 命中率优化
+- M4：搭一套 Prefill / Decode 分离
+- M5：写一个 vLLM model adapter
+
+### 主线 C -- Serving 主线
+
+目标：能从 0 到 1 搭一套生产推理平台。
+
+- M1：K8s + vLLM 部署，QPS 100+
+- M2：接 Gateway API + 自定义路由策略
+- M3：搭 llm-d 或 dynamo 多模型调度
+- M4：DCGM / Grafana 全链路 observability
+- M5：内部 LLM 平台（计费 / 限流 / 多租户）
+
+---
+
+## Part 8 -- 资源清单
+
+### GitHub 项目（按层级）
+
+**推理引擎**：vLLM (81k+) / SGLang (28k+) / TensorRT-LLM (13.7k+) / LMDeploy (7.8k+) / llama.cpp (113k+) / nano-vllm (13.6k+)
+
+**Kernel / GEMM**：CUTLASS (9.7k+) / Triton (19.2k+) / FlashAttention (23.9k+) / FlashInfer (5.6k+) / DeepGEMM (7.3k+) / LeetCUDA (11.1k+)
+
+**KV / 通信 / 调度**：Mooncake (5.4k+) / LMCache (8.3k+) / Dynamo (7k+) / NCCL (4.7k+) / DeepEP (9.6k+) / llm-d (3.2k+)
+
+### 必读论文
+
+- PagedAttention / FlashAttention v2 / FlashAttention v3 / RadixAttention / Mooncake / Speculative Decoding / Continuous Batching (Orca)
+
+---
+
+## 收尾 -- 三句话总结
+
+1. **训练是 ML 研究员的主场，但推理是 IT 工程师反向卷进 AI 底层的最高 ROI 入口。**
+2. **核心三件套 Engine + Kernel + Serving，任一根弱都会让产品在生产塌掉。**
+3. **找一条 5 年不变的主线（GEMM 精通 / KV 调度 / 引擎工程化），围绕它积累。** 工具会被替代，判断不会。
+
+---
+
+## 相关文章
+
+- [多模态大模型学习路线（面向 Inference 同学）](/posts/多模态大模型学习路线-面向inference同学) -- 多模态方向的专项深入

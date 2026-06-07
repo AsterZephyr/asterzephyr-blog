@@ -1,0 +1,305 @@
+---
+title: "多模态大模型学习路线（面向 Inference 同学）"
+date: 2026-06-07
+tags: [AI, 多模态, 推理优化, vLLM, SGLang]
+summary: "为推理侧同学梳理一条从经典论文到业界最新模型再到推理框架多模态分支的系统学习路线，理解为什么 vLLM/SGLang 必须单开多模态子模块。"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+
+<Callout type="info">
+**本文目标**：为推理侧同学梳理一条从「经典论文 - 业界最新模型 - 推理框架（vLLM / SGLang Multimodal）」的系统学习路线。
+
+**读者画像**：日常工作以推理优化为主，希望补齐多模态模型侧背景，后续聚焦 vLLM / SGLang 的多模态分支。
+
+**方法**：先理解每篇论文「解决了前作什么问题」，再从模型架构差异推导出推理框架为什么必须单开子模块。
+</Callout>
+
+## 一、经典论文精读
+
+按时间线和依赖关系排列：**ViT**（视觉 Transformer 化） - **CLIP**（图文对齐） - **BLIP**（理解 + 生成统一） - **BLIP-2**（冻结 LLM + Q-Former） - **LLaVA**（视觉指令微调）。
+
+### 1. ViT -- Transformer 进入视觉的起点（Google, 2020）
+
+> **论文**：An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale（arXiv:2010.11929）
+>
+> **一句话**：把图片切成 16x16 的 patch 序列，直接喂给纯 Transformer 做分类，证明**不需要 CNN**也能在大规模预训练下打败 SOTA CNN。
+
+**解决了前作什么问题**：
+
+- 在 ViT 之前，CV 领域要么用纯 CNN（ResNet 系），要么 CNN + Attention 混合，**没人敢扔掉 CNN 的归纳偏置**（局部性、平移不变性）。
+- ViT 证明：**当数据量够大（JFT-300M 级）**，纯 Transformer 可以学出比 CNN 更好的视觉表征，且训练成本更低。
+- 这是后续所有「图像编码器」（CLIP-ViT、BLIP 的 ViT、LLaVA 的 CLIP-ViT-L/14）的底座。
+
+### 2. CLIP -- 自然语言监督的视觉表征（OpenAI, 2021）
+
+> **论文**：Learning Transferable Visual Models From Natural Language Supervision（arXiv:2103.00020）
+>
+> **一句话**：用 4 亿对 (image, text) 做对比学习，把图片和文字映射到同一个嵌入空间，**零样本分类**就能匹配 ResNet-50 的 ImageNet 监督训练精度。
+
+**解决了前作什么问题**：
+
+- **ViT / ResNet 监督训练**：标签固定（1000 类 ImageNet），换任务必须重新标数据。
+- **CLIP**：用「这张图配的是哪句话」当训练目标 -- 监督信号来自互联网爬取的 caption，**开放词汇 + 零样本迁移**，换任务只需改 prompt。
+- CLIP 的 image encoder（CLIP-ViT-L/14）成为后来 BLIP-2、LLaVA 等几乎所有 MLLM 的**默认视觉前端**。
+
+### 3. BLIP -- 理解与生成统一的 VLP 框架（Salesforce, 2022）
+
+> **论文**：BLIP: Bootstrapping Language-Image Pre-training（arXiv:2201.12086）
+>
+> **一句话**：提出 MED（Multimodal Encoder-Decoder）+ CapFilt（先用模型生成 caption，再过滤噪声 caption）的自举训练范式，让一个模型同时擅长理解（检索 / VQA）与生成（caption）。
+
+**解决了前作什么问题**：
+
+- **CLIP 只能做对齐（理解类任务）**，不能直接做 caption 生成。
+- 之前的 VLP 模型要么强在理解，要么强在生成，**不能两全**。
+- 训练数据多来自 alt-text，噪声大；BLIP 用 CapFilt 自己生成 + 过滤 caption，**把脏数据变干净数据**。
+
+### 4. BLIP-2 -- 冻结大模型 + Q-Former 桥接（Salesforce, 2023）
+
+> **论文**：BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models（arXiv:2301.12597）
+>
+> **一句话**：把**冻结的 ViT**和**冻结的 LLM**用一个轻量 Q-Former（Querying Transformer）连接起来，只训练 Q-Former。在 zero-shot VQAv2 上比 Flamingo-80B 高 8.7%，但可训练参数少 54x。
+
+**解决了前作什么问题**：
+
+- **BLIP / Flamingo**：端到端训练，参数量大、训练成本极高（Flamingo 80B 全量训练）。
+- **BLIP-2**：把视觉模型和语言模型当成「现成零件」全部冻住，只训练中间一个小桥接器（Q-Former），**用极少算力撬动巨型 LLM 的能力**。
+- 这套 **vision encoder + projector + frozen LLM** 范式直接定义了后续 MLLM 的标准结构。
+
+### 5. LLaVA -- 视觉指令微调（UW + Microsoft, 2023）
+
+> **论文**：Visual Instruction Tuning（arXiv:2304.08485），后续 LLaVA-1.5（arXiv:2310.03744）
+>
+> **一句话**：第一次把 LLM 的「指令微调」范式搬到多模态：用纯文本 GPT-4 生成 158K 条多模态指令数据，把 CLIP-ViT 的输出经一个简单 MLP 投影到 LLM 的 token 空间，端到端训练成一个对话型 MLLM。
+
+**解决了前作什么问题**：
+
+- **BLIP-2**：能做 VQA 和 caption，但**不擅长多轮对话和指令跟随**（没做指令微调）。
+- **LLaVA**：明确把「视觉对话能力」当一阶问题来解。
+- **架构最简**：CLIP-ViT-L/336px - MLP projector - Vicuna/LLaMA。**LLaVA-1.5 用 1.2M 公开数据 + 单台 8xA100 一天训完**，证明指令微调比堆模型更关键。
+
+### 论文关系一览
+
+| 论文 | 核心贡献 | 解决前作的什么问题 |
+|-|-|-|
+| ViT (2020) | 纯 Transformer 做图像分类 | 摆脱 CNN 归纳偏置依赖 |
+| CLIP (2021) | 图文对比学习，零样本迁移 | ViT/ResNet 监督训练，标签封闭 |
+| BLIP (2022) | MED + CapFilt，理解 + 生成统一 | CLIP 不能生成；之前 VLP 二选一 |
+| BLIP-2 (2023) | Q-Former 桥接冻结 ViT + 冻结 LLM | BLIP/Flamingo 端到端训练成本高 |
+| LLaVA (2023) | 视觉指令微调，对话型 MLLM | BLIP-2 不擅长多轮对话与指令跟随 |
+
+## 二、业界最新进展（2024 - 2026）
+
+从 Flamingo 引入 cross-attention，到 Qwen2.5-VL / InternVL 系列的动态分辨率，再到 Qwen2.5-Omni 的端到端音视频统一。
+
+### 1. Flamingo -- 交错多模态序列与 in-context few-shot（DeepMind, 2022）
+
+> **论文**：Flamingo: a Visual Language Model for Few-Shot Learning（arXiv:2204.14198）
+>
+> **关键贡献**：Perceiver Resampler 把变长视觉特征压成固定数量 token；Gated Cross-Attention 把视觉信息插入冻结 LLM 的中间层；首次支持「图文交错」few-shot prompt。
+>
+> **对推理的启示**：视觉 token 数量可控，是后来 Q-Former、resampler 设计的范式来源。
+
+### 2. Qwen-VL / Qwen2-VL / Qwen2.5-VL -- 阿里通义，开源 VLM 标杆
+
+> **Qwen2-VL 论文**：Enhancing Vision-Language Model's Perception of the World at Any Resolution（arXiv:2409.12191）
+>
+> **核心创新**：Naive Dynamic Resolution（图像按原始分辨率切 patch，**不强制 resize**，token 数随尺寸变化）；Multimodal Rotary Position Embedding（M-RoPE，统一文本/图像/视频的位置编码）。
+
+> **Qwen2.5-VL 论文**：Qwen2.5-VL Technical Report（arXiv:2502.13923）
+>
+> **核心创新**：原生动态分辨率 ViT 从零训练 + Window Attention 降算力；绝对时间编码支持小时级视频中的秒级事件定位；72B 旗舰版在文档理解、图表分析上对标 GPT-4o / Claude 3.5 Sonnet。
+>
+> **对推理的启示**：**动态 patch 数 = 动态 prefill 长度**，调度器必须按图像实际 token 数排版，不能再按固定窗口预算。
+
+### 3. InternVL 系列 -- 上海 AI Lab，视觉编码器规模化
+
+> **InternVL 1.0 论文**：Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks（arXiv:2312.14238）
+>
+> **InternVL 1.5 论文**：How Far Are We to GPT-4V?（arXiv:2404.16821）
+>
+> **核心创新**：把视觉骨干 InternViT 推到 6B 参数（对标 ViT-22B）；Dynamic High-Resolution 把图切成 1~40 个 448x448 tile，支持 4K 输入；高质量中英双语数据集。
+>
+> **定位**：开源中性能最稳的「闭源 GPT-4V 对标」路线。
+
+### 4. Qwen2.5-Omni -- 端到端 Any-to-Any 多模态（Alibaba, 2025）
+
+> **论文**：Qwen2.5-Omni Technical Report（arXiv:2503.20215）
+>
+> **关键贡献**：
+> - **Thinker-Talker 架构**：Thinker（LLM）做文本生成，Talker（双轨自回归模型）直接复用 Thinker 的 hidden state 生成音频 token，**避免文本/语音相互干扰**。
+> - **TMRoPE**（Time-aligned Multimodal RoPE）：把视频与音频按时间戳交错对齐。
+> - **Block-wise streaming**：音视频编码器按块处理；解码端用 sliding-window DiT 降低首包延迟。
+>
+> **对推理的启示**：这是「Omni」称呼的源头 -- 同一个模型同时吃 text/image/audio/video 并同时输出 text + speech，是**流式解码 + 多模态调度 + 多种 codec** 的复合工程问题，单纯 LLM 推理框架接不住。
+
+### 5. 其他值得关注的方向
+
+- **原生多模态 LLM**：GPT-4o（OpenAI）、Gemini 2.x（Google）-- 闭源但定义了产品形态。
+- **Native Resolution**：Pixtral、Molmo、Qwen2.5-VL 都走 native resolution 路线，与 LLaVA 时代的 fixed 336px 形成代际差。
+- **视频长上下文**：LongVA、LLaVA-Video 等把视频帧数推到数千帧，对 KV Cache 提出新挑战。
+
+### 主流模型架构对比
+
+| 模型 | 视觉编码器 | 桥接结构 | 分辨率策略 |
+|-|-|-|-|
+| BLIP-2 | EVA-CLIP-g（冻结） | Q-Former（32 query） | 固定 224/364 |
+| LLaVA-1.5 | CLIP-ViT-L/14 | 2 层 MLP | 固定 336 |
+| Qwen2-VL / 2.5-VL | 原生动态 ViT | MLP + 2D RoPE | Naive Dynamic（任意分辨率） |
+| InternVL 1.5+ | InternViT-6B | MLP | 1~40 tile（最高 4K） |
+| Qwen2.5-Omni | 视觉 + 音频 ViT | Thinker-Talker | Block-wise 流式 |
+
+## 三、为什么多模态推理需要单独的子社区？
+
+vLLM / SGLang 在 LLM 推理之外都开了独立的 multimodal / omni 模块，原因不在 KV Cache，而在多模态特有的工程问题。
+
+<Callout type="warning">
+**关键判断**：vLLM 和 SGLang 都不是「另起炉灶」做了 vLLM-Omni / SGLang-Omni，而是在主项目内开了独立的 multimodal / omni 子模块（PR、调度器分支、专属 model registry）。这种工程隔离是模型架构差异强制出来的，不是组织选择。
+</Callout>
+
+### 1. 与纯文本 LLM 的核心差异
+
+| 维度 | 纯文本 LLM | 多模态 / Omni 模型 |
+|-|-|-|
+| 输入 | token 序列（一种 tokenizer） | text token + image patch + audio frame + video frame，**异构** |
+| 预处理 | tokenize（CPU 几毫秒） | resize/patchify/mel-spec/帧抽样，**CPU 或 GPU 上百毫秒**，可能成主瓶颈 |
+| 编码阶段 | 无独立 encoder | 独立 ViT / Audio Encoder，**需要独立调度** |
+| 位置编码 | 1D RoPE | M-RoPE / TMRoPE（多维 + 时间对齐） |
+| 上下文长度 | 由 tokenizer 决定 | 由图像尺寸/视频时长决定，**同一请求差异巨大**（几百到几万 token） |
+| KV Cache | 同质 | 视觉 token 与文本 token 混排，prefix cache 命中率天然更低 |
+| 输出 | text token | text + 可选 audio token（Omni），需要并行 codec 解码 |
+
+### 2. 为什么必须开独立子模块
+
+**2.1 多阶段流水线 != 单 prefill**
+
+VLM 推理必然是 **preprocess - vision encoder - projector - LLM prefill - decode** 的流水线。每个阶段的硬件特性、并行度、内存占用都不一样。纯 LLM 框架的调度器以「token 数」为核心调度变量，VLM 必须改成「按阶段调度 + 多 buffer」。
+
+**2.2 输入长度高度变化**
+
+Qwen2.5-VL 一张普通图可能是 1280 token，一张 4K 文档图可能是 16K+ token，一段 1 小时视频可能 30K+ token。**同一服务、同一模型、同一请求，prefill 长度可以差 100x**。
+
+**2.3 编码器侧缓存与文本 KV Cache 是两套**
+
+同一张图反复出现时，**不能复用文本 KV Cache 机制**，要开独立的 image embedding cache（按 image hash 索引）。
+
+**2.4 流式解码新增音频通路**
+
+Qwen2.5-Omni / GPT-4o 这类 Omni 模型同时输出文本和语音 token，这条「双轨自回归 + 流式 codec」的解码链，**跟主 LLM decoder 完全解耦**。
+
+**2.5 模型注册表爆炸**
+
+每个新 VLM/Omni 都有自己的 image processor、token 拼接格式、resampler 配置、动态分辨率策略。框架要为每个模型写专门的 model file，registry 数量是纯 LLM 的几倍。
+
+### 3. 在 vLLM / SGLang 里具体长什么样
+
+**vLLM 的多模态分支**：
+- `vllm/multimodal/`：mm processor、registry、input mapper、profiler
+- `vllm/model_executor/models/`：每个 VLM 一个独立 model file
+- 独立 PR 标签 `multi-modality`，专属 RFC 流程
+
+**SGLang 的多模态分支**：
+- `python/sglang/srt/multimodal/`：图像/视频/音频处理器，按模型分目录
+- RadixAttention 在 multimodal 路径下扩展支持图像 prefix 缓存
+- 面向 agent 场景做了 mm-aware 的 constrained decoding
+
+### 4. 结论：子社区 = 调度器 + 缓存 + Codec 的独立工程
+
+<Callout type="info">
+纯 LLM 推理框架的核心抽象是「同质 token 序列 + KV Cache + continuous batching」。多模态 / Omni 把这三个假设全部打破：**异构输入、异构 cache、异构解码路径**。所以 vLLM / SGLang 的多模态线本质上是**把同一个推理引擎拆出第二条数据通路**，工程量与维护节奏完全不同。
+</Callout>
+
+## 四、推理同学学习 Roadmap
+
+按「模型基础 - 推理框架 - 实战调优」三段式推进。
+
+<Callout type="info">
+**定位**：你目前精通推理侧，目标是「能看懂模型论文 + 能在 vLLM/SGLang 上接入并优化新 VLM/Omni 模型」。下面按 4 周节奏给一条紧凑路径。
+</Callout>
+
+### Week 1 -- 模型基础（论文精读 + 代码对照）
+
+1. **Day 1-2**：读 ViT + CLIP 原文，配合 Hugging Face `transformers.CLIPModel` 源码看 forward 流程。
+2. **Day 3**：读 BLIP / BLIP-2，理解 Q-Former 为什么是「桥」。
+3. **Day 4-5**：读 LLaVA + LLaVA-1.5，跑一遍 7B 模型推理，观察 image token 在 prompt 中的拼接位置。
+4. **Day 6-7**：读 Qwen2-VL + Qwen2.5-VL，重点理解 Naive Dynamic Resolution 和 M-RoPE。
+
+### Week 2 -- 推理框架本体
+
+1. **Day 8-9**：在 vLLM 上跑 Qwen2.5-VL，打开 `--enforce-eager` 跟踪完整请求。
+2. **Day 10**：阅读 `vllm/multimodal/` 目录。
+3. **Day 11**：阅读 `vllm/model_executor/models/qwen2_vl.py`，对比 `llama.py`。
+4. **Day 12-13**：在 SGLang 上跑同一个模型，对比调度器差异。
+5. **Day 14**：复盘两边的 mm cache 实现差异。
+
+### Week 3 -- Omni 模型与流式解码
+
+1. **Day 15-16**：读 Qwen2.5-Omni 论文 + 官方 cookbook。
+2. **Day 17-18**：跑 Qwen2.5-Omni 推理，观察 streaming audio output 首包延迟。
+3. **Day 19-20**：跟踪 vLLM / SGLang 关于 Omni 模型的 PR 与 issue。
+4. **Day 21**：用一篇内部分享总结「为什么 Omni 模型的 serving 不能完全复用 LLM serving stack」。
+
+### Week 4 -- 实战调优
+
+1. **Day 22-23**：选一个真实业务场景（OCR、文档问答、视频问答），跑 benchmark。
+2. **Day 24-25**：针对动态分辨率压力做一次调度器实验。
+3. **Day 26-27**：尝试给一个新 VLM 模型写一个 model file。
+4. **Day 28**：写一份「多模态推理在我们业务上的瓶颈与优化路线」报告。
+
+### 关键能力检查点
+
+- [ ] 能解释 CLIP 与 BLIP-2 的训练目标差异
+- [ ] 能画出 LLaVA 推理时 image token 在 prompt 中的物理位置
+- [ ] 能解释 Qwen2.5-VL 动态分辨率从预处理到 prefill 的传导路径
+- [ ] 能在 vLLM / SGLang 里定位 multimodal 模块入口与 cache 实现
+- [ ] 能解释 Qwen2.5-Omni 的 Thinker-Talker 为什么要双通路
+- [ ] 能在新 VLM 上手写一份 model file 接入推理框架
+
+## 五、可信信源与延伸阅读
+
+### 论文（arXiv 官方）
+
+- [ViT -- An Image is Worth 16x16 Words (arXiv:2010.11929)](https://arxiv.org/abs/2010.11929)
+- [CLIP -- Learning Transferable Visual Models From Natural Language Supervision (arXiv:2103.00020)](https://arxiv.org/abs/2103.00020)
+- [Flamingo -- a Visual Language Model for Few-Shot Learning (arXiv:2204.14198)](https://arxiv.org/abs/2204.14198)
+- [BLIP -- Bootstrapping Language-Image Pre-training (arXiv:2201.12086)](https://arxiv.org/abs/2201.12086)
+- [BLIP-2 -- Bootstrapping with Frozen Image Encoders and LLMs (arXiv:2301.12597)](https://arxiv.org/abs/2301.12597)
+- [LLaVA -- Visual Instruction Tuning (arXiv:2304.08485)](https://arxiv.org/abs/2304.08485)
+- [LLaVA-1.5 -- Improved Baselines with Visual Instruction Tuning (arXiv:2310.03744)](https://arxiv.org/abs/2310.03744)
+- [InternVL 1.0 (arXiv:2312.14238)](https://arxiv.org/abs/2312.14238)
+- [InternVL 1.5 (arXiv:2404.16821)](https://arxiv.org/abs/2404.16821)
+- [Qwen2-VL (arXiv:2409.12191)](https://arxiv.org/abs/2409.12191)
+- [Qwen2.5-VL (arXiv:2502.13923)](https://arxiv.org/abs/2502.13923)
+- [Qwen2.5-Omni (arXiv:2503.20215)](https://arxiv.org/abs/2503.20215)
+
+### 推理框架（GitHub 官方）
+
+- [vLLM -- High-throughput inference and serving engine for LLMs](https://github.com/vllm-project/vllm)
+- [vLLM 支持模型列表（含多模态）](https://docs.vllm.ai/en/latest/models/supported_models.html)
+- [SGLang -- Serving framework for LLMs and multimodal models](https://github.com/sgl-project/sglang)
+
+### 模型仓库（HuggingFace / GitHub 官方）
+
+- [OpenAI/CLIP](https://github.com/OpenAI/CLIP)
+- [salesforce/BLIP](https://github.com/salesforce/BLIP)
+- [salesforce/LAVIS（含 BLIP-2）](https://github.com/salesforce/LAVIS)
+- [haotian-liu/LLaVA](https://github.com/haotian-liu/LLaVA)
+- [QwenLM/Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL)
+- [QwenLM/Qwen2.5-Omni](https://github.com/QwenLM/Qwen2.5-Omni)
+- [OpenGVLab/InternVL](https://github.com/OpenGVLab/InternVL)
+
+---
+
+<Callout type="info">
+**使用建议**：本路线以 4 周为一个周期，建议按 Week 1-4 推进。如果只想速通：直接读 CLIP + LLaVA + Qwen2.5-VL + Qwen2.5-Omni 四篇，再扎进 vLLM `multimodal/` 目录看代码。
+
+**更新**：业界进展快，建议每 2 个月回看一次 vLLM / SGLang 的多模态 milestone 和 release notes。
+</Callout>
+
+---
+
+## 相关文章
+
+- [AI Inference 学习 Roadmap 2026 全景图](/posts/ai-inference-学习-roadmap-2026全景图) -- 更宏观的推理工程学习路线
