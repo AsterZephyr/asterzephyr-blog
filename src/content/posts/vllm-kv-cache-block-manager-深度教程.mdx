@@ -22,7 +22,7 @@ import Callout from '../../components/blog/Callout.astro'
 **KV Cache 核心思想**：每层 Attention 已计算的 Key/Value 向量缓存下来，后续 token 只需计算自己的 Q，然后与缓存的 K/V 做 attention。
 </Callout>
 
-```text
+```
 Without KV Cache (每步重新计算):
   Step 1: compute K1, V1                 -> Attention(Q1, [K1], [V1])
   Step 2: compute K1, K2, V1, V2         -> Attention(Q2, [K1,K2], [V1,V2])
@@ -73,7 +73,7 @@ With KV Cache (增量计算):
 
 ### 2.3 Block 内部结构
 
-```text
+```
 Block Shape: [block_size, num_kv_heads, head_dim]
 
 示例 (block_size=16, 8 kv_heads, head_dim=128, FP16):
@@ -114,7 +114,7 @@ vLLM 启动时通过 profiling 确定可用于 KV Cache 的显存：
 
 ### 4.1 显存预算计算
 
-```text
+```
 total_gpu_memory = 80 GB (H100)
 model_weights_memory = model_size (量化后)
 activation_memory = 通过 dummy forward pass profiling 得出
@@ -129,7 +129,7 @@ available_kv_memory = total_gpu_memory x gpu_memory_utilization - model_weights 
 
 ### 4.2 Block 大小计算
 
-```text
+```
 block_size_bytes = block_size x num_layers x 2(K+V) x num_kv_heads_per_rank x head_dim x dtype_bytes
 
 num_gpu_blocks = available_kv_memory / block_size_bytes
@@ -137,7 +137,7 @@ num_gpu_blocks = available_kv_memory / block_size_bytes
 
 ### 4.3 计算实例
 
-```text
+```
 模型权重: ~140 GB FP16 / 8 GPU = 17.5 GB per GPU
 Activations: ~2 GB
 CUDA overhead: ~1.5 GB
@@ -169,7 +169,7 @@ num_blocks = 51 GB / 640 KB ~ 81,920 blocks
 
 将同一个请求的序列按 token 维度切分到多个 GPU。**这是扩展长上下文最直接的手段：**
 
-```text
+```
 CP = 4:
   Rank 0: tokens [0, N/4)       -> 本地存储
   Rank 1: tokens [N/4, N/2)     -> 本地存储
@@ -187,7 +187,7 @@ DeepSeek-V2/V3 引入的 Multi-head Latent Attention，核心改动是 **KV 压�
 
 ### 6.1 什么是 MLA
 
-```text
+```
 标准 MHA:
   K = W_k x h    shape: [seq_len, num_heads, head_dim]
   V = W_v x h    shape: [seq_len, num_heads, head_dim]
@@ -255,7 +255,7 @@ Context Parallelism 下新 token 需 attend 到所有历史 KV（分布在不同
 
 ## 9. 实战案例：H100 80G x 8 部署分析
 
-```text
+```
 环境: H100 80G x 8
 Metric: GPU KV Blocks ~ 3258, block_size = 16
 计算: 3258 x 16 = 52,128 tokens
@@ -264,7 +264,7 @@ Metric: GPU KV Blocks ~ 3258, block_size = 16
 
 配置为 TP=2, DCP x PCP = 4（Context Parallelism 总度数 4）：
 
-```text
+```
 单卡 KV 容量: 3258 x 16 = 52K tokens (metric 显示)
 系统总容量:   52K x 4 (CP=4) = 208K tokens
 
@@ -300,7 +300,7 @@ curl http://localhost:8000/metrics | grep -i block
 
 ### 关键公式汇总
 
-```text
+```
 KV Cache per token (标准 GQA):
   = num_layers x 2 x num_kv_heads x head_dim x dtype_bytes
 
@@ -318,5 +318,5 @@ Total capacity (with CP):
 
 ## 相关文章
 
-- [GPU 推理部署学习指南：从显存计算到性能优化](/posts/gpu推理部署学习指南-从显存计算到性能优化) -- 更基础的显存与性能分析框架
-- [AI Inference 学习 Roadmap 2026 全景图](/posts/ai-inference-学习-roadmap-2026全景图) -- 推理工程全景学习路线
+- [GPU 推理部署学习指南：从显存计算到性能优化](/blog/gpu推理部署学习指南-从显存计算到性能优化) -- 更基础的显存与性能分析框架
+- [AI Inference 学习 Roadmap 2026 全景图](/blog/ai-inference-学习-roadmap-2026全景图) -- 推理工程全景学习路线

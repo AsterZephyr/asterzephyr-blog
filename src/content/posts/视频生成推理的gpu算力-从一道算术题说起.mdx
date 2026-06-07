@@ -15,7 +15,7 @@ import Callout from '../../components/blog/Callout.astro'
 
 怎么算的？公式很简单：
 
-```text
+```
 300 / 8 * 43 / 1600 = 1.0
 ```
 
@@ -62,7 +62,7 @@ import Callout from '../../components/blog/Callout.astro'
 
 每张卡 37.5 秒处理一个请求，1600 张卡同时工作：
 
-```text
+```
 QPS = 1600 / 37.5 = 42.7
 ```
 
@@ -84,7 +84,7 @@ QPS = 1600 / 37.5 = 42.7
 
 一个视频生成请求要经过以下步骤：
 
-```text
+```
 文字提示 -> Text Encoder -> Latent Space Noise
                                     |
                           DiT Denoising Loop (30~100 步)
@@ -109,7 +109,7 @@ QPS = 1600 / 37.5 = 42.7
 
 token 总数 = 空间 token x 时间 token。如果图片是 1024 个 token，10 秒视频就是：
 
-```text
+```
 1024 * 40 = 40,960 个 token（compressed）
 ```
 
@@ -117,7 +117,7 @@ token 总数 = 空间 token x 时间 token。如果图片是 1024 个 token，10
 
 从图片（1 帧）到视频（160 帧），即使 VAE 做了 4x 时序压缩：
 
-```text
+```
 40^2 / 1^2 = 1,600 倍
 ```
 
@@ -207,7 +207,7 @@ token 总数 = 空间 token x 时间 token。如果图片是 1024 个 token，10
 
 回到最初的公式：
 
-```text
+```
 300(H20延迟) / 8(性能比) * 43(并发数) / 1600(卡数) = 1.0(打满)
 ```
 
@@ -235,7 +235,7 @@ token 总数 = 空间 token x 时间 token。如果图片是 1024 个 token，10
 
 将均匀时序 attention (T^2) 变为金字塔结构：
 
-```text
+```
 总成本 = 1/3 * (T^2 + (T/2)^2 + (T/4)^2) = 0.44 * T^2
 ```
 
@@ -264,5 +264,5 @@ token 总数 = 空间 token x 时间 token。如果图片是 1024 个 token，10
 
 ## 相关文章
 
-- [GPU 推理部署学习指南：从显存计算到性能优化](/posts/gpu推理部署学习指南-从显存计算到性能优化) -- 更基础的 GPU 性能分析框架
-- [World Model TP 并行深度分析：为什么 TP=N 比 TP=1 还慢](/posts/world-model-tp并行深度分析-为什么tp-n比tp-1还慢) -- 视频生成模型的并行策略选择
+- [GPU 推理部署学习指南：从显存计算到性能优化](/blog/gpu推理部署学习指南-从显存计算到性能优化) -- 更基础的 GPU 性能分析框架
+- [World Model TP 并行深度分析：为什么 TP=N 比 TP=1 还慢](/blog/world-model-tp并行深度分析-为什么tp-n比tp-1还慢) -- 视频生成模型的并行策略选择
