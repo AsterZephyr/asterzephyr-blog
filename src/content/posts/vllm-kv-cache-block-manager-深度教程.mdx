@@ -8,6 +8,7 @@ draft: false
 
 import Callout from '../../components/blog/Callout.astro'
 import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 <Callout type="info">
 从 PagedAttention 原理到多卡部署下的 KV Cache 容量计算，彻底搞懂为什么单卡 metric 显示 52K 却能跑 200K+ 上下文。
@@ -324,6 +325,144 @@ Num GPU blocks:
 Total capacity (with CP):
   = num_blocks x block_size x context_parallel_size
 ```
+
+---
+
+## 11. Prefix Caching 与 Copy-on-Write
+
+### 11.1 Prefix Caching 原理
+
+多轮对话中，System Prompt 和历史消息的 KV Cache 是完全相同的。如果每次请求都重新计算，是巨大的浪费。
+
+<TechGraph src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-block-allocation.svg" title="Prefix Caching: Block 共享与 CoW" caption="多个请求共享相同前缀的 KV Block，分叉时触发 Copy-on-Write" />
+
+```
+请求 A: [System Prompt | User msg 1 | Assistant reply 1 | User msg 2]
+请求 B: [System Prompt | User msg 1 | Assistant reply 1 | User msg 3]
+                       ^-- 共同前缀 --^
+
+Prefix Caching:
+  Block 0-5: System Prompt KV (共享, ref_count=2)
+  Block 6-8: User msg 1 KV (共享, ref_count=2)
+  Block 9-11: Assistant reply 1 KV (共享, ref_count=2)
+  Block 12+: 各自独立分配
+```
+
+### 11.2 Copy-on-Write 机制
+
+当两个请求共享同一个 Block，但其中一个需要修改（append 新 token）时：
+
+1. 检查 Block 的 `ref_count`
+2. 如果 `ref_count > 1`：复制该 Block 到新物理位置，更新 Block Table
+3. 如果 `ref_count == 1`：直接 in-place 修改
+
+```
+Before CoW:
+  Req A Block Table: [0, 1, 2, 3, 4]  (block 4 ref_count=2)
+  Req B Block Table: [0, 1, 2, 3, 4]  (共享 block 4)
+
+Req A appends token -> triggers CoW on block 4:
+  New block 5 = copy(block 4)
+  Req A Block Table: [0, 1, 2, 3, 5]  (block 5 ref_count=1)
+  Req B Block Table: [0, 1, 2, 3, 4]  (block 4 ref_count=1)
+```
+
+### 11.3 Prefix Caching 的实际收益
+
+| 场景 | 无 Prefix Cache | 有 Prefix Cache | 节省 |
+|-|-|-|-|
+| 多轮对话 (2K system prompt) | 每次计算 2K tokens | 首次计算，后续复用 | Prefill 延迟 -60% |
+| Few-shot (8K examples) | 每次计算 8K tokens | 一次计算，所有请求共享 | Prefill 延迟 -85% |
+| RAG (4K context) | 每请求独立 | 相同 doc chunks 共享 | 显存 -40% |
+
+---
+
+## 12. Block Scheduling：抢占策略
+
+### 12.1 为什么需要抢占
+
+当所有 GPU Block 被分配完毕，新请求到来时，Scheduler 必须做选择：
+
+1. **拒绝**：返回 503，让客户端重试
+2. **抢占**：终止或暂停一个正在运行的请求，释放其 Block
+
+vLLM 选择方案 2，通过两种抢占策略实现：
+
+### 12.2 Recompute vs Swap
+
+<TechGraph src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-tp-cp-comparison.svg" title="抢占策略对比: Recompute vs Swap" caption="Recompute 省带宽、延迟高；Swap 带宽密集但恢复快" />
+
+| 策略 | 机制 | 延迟 | 带宽占用 | 适用场景 |
+|-|-|-|-|-|
+| Recompute | 释放 Block，重新 prefill | ~100ms/K tokens | 无额外带宽 | 短序列、显存紧张 |
+| Swap | 搬到 CPU 内存，需要时搬回 | ~50ms/GB (PCIe) | PCIe 带宽 | 长序列、CPU 内存充裕 |
+
+### 12.3 抢占优先级
+
+vLLM 按以下优先级选择抢占对象：
+
+```
+1. 最晚到达的请求 (FCFS 逆序)
+2. 已生成 token 最少的请求 (最小浪费)
+3. Longest prefix sharing 的请求优先保留 (cache 价值高)
+```
+
+### 12.4 Swap Pool 配置
+
+```python
+# 控制 CPU swap 空间大小
+engine_args = EngineArgs(
+    swap_space=4,  # GB, 默认 4GB
+    # 等效于: cpu_blocks = 4GB / block_size_bytes
+)
+```
+
+---
+
+## 13. 生产调优案例
+
+### 13.1 场景：DeepSeek-V3 671B MoE, 8xH100
+
+```bash
+vllm serve deepseek-ai/DeepSeek-V3 \
+  --tensor-parallel-size 8 \
+  --gpu-memory-utilization 0.92 \
+  --max-model-len 32768 \
+  --block-size 16 \
+  --enable-prefix-caching \
+  --swap-space 8
+```
+
+关键参数的选择逻辑：
+
+| 参数 | 值 | 原因 |
+|-|-|-|
+| `gpu-memory-utilization` | 0.92 | MoE Expert 占显存大，留余量防 OOM |
+| `max-model-len` | 32768 | 限制最大上下文，避免单请求占满 KV |
+| `block-size` | 16 | 默认值，平衡碎片和管理开销 |
+| `enable-prefix-caching` | true | 多轮对话场景必开 |
+| `swap-space` | 8 GB | CPU 内存充裕，多留缓冲 |
+
+### 13.2 调优目标与指标
+
+```bash
+# 核心监控指标
+curl localhost:8000/metrics | grep -E "gpu_cache_usage|num_requests|time_to_first_token"
+
+# 健康区间:
+# gpu_cache_usage_perc: 60-85% (太低浪费, 太高频繁抢占)
+# e2e_request_latency_p99: < 10s
+# time_to_first_token_p99: < 2s
+```
+
+### 13.3 常见调优决策
+
+| 症状 | 诊断 | 调优 |
+|-|-|-|
+| Cache usage > 90% + 频繁抢占 | 并发太高或序列太长 | 降 max-model-len 或加卡 |
+| Cache usage < 50% + 延迟高 | Prefill 太慢 | 开 chunked prefill, 调 max-num-batched-tokens |
+| TTFT 高 + ITL 正常 | Prefill 阶段排队 | 开 prefix caching, 或 prefill/decode 分离 |
+| ITL 抖动大 | Decode batch size 波动 | 限制 max-num-seqs, 平滑调度 |
 
 ---
 

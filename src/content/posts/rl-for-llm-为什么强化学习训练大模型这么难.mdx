@@ -227,6 +227,148 @@ Entropy（熵）衡量模型输出的**多样性**。正常 RL 训练的 entropy
 
 ---
 
+## Part 5.5：GRPO 算法推导 -- 从 Policy Gradient 到组内优势
+
+### Policy Gradient 的标准形式
+
+强化学习的核心目标是最大化期望回报：
+
+```
+J(theta) = E[sum of rewards]
+Policy Gradient: nabla J = E[nabla log pi(a|s) * A(s,a)]
+```
+
+其中 A(s,a) 是 advantage function -- 衡量这个 action 比"平均"好多少。
+
+### PPO 的 Critic 问题
+
+PPO 用一个独立的 Value Network (Critic) 来估计 advantage：
+
+```
+A(s,a) = R(s,a) - V(s)  (Critic 估计的 baseline)
+```
+
+问题：训练 Critic 需要第 5 个大模型（Actor + Reference + Reward + Critic），**显存和计算成本翻倍**。
+
+### GRPO 的核心洞察
+
+DeepSeek 的解法：**不用 Critic，用同组采样的统计量代替 baseline**。
+
+对于每个 prompt x，采样 k 个回答 (y_1, ..., y_k)，计算各自的 reward (r_1, ..., r_k)：
+
+```
+GRPO Advantage:
+  A_i = (r_i - mean(r_1..k)) / std(r_1..k)
+
+对比 PPO:
+  A_i = r_i - V(s)  (需要额外网络)
+
+GRPO 的 A_i 完全由同组样本的统计量决定，不需要额外参数。
+```
+
+### 梯度更新公式
+
+```
+L_GRPO = -E[ min(rho * A, clip(rho, 1-eps, 1+eps) * A) ] + beta * KL(pi || pi_ref)
+
+其中:
+  rho = pi_theta(y|x) / pi_old(y|x)  -- 重要性采样比
+  A = GRPO advantage (组内标准化)
+  beta * KL = 与 reference model 的距离惩罚
+```
+
+### 为什么 KL 惩罚至关重要
+
+没有 KL 项，模型会快速退化（reward hacking）：
+
+```
+无 KL 惩罚:
+  Step 100: 模型发现某种输出格式总得高分
+  Step 500: 所有输出变成同一种格式 (entropy collapse)
+  Step 1000: 输出完全丧失多样性，即使 reward 很高
+
+有 KL 惩罚:
+  pi_theta 不能偏离 pi_ref 太远
+  = 强制保留 base model 的语言能力和多样性
+```
+
+---
+
+## Part 5.6：如何设计一个有效的 RL 实验
+
+### 实验 Checklist
+
+| 步骤 | 内容 | 不做的后果 |
+|-|-|-|
+| 1. 验证 pass@k | 测 base model 的 pass@64 是否 > 0 | RL 完全无信号 |
+| 2. Reward 验证 | 确认 reward function 区分度足够 | Reward hacking |
+| 3. Baseline 对比 | SFT on positive samples vs RL | 无法证明 RL 有额外价值 |
+| 4. Entropy 监控 | 实时画 entropy 曲线 | 不知道何时该停 |
+| 5. 多 seed 重复 | 至少 3 个 random seed | 结果不可复现 |
+
+### 最小可行实验配置
+
+```yaml
+model: Qwen3-30B-A3B (或更大)
+dataset: GSM8K (数学, 可验证)
+reward: exact_match(predicted_answer, ground_truth)
+sampling:
+  k: 64 (每 prompt 采样数)
+  temperature: 1.0 (保证多样性)
+  max_tokens: 2048
+training:
+  lr: 1e-6
+  batch_size: 128 prompts (= 128 * 64 = 8192 samples/step)
+  kl_coeff: 0.05
+  clip_eps: 0.2
+  epochs: 3-5
+monitoring:
+  - entropy (should decrease slowly, NOT crash)
+  - mean_reward (should increase)
+  - pass@1 (target metric)
+  - pass@64 (diversity check - should NOT decrease)
+```
+
+### 常见错误
+
+1. **k 太小**：k=4 几乎肯定 rewards 全 0 或全 1，无梯度
+2. **温度太低**：temperature=0.3 让 pass@k 接近 pass@1，失去探索
+3. **学习率太高**：lr=1e-5 直接 entropy collapse
+4. **忘记监控 pass@k**：mean@1 上升但 pass@k 下降 = 策略退化
+
+---
+
+## Part 5.7：VLM（视觉语言模型）RL 的特殊挑战
+
+### 为什么 VLM RL 更难
+
+| 维度 | LLM RL | VLM RL |
+|-|-|-|
+| Reward 设计 | 数学/代码有精确验证器 | 视觉问答主观性强 |
+| 采样效率 | 纯文本 token，生成快 | 图像 + 文本，forward pass 慢 3-5x |
+| 搜索空间 | token 序列 | token 序列 + spatial reasoning |
+| 失败模式 | entropy collapse | hallucination amplification |
+
+### VLM 特有的失败模式：Hallucination Amplification
+
+```
+正常 VLM: 偶尔编造图中不存在的物体 (hallucination rate ~15%)
+
+RL 后的风险:
+  如果 reward 只验证"答案正确性"而不验证"图像一致性":
+  模型学会编造更多细节来提高答案命中率
+  -> hallucination rate 可能从 15% 升到 40%
+  -> "更对但更假"
+```
+
+### 当前可行方向
+
+1. **Grounding Reward**：奖励时额外验证"答案是否来自图像证据"
+2. **OCR/Detection Verification**：用外部检测器验证视觉 claim
+3. **Rejection Sampling + SFT**：先 RL 采样高质量样本，再 SFT（更安全但更慢）
+
+---
+
 ## Part 6：关键论文与资源
 
 ### 必读论文

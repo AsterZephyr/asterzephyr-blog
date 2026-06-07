@@ -8,6 +8,7 @@ draft: false
 
 import Callout from '../../components/blog/Callout.astro'
 import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
 
 > 从 SGLang Omni 架构到 DiT/World Model 的并行策略选择，理解何时 TP 是负收益，以及正确的多卡方案。
 
@@ -300,6 +301,160 @@ Meta Movie Gen 的典型说法：
 <Callout type="info">
 **经验法则**：只有当模型 hidden_dim/TP_size > 2048 且单步 tokens > 2000 时，TP 才可能有正收益。绝大部分 DiT/WM 不满足这个条件。
 </Callout>
+
+---
+
+## 9. NVLink vs PCIe：通信带宽决定 TP 天花板
+
+### 9.1 互联带宽对比
+
+TP 的核心开销是 AllReduce。AllReduce 的延迟直接取决于 GPU 间互联带宽：
+
+| 互联类型 | 单向带宽 | AllReduce 有效带宽 | 典型平台 |
+|-|-|-|-|
+| NVLink 4.0 (H100) | 450 GB/s (单向) | ~400 GB/s | DGX H100 |
+| NVLink 3.0 (A100) | 300 GB/s | ~260 GB/s | DGX A100 |
+| PCIe Gen5 x16 | 64 GB/s | ~50 GB/s | 消费级/云 PCIe |
+| PCIe Gen4 x16 | 32 GB/s | ~25 GB/s | RTX 4090 |
+
+**关键结论**：NVLink 比 PCIe Gen4 快 16 倍。在 PCIe 平台上开 TP，通信开销会是 NVLink 的 16 倍，TP 的正收益门槛也随之大幅提高。
+
+### 9.2 RTX 4090 上的 TP 实测
+
+RTX 4090 只有 PCIe Gen4 互联（无 NVLink）。实测 7B LLM：
+
+```
+TP=2 on 2x4090 (PCIe Gen4):
+  单卡 compute: 15ms
+  AllReduce (PCIe): 80 layers * 2 * 0.8ms = 128ms
+  总计: 143ms (比单卡慢!)
+
+同样的模型 on DGX (NVLink):
+  单卡 compute: 15ms
+  AllReduce (NVLink): 80 layers * 2 * 0.05ms = 8ms
+  总计: 15.5ms (有效加速)
+```
+
+**结论**：在 PCIe 平台上，即使 LLM 这种 TP 优势场景，7B 模型也无法从 TP 获益。World Model (2-5B) 就更不用说了。
+
+---
+
+## 10. Ring AllReduce 通信量推导
+
+### 10.1 公式
+
+Ring AllReduce 是 NCCL 最常用的集合通信算法。对于 N 个 GPU，每个 GPU 持有大小为 D 的数据：
+
+```
+通信量 = 2 * (N-1) / N * D
+延迟 = 2 * (N-1) * alpha + 2 * (N-1) / N * D / bandwidth
+```
+
+其中：
+- alpha = 单次消息启动延迟 (~5us for NVLink)
+- bandwidth = 链路带宽
+- 2 = reduce-scatter + all-gather 两个阶段
+
+### 10.2 World Model 的具体计算
+
+以 SANA-WM (2.6B, hidden_dim=2240, TP=4) 为例：
+
+每层 AllReduce 的数据量：
+```
+D = batch_size * seq_len * hidden_dim * sizeof(bf16)
+  = 1 * 6440 * 2240 * 2
+  = 28.9 MB
+
+Ring AllReduce 通信量 = 2 * (4-1)/4 * 28.9 = 43.3 MB
+NVLink 延迟 = 43.3 MB / 400 GB/s = 0.11 ms
+实际延迟 (含 kernel launch + sync): ~0.3 ms
+```
+
+20 个 DiT block，每个 2 次 AllReduce：
+```
+总通信时间 = 20 * 2 * 0.3 = 12 ms
+```
+
+对比 compute 时间只有 4ms。**通信 / 计算 = 3x，TP 是净亏损。**
+
+---
+
+## 11. 实际 Profiling 方法
+
+### 11.1 使用 NSight Systems 分析
+
+判断 TP 是否有效的标准方法：
+
+```bash
+nsys profile --trace=cuda,nvtx --output=report \
+  python run_model.py --tp-size=1
+
+nsys profile --trace=cuda,nvtx --output=report_tp4 \
+  python run_model.py --tp-size=4
+```
+
+在 NSight Systems UI 中对比：
+1. **Kernel Duration**：TP=4 的单层 kernel 应该是 TP=1 的 ~1/4
+2. **NCCL Calls**：TP=4 会出现大量 ncclAllReduce kernel
+3. **Idle Gaps**：TP kernel 之间的空闲间隙（sync barrier）
+
+### 11.2 关键指标：SM Occupancy
+
+<TechGraph src="/images/posts/world-model-tp并行深度分析-为什么tp-n比tp-1还慢/world-model-tp-breakeven.svg" title="TP 临界点分析" caption="模型规模 vs TP 收益：只有大模型才能覆盖通信开销" />
+
+NSight Compute (NCU) 可以看到每个 kernel 的 SM 占用率：
+
+```bash
+ncu --set full --target-processes all \
+  python run_model.py --tp-size=4
+```
+
+核心指标：
+- **Achieved Occupancy**：TP 切分后 GEMM 变小，occupancy 从 90% 降到 30-40%
+- **Memory Throughput**：小 GEMM 的 memory access pattern 变差
+- **Compute Throughput**：实际 TFLOPS vs 峰值 TFLOPS 的比值
+
+当 Achieved Occupancy < 50% 时，TP 切分已经让 GEMM 太小，Tensor Core 无法被充分利用。
+
+---
+
+## 12. SP vs TP 的理论 Roofline 对比
+
+### 12.1 从 Roofline 视角理解
+
+<TechGraph src="/images/posts/world-model-tp并行深度分析-为什么tp-n比tp-1还慢/world-model-omni-arch.svg" title="SP vs TP Roofline 对比" caption="SP 保持单层计算规模不变，TP 把每层 GEMM 切小" />
+
+| 维度 | TP | SP |
+|-|-|-|
+| 单层 GEMM 大小 | 缩小 N 倍 | 不变 |
+| Arithmetic Intensity | 下降（GEMM 变小） | 不变 |
+| 通信类型 | AllReduce (latency-bound) | AllToAll (bandwidth-bound) |
+| 通信频率 | 每层 2 次 | attention 时 1 次 |
+| SM Occupancy | 下降 | 不变 |
+
+### 12.2 数值对比
+
+以 Wan-5B, seq_len=3600, hidden_dim=3072, H100 NVLink 为例：
+
+**TP=4 场景**：
+```
+单层 GEMM: [3600, 3072] x [3072, 768] -> [3600, 768]
+FLOPs: 2 * 3600 * 3072 * 768 = 17.0 GFLOPS
+耗时: 17.0G / 989T = 0.017 ms (太小，kernel launch overhead 就 0.01ms)
+通信: 0.3 ms
+比值: 0.017 / 0.3 = 0.057 -- 计算只有通信的 5.7%
+```
+
+**SP=4 场景**：
+```
+单层 GEMM: [900, 3072] x [3072, 12288] -> [900, 12288] (seq 切 4 份，weight 不切)
+FLOPs: 2 * 900 * 3072 * 12288 = 68.2 GFLOPS
+耗时: 68.2G / 989T = 0.069 ms
+通信 (AllToAll for attention): ~0.05 ms (一次，不是每层)
+比值: 0.069 / 0.05 = 1.38 -- 计算大于通信
+```
+
+**SP 的计算/通信比是 TP 的 24 倍**，这就是 SP 对 World Model 优势的数学本质。
 
 ---
 

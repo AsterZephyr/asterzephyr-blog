@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9ca3af"/>
+    </marker>
+    <marker id="arr-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+    </marker>
+    <marker id="arr-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e"/>
+    </marker>
+  </defs>
+  <rect width="960" height="600" fill="#1b1f23"/>
+  <text x="480" y="40" text-anchor="middle" fill="#e1e4e8" font-family="system-ui, sans-serif" font-size="18" font-weight="bold">SP vs TP: Roofline Behavior Comparison</text>
+  <!-- Left panel: TP -->
+  <rect x="40" y="70" width="420" height="490" fill="#24292e" rx="10" stroke="#374151" stroke-width="1"/>
+  <text x="250" y="100" text-anchor="middle" fill="#f87171" font-family="system-ui, sans-serif" font-size="15" font-weight="bold">Tensor Parallelism (TP=4)</text>
+  <!-- TP diagram: small GEMMs + many AllReduce -->
+  <rect x="80" y="130" width="80" height="50" fill="#1e3a5f" rx="4" stroke="#3b82f6" stroke-width="1"/>
+  <text x="120" y="160" text-anchor="middle" fill="#93c5fd" font-family="monospace" font-size="10">GEMM/4</text>
+  <rect x="190" y="130" width="80" height="50" fill="#1e3a5f" rx="4" stroke="#3b82f6" stroke-width="1"/>
+  <text x="230" y="160" text-anchor="middle" fill="#93c5fd" font-family="monospace" font-size="10">GEMM/4</text>
+  <rect x="300" y="130" width="80" height="50" fill="#1e3a5f" rx="4" stroke="#3b82f6" stroke-width="1"/>
+  <text x="340" y="160" text-anchor="middle" fill="#93c5fd" font-family="monospace" font-size="10">GEMM/4</text>
+  <rect x="80" y="200" width="300" height="30" fill="#4c1d1d" rx="4" stroke="#ef4444" stroke-width="1"/>
+  <text x="230" y="220" text-anchor="middle" fill="#fca5a5" font-family="monospace" font-size="10">AllReduce (0.3ms)</text>
+  <rect x="80" y="250" width="80" height="50" fill="#1e3a5f" rx="4" stroke="#3b82f6" stroke-width="1"/>
+  <text x="120" y="280" text-anchor="middle" fill="#93c5fd" font-family="monospace" font-size="10">GEMM/4</text>
+  <rect x="190" y="250" width="80" height="50" fill="#1e3a5f" rx="4" stroke="#3b82f6" stroke-width="1"/>
+  <text x="230" y="280" text-anchor="middle" fill="#93c5fd" font-family="monospace" font-size="10">GEMM/4</text>
+  <rect x="300" y="250" width="80" height="50" fill="#1e3a5f" rx="4" stroke="#3b82f6" stroke-width="1"/>
+  <text x="340" y="280" text-anchor="middle" fill="#93c5fd" font-family="monospace" font-size="10">GEMM/4</text>
+  <rect x="80" y="320" width="300" height="30" fill="#4c1d1d" rx="4" stroke="#ef4444" stroke-width="1"/>
+  <text x="230" y="340" text-anchor="middle" fill="#fca5a5" font-family="monospace" font-size="10">AllReduce (0.3ms)</text>
+  <!-- TP stats -->
+  <text x="250" y="390" text-anchor="middle" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="12">Per layer: compute 0.017ms + comm 0.3ms</text>
+  <text x="250" y="412" text-anchor="middle" fill="#f87171" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Compute/Comm ratio = 0.057</text>
+  <!-- TP Roofline -->
+  <rect x="80" y="440" width="340" height="100" fill="#1b1f23" rx="6" stroke="#374151" stroke-width="1"/>
+  <text x="250" y="465" text-anchor="middle" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="11">Roofline Position</text>
+  <line x1="100" y1="520" x2="400" y2="520" stroke="#4b5563" stroke-width="1"/>
+  <line x1="100" y1="520" x2="100" y2="475" stroke="#4b5563" stroke-width="1"/>
+  <path d="M 100 520 L 200 480 L 400 480" fill="none" stroke="#6b7280" stroke-width="1.5"/>
+  <circle cx="120" cy="515" r="5" fill="#ef4444"/>
+  <text x="130" y="512" fill="#fca5a5" font-family="system-ui, sans-serif" font-size="9">TP=4 (far left = mem-bound)</text>
+  <!-- Right panel: SP -->
+  <rect x="500" y="70" width="420" height="490" fill="#24292e" rx="10" stroke="#374151" stroke-width="1"/>
+  <text x="710" y="100" text-anchor="middle" fill="#4ade80" font-family="system-ui, sans-serif" font-size="15" font-weight="bold">Sequence Parallelism (SP=4)</text>
+  <!-- SP diagram: full GEMMs + one AllToAll -->
+  <rect x="540" y="130" width="120" height="50" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1"/>
+  <text x="600" y="155" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="10">Full GEMM</text>
+  <text x="600" y="170" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="9">(seq/4 x full weight)</text>
+  <rect x="690" y="130" width="120" height="50" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1"/>
+  <text x="750" y="155" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="10">Full GEMM</text>
+  <text x="750" y="170" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="9">(seq/4 x full weight)</text>
+  <rect x="540" y="200" width="270" height="30" fill="#1a3a2a" rx="4" stroke="#f59e0b" stroke-width="1"/>
+  <text x="675" y="220" text-anchor="middle" fill="#fcd34d" font-family="monospace" font-size="10">AllToAll for Attention (0.05ms)</text>
+  <rect x="540" y="250" width="120" height="50" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1"/>
+  <text x="600" y="275" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="10">Attention</text>
+  <text x="600" y="290" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="9">(local Q x full KV)</text>
+  <rect x="690" y="250" width="120" height="50" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1"/>
+  <text x="750" y="275" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="10">Attention</text>
+  <text x="750" y="290" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="9">(local Q x full KV)</text>
+  <rect x="540" y="320" width="120" height="50" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1"/>
+  <text x="600" y="350" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="10">Full FFN</text>
+  <rect x="690" y="320" width="120" height="50" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1"/>
+  <text x="750" y="350" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="10">Full FFN</text>
+  <!-- SP stats -->
+  <text x="710" y="400" text-anchor="middle" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="12">Per layer: compute 0.069ms + comm 0.05ms</text>
+  <text x="710" y="422" text-anchor="middle" fill="#4ade80" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Compute/Comm ratio = 1.38</text>
+  <!-- SP Roofline -->
+  <rect x="540" y="440" width="340" height="100" fill="#1b1f23" rx="6" stroke="#374151" stroke-width="1"/>
+  <text x="710" y="465" text-anchor="middle" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="11">Roofline Position</text>
+  <line x1="560" y1="520" x2="860" y2="520" stroke="#4b5563" stroke-width="1"/>
+  <line x1="560" y1="520" x2="560" y2="475" stroke="#4b5563" stroke-width="1"/>
+  <path d="M 560 520 L 660 480 L 860 480" fill="none" stroke="#6b7280" stroke-width="1.5"/>
+  <circle cx="680" cy="480" r="5" fill="#22c55e"/>
+  <text x="695" y="477" fill="#86efac" font-family="system-ui, sans-serif" font-size="9">SP=4 (near ridge = balanced)</text>
+  <!-- Bottom comparison -->
+  <text x="480" y="590" text-anchor="middle" fill="#e1e4e8" font-family="system-ui, sans-serif" font-size="13">SP compute/comm is 24x better than TP for World Model (2-5B)</text>
+</svg>

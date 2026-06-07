@@ -3,7 +3,7 @@ title: "GPU 推理部署学习指南：从显存计算到性能优化"
 date: 2026-06-07
 tags: [AI, GPU, 推理优化, 量化, Roofline Model]
 summary: "给你 16GB 显存的 GPU，你能部署多大的模型？从显存计算、存储层级、Roofline Model 到量化策略，按 Bloom 认知分类法建立 GPU 推理部署的完整认知框架。"
-draft: true
+draft: false
 ---
 
 import TechGraph from '../../components/blog/TechGraph.astro'
@@ -273,6 +273,169 @@ Decode 阶段每次只生成 1 个 token：
 - [Mooncake](https://arxiv.org/abs/2407.00079) -- Disaggregated KV Cache Management (Moonshot AI)
 - [NSight Compute](https://developer.nvidia.com/nsight-compute) -- NVIDIA GPU kernel profiling tool
 - [SmoothQuant](https://arxiv.org/abs/2211.10438) -- Accurate and efficient post-training quantization for LLMs
+
+---
+
+## Level 5.5：Prefill vs Decode -- 双阶段性能特征
+
+<Callout type="info">
+**本层目标**：理解 LLM 推理的两个阶段有完全不同的性能瓶颈，优化策略也完全不同。
+</Callout>
+
+### Prefill 阶段
+
+处理用户输入的全部 token（一次性），本质是一个 **GEMM（矩阵-矩阵乘法）**：
+
+```
+Prefill:
+  Q: [seq_len, hidden_dim]
+  K: [seq_len, hidden_dim]
+  Attention: [seq_len, seq_len] -- 完整矩阵乘
+  FLOPs: O(seq_len^2 * hidden_dim + seq_len * hidden_dim^2)
+
+  性质: Compute-Bound (算术强度高)
+  瓶颈: GPU 算力
+  优化: TP 并行 / Flash Attention / Tensor Core 利用率
+```
+
+### Decode 阶段
+
+逐 token 生成，本质是一个 **GEMV（矩阵-向量乘法）**：
+
+```
+Decode (每步):
+  Q: [1, hidden_dim]  -- 只有 1 个新 token
+  K: [1, hidden_dim]  -- 只新增 1 个 KV
+  Attention: Q vs 全部历史 KV
+
+  计算量: 2 * params (GEMV)
+  搬运量: params * bytes_per_param (全量权重加载)
+  算术强度: 2 / bytes_per_param = 1.0 (FP16)
+
+  性质: 极端 Memory-Bound
+  瓶颈: 显存带宽
+  优化: 量化 / Speculative Decoding / Batching
+```
+
+### 为什么 Batching 能救 Decode
+
+单个 decode step 是 GEMV（memory-bound），但**多个请求合并成 batch 后变成 GEMM（compute-bound）**：
+
+| Batch Size | 计算类型 | 算术强度 (FP16) | GPU 利用率 |
+|-|-|-|-|
+| 1 | GEMV | 1.0 | < 1% |
+| 8 | 小 GEMM | 8.0 | ~3% |
+| 64 | 中 GEMM | 64.0 | ~22% |
+| 256 | 大 GEMM | 256.0 | ~87% |
+
+**这就是 Continuous Batching 的意义**：不是为了"处理更多请求"（那是 throughput），而是**从根本上改变 decode 阶段的性能特征**，从 memory-bound 变成 compute-bound。
+
+---
+
+## Level 5.6：Continuous Batching 工作原理
+
+<Callout type="info">
+**本层目标**：理解为什么 vLLM 的 continuous batching 比传统 static batching 效率高一个数量级。
+</Callout>
+
+### Static Batching 的问题
+
+传统做法：等凑满一个 batch，一起做 prefill，然后一起 decode 直到所有请求结束。
+
+```
+Static Batch (batch_size=4):
+  Req 1: [prefill----][decode------------------]  (200 tokens)
+  Req 2: [prefill----][decode--------]            (100 tokens)
+  Req 3: [prefill----][decode-]                    (30 tokens)
+  Req 4: [prefill----][decode------]               (80 tokens)
+                                     ^ Req 3 已完成但仍占位
+
+问题: Req 3 在第 30 step 就结束了，但必须等 Req 1 生成完 200 tokens
+GPU 利用率: 平均只有 52% (加权平均序列长度/最大序列长度)
+```
+
+### Continuous Batching 的解法
+
+每个 step 之后，**已完成的请求立即退出，等待中的请求立即加入**：
+
+```
+Continuous Batching:
+  Step 1-30: [Req1, Req2, Req3, Req4] (batch=4)
+  Step 31:   Req3 完成 -> 移出 -> Req5 加入
+  Step 31-80: [Req1, Req2, Req4, Req5] (batch=4, GPU 满载)
+  Step 81:   Req4 完成 -> Req6 加入
+  ...
+
+GPU 利用率: 接近 100% (始终满 batch)
+```
+
+### Chunked Prefill：消除延迟尖刺
+
+新问题：如果一个 8K token 的请求进入 prefill，会阻塞所有正在 decode 的请求。
+
+解法：把 prefill 拆成多个 chunk（如 512 token 一块），和 decode 交错执行：
+
+```
+Without chunked prefill:
+  [Prefill 8K tokens (50ms)]  -- 50ms 内所有 decode 请求被阻塞
+
+With chunked prefill (chunk=512):
+  [Prefill 512][Decode batch][Prefill 512][Decode batch]...
+  每个 chunk ~3ms，decode 请求最多等 3ms
+```
+
+---
+
+## Level 5.7：NCU 实测 Kernel 分析
+
+<Callout type="info">
+**本层目标**：学会用 NSight Compute 分析实际 kernel 的性能瓶颈。
+</Callout>
+
+### 典型 Decode Kernel 的 NCU 报告
+
+```
+Kernel: ampere_bf16_s16816gemm_bf16_128x128_ldg8_f2f_stages_32x3_tn
+Grid: [1, 1, 1]  Block: [128, 1, 1]
+Duration: 12.4 us
+Memory Throughput: 89.2% (接近峰值 = memory-bound)
+Compute Throughput: 3.1% (算力严重浪费)
+Achieved Occupancy: 24.3%
+```
+
+解读：
+- Memory Throughput 89% + Compute Throughput 3% = **经典 memory-bound kernel**
+- 算力利用率只有 3%，GPU 几乎全部时间在等数据
+- 优化方向：减少数据搬运（量化），不是增加计算
+
+### Prefill Kernel 的对比
+
+```
+Kernel: sm90_xmma_gemm_bf16bf16_bf16f32_f32_tn_n_tilesize256x128x64
+Grid: [8, 4, 1]  Block: [128, 1, 1]
+Duration: 2.1 ms
+Memory Throughput: 42.7%
+Compute Throughput: 78.3% (接近峰值 = compute-bound)
+Achieved Occupancy: 91.2%
+```
+
+解读：
+- Compute Throughput 78% = **compute-bound**，GPU 在真正计算
+- 优化方向：更好的 GEMM kernel（CUTLASS/Triton）、TP 并行
+
+### 实操命令
+
+```bash
+# Profile 单个推理请求
+ncu --set full --target-processes all \
+  --output profile_report \
+  python -c "from vllm import LLM; m=LLM('meta-llama/Llama-3-8B'); m.generate('Hello')"
+
+# 只看 top 10 耗时 kernel
+ncu --metrics sm__throughput.avg_pct_of_peak_sustained_elapsed,\
+dram__throughput.avg_pct_of_peak_sustained_elapsed \
+  --top 10 python run_inference.py
+```
 
 ---
 

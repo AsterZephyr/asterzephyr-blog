@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600">
+  <rect width="960" height="600" fill="#1b1f23"/>
+  <text x="480" y="38" text-anchor="middle" fill="#e1e4e8" font-family="system-ui, sans-serif" font-size="17" font-weight="bold">Prefix Caching: Block Sharing &amp; Copy-on-Write</text>
+  <!-- Request A -->
+  <text x="80" y="80" fill="#93c5fd" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Request A</text>
+  <rect x="80" y="90" width="70" height="40" fill="#1e3a5f" rx="4" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="115" y="115" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="10">B0</text>
+  <rect x="160" y="90" width="70" height="40" fill="#1e3a5f" rx="4" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="195" y="115" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="10">B1</text>
+  <rect x="240" y="90" width="70" height="40" fill="#1e3a5f" rx="4" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="275" y="115" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="10">B2</text>
+  <rect x="320" y="90" width="70" height="40" fill="#1e3a5f" rx="4" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="355" y="115" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="10">B3</text>
+  <rect x="400" y="90" width="70" height="40" fill="#3b1e1e" rx="4" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="435" y="115" text-anchor="middle" fill="#fca5a5" font-family="monospace" font-size="10">B5*</text>
+  <text x="435" y="145" text-anchor="middle" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="9">CoW copy</text>
+  <!-- Request B -->
+  <text x="80" y="185" fill="#86efac" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Request B</text>
+  <rect x="80" y="195" width="70" height="40" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="115" y="220" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="10">B0</text>
+  <rect x="160" y="195" width="70" height="40" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="195" y="220" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="10">B1</text>
+  <rect x="240" y="195" width="70" height="40" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="275" y="220" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="10">B2</text>
+  <rect x="320" y="195" width="70" height="40" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="355" y="220" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="10">B3</text>
+  <rect x="400" y="195" width="70" height="40" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="435" y="220" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="10">B4</text>
+  <rect x="480" y="195" width="70" height="40" fill="#1a3a2a" rx="4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="515" y="220" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="10">B6</text>
+  <!-- Shared prefix bracket -->
+  <path d="M 80 250 L 80 260 L 390 260 L 390 250" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="235" y="278" text-anchor="middle" fill="#fcd34d" font-family="system-ui, sans-serif" font-size="11">Shared Prefix (ref_count=2)</text>
+  <!-- Physical Blocks -->
+  <text x="80" y="320" fill="#e1e4e8" font-family="system-ui, sans-serif" font-size="13" font-weight="bold">Physical GPU Block Pool</text>
+  <rect x="80" y="335" width="800" height="80" fill="#24292e" rx="8" stroke="#374151" stroke-width="1"/>
+  <!-- Blocks inside pool -->
+  <rect x="100" y="350" width="55" height="50" fill="#1e3a5f" rx="3" stroke="#60a5fa" stroke-width="1"/>
+  <text x="127" y="375" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="9">B0</text>
+  <text x="127" y="390" text-anchor="middle" fill="#fcd34d" font-family="monospace" font-size="8">rc=2</text>
+  <rect x="165" y="350" width="55" height="50" fill="#1e3a5f" rx="3" stroke="#60a5fa" stroke-width="1"/>
+  <text x="192" y="375" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="9">B1</text>
+  <text x="192" y="390" text-anchor="middle" fill="#fcd34d" font-family="monospace" font-size="8">rc=2</text>
+  <rect x="230" y="350" width="55" height="50" fill="#1e3a5f" rx="3" stroke="#60a5fa" stroke-width="1"/>
+  <text x="257" y="375" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="9">B2</text>
+  <text x="257" y="390" text-anchor="middle" fill="#fcd34d" font-family="monospace" font-size="8">rc=2</text>
+  <rect x="295" y="350" width="55" height="50" fill="#1e3a5f" rx="3" stroke="#60a5fa" stroke-width="1"/>
+  <text x="322" y="375" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="9">B3</text>
+  <text x="322" y="390" text-anchor="middle" fill="#fcd34d" font-family="monospace" font-size="8">rc=2</text>
+  <rect x="360" y="350" width="55" height="50" fill="#1a3a2a" rx="3" stroke="#22c55e" stroke-width="1"/>
+  <text x="387" y="375" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="9">B4</text>
+  <text x="387" y="390" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="8">rc=1</text>
+  <rect x="425" y="350" width="55" height="50" fill="#3b1e1e" rx="3" stroke="#ef4444" stroke-width="1"/>
+  <text x="452" y="375" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="9">B5</text>
+  <text x="452" y="390" text-anchor="middle" fill="#fca5a5" font-family="monospace" font-size="8">CoW</text>
+  <rect x="490" y="350" width="55" height="50" fill="#1a3a2a" rx="3" stroke="#22c55e" stroke-width="1"/>
+  <text x="517" y="375" text-anchor="middle" fill="#e1e4e8" font-family="monospace" font-size="9">B6</text>
+  <text x="517" y="390" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="8">rc=1</text>
+  <rect x="555" y="350" width="55" height="50" fill="#1b1f23" rx="3" stroke="#4b5563" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="582" y="380" text-anchor="middle" fill="#6b7280" font-family="monospace" font-size="9">free</text>
+  <rect x="620" y="350" width="55" height="50" fill="#1b1f23" rx="3" stroke="#4b5563" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="647" y="380" text-anchor="middle" fill="#6b7280" font-family="monospace" font-size="9">free</text>
+  <rect x="685" y="350" width="55" height="50" fill="#1b1f23" rx="3" stroke="#4b5563" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="712" y="380" text-anchor="middle" fill="#6b7280" font-family="monospace" font-size="9">free</text>
+  <rect x="750" y="350" width="55" height="50" fill="#1b1f23" rx="3" stroke="#4b5563" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="777" y="380" text-anchor="middle" fill="#6b7280" font-family="monospace" font-size="9">free</text>
+  <!-- Savings callout -->
+  <rect x="530" y="440" width="350" height="70" fill="#24292e" rx="8" stroke="#f59e0b" stroke-width="1"/>
+  <text x="705" y="465" text-anchor="middle" fill="#fcd34d" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Memory Savings</text>
+  <text x="705" y="485" text-anchor="middle" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="11">Without prefix cache: 10 blocks (5 per req)</text>
+  <text x="705" y="502" text-anchor="middle" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="11">With prefix cache: 7 blocks (shared 4) = 30% saved</text>
+  <!-- Legend -->
+  <rect x="80" y="440" width="400" height="130" fill="#24292e" rx="8" stroke="#374151" stroke-width="1"/>
+  <text x="100" y="465" fill="#e1e4e8" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">Copy-on-Write Trigger:</text>
+  <text x="100" y="488" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="11">1. Req A needs to append token to shared Block 4</text>
+  <text x="100" y="508" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="11">2. ref_count(B4) = 2 &gt; 1 -&gt; trigger CoW</text>
+  <text x="100" y="528" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="11">3. Copy B4 to new Block B5, update A's block table</text>
+  <text x="100" y="548" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="11">4. B4 ref_count-- = 1, B5 ref_count = 1</text>
+</svg>

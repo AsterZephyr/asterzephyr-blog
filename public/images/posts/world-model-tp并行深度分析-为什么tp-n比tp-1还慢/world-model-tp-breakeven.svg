@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e1e4e8"/>
+    </marker>
+  </defs>
+  <rect width="960" height="600" fill="#1b1f23"/>
+  <text x="480" y="40" text-anchor="middle" fill="#e1e4e8" font-family="system-ui, sans-serif" font-size="18" font-weight="bold">TP Breakeven Analysis: Model Size vs Communication Overhead</text>
+  <!-- Axes -->
+  <line x1="100" y1="520" x2="900" y2="520" stroke="#6b7280" stroke-width="1.5"/>
+  <line x1="100" y1="520" x2="100" y2="80" stroke="#6b7280" stroke-width="1.5"/>
+  <!-- X axis label -->
+  <text x="500" y="560" text-anchor="middle" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="13">Model Parameters (B)</text>
+  <!-- Y axis label -->
+  <text x="40" y="300" text-anchor="middle" fill="#9ca3af" font-family="system-ui, sans-serif" font-size="13" transform="rotate(-90, 40, 300)">Speedup (TP=4 / TP=1)</text>
+  <!-- X ticks -->
+  <text x="180" y="545" text-anchor="middle" fill="#9ca3af" font-family="monospace" font-size="11">2B</text>
+  <text x="300" y="545" text-anchor="middle" fill="#9ca3af" font-family="monospace" font-size="11">5B</text>
+  <text x="420" y="545" text-anchor="middle" fill="#9ca3af" font-family="monospace" font-size="11">10B</text>
+  <text x="580" y="545" text-anchor="middle" fill="#9ca3af" font-family="monospace" font-size="11">30B</text>
+  <text x="740" y="545" text-anchor="middle" fill="#9ca3af" font-family="monospace" font-size="11">70B</text>
+  <text x="860" y="545" text-anchor="middle" fill="#9ca3af" font-family="monospace" font-size="11">200B</text>
+  <!-- Y ticks -->
+  <text x="85" y="520" text-anchor="end" fill="#9ca3af" font-family="monospace" font-size="11">0x</text>
+  <text x="85" y="410" text-anchor="end" fill="#9ca3af" font-family="monospace" font-size="11">1x</text>
+  <text x="85" y="300" text-anchor="end" fill="#9ca3af" font-family="monospace" font-size="11">2x</text>
+  <text x="85" y="190" text-anchor="end" fill="#9ca3af" font-family="monospace" font-size="11">3x</text>
+  <text x="85" y="100" text-anchor="end" fill="#9ca3af" font-family="monospace" font-size="11">4x</text>
+  <!-- Breakeven line at 1x -->
+  <line x1="100" y1="410" x2="900" y2="410" stroke="#f59e0b" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="910" y="414" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="11">breakeven</text>
+  <!-- TP curve (NVLink) -->
+  <path d="M 180 490 Q 300 460 420 400 Q 580 280 740 150 Q 800 120 860 105" fill="none" stroke="#3b82f6" stroke-width="2.5"/>
+  <!-- TP curve (PCIe) -->
+  <path d="M 180 520 Q 300 510 420 470 Q 580 390 740 290 Q 800 250 860 220" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="8,4"/>
+  <!-- World Model zone -->
+  <rect x="150" y="70" width="200" height="460" fill="#ef4444" opacity="0.08" rx="8"/>
+  <text x="250" y="95" text-anchor="middle" fill="#f87171" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">World Model Zone (2-5B)</text>
+  <text x="250" y="112" text-anchor="middle" fill="#f87171" font-family="system-ui, sans-serif" font-size="11">TP = negative ROI</text>
+  <!-- LLM zone -->
+  <rect x="550" y="70" width="340" height="460" fill="#22c55e" opacity="0.06" rx="8"/>
+  <text x="720" y="95" text-anchor="middle" fill="#4ade80" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">LLM Zone (30B+)</text>
+  <text x="720" y="112" text-anchor="middle" fill="#4ade80" font-family="system-ui, sans-serif" font-size="11">TP = strong positive ROI</text>
+  <!-- Data points -->
+  <circle cx="180" cy="490" r="5" fill="#3b82f6"/>
+  <text x="180" y="480" text-anchor="middle" fill="#93c5fd" font-family="system-ui, sans-serif" font-size="10">SANA-WM</text>
+  <circle cx="300" cy="460" r="5" fill="#3b82f6"/>
+  <text x="300" y="450" text-anchor="middle" fill="#93c5fd" font-family="system-ui, sans-serif" font-size="10">Wan-5B</text>
+  <circle cx="740" cy="150" r="5" fill="#3b82f6"/>
+  <text x="740" y="140" text-anchor="middle" fill="#93c5fd" font-family="system-ui, sans-serif" font-size="10">Llama-70B</text>
+  <!-- Legend -->
+  <rect x="620" y="440" width="260" height="65" fill="#24292e" rx="6" stroke="#374151" stroke-width="1"/>
+  <line x1="640" y1="460" x2="680" y2="460" stroke="#3b82f6" stroke-width="2.5"/>
+  <text x="690" y="464" fill="#e1e4e8" font-family="system-ui, sans-serif" font-size="12">NVLink (H100 DGX)</text>
+  <line x1="640" y1="485" x2="680" y2="485" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="8,4"/>
+  <text x="690" y="489" fill="#e1e4e8" font-family="system-ui, sans-serif" font-size="12">PCIe Gen4 (RTX 4090)</text>
+</svg>
