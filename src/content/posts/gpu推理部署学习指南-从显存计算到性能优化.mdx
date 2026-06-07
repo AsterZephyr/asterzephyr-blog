@@ -200,7 +200,7 @@ Decode 阶段每次只生成 1 个 token：
 
 ### 实际部署决策流程
 
-1. **先算能不能装**：参数量 x 字节数 + 2GB 预留 <= 显存？
+1. **先算能不能装**：参数量 x 字节数 + 2GB 预留 ≤ 显存？
 2. **装不下 -> 量化或换卡**：INT4 能缩 4x，INT8 缩 2x
 3. **能装 -> 测速**：跑 benchmark 看 throughput 和 latency
 4. **速度不够 -> 分析瓶颈**：NCU profile，判断 mem-bound vs compute-bound
@@ -258,7 +258,7 @@ Decode 阶段每次只生成 1 个 token：
 
 | 方案 | 权重精度 | 压缩比 | 质量损失 | 适用场景 |
 |-|-|-|-|-|
-| GPTQ | INT4/INT3 | 4~5x | 低（<1% PPL） | 离线量化，GPU 推理 |
+| GPTQ | INT4/INT3 | 4~5x | 低（&lt;1% PPL） | 离线量化，GPU 推理 |
 | AWQ | INT4 | 4x | 极低 | 激活感知，保留关键通道 |
 | GGUF | Q4_K_M/Q5 | 3~4x | 低 | CPU/混合推理（llama.cpp） |
 | FP8 | FP8 (E4M3) | 2x | 极低 | H100 原生支持，无反量化开销 |
