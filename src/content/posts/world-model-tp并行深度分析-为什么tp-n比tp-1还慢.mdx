@@ -7,6 +7,7 @@ draft: false
 ---
 
 import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
 
 > 从 SGLang Omni 架构到 DiT/World Model 的并行策略选择，理解何时 TP 是负收益，以及正确的多卡方案。
 
@@ -152,6 +153,8 @@ WM 根本没有足够的计算量来 "喂饱" TP 的通信开销
 
 ## 4. TP 的收益/亏损临界点
 
+<Figure src="/images/posts/world-model-tp并行深度分析-为什么tp-n比tp-1还慢/world-model-01.png" alt="TP 收益分析: LLM vs World Model 单步计算量对比" />
+
 ### 4.1 隐藏的开销
 
 实际中 all-reduce 比理论慢得多：
@@ -230,6 +233,8 @@ Peak GPU memory: 20.07 vs 27.40 GB，省 7.3 GB。
 ---
 
 ## 6. Omni 架构下的分组件并行策略
+
+<Figure src="/images/posts/world-model-tp并行深度分析-为什么tp-n比tp-1还慢/world-model-02.png" alt="Omni 架构: 分组件并行策略" />
 
 ### 6.1 各组件并行策略建议
 

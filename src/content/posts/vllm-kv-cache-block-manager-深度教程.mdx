@@ -7,6 +7,7 @@ draft: false
 ---
 
 import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
 
 <Callout type="info">
 从 PagedAttention 原理到多卡部署下的 KV Cache 容量计算，彻底搞懂为什么单卡 metric 显示 52K 却能跑 200K+ 上下文。
@@ -72,6 +73,8 @@ With KV Cache (增量计算):
 - 支持 Copy-on-Write：多请求共享相同前缀的 Block
 
 ### 2.3 Block 内部结构
+
+<Figure src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-01.png" alt="PagedAttention: KV Cache Block 分配机制" />
 
 ```
 Block Shape: [block_size, num_kv_heads, head_dim]
@@ -167,6 +170,8 @@ num_blocks = 51 GB / 640 KB ~ 81,920 blocks
 
 ### 5.3 Context Parallelism (CP)
 
+<Figure src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-02.png" alt="TP vs DP Attention vs Context Parallelism 对比" />
+
 将同一个请求的序列按 token 维度切分到多个 GPU。**这是扩展长上下文最直接的手段：**
 
 ```
@@ -208,6 +213,8 @@ MLA:
 
 ### 6.3 MLA 下的部署策略
 
+<Figure src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-03.png" alt="MHA/GQA vs MLA: KV Cache 结构对比" />
+
 | 策略 | 对 MLA KV Cache 的影响 |
 |-|-|
 | TP | 只切 attention 计算权重和 FFN，KV Cache 每卡完整存储 |
@@ -217,6 +224,8 @@ MLA:
 ---
 
 ## 7. DP vs DP Attention vs Context Parallelism
+
+<Figure src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-04.png" alt="DP Attention + Expert Parallelism 架构" />
 
 | 维度 | DP | DP Attention | Context Parallelism |
 |-|-|-|-|
@@ -233,6 +242,8 @@ MLA:
 ---
 
 ## 8. Decode 阶段的通信模式
+
+<Figure src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-05.png" alt="Context Parallelism: Decode 阶段通信模式" />
 
 Context Parallelism 下新 token 需 attend 到所有历史 KV（分布在不同 rank），策略是 **Q 去找 KV，不是 KV 来找 Q**：
 
