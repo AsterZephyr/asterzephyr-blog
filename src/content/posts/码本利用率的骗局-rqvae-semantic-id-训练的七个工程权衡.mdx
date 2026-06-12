@@ -1,0 +1,301 @@
+---
+title: "码本利用率的骗局：RQ-VAE Semantic ID 训练的七个工程权衡"
+date: 2026-06-13
+tags: [推荐系统, 广告, 深度学习, 算法]
+category: "技术分享"
+summary: "把码本向量维度改小，利用率飙到 90%+——这说明模型学好了吗？从码本崩塌到 Scaling Law，深入拆解 RQ-VAE Semantic ID 训练中的七个核心工程权衡。"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+如果把码本向量维度改得很小，码本利用率可以飙到 90%+。这说明模型学好了吗？
+
+答案是：**不一定，甚至很可能是假象。**
+
+Semantic ID (SID) 正在成为推荐/广告系统中替代传统 Hash ID 的核心技术路线。2024-2026 年，快手、字节、小红书纷纷推出变长 SID、分布级 SID、端到端联训等新方案。但一线训练者最常遇到的困惑是：**指标之间互相矛盾——利用率高了碰撞率就高，维度大了利用率就崩。**
+
+这篇文章从七个维度拆解 RQ-VAE SID 训练中的核心工程权衡，帮你建立完整的决策框架。
+
+## Part 1：从 VQ-VAE 到全特征 Tokenization——我们到哪了
+
+<TechGraph src="/images/posts/rqvae-sid-training-tradeoffs/01-sid-landscape.svg" title="SEMANTIC ID 技术演进" caption="从 VQ-VAE 到全特征 Tokenization，每一代解决上一代的核心瓶颈" />
+
+### 术语对齐
+
+| 术语 | 含义 | 类比 |
+|------|------|------|
+| **码本 (Codebook)** | 一组可学习的向量，每个叫"码字" | 一本字典，每个词条是一个语义原子 |
+| **码本利用率** | 被分配到数据的码字占总码字数的比例 | 字典里真正被查阅过的词条占比 |
+| **碰撞率** | 不同 item 被映射到相同 SID 的比例 | 两个不同的人分到了同一个身份证号 |
+| **RQ** | 多层码本，每层编码上一层的残差 | 先说国家，再说省，再说市——逐层精细化 |
+| **FSQ** | 每个维度独立离散化，不学码本 | 把温度 round 到最近整数，每个轴独立 |
+| **OPQ** | 先旋转数据空间再做乘积量化 | 先把坐标系转到方差最大方向再切格子 |
+
+### 四代技术的核心演进
+
+| 代际 | 方法 | 解决的问题 | 引入的新问题 |
+|------|------|-----------|-------------|
+| 1st | VQ-VAE | 连续 → 离散表征 | 码本崩塌，容量仅 K |
+| 2nd | RQ-VAE | 指数容量 K^L | 利用率 vs 维度矛盾 |
+| 3rd | FSQ / RQOPQ | 消除崩塌 / Batch 训练 | FSQ 上限低 / OPQ 工程复杂 |
+| 4th | 端到端 SID | 协同信号融入 | 漂移、崩塌、广告场景受限 |
+
+每一代解决上一代的核心瓶颈，同时引入新的工程约束。没有银弹。
+
+---
+
+## Part 2：码本维度 vs 利用率——核心悖论
+
+<TechGraph src="/images/posts/rqvae-sid-training-tradeoffs/02-codebook-tradeoff.svg" title="码本维度与利用率的权衡" caption="维度越小利用率越高，但每个码字的表达力越弱——高利用率可能是假象" />
+
+### 为什么维度小就利用率高？
+
+直觉上反常识，但背后有三层递进机制。
+
+<Callout type="info" title="机制一：高维空间的距离退化">
+在 d 维空间中，随着 d 增大，任意两点间欧氏距离趋向常数 &radic;d。所有码字到输入的距离差异变小，"最近邻"优势被稀释——少数码字垄断分配，多数码字饿死。
+
+类比：超大停车场里，所有车位离入口距离几乎一样。司机只记住第一次停的位置，后面永远停同一个。
+</Callout>
+
+<Callout type="info" title="机制二：梯度信号的稀释">
+EMA 更新码本时，每个分量获得的梯度信号与 1/d 成正比。维度越高，码字需要越多数据分配才能有效移动——初期随机占优的码字强者愈强。
+</Callout>
+
+<Callout type="info" title="机制三：信息瓶颈的被动效果">
+维度极小时单个码字装不下足够信息，系统被迫征用更多码字来共同表达——利用率被迫提高。**这才是"利用率高"的真正原因，但不意味着"用得好"。**
+</Callout>
+
+### 如何判断利用率是否虚高
+
+| 指标 | 健康范围 | 维度过小时的典型值 |
+|------|---------|-------------------|
+| 码本利用率 | &gt; 70% | 95%+ (虚高) |
+| 碰撞率 | &lt; 5% | 30%+ (灾难) |
+| 孤点簇占比 | &lt; 10% | 低 (码字都被用了) |
+| 重建误差 (MSE) | 持续下降 | 显著上升 |
+
+<Callout type="warning" title="利用率 > 95% 也是警告信号">
+意味着维度可能太小，碰撞率大概率超标。必须同时监控利用率 + 碰撞率 + 重建误差。
+</Callout>
+
+### Sweet Spot 的寻找方法
+
+1. **固定总信息量预算**：决定需要多少 bits（比如 4 层 &times; 1024 码本 = 40 bits）
+2. **调维度看碰撞率**：从 d=32 开始逐步降低，监控碰撞率拐点
+3. **碰撞率突增的前一个点**就是你的 sweet spot
+4. **加 Sinkhorn 后重新扫一遍**——均衡策略会改变最优维度
+
+---
+
+## Part 3：训练策略工具箱
+
+<TechGraph src="/images/posts/rqvae-sid-training-tradeoffs/03-training-strategies.svg" title="训练策略决策树" caption="根据场景约束选择 Tokenizer 训练方式，离线优先、端到端慎行" />
+
+### 三策略对比
+
+| 维度 | Sinkhorn | RQOPQ | FSQ |
+|------|----------|-------|-----|
+| 解决崩塌 | 缓解 | 显著缓解 | 根本消除 |
+| 利用率 | 80%+ | 85%+ | 100% |
+| 表达力上限 | 高 | 高 | 中低 |
+| 训练复杂度 | 低 (加几行代码) | 中 (需理解 OPQ) | 低 |
+| Batch 训练 | 支持 | 支持 | 支持 |
+| 离在线一致性 | 好 | 好 | 最好 (无码本查找) |
+
+### Sinkhorn 均衡（码本 Rebalance）
+
+在每个 batch 的码字分配阶段，不做简单最近邻，而是通过 Sinkhorn 迭代求解最优传输问题，强制每个码字被大致均匀分配。
+
+参考论文：[OptVQ (清华, 2024)](https://arxiv.org/abs/2412.15195) 将此方法形式化，证明传统 VQ 的 nearest-neighbor search 等价于 online K-Means，天然陷入局部最优（feature 一旦落入某个 Voronoi cell 就被 commitment loss 锁死）。OptVQ 用最优传输替代贪心搜索，实验中实现 100% 码本利用率且重建质量 SOTA。
+
+```python
+# Sinkhorn 码本均衡伪代码
+def sinkhorn_assign(distances, n_iters=3):
+    # distances: [batch_size, codebook_size]
+    Q = exp(-distances / temperature)
+    for _ in range(n_iters):
+        Q = Q / Q.sum(dim=0, keepdim=True)  # 列归一化：每个码字均匀
+        Q = Q / Q.sum(dim=1, keepdim=True)  # 行归一化：每个样本归一
+    return Q.argmax(dim=1)
+```
+
+效果：利用率从 30% 提升到 80%+，但可能牺牲重建质量（强制分配不一定语义最优）。适用于码本崩塌严重时的急救措施。
+
+### RQOPQ（快手 One Search）
+
+传统 RQ 直接在原始空间做量化，数据分布可能不均匀。OPQ 先学一个旋转矩阵 R，把数据投影到各子空间方差均匀的坐标系，再做乘积量化。
+
+关键优势是**可以 Batch 训练**——梯度可以回传到旋转矩阵，整个 pipeline 端到端可微。不需要像传统方案那样用全量数据做 K-means 初始化。
+
+### FSQ（有限标量量化）
+
+彻底放弃可学习码本，每个维度独立 round 到有限整数集。总码本大小 = 每维级数的乘积。
+
+```python
+# FSQ: 每维独立量化
+levels = [8, 6, 5, 5, 5]  # 总容量 = 8*6*5*5*5 = 6000
+z_q = [round_to_nearest(z_i, L_i) for z_i, L_i in zip(z, levels)]
+```
+
+不存在码本崩塌（没有码本），利用率天然 100%。但表达力受限于维度组合。实践者反馈："魔改了半年 FSQ，感觉上限太低了。"
+
+---
+
+## Part 4：端到端训练 vs Freeze——稳定性的战争
+
+### 两种部署范式
+
+| 维度 | Freeze 模式 | 端到端模式 |
+|------|------------|-----------|
+| 流程 | 离线训 Tokenizer &rarr; 冻结推理 | Tokenizer 与下游模型联合梯度更新 |
+| 信号 | 仅多模态语义 | 语义 + 协同 (CTR/CVR) |
+| 稳定性 | 极好 (SID 永不变) | 有漂移风险 |
+| 时效性 | 差 (定期重训) | 好 (实时适应) |
+| 工程难度 | 低 | 高 |
+
+### 漂移为什么可怕
+
+想象这个场景：
+
+1. 第 1 天，Item A 的 SID = \[3, 7, 2\]
+2. CTR 模型学到了 \[3, 7, 2\] 与"高点击率运动鞋"相关
+3. 第 2 天，端到端更新后 Item A 的 SID 漂移到 \[3, 7, 5\]
+4. CTR 模型对 \[3, 7, 2\] 的知识作废，\[3, 7, 5\] 是新 ID，冷启动
+
+**更严重的是级联效应**：Tokenizer 漂移 &rarr; CTR 模型训练目标不稳定 &rarr; CTR 性能抖动 &rarr; 出价系统异常。
+
+<Callout type="warning" title="广告场景的共识">
+端到端有理论收益，但 CVR/出价系统对 ID 稳定性极度敏感。实践中发过一版端到端 CVR 模型，"最后没敢推全"。
+</Callout>
+
+### 字节 UniSID 的选择
+
+字节 [UniSID (2026)](https://arxiv.org/abs/2602.10445) 提出端到端 SID 生成框架：
+
+- 联合优化 embedding 和 SID（不再两阶段级联压缩）
+- 多粒度对比学习对齐不同 item 跨 SID 层级的语义
+- 基于摘要的广告重建机制，鼓励 SID 捕获高层语义
+- 实验结果：Hit Rate 相比 SOTA baseline 提升 4.62%
+
+但有前提条件：大规模数据量稀释了单 item 的漂移影响；推荐场景对稳定性要求低于广告场景。
+
+### 折中方案：分层 Freeze
+
+当前最稳妥的工程实践：
+
+```
+多模态大模型 (完全冻结，仅推理)
+       ↓ embedding
+Tokenizer (可选择性微调 / 定期重训)
+       ↓ SID
+CTR/CVR 模型 (正常训练)
+```
+
+Tokenizer 不需要 online learning——除非你往里面加了协同信号。
+
+---
+
+## Part 5：五大失败模式与诊断
+
+<TechGraph src="/images/posts/rqvae-sid-training-tradeoffs/04-failure-modes.svg" title="五大失败模式与诊断" caption="每种失败模式有不同的表现、根因和修复策略" />
+
+### 诊断优先级
+
+当训练出现问题时，按这个顺序排查：
+
+| 优先级 | 检查项 | 健康标准 | 问题信号 |
+|--------|--------|---------|---------|
+| P0 | 重建误差 | 持续下降 | 不降/上升 |
+| P1 | 码本利用率 | &gt; 70% | &lt; 30% 或 &gt; 95% |
+| P2 | 碰撞率 | &lt; 5% | &gt; 15% |
+| P3 | 各层残差递减 | 第 L 层 &lt; 第 L-1 层 | 某层残差反弹 |
+| P4 | 离在线 diff rate | &lt; 0.1% | &gt; 1% |
+
+### 去重的重要性
+
+一个容易忽略的 trick：训练时对同一个多模态 embedding 去重——同一素材只过一遍 RQ。
+
+效果：利用率明显提升（避免头部素材反复强化到少数码字）、训练效率提高、码字分布更均匀。
+
+---
+
+## Part 6：头部/尾部的差异化策略
+
+### 核心矛盾
+
+| 场景 | ID Embedding 状态 | 协同信号 | 需要 SID 吗？ |
+|------|------------------|---------|--------------|
+| 头部 item | 训练充分 | 丰富 | 不需要（甚至有害） |
+| 尾部 item | 欠训练/冷启动 | 稀缺 | 强需要 |
+
+### 方案对比
+
+**方案一：Gate 加权**——ID emb 和 SID emb 通过 gate network 加权融合。实测反馈效果有限，gate 难以学到有意义的路由。
+
+**方案二：IDProxy（小红书）**——头部 item 直接使用 Item ID embedding，完全跳过 SID。只对尾部/新 item 走 SID。硬路由，简单有效。
+
+**方案三：图内去重 + 长尾增强**——训练图中对头部 item 去重（降低码字分配权重），对长尾做过采样或对比学习增强。
+
+<Callout type="tip" title="实操建议">
+先上 IDProxy 硬路由拿 baseline，再尝试软 gate 看是否有增量。
+</Callout>
+
+---
+
+## Part 7：关于 Scaling Law 的冷思考
+
+> 推荐系统现在的 Scaling Law 都是骗人的。大模型 Scaling Law 怎么来的，推荐系统现在完全不是一回事。
+
+### 为什么 Hash ID 不存在 Scaling Law
+
+LLM Scaling Law 成立的前提：
+
+1. **有限词表**（32K-128K tokens）
+2. **参数增加 &rarr; 同一 token 表征更丰富**
+3. **泛化基于语义组合性**
+
+推荐系统中的 Hash ID：
+
+1. 词表随 item 增长（可能数亿）
+2. 每个 ID 是独立参数，不共享信息
+3. 新 item = 新随机向量，无泛化
+
+**SID 的真正意义**不是"ID 变好看了"，而是试图让推荐系统拥有类似 NLP 的有限词表——把无限 item 空间映射到有限语义码字的组合空间。
+
+### 但对广告系统来说
+
+广告系统有大量业务特征是广告主手动设置的（出价、预算、定向条件），这些不可能被"语义化"。全特征 Tokenization 在广告场景不现实。
+
+**现实路线**：混合方案——内容特征走 SID，业务特征保留独立 embedding。离散 ID 还得大大方方用。
+
+---
+
+## 留给你的思考题
+
+<Callout type="note" title="Open Questions">
+1. **利用率-碰撞率的 Pareto 前沿**——理论上是否存在维度/码本大小的封闭解，使得给定总 bits 预算下碰撞率最低？
+
+2. **FSQ 的上限真的低吗？**——每维 32 级、8 维 = 32^8 &asymp; 10^12。瓶颈是容量还是学习算法？
+
+3. **漂移控制**——给 SID 加 anchor loss（惩罚相对上一版本的变化），能否在获取协同信号的同时保持稳定？
+
+4. **全 Tokenization 的障碍**——出价/预算/定向条件用 binning + 码本统一表达，障碍是技术的还是组织的？
+
+5. **终极问题**——如果推荐系统实现了有限词表 + Scaling Law，它和一个 token 粒度为"item 语义原子"的 LLM 有什么本质区别？
+</Callout>
+
+---
+
+## 参考文献
+
+| 论文 | 年份 | 核心贡献 |
+|------|------|---------|
+| [OptVQ: Preventing Local Pitfalls via Optimal Transport](https://arxiv.org/abs/2412.15195) | 2024 | Sinkhorn 替代 nearest neighbor，100% 利用率 |
+| [VQGAN-LC: Scaling Codebook to 100K](https://papers.neurips.cc/paper_files/paper/2024/file/1716d022edeac750e57a2986a7135e13-Paper-Conference.pdf) | NeurIPS 2024 | 码本规模扩展到 10 万级，99% 利用率 |
+| [OneSearch (快手)](https://arxiv.org/abs/2509.03236) | 2025 | KHQE：关键词增强的层次化量化编码 |
+| [QARM (快手)](https://arxiv.org/abs/2311.06710) | 2023 | 多模态对齐 + R-KMeans 码本构建 |
+| [UniSID (字节)](https://arxiv.org/abs/2602.10445) | 2026 | 端到端 SID 生成，Hit Rate +4.62% |
+| [Variable-Length Semantic IDs](https://arxiv.org/abs/2602.16375) | 2026 | 变长 SID：Gumbel-Softmax dVAE |
+| [Practitioner's Handbook](https://dl.acm.org/doi/10.1145/3746252.3761612) | ACM 2025 | 工业级 SID 实践指南 |

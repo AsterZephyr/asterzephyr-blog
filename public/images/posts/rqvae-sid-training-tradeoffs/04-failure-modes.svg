@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow4">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <rect width="960" height="520" fill="#ffffff"/>
+
+  <text x="480" y="36" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">SID 训练的五大失败模式与诊断</text>
+  <text x="480" y="56" text-anchor="middle" font-size="12" fill="#6b7280">每种失败模式有不同的表现、根因和修复策略</text>
+
+  <!-- Failure 1 -->
+  <rect x="40" y="80" width="270" height="190" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5" filter="url(#shadow4)"/>
+  <rect x="40" y="80" width="270" height="32" rx="8" fill="#dc2626"/>
+  <text x="175" y="101" text-anchor="middle" font-size="12" font-weight="600" fill="#ffffff">1. 码本崩塌 (Codebook Collapse)</text>
+  <text x="55" y="132" font-size="10" font-weight="600" fill="#374151">表现</text>
+  <text x="55" y="148" font-size="10" fill="#374151">利用率 &lt; 20%，少数码字承载所有数据</text>
+  <text x="55" y="170" font-size="10" font-weight="600" fill="#374151">根因</text>
+  <text x="55" y="186" font-size="10" fill="#374151">高维空间距离退化 + EMA 更新马太效应</text>
+  <text x="55" y="208" font-size="10" font-weight="600" fill="#374151">修复</text>
+  <text x="55" y="224" font-size="10" fill="#16a34a">Sinkhorn 均衡 / 降低码本维度 /</text>
+  <text x="55" y="240" font-size="10" fill="#16a34a">定期重初始化死码字 / 加 commit loss</text>
+  <text x="55" y="258" font-size="10" fill="#dc2626">诊断：plot 每个码字的分配频率直方图</text>
+
+  <!-- Failure 2 -->
+  <rect x="340" y="80" width="270" height="190" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5" filter="url(#shadow4)"/>
+  <rect x="340" y="80" width="270" height="32" rx="8" fill="#ea580c"/>
+  <text x="475" y="101" text-anchor="middle" font-size="12" font-weight="600" fill="#ffffff">2. 碰撞率过高 (High Collision)</text>
+  <text x="355" y="132" font-size="10" font-weight="600" fill="#374151">表现</text>
+  <text x="355" y="148" font-size="10" fill="#374151">利用率很高但不同 item 映射到相同 SID</text>
+  <text x="355" y="170" font-size="10" font-weight="600" fill="#374151">根因</text>
+  <text x="355" y="186" font-size="10" fill="#374151">码本容量不足 / 维度太小表达力弱</text>
+  <text x="355" y="208" font-size="10" font-weight="600" fill="#374151">修复</text>
+  <text x="355" y="224" font-size="10" fill="#16a34a">增加 RQ 层数 / 提升维度 /</text>
+  <text x="355" y="240" font-size="10" fill="#16a34a">加 diversity loss / 引入 item 级对比学习</text>
+  <text x="355" y="258" font-size="10" fill="#dc2626">诊断：计算 SID 粒度的 item 平均碰撞数</text>
+
+  <!-- Failure 3 -->
+  <rect x="650" y="80" width="270" height="190" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow4)"/>
+  <rect x="650" y="80" width="270" height="32" rx="8" fill="#7c3aed"/>
+  <text x="785" y="101" text-anchor="middle" font-size="12" font-weight="600" fill="#ffffff">3. 表征漂移 (Representation Drift)</text>
+  <text x="665" y="132" font-size="10" font-weight="600" fill="#374151">表现</text>
+  <text x="665" y="148" font-size="10" fill="#374151">同一 item 的 SID 随时间变化</text>
+  <text x="665" y="170" font-size="10" font-weight="600" fill="#374151">根因</text>
+  <text x="665" y="186" font-size="10" fill="#374151">端到端训练中上游 emb 持续更新</text>
+  <text x="665" y="208" font-size="10" font-weight="600" fill="#374151">修复</text>
+  <text x="665" y="224" font-size="10" fill="#16a34a">Freeze 上游模型 / 限制 tokenizer LR /</text>
+  <text x="665" y="240" font-size="10" fill="#16a34a">定期 re-tokenize + 平滑过渡</text>
+  <text x="665" y="258" font-size="10" fill="#dc2626">诊断：监控 item SID 翻转率 per epoch</text>
+
+  <!-- Failure 4 -->
+  <rect x="40" y="300" width="270" height="190" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow4)"/>
+  <rect x="40" y="300" width="270" height="32" rx="8" fill="#2563eb"/>
+  <text x="175" y="321" text-anchor="middle" font-size="12" font-weight="600" fill="#ffffff">4. 离在线不一致 (Train-Serve Gap)</text>
+  <text x="55" y="352" font-size="10" font-weight="600" fill="#374151">表现</text>
+  <text x="55" y="368" font-size="10" fill="#374151">离线指标好，上线效果差</text>
+  <text x="55" y="390" font-size="10" font-weight="600" fill="#374151">根因</text>
+  <text x="55" y="406" font-size="10" fill="#374151">量化算子浮点精度差异 / 推理框架数值行为</text>
+  <text x="55" y="428" font-size="10" font-weight="600" fill="#374151">修复</text>
+  <text x="55" y="444" font-size="10" fill="#16a34a">可微量化算子 / 统一推理 runtime /</text>
+  <text x="55" y="460" font-size="10" fill="#16a34a">离线用在线 inference path 校验</text>
+  <text x="55" y="478" font-size="10" fill="#dc2626">诊断：对比 train/serve SID 输出 diff rate</text>
+
+  <!-- Failure 5 -->
+  <rect x="340" y="300" width="270" height="190" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow4)"/>
+  <rect x="340" y="300" width="270" height="32" rx="8" fill="#16a34a"/>
+  <text x="475" y="321" text-anchor="middle" font-size="12" font-weight="600" fill="#ffffff">5. 损失拉扯 (Loss Conflict)</text>
+  <text x="355" y="352" font-size="10" font-weight="600" fill="#374151">表现</text>
+  <text x="355" y="368" font-size="10" fill="#374151">重建 loss 和 commitment loss 此消彼长</text>
+  <text x="355" y="390" font-size="10" font-weight="600" fill="#374151">根因</text>
+  <text x="355" y="406" font-size="10" fill="#374151">VAE 多目标固有矛盾 (rate-distortion)</text>
+  <text x="355" y="428" font-size="10" font-weight="600" fill="#374151">修复</text>
+  <text x="355" y="444" font-size="10" fill="#16a34a">动态 loss 权重 / 分阶段训练 /</text>
+  <text x="355" y="460" font-size="10" fill="#16a34a">FSQ 消除 commitment loss</text>
+  <text x="355" y="478" font-size="10" fill="#dc2626">诊断：plot 各 loss 项曲线看 seesaw 模式</text>
+
+  <!-- Key insight box -->
+  <rect x="650" y="300" width="270" height="190" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2" filter="url(#shadow4)"/>
+  <text x="785" y="330" text-anchor="middle" font-size="13" font-weight="700" fill="#92400e">核心诊断原则</text>
+  <line x1="670" y1="340" x2="900" y2="340" stroke="#d97706" stroke-width="1"/>
+  <text x="665" y="365" font-size="11" fill="#374151">只看利用率是不够的。</text>
+  <text x="665" y="388" font-size="11" fill="#374151">必须同时监控：</text>
+  <text x="665" y="413" font-size="11" font-weight="600" fill="#2563eb">1. 码本利用率 (越高越好)</text>
+  <text x="665" y="436" font-size="11" font-weight="600" fill="#16a34a">2. 碰撞率 (越低越好)</text>
+  <text x="665" y="459" font-size="11" font-weight="600" fill="#7c3aed">3. 孤点簇占比 (越低越好)</text>
+  <text x="665" y="482" font-size="11" font-weight="600" fill="#ea580c">4. 重建误差 (越低越好)</text>
+</svg>

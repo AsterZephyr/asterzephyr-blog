@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <rect width="960" height="560" fill="#ffffff"/>
+
+  <text x="480" y="36" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">Semantic ID 技术演进：从 VQ-VAE 到全特征 Tokenization</text>
+  <text x="480" y="56" text-anchor="middle" font-size="12" fill="#6b7280">每一代解决上一代的核心瓶颈，同时引入新的工程约束</text>
+
+  <!-- Timeline arrow -->
+  <line x1="80" y1="100" x2="880" y2="100" stroke="#d1d5db" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#d1d5db"/></marker></defs>
+  <text x="80" y="92" font-size="11" fill="#6b7280">2020</text>
+  <text x="280" y="92" font-size="11" fill="#6b7280">2022</text>
+  <text x="480" y="92" font-size="11" fill="#6b7280">2023</text>
+  <text x="680" y="92" font-size="11" fill="#6b7280">2024</text>
+  <text x="860" y="92" font-size="11" fill="#6b7280">2025+</text>
+
+  <!-- Gen 1: VQ-VAE -->
+  <rect x="60" y="120" width="180" height="160" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="150" y="145" text-anchor="middle" font-size="14" font-weight="700" fill="#2563eb">VQ-VAE</text>
+  <text x="150" y="168" text-anchor="middle" font-size="11" fill="#374151">单层码本</text>
+  <line x1="80" y1="180" x2="220" y2="180" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="75" y="200" font-size="10" fill="#374151">+ 概念简单</text>
+  <text x="75" y="218" font-size="10" fill="#374151">+ 离散表征清晰</text>
+  <text x="75" y="242" font-size="10" fill="#dc2626">- 码本崩塌严重</text>
+  <text x="75" y="260" font-size="10" fill="#dc2626">- 容量 = K (有限)</text>
+
+  <!-- Gen 2: RQ-VAE -->
+  <rect x="270" y="120" width="180" height="160" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="360" y="145" text-anchor="middle" font-size="14" font-weight="700" fill="#16a34a">RQ-VAE</text>
+  <text x="360" y="168" text-anchor="middle" font-size="11" fill="#374151">残差多层码本</text>
+  <line x1="290" y1="180" x2="430" y2="180" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="285" y="200" font-size="10" fill="#374151">+ 容量 = K^L (指数)</text>
+  <text x="285" y="218" font-size="10" fill="#374151">+ 多粒度表达</text>
+  <text x="285" y="242" font-size="10" fill="#dc2626">- 利用率 vs 维度矛盾</text>
+  <text x="285" y="260" font-size="10" fill="#dc2626">- 训练损失拉扯</text>
+
+  <!-- Gen 3: FSQ / OPQ -->
+  <rect x="480" y="120" width="180" height="160" rx="10" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="570" y="145" text-anchor="middle" font-size="14" font-weight="700" fill="#7c3aed">FSQ / RQOPQ</text>
+  <text x="570" y="168" text-anchor="middle" font-size="11" fill="#374151">标量量化 / 优化乘积量化</text>
+  <line x1="500" y1="180" x2="640" y2="180" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="495" y="200" font-size="10" fill="#374151">+ 无码本崩塌 (FSQ)</text>
+  <text x="495" y="218" font-size="10" fill="#374151">+ Batch 训练 (OPQ)</text>
+  <text x="495" y="242" font-size="10" fill="#dc2626">- FSQ 上限低</text>
+  <text x="495" y="260" font-size="10" fill="#dc2626">- OPQ 工程复杂</text>
+
+  <!-- Gen 4: End-to-End / Online SID -->
+  <rect x="690" y="120" width="200" height="160" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="790" y="145" text-anchor="middle" font-size="14" font-weight="700" fill="#ea580c">端到端 SID</text>
+  <text x="790" y="168" text-anchor="middle" font-size="11" fill="#374151">在线学习 / 全特征 Token化</text>
+  <line x1="710" y1="180" x2="870" y2="180" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="705" y="200" font-size="10" fill="#374151">+ 协同信号融入</text>
+  <text x="705" y="218" font-size="10" fill="#374151">+ 真正 Scaling Law</text>
+  <text x="705" y="242" font-size="10" fill="#dc2626">- 漂移/崩塌风险</text>
+  <text x="705" y="260" font-size="10" fill="#dc2626">- 广告场景受限</text>
+
+  <!-- Arrows between generations -->
+  <path d="M240,200 Q255,200 270,200" fill="none" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead2)"/>
+  <path d="M450,200 Q465,200 480,200" fill="none" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead2)"/>
+  <path d="M660,200 Q675,200 690,200" fill="none" stroke="#374151" stroke-width="1.5" marker-end="url(#arrowhead2)"/>
+  <defs><marker id="arrowhead2" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#374151"/></marker></defs>
+
+  <!-- Bottom: New directions -->
+  <rect x="60" y="320" width="840" height="200" rx="10" fill="#f9fafb" stroke="#d1d5db" stroke-width="1"/>
+  <text x="480" y="348" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">2025 前沿方向 (快手 / 字节 / 小红书)</text>
+
+  <rect x="90" y="370" width="160" height="60" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1"/>
+  <text x="170" y="395" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">变长 SID</text>
+  <text x="170" y="415" text-anchor="middle" font-size="10" fill="#374151">不同 item 不同码长</text>
+
+  <rect x="280" y="370" width="160" height="60" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1"/>
+  <text x="360" y="395" text-anchor="middle" font-size="11" font-weight="600" fill="#16a34a">分布级 SID</text>
+  <text x="360" y="415" text-anchor="middle" font-size="10" fill="#374151">类目/分布感知编码</text>
+
+  <rect x="470" y="370" width="160" height="60" rx="6" fill="#f3e8ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="550" y="395" text-anchor="middle" font-size="11" font-weight="600" fill="#7c3aed">分层 SID</text>
+  <text x="550" y="415" text-anchor="middle" font-size="10" fill="#374151">粗粒度 → 细粒度级联</text>
+
+  <rect x="660" y="370" width="200" height="60" rx="6" fill="#ffedd5" stroke="#ea580c" stroke-width="1"/>
+  <text x="760" y="395" text-anchor="middle" font-size="11" font-weight="600" fill="#ea580c">FQSID / IDProxy</text>
+  <text x="760" y="415" text-anchor="middle" font-size="10" fill="#374151">头部ID直接用 / 尾部走SID</text>
+
+  <!-- Vision box -->
+  <rect x="90" y="450" width="780" height="55" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="480" y="475" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">终极愿景：推荐系统全特征 Tokenization → 有限词表 → LLM 式 Scaling Law</text>
+  <text x="480" y="495" text-anchor="middle" font-size="11" fill="#92400e">限制：广告系统业务特征由广告主设置，无法完全语义化 | Hash ID 不存在 Scaling Law</text>
+</svg>

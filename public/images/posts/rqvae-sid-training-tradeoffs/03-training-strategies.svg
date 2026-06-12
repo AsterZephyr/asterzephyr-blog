@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 580" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow3">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <rect width="960" height="580" fill="#ffffff"/>
+
+  <text x="480" y="36" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">RQ-VAE 训练策略决策树</text>
+  <text x="480" y="56" text-anchor="middle" font-size="12" fill="#6b7280">根据场景约束选择 Tokenizer 训练方式</text>
+
+  <!-- Root decision -->
+  <rect x="340" y="80" width="280" height="45" rx="8" fill="#111827" filter="url(#shadow3)"/>
+  <text x="480" y="108" text-anchor="middle" font-size="12" font-weight="600" fill="#ffffff">你的 Tokenizer 需要在线更新吗？</text>
+
+  <!-- Left branch: Offline -->
+  <line x1="400" y1="125" x2="200" y2="170" stroke="#374151" stroke-width="1.5"/>
+  <text x="280" y="150" font-size="11" font-weight="600" fill="#16a34a">否 (Freeze)</text>
+
+  <rect x="80" y="170" width="240" height="40" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="200" y="195" text-anchor="middle" font-size="12" font-weight="600" fill="#16a34a">离线训练 → 推理部署</text>
+
+  <!-- Offline sub-decisions -->
+  <line x1="140" y1="210" x2="120" y2="250" stroke="#374151" stroke-width="1"/>
+  <line x1="260" y1="210" x2="280" y2="250" stroke="#374151" stroke-width="1"/>
+
+  <rect x="30" y="250" width="180" height="90" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1" filter="url(#shadow3)"/>
+  <text x="120" y="272" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">标准 RQ-VAE</text>
+  <text x="45" y="292" font-size="10" fill="#374151">+ Sinkhorn 均衡</text>
+  <text x="45" y="308" font-size="10" fill="#374151">+ 去重 (同 emb 只过一遍)</text>
+  <text x="45" y="324" font-size="10" fill="#374151">+ EMA 码本更新</text>
+
+  <rect x="230" y="250" width="180" height="90" rx="6" fill="#faf5ff" stroke="#7c3aed" stroke-width="1" filter="url(#shadow3)"/>
+  <text x="320" y="272" text-anchor="middle" font-size="11" font-weight="600" fill="#7c3aed">RQOPQ (快手)</text>
+  <text x="245" y="292" font-size="10" fill="#374151">+ 可 Batch 训练</text>
+  <text x="245" y="308" font-size="10" fill="#374151">+ 旋转矩阵优化分配</text>
+  <text x="245" y="324" font-size="10" fill="#374151">+ 适合大规模 item</text>
+
+  <!-- Right branch: Online -->
+  <line x1="560" y1="125" x2="740" y2="170" stroke="#374151" stroke-width="1.5"/>
+  <text x="670" y="150" font-size="11" font-weight="600" fill="#dc2626">是 (End-to-End)</text>
+
+  <rect x="620" y="170" width="260" height="40" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="750" y="195" text-anchor="middle" font-size="12" font-weight="600" fill="#dc2626">端到端联合训练</text>
+
+  <!-- Online sub-decisions -->
+  <line x1="690" y1="210" x2="660" y2="250" stroke="#374151" stroke-width="1"/>
+  <line x1="810" y1="210" x2="840" y2="250" stroke="#374151" stroke-width="1"/>
+
+  <rect x="560" y="250" width="200" height="90" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1" filter="url(#shadow3)"/>
+  <text x="660" y="272" text-anchor="middle" font-size="11" font-weight="600" fill="#ea580c">大模型 Freeze + Tokenizer 训</text>
+  <text x="575" y="292" font-size="10" fill="#374151">多模态模型冻结仅推理</text>
+  <text x="575" y="308" font-size="10" fill="#374151">Tokenizer 梯度回传</text>
+  <text x="575" y="324" font-size="10" fill="#dc2626">风险：漂移可控</text>
+
+  <rect x="780" y="250" width="150" height="90" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="1" filter="url(#shadow3)"/>
+  <text x="855" y="272" text-anchor="middle" font-size="11" font-weight="600" fill="#dc2626">全端到端</text>
+  <text x="795" y="292" font-size="10" fill="#374151">字节 GIP 方案</text>
+  <text x="795" y="308" font-size="10" fill="#374151">Tokenizer + 下游联训</text>
+  <text x="795" y="324" font-size="10" fill="#dc2626">风险：漂移 + 崩塌</text>
+
+  <!-- Bottom: Head/Tail strategy -->
+  <rect x="60" y="380" width="840" height="180" rx="10" fill="#f9fafb" stroke="#d1d5db" stroke-width="1"/>
+  <text x="480" y="408" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">头部/尾部差异化策略</text>
+
+  <!-- Head items -->
+  <rect x="90" y="425" width="370" height="120" rx="8" fill="#ffffff" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="275" y="450" text-anchor="middle" font-size="12" font-weight="600" fill="#16a34a">头部 Item (高频曝光)</text>
+  <text x="105" y="475" font-size="11" fill="#374151">ID Embedding 训练充分，协同信号丰富</text>
+  <text x="105" y="498" font-size="11" fill="#374151">策略：直接用 Item ID，不走 SID</text>
+  <text x="105" y="521" font-size="11" fill="#6b7280">参考：小红书 IDProxy — 头部用户跳过 SID</text>
+  <rect x="105" y="530" width="80" height="5" rx="2" fill="#16a34a"/>
+
+  <!-- Tail items -->
+  <rect x="500" y="425" width="370" height="120" rx="8" fill="#ffffff" stroke="#ea580c" stroke-width="1.5"/>
+  <text x="685" y="450" text-anchor="middle" font-size="12" font-weight="600" fill="#ea580c">尾部 Item (低频/冷启动)</text>
+  <text x="515" y="475" font-size="11" fill="#374151">ID Embedding 欠训练，缺协同信号</text>
+  <text x="515" y="498" font-size="11" fill="#374151">策略：依赖 SID 多模态语义补充</text>
+  <text x="515" y="521" font-size="11" fill="#6b7280">方案：Gate 加权 (ID emb + SID emb → 融合 emb)</text>
+  <rect x="515" y="530" width="80" height="5" rx="2" fill="#ea580c"/>
+
+  <!-- Middle arrow -->
+  <text x="480" y="490" text-anchor="middle" font-size="18" fill="#374151">⟷</text>
+</svg>
