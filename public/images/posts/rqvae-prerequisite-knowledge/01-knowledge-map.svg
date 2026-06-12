@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow1"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#374151"/></marker>
+  </defs>
+  <rect width="960" height="620" fill="#ffffff"/>
+
+  <text x="480" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">从零到 RQ-VAE：完整知识依赖图</text>
+  <text x="480" y="52" text-anchor="middle" font-size="12" fill="#6b7280">每一层知识都是下一层的前提——跳过任何一层都会产生理解断裂</text>
+
+  <!-- Layer 1: ML Foundations -->
+  <rect x="60" y="75" width="840" height="75" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow1)"/>
+  <text x="80" y="98" font-size="12" font-weight="700" fill="#2563eb">Layer 1：机器学习基础</text>
+  <text x="80" y="118" font-size="11" fill="#374151">监督学习 | 损失函数 | 梯度下降 | 过拟合/欠拟合 | 特征工程 | Train/Val/Test 划分</text>
+  <text x="80" y="138" font-size="11" fill="#374151">Embedding 概念 | 分类 vs 回归 | 正则化 | 学习率调度</text>
+
+  <!-- Arrow -->
+  <line x1="480" y1="150" x2="480" y2="168" stroke="#374151" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Layer 2: Deep Learning -->
+  <rect x="60" y="170" width="840" height="75" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow1)"/>
+  <text x="80" y="193" font-size="12" font-weight="700" fill="#16a34a">Layer 2：深度学习核心</text>
+  <text x="80" y="213" font-size="11" fill="#374151">神经网络结构 | 反向传播 | Batch 训练 | CNN | RNN/LSTM | BatchNorm | Dropout</text>
+  <text x="80" y="233" font-size="11" fill="#374151">Attention 机制 | Transformer 架构 | Self-Attention | Multi-Head | 位置编码 | LayerNorm</text>
+
+  <!-- Arrow -->
+  <line x1="480" y1="245" x2="480" y2="263" stroke="#374151" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Layer 3: LLM + Generative -->
+  <rect x="60" y="265" width="400" height="75" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow1)"/>
+  <text x="80" y="288" font-size="12" font-weight="700" fill="#7c3aed">Layer 3a：LLM &amp; 生成模型</text>
+  <text x="80" y="308" font-size="11" fill="#374151">自回归生成 | Token/词表 | Scaling Law</text>
+  <text x="80" y="328" font-size="11" fill="#374151">VAE | 隐空间 | 重参数化技巧</text>
+
+  <rect x="500" y="265" width="400" height="75" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5" filter="url(#shadow1)"/>
+  <text x="520" y="288" font-size="12" font-weight="700" fill="#ea580c">Layer 3b：搜广推系统</text>
+  <text x="520" y="308" font-size="11" fill="#374151">召回 → 粗排 → 精排 → 重排</text>
+  <text x="520" y="328" font-size="11" fill="#374151">CTR/CVR 预估 | eCPM | 竞价机制</text>
+
+  <!-- Arrows down -->
+  <line x1="260" y1="340" x2="360" y2="358" stroke="#374151" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="700" y1="340" x2="600" y2="358" stroke="#374151" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Layer 4: Vector Quantization -->
+  <rect x="200" y="360" width="560" height="75" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow1)"/>
+  <text x="220" y="383" font-size="12" font-weight="700" fill="#92400e">Layer 4：向量量化</text>
+  <text x="220" y="403" font-size="11" fill="#374151">K-Means 聚类 | 最近邻搜索 | 乘积量化 (PQ) | VQ-VAE | Straight-Through Estimator</text>
+  <text x="220" y="423" font-size="11" fill="#374151">码本 | 码字 | Commitment Loss | EMA 更新 | 码本崩塌</text>
+
+  <!-- Arrow -->
+  <line x1="480" y1="435" x2="480" y2="453" stroke="#374151" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Layer 5: RQ-VAE + SID -->
+  <rect x="200" y="455" width="560" height="75" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2" filter="url(#shadow1)"/>
+  <text x="220" y="478" font-size="12" font-weight="700" fill="#dc2626">Layer 5：RQ-VAE &amp; Semantic ID (目标文章)</text>
+  <text x="220" y="498" font-size="11" fill="#374151">残差量化 | 多层码本 | Sinkhorn 均衡 | OPQ | FSQ | 端到端训练 vs Freeze</text>
+  <text x="220" y="518" font-size="11" fill="#374151">码本利用率 vs 碰撞率 | 头部/尾部策略 | 离在线一致性 | 生成式推荐</text>
+
+  <!-- Legend -->
+  <rect x="60" y="555" width="840" height="50" rx="6" fill="#f9fafb" stroke="#d1d5db" stroke-width="1"/>
+  <text x="80" y="578" font-size="11" font-weight="600" fill="#374151">阅读建议：</text>
+  <text x="180" y="578" font-size="11" fill="#374151">Layer 1-2 已掌握 → 从 Layer 3 开始读 | 全部陌生 → 从 Layer 1 顺序读完 | 只缺搜广推知识 → 跳读 Layer 3b + Layer 4</text>
+  <text x="80" y="595" font-size="11" fill="#6b7280">本文覆盖 Layer 1-4 全部内容。读完后直接进入目标文章（Layer 5）。</text>
+</svg>

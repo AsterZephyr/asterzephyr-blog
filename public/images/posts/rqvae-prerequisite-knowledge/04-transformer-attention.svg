@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow4"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr4" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#374151"/></marker>
+  </defs>
+  <rect width="960" height="540" fill="#ffffff"/>
+
+  <text x="480" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">Transformer 核心机制：Self-Attention 的工作原理</text>
+  <text x="480" y="52" text-anchor="middle" font-size="12" fill="#6b7280">理解 Attention 是理解 LLM 和生成式推荐的共同基础</text>
+
+  <!-- Input sequence -->
+  <text x="60" y="90" font-size="12" font-weight="600" fill="#374151">输入序列 (tokens)：</text>
+  <rect x="200" y="72" width="60" height="28" rx="4" fill="#dbeafe" stroke="#2563eb"/><text x="230" y="91" text-anchor="middle" font-size="11" fill="#2563eb">我</text>
+  <rect x="270" y="72" width="60" height="28" rx="4" fill="#dbeafe" stroke="#2563eb"/><text x="300" y="91" text-anchor="middle" font-size="11" fill="#2563eb">想</text>
+  <rect x="340" y="72" width="60" height="28" rx="4" fill="#dbeafe" stroke="#2563eb"/><text x="370" y="91" text-anchor="middle" font-size="11" fill="#2563eb">买</text>
+  <rect x="410" y="72" width="60" height="28" rx="4" fill="#fef3c7" stroke="#d97706"/><text x="440" y="91" text-anchor="middle" font-size="11" fill="#92400e">鞋</text>
+  <text x="490" y="91" font-size="11" fill="#6b7280">← 当前正在处理的 token</text>
+
+  <!-- QKV explanation -->
+  <rect x="40" y="120" width="880" height="160" rx="8" fill="#f9fafb" stroke="#d1d5db" stroke-width="1"/>
+  <text x="480" y="145" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">Self-Attention 的三个角色</text>
+
+  <!-- Q -->
+  <rect x="70" y="165" width="250" height="95" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+  <text x="195" y="188" text-anchor="middle" font-size="12" font-weight="600" fill="#2563eb">Query (Q) — "我在找什么"</text>
+  <text x="85" y="210" font-size="10" fill="#374151">"鞋"这个 token 问：上文里谁跟我</text>
+  <text x="85" y="226" font-size="10" fill="#374151">最相关？我要从上文提取什么信息？</text>
+  <text x="85" y="248" font-size="10" fill="#6b7280">Q = x * W_Q (线性投影)</text>
+
+  <!-- K -->
+  <rect x="350" y="165" width="250" height="95" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1"/>
+  <text x="475" y="188" text-anchor="middle" font-size="12" font-weight="600" fill="#16a34a">Key (K) — "我能提供什么"</text>
+  <text x="365" y="210" font-size="10" fill="#374151">每个历史 token 声明：我代表的</text>
+  <text x="365" y="226" font-size="10" fill="#374151">信息类型是什么（用于匹配 Q）</text>
+  <text x="365" y="248" font-size="10" fill="#6b7280">K = x * W_K (线性投影)</text>
+
+  <!-- V -->
+  <rect x="630" y="165" width="250" height="95" rx="6" fill="#faf5ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="755" y="188" text-anchor="middle" font-size="12" font-weight="600" fill="#7c3aed">Value (V) — "我的实际内容"</text>
+  <text x="645" y="210" font-size="10" fill="#374151">匹配上之后，实际提取的信息。</text>
+  <text x="645" y="226" font-size="10" fill="#374151">K 负责"被找到"，V 负责"被使用"</text>
+  <text x="645" y="248" font-size="10" fill="#6b7280">V = x * W_V (线性投影)</text>
+
+  <!-- Formula -->
+  <rect x="40" y="300" width="880" height="60" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="480" y="325" text-anchor="middle" font-size="13" font-weight="600" fill="#92400e">Attention(Q, K, V) = softmax(Q * K^T / sqrt(d_k)) * V</text>
+  <text x="480" y="348" text-anchor="middle" font-size="11" fill="#374151">Q*K^T = 相关性打分 | /sqrt(d_k) = 防止分数过大 | softmax = 归一化为概率 | *V = 加权聚合信息</text>
+
+  <!-- Multi-Head -->
+  <rect x="40" y="380" width="430" height="140" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1" filter="url(#shadow4)"/>
+  <text x="255" y="405" text-anchor="middle" font-size="13" font-weight="700" fill="#2563eb">Multi-Head Attention</text>
+  <text x="60" y="430" font-size="11" fill="#374151">不是只做一次 attention，而是并行做 h 次</text>
+  <text x="60" y="450" font-size="11" fill="#374151">（h=8 或 h=16 等），每次用不同的 W_Q/W_K/W_V。</text>
+  <text x="60" y="478" font-size="11" fill="#374151">类比：读一段文字时，你同时关注语法、语义、</text>
+  <text x="60" y="496" font-size="11" fill="#374151">情感、时态等多个维度。每个 head 负责一个"视角"。</text>
+  <text x="60" y="514" font-size="10" fill="#6b7280">最后把 h 个 head 的输出拼接 + 线性投影 → 最终输出。</text>
+
+  <!-- Autoregressive -->
+  <rect x="490" y="380" width="430" height="140" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1" filter="url(#shadow4)"/>
+  <text x="705" y="405" text-anchor="middle" font-size="13" font-weight="700" fill="#ea580c">自回归生成 (Autoregressive)</text>
+  <text x="510" y="430" font-size="11" fill="#374151">生成时一次只预测下一个 token：</text>
+  <text x="510" y="450" font-size="11" fill="#374151">P(x_t | x_1, x_2, ..., x_{t-1})</text>
+  <text x="510" y="478" font-size="11" fill="#374151">整个序列的概率 = 逐步条件概率的乘积。</text>
+  <text x="510" y="496" font-size="11" fill="#374151">LLM 生成文本 = 自回归预测 token。</text>
+  <text x="510" y="514" font-size="11" font-weight="600" fill="#ea580c">SID 生成 = 自回归预测码字索引 [k1, k2, k3]。</text>
+</svg>
