@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <rect width="900" height="500" fill="#faf8f5"/>
+
+  <!-- Title -->
+  <text x="450" y="60" text-anchor="middle" font-size="28" font-weight="700" fill="#1a1a1a">Building is easier, generating value is still hard</text>
+
+  <!-- Row 1: Old World -->
+  <text x="80" y="150" font-size="14" fill="#666" font-weight="500">旧世界</text>
+  <text x="80" y="168" font-size="12" fill="#999">执行力稀缺</text>
+
+  <!-- Row 1 dots -->
+  <circle cx="180" cy="160" r="14" fill="#c8c4be"/>
+  <circle cx="220" cy="160" r="14" fill="#c8c4be"/>
+  <circle cx="260" cy="160" r="14" fill="#c8c4be"/>
+  <circle cx="300" cy="160" r="14" fill="#c8c4be"/>
+  <circle cx="340" cy="160" r="14" fill="#c8c4be"/>
+  <circle cx="380" cy="160" r="14" fill="#c8c4be"/>
+  <circle cx="420" cy="160" r="14" fill="#c92a2a"/>
+  <circle cx="460" cy="160" r="14" fill="#c8c4be"/>
+  <circle cx="500" cy="160" r="14" fill="#c8c4be"/>
+  <circle cx="540" cy="160" r="14" fill="#c8c4be"/>
+  <circle cx="580" cy="160" r="14" fill="#c8c4be"/>
+  <circle cx="620" cy="160" r="14" fill="#c8c4be"/>
+
+  <!-- Arrow -->
+  <line x1="450" y1="200" x2="450" y2="240" stroke="#999" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <polygon points="445,238 455,238 450,248" fill="#999"/>
+
+  <!-- Middle label -->
+  <text x="450" y="275" text-anchor="middle" font-size="13" fill="#666">构建门槛下降</text>
+
+  <!-- Arrow -->
+  <line x1="450" y1="290" x2="450" y2="320" stroke="#999" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <polygon points="445,318 455,318 450,328" fill="#999"/>
+
+  <!-- Row 2: New World -->
+  <text x="80" y="360" font-size="14" fill="#666" font-weight="500">新世界</text>
+  <text x="80" y="378" font-size="12" fill="#999">判断力稀缺</text>
+
+  <!-- Row 2 dots -->
+  <circle cx="180" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="215" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="250" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="285" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="320" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="355" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="390" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="425" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="460" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="495" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="530" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="565" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="600" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="635" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="670" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="705" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="740" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="775" cy="370" r="14" fill="#c8c4be"/>
+  <circle cx="810" cy="370" r="14" fill="#c92a2a"/>
+  <circle cx="810" cy="370" r="18" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+
+  <!-- Bottom annotation -->
+  <text x="450" y="440" text-anchor="middle" font-size="13" fill="#666">产品数量暴增，但创造真实价值的比例反而更低</text>
+  <text x="450" y="462" text-anchor="middle" font-size="13" fill="#666">稀缺性从「执行」转移到「价值发现 / 价值判断 / 价值验证」</text>
+</svg>

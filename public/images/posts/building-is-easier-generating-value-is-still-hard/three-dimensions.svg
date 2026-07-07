@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <rect width="900" height="400" fill="#faf8f5"/>
+
+  <!-- Title -->
+  <text x="450" y="45" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a1a">价值创造的三个稀缺维度</text>
+
+  <!-- Column 1: 价值发现 -->
+  <rect x="50" y="75" width="250" height="280" rx="12" fill="#fff" stroke="#e5dbff" stroke-width="2"/>
+  <rect x="50" y="75" width="250" height="50" rx="12" fill="#5f3dc4"/>
+  <rect x="50" y="100" width="250" height="25" fill="#5f3dc4"/>
+  <text x="175" y="107" text-anchor="middle" font-size="16" font-weight="600" fill="#fff">价值发现</text>
+  <text x="175" y="150" text-anchor="middle" font-size="13" fill="#666">看见别人没看见的需求</text>
+
+  <text x="75" y="185" font-size="12" fill="#444">核心问题：</text>
+  <text x="75" y="205" font-size="12" fill="#666">用户真正的痛点是什么？</text>
+  <text x="75" y="225" font-size="12" fill="#666">哪些需求存在但无人解决？</text>
+
+  <text x="75" y="260" font-size="12" fill="#444">来源：</text>
+  <text x="75" y="280" font-size="12" fill="#666">领域深耕 + 真实场景浸泡</text>
+
+  <text x="75" y="320" font-size="12" fill="#c92a2a" font-weight="500">不来自：坐在电脑前头脑风暴</text>
+
+  <!-- Column 2: 价值判断 -->
+  <rect x="325" y="75" width="250" height="280" rx="12" fill="#fff" stroke="#ffe3e3" stroke-width="2"/>
+  <rect x="325" y="75" width="250" height="50" rx="12" fill="#c92a2a"/>
+  <rect x="325" y="100" width="250" height="25" fill="#c92a2a"/>
+  <text x="450" y="107" text-anchor="middle" font-size="16" font-weight="600" fill="#fff">价值判断</text>
+  <text x="450" y="150" text-anchor="middle" font-size="13" fill="#666">在无限可能中正确取舍</text>
+
+  <text x="350" y="185" font-size="12" fill="#444">核心问题：</text>
+  <text x="350" y="205" font-size="12" fill="#666">做什么 vs 不做什么？</text>
+  <text x="350" y="225" font-size="12" fill="#666">先做什么 vs 后做什么？</text>
+
+  <text x="350" y="260" font-size="12" fill="#444">来源：</text>
+  <text x="350" y="280" font-size="12" fill="#666">业务理解 + 经验 + 洞察</text>
+
+  <text x="350" y="320" font-size="12" fill="#c92a2a" font-weight="500">不来自：AI 列出所有选项</text>
+
+  <!-- Column 3: 价值验证 -->
+  <rect x="600" y="75" width="250" height="280" rx="12" fill="#fff" stroke="#c5f6fa" stroke-width="2"/>
+  <rect x="600" y="75" width="250" height="50" rx="12" fill="#0c8599"/>
+  <rect x="600" y="100" width="250" height="25" fill="#0c8599"/>
+  <text x="725" y="107" text-anchor="middle" font-size="16" font-weight="600" fill="#fff">价值验证</text>
+  <text x="725" y="150" text-anchor="middle" font-size="13" fill="#666">证明有人愿意付费</text>
+
+  <text x="625" y="185" font-size="12" fill="#444">核心问题：</text>
+  <text x="625" y="205" font-size="12" fill="#666">真的有人需要吗？</text>
+  <text x="625" y="225" font-size="12" fill="#666">需求规模能支撑生意吗？</text>
+
+  <text x="625" y="260" font-size="12" fill="#444">来源：</text>
+  <text x="625" y="280" font-size="12" fill="#666">实验设计 + 数据解读</text>
+
+  <text x="625" y="320" font-size="12" fill="#c92a2a" font-weight="500">不来自：更快地写更多代码</text>
+
+  <!-- Bottom flow arrows -->
+  <line x1="300" y1="370" x2="325" y2="370" stroke="#999" stroke-width="1.5"/>
+  <polygon points="322,366 322,374 330,370" fill="#999"/>
+  <line x1="575" y1="370" x2="600" y2="370" stroke="#999" stroke-width="1.5"/>
+  <polygon points="597,366 597,374 605,370" fill="#999"/>
+
+  <text x="175" y="380" text-anchor="middle" font-size="11" fill="#999">发现问题</text>
+  <text x="450" y="380" text-anchor="middle" font-size="11" fill="#999">选对方向</text>
+  <text x="725" y="380" text-anchor="middle" font-size="11" fill="#999">验证价值</text>
+</svg>
