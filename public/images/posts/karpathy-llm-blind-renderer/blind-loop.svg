@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="100%" stop-color="#c0392b"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2ecc71"/>
+      <stop offset="100%" stop-color="#27ae60"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrowRed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2ecc71"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="720" fill="url(#bgGrad)"/>
+  <rect width="1200" height="720" fill="none" stroke="#2a2a4a" stroke-width="1" opacity="0.3"/>
+
+  <!-- Title -->
+  <text x="600" y="52" text-anchor="middle" fill="#e0e0e0" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="28" font-weight="700">LLM 的盲审循环</text>
+
+  <!-- Main circular loop - centered left area -->
+  <!-- Circle path for arrows -->
+  <g transform="translate(420, 370)">
+    <!-- Outer ring glow -->
+    <circle cx="0" cy="0" r="200" fill="none" stroke="#e74c3c" stroke-width="1" opacity="0.15"/>
+    <circle cx="0" cy="0" r="202" fill="none" stroke="#ff6b6b" stroke-width="0.5" opacity="0.08"/>
+
+    <!-- Nodes on the circle -->
+    <!-- Node 1: 写代码 (top) -->
+    <g transform="translate(0, -200)">
+      <rect x="-52" y="-18" width="104" height="36" rx="6" fill="#2c1a1a" stroke="#e74c3c" stroke-width="1.5"/>
+      <text x="0" y="5" text-anchor="middle" fill="#ff8a80" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="14" font-weight="500">写代码</text>
+    </g>
+
+    <!-- Node 2: 渲染一帧 (top-right) -->
+    <g transform="translate(173, -100)">
+      <rect x="-52" y="-18" width="104" height="36" rx="6" fill="#2c1a1a" stroke="#e74c3c" stroke-width="1.5"/>
+      <text x="0" y="5" text-anchor="middle" fill="#ff8a80" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="14" font-weight="500">渲染一帧</text>
+    </g>
+
+    <!-- Node 3: 截图 (bottom-right) -->
+    <g transform="translate(173, 100)">
+      <rect x="-40" y="-18" width="80" height="36" rx="6" fill="#2c1a1a" stroke="#e74c3c" stroke-width="1.5"/>
+      <text x="0" y="5" text-anchor="middle" fill="#ff8a80" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="14" font-weight="500">截图</text>
+    </g>
+
+    <!-- Node 4: 分析静态图片 (bottom) -->
+    <g transform="translate(0, 200)">
+      <rect x="-65" y="-18" width="130" height="36" rx="6" fill="#2c1a1a" stroke="#e74c3c" stroke-width="1.5"/>
+      <text x="0" y="5" text-anchor="middle" fill="#ff8a80" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="14" font-weight="500">分析静态图片</text>
+    </g>
+
+    <!-- Node 5: 猜哪里不对 (bottom-left) -->
+    <g transform="translate(-173, 100)">
+      <rect x="-60" y="-18" width="120" height="36" rx="6" fill="#2c1a1a" stroke="#e74c3c" stroke-width="1.5"/>
+      <text x="0" y="5" text-anchor="middle" fill="#ff8a80" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="14" font-weight="500">猜哪里不对</text>
+    </g>
+
+    <!-- Node 6: 改代码 (top-left) -->
+    <g transform="translate(-173, -100)">
+      <rect x="-45" y="-18" width="90" height="36" rx="6" fill="#2c1a1a" stroke="#e74c3c" stroke-width="1.5"/>
+      <text x="0" y="5" text-anchor="middle" fill="#ff8a80" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="14" font-weight="500">改代码</text>
+    </g>
+
+    <!-- Arrows between nodes -->
+    <path d="M 48,-195 Q 130,-170 168,-118" fill="none" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrowRed)" opacity="0.8"/>
+    <path d="M 218,-68 Q 220,0 218,68" fill="none" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrowRed)" opacity="0.8"/>
+    <path d="M 168,118 Q 130,170 60,195" fill="none" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrowRed)" opacity="0.8"/>
+    <path d="M -60,195 Q -130,170 -168,118" fill="none" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrowRed)" opacity="0.8"/>
+    <path d="M -218,68 Q -220,0 -218,-68" fill="none" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrowRed)" opacity="0.8"/>
+    <path d="M -168,-118 Q -130,-170 -48,-195" fill="none" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrowRed)" opacity="0.8"/>
+
+    <!-- Center annotation -->
+    <text x="0" y="-8" text-anchor="middle" fill="#e74c3c" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="13" opacity="0.9">每一步都在</text>
+    <text x="0" y="14" text-anchor="middle" fill="#e74c3c" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="13" font-weight="700" opacity="0.9">丢信息</text>
+    <!-- Warning icon -->
+    <text x="0" y="-30" text-anchor="middle" fill="#e74c3c" font-size="22" opacity="0.7">⚠</text>
+  </g>
+
+  <!-- Human developer loop - right side -->
+  <g transform="translate(920, 420)">
+    <!-- Background panel -->
+    <rect x="-170" y="-180" width="340" height="310" rx="12" fill="#1a2e1a" stroke="#2ecc71" stroke-width="1" opacity="0.4"/>
+
+    <!-- Label -->
+    <text x="0" y="-148" text-anchor="middle" fill="#2ecc71" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="15" font-weight="600">人类开发者：即时、高带宽、原生</text>
+
+    <!-- Simple 3-node loop -->
+    <g transform="translate(0, -40)">
+      <!-- Node 1: 写代码 -->
+      <rect x="-100" y="-95" width="90" height="36" rx="6" fill="#1a2e1a" stroke="#2ecc71" stroke-width="1.5"/>
+      <text x="-55" y="-72" text-anchor="middle" fill="#a8e6cf" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="14" font-weight="500">写代码</text>
+
+      <!-- Node 2: 看结果 -->
+      <rect x="60" y="-15" width="90" height="36" rx="6" fill="#1a2e1a" stroke="#2ecc71" stroke-width="1.5"/>
+      <text x="105" y="8" text-anchor="middle" fill="#a8e6cf" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="14" font-weight="500">看结果</text>
+
+      <!-- Node 3: 直觉判断 -->
+      <rect x="-100" y="55" width="90" height="36" rx="6" fill="#1a2e1a" stroke="#2ecc71" stroke-width="1.5"/>
+      <text x="-55" y="78" text-anchor="middle" fill="#a8e6cf" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="14" font-weight="500">直觉判断</text>
+
+      <!-- Arrows -->
+      <path d="M -10,-77 Q 40,-60 58,-3" fill="none" stroke="#2ecc71" stroke-width="2" marker-end="url(#arrowGreen)" opacity="0.8"/>
+      <path d="M 70,21 Q 20,50 -8,60" fill="none" stroke="#2ecc71" stroke-width="2" marker-end="url(#arrowGreen)" opacity="0.8"/>
+      <path d="M -55,55 Q -55,10 -55,-58" fill="none" stroke="#2ecc71" stroke-width="2" marker-end="url(#arrowGreen)" opacity="0.8"/>
+    </g>
+
+    <!-- Speed annotations -->
+    <text x="0" y="100" text-anchor="middle" fill="#66bb6a" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="12" opacity="0.8">毫秒级反馈 · 全感官通道 · 潜意识模式匹配</text>
+  </g>
+
+  <!-- VS divider -->
+  <text x="700" y="375" text-anchor="middle" fill="#555" font-family="-apple-system, sans-serif" font-size="20" font-weight="700">vs</text>
+
+  <!-- LLM label -->
+  <text x="420" y="112" text-anchor="middle" fill="#e74c3c" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="15" font-weight="600" opacity="0.8">LLM Agent：逐帧、低带宽、有损</text>
+
+  <!-- Subtle grid -->
+  <g opacity="0.03" stroke="#ffffff" stroke-width="0.5">
+    <line x1="0" y1="0" x2="0" y2="720"/><line x1="100" y1="0" x2="100" y2="720"/>
+    <line x1="200" y1="0" x2="200" y2="720"/><line x1="300" y1="0" x2="300" y2="720"/>
+    <line x1="400" y1="0" x2="400" y2="720"/><line x1="500" y1="0" x2="500" y2="720"/>
+    <line x1="600" y1="0" x2="600" y2="720"/><line x1="700" y1="0" x2="700" y2="720"/>
+    <line x1="800" y1="0" x2="800" y2="720"/><line x1="900" y1="0" x2="900" y2="720"/>
+    <line x1="1000" y1="0" x2="1000" y2="720"/><line x1="1100" y1="0" x2="1100" y2="720"/>
+  </g>
+</svg>

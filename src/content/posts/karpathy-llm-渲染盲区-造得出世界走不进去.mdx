@@ -9,6 +9,7 @@ draft: false
 import Callout from '../../components/blog/Callout.astro'
 import Diagram from '../../components/blog/Diagram.astro'
 import Comparison from '../../components/blog/Comparison.astro'
+import Figure from '../../components/blog/Figure.astro'
 
 
 Andrej Karpathy 刚从 OpenAI 跳到 Anthropic 不久，就用自家模型做了一件让整个开发者社区停下来想了想的事：把《指环王》开篇第一段话扔给 Claude Opus 5，给 100 万 token 预算，要求只有一句——用 Three.js 把这段文字渲染成 3D 场景。
@@ -94,6 +95,8 @@ flowchart TB
 这就像一个闭着眼睛的雕刻家：能凭记忆和手感雕出大致形状，但没法退后一步看看整体效果。每次想检查，只能让别人拍一张照片描述给他听。
 
 ## 生成能力 vs 感知能力：一条结构性裂缝
+
+<Figure src="/images/posts/karpathy-llm-blind-renderer/blind-loop.svg" alt="LLM 盲审循环 vs 人类开发者反馈循环" caption="LLM 只能通过截图低效审查，人类开发者拥有即时高带宽视觉反馈" />
 
 这不是 Opus 5 的特例。这是所有 LLM 面对视觉输出时的共同困境。
 

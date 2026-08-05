@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <linearGradient id="layer1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0984e3"/>
+      <stop offset="100%" stop-color="#74b9ff"/>
+    </linearGradient>
+    <linearGradient id="layer2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6c5ce7"/>
+      <stop offset="100%" stop-color="#a29bfe"/>
+    </linearGradient>
+    <linearGradient id="layer3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3949ab"/>
+      <stop offset="100%" stop-color="#5c6bc0"/>
+    </linearGradient>
+    <linearGradient id="layer4" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00897b"/>
+      <stop offset="100%" stop-color="#4db6ac"/>
+    </linearGradient>
+    <linearGradient id="layer5" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f57c00"/>
+      <stop offset="100%" stop-color="#ffb74d"/>
+    </linearGradient>
+    <linearGradient id="layer6" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e53935"/>
+      <stop offset="100%" stop-color="#ff8a65"/>
+    </linearGradient>
+    <filter id="layerShadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="720" fill="url(#bgGrad)"/>
+
+  <!-- Title -->
+  <text x="600" y="52" text-anchor="middle" fill="#e0e0e0" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="28" font-weight="700">Tw93 AI 工程师知识金字塔</text>
+
+  <!-- Pyramid built from trapezoids, bottom to top -->
+  <!-- Using centered trapezoids with decreasing width -->
+
+  <!-- Layer 1 (bottom): Claude Code 工具层 - Blue -->
+  <g filter="url(#layerShadow)">
+    <polygon points="200,620 1000,620 920,540 280,540" fill="url(#layer1)" opacity="0.9"/>
+    <polygon points="200,620 1000,620 920,540 280,540" fill="none" stroke="#74b9ff" stroke-width="1" opacity="0.5"/>
+    <text x="600" y="588" text-anchor="middle" fill="#ffffff" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="18" font-weight="600">Claude Code 工具层</text>
+  </g>
+
+  <!-- Layer 2: Agent 系统架构 - Purple -->
+  <g filter="url(#layerShadow)">
+    <polygon points="280,530 920,530 855,450 345,450" fill="url(#layer2)" opacity="0.9"/>
+    <polygon points="280,530 920,530 855,450 345,450" fill="none" stroke="#a29bfe" stroke-width="1" opacity="0.5"/>
+    <text x="600" y="498" text-anchor="middle" fill="#ffffff" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="18" font-weight="600">Agent 系统架构</text>
+  </g>
+
+  <!-- Layer 3: 大模型训练 - Indigo -->
+  <g filter="url(#layerShadow)">
+    <polygon points="345,440 855,440 795,360 405,360" fill="url(#layer3)" opacity="0.9"/>
+    <polygon points="345,440 855,440 795,360 405,360" fill="none" stroke="#7986cb" stroke-width="1" opacity="0.5"/>
+    <text x="600" y="408" text-anchor="middle" fill="#ffffff" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="18" font-weight="600">大模型训练</text>
+  </g>
+
+  <!-- Layer 4: AI Coding 人人可用 - Teal -->
+  <g filter="url(#layerShadow)">
+    <polygon points="405,350 795,350 740,270 460,270" fill="url(#layer4)" opacity="0.9"/>
+    <polygon points="405,350 795,350 740,270 460,270" fill="none" stroke="#80cbc4" stroke-width="1" opacity="0.5"/>
+    <text x="600" y="318" text-anchor="middle" fill="#ffffff" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="17" font-weight="600">AI Coding 人人可用</text>
+  </g>
+
+  <!-- Layer 5: GEO AI可见性 - Amber -->
+  <g filter="url(#layerShadow)">
+    <polygon points="460,260 740,260 690,180 510,180" fill="url(#layer5)" opacity="0.9"/>
+    <polygon points="460,260 740,260 690,180 510,180" fill="none" stroke="#ffcc80" stroke-width="1" opacity="0.5"/>
+    <text x="600" y="228" text-anchor="middle" fill="#ffffff" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="16" font-weight="600">GEO AI 可见性</text>
+  </g>
+
+  <!-- Layer 6 (top): 具身智能 硬件世界 - Red/Orange -->
+  <g filter="url(#layerShadow)">
+    <polygon points="510,170 690,170 645,100 555,100" fill="url(#layer6)" opacity="0.9"/>
+    <polygon points="510,170 690,170 645,100 555,100" fill="none" stroke="#ff8a65" stroke-width="1" opacity="0.5"/>
+    <text x="600" y="143" text-anchor="middle" fill="#ffffff" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="14" font-weight="600">具身智能 硬件世界</text>
+  </g>
+
+  <!-- Right-side annotations -->
+  <!-- Layer 1 annotation -->
+  <g transform="translate(1010, 570)">
+    <line x1="-5" y1="0" x2="-60" y2="0" stroke="#74b9ff" stroke-width="1" opacity="0.5"/>
+    <circle cx="0" cy="0" r="3" fill="#74b9ff" opacity="0.7"/>
+    <text x="8" y="-6" fill="#74b9ff" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="11" opacity="0.9">MCP + Skill = 你的 IDE</text>
+    <text x="8" y="10" fill="#636e72" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="10">工具决定效率上限</text>
+  </g>
+
+  <!-- Layer 2 annotation -->
+  <g transform="translate(940, 480)">
+    <line x1="-5" y1="0" x2="-40" y2="0" stroke="#a29bfe" stroke-width="1" opacity="0.5"/>
+    <circle cx="0" cy="0" r="3" fill="#a29bfe" opacity="0.7"/>
+    <text x="8" y="-6" fill="#a29bfe" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="11" opacity="0.9">NOOA/ReAct/多Agent协作</text>
+    <text x="8" y="10" fill="#636e72" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="10">架构决定复杂度天花板</text>
+  </g>
+
+  <!-- Layer 3 annotation -->
+  <g transform="translate(870, 390)">
+    <line x1="-5" y1="0" x2="-35" y2="0" stroke="#7986cb" stroke-width="1" opacity="0.5"/>
+    <circle cx="0" cy="0" r="3" fill="#7986cb" opacity="0.7"/>
+    <text x="8" y="-6" fill="#7986cb" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="11" opacity="0.9">RL/RLHF/蒸馏/对齐</text>
+    <text x="8" y="10" fill="#636e72" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="10">理解模型才能驾驭模型</text>
+  </g>
+
+  <!-- Layer 4 annotation -->
+  <g transform="translate(800, 300)">
+    <line x1="-5" y1="0" x2="-25" y2="0" stroke="#80cbc4" stroke-width="1" opacity="0.5"/>
+    <circle cx="0" cy="0" r="3" fill="#80cbc4" opacity="0.7"/>
+    <text x="8" y="-6" fill="#80cbc4" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="11" opacity="0.9">Cursor/Copilot 平民化</text>
+    <text x="8" y="10" fill="#636e72" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="10">门槛在降，天花板在升</text>
+  </g>
+
+  <!-- Layer 5 annotation -->
+  <g transform="translate(740, 210)">
+    <line x1="-5" y1="0" x2="-20" y2="0" stroke="#ffcc80" stroke-width="1" opacity="0.5"/>
+    <circle cx="0" cy="0" r="3" fill="#ffcc80" opacity="0.7"/>
+    <text x="8" y="-6" fill="#ffcc80" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="11" opacity="0.9">让 AI 搜得到你</text>
+    <text x="8" y="10" fill="#636e72" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="10">AI 时代的 SEO 变革</text>
+  </g>
+
+  <!-- Layer 6 annotation -->
+  <g transform="translate(690, 125)">
+    <line x1="-5" y1="0" x2="-20" y2="0" stroke="#ff8a65" stroke-width="1" opacity="0.5"/>
+    <circle cx="0" cy="0" r="3" fill="#ff8a65" opacity="0.7"/>
+    <text x="8" y="-6" fill="#ff8a65" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="11" opacity="0.9">机器人/芯片/传感器</text>
+    <text x="8" y="10" fill="#636e72" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="10">数字世界的终极出口</text>
+  </g>
+
+  <!-- Left-side layer numbers -->
+  <g opacity="0.4">
+    <text x="215" y="588" text-anchor="middle" fill="#74b9ff" font-family="ui-monospace, monospace" font-size="12">L1</text>
+    <text x="292" y="498" text-anchor="middle" fill="#a29bfe" font-family="ui-monospace, monospace" font-size="12">L2</text>
+    <text x="360" y="408" text-anchor="middle" fill="#7986cb" font-family="ui-monospace, monospace" font-size="12">L3</text>
+    <text x="420" y="318" text-anchor="middle" fill="#80cbc4" font-family="ui-monospace, monospace" font-size="12">L4</text>
+    <text x="472" y="228" text-anchor="middle" fill="#ffcc80" font-family="ui-monospace, monospace" font-size="12">L5</text>
+    <text x="522" y="143" text-anchor="middle" fill="#ff8a65" font-family="ui-monospace, monospace" font-size="12">L6</text>
+  </g>
+
+  <!-- Bottom legend -->
+  <text x="600" y="680" text-anchor="middle" fill="#636e72" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="12" opacity="0.6">底层是基础设施，越往上越接近未来 — 从工具熟练到硬件世界</text>
+
+  <!-- Decorative: subtle upward arrow on left -->
+  <g opacity="0.15">
+    <line x1="150" y1="640" x2="150" y2="100" stroke="#ffffff" stroke-width="1"/>
+    <polygon points="150,95 145,108 155,108" fill="#ffffff"/>
+    <text x="150" y="665" text-anchor="middle" fill="#ffffff" font-family="-apple-system, 'Noto Sans SC', sans-serif" font-size="10" transform="rotate(-90, 150, 400)">抽象层级</text>
+  </g>
+
+  <!-- Subtle grid -->
+  <g opacity="0.02" stroke="#ffffff" stroke-width="0.5">
+    <line x1="200" y1="0" x2="200" y2="720"/><line x1="400" y1="0" x2="400" y2="720"/>
+    <line x1="600" y1="0" x2="600" y2="720"/><line x1="800" y1="0" x2="800" y2="720"/>
+    <line x1="1000" y1="0" x2="1000" y2="720"/>
+  </g>
+</svg>
