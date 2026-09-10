@@ -1,90 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520">
-  <defs>
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1a1a2e"/>
-      <stop offset="100%" stop-color="#16213e"/>
-    </linearGradient>
-  </defs>
-  <rect width="900" height="520" fill="url(#bgGrad)" rx="8"/>
-  <text x="450" y="36" text-anchor="middle" fill="#e0e0e0" font-family="system-ui,sans-serif" font-size="18" font-weight="700">SWA Bounded Replay</text>
-
-  <!-- LEFT: V4 Full Replay -->
-  <rect x="20" y="56" width="420" height="440" rx="6" fill="#1e1e3a" stroke="#e74c3c" stroke-width="1.5" opacity="0.7"/>
-  <text x="230" y="82" text-anchor="middle" fill="#e74c3c" font-family="system-ui,sans-serif" font-size="14" font-weight="600">V4: Full Replay (expensive)</text>
-
-  <!-- Cached prefix -->
-  <rect x="40" y="100" width="260" height="30" rx="4" fill="#2a5a3a" stroke="#4ade80" stroke-width="1"/>
-  <text x="170" y="120" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">Cached Prefix (Global KV hit)</text>
-  <!-- New suffix -->
-  <rect x="310" y="100" width="110" height="30" rx="4" fill="#3a3a6a" stroke="#818cf8" stroke-width="1"/>
-  <text x="365" y="120" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">New Suffix</text>
-
-  <!-- Layers stack -->
-  <g transform="translate(40,150)">
-    <text x="0" y="0" fill="#9ca3af" font-family="monospace" font-size="10">Decoder Layers</text>
-    <rect x="0" y="10" width="380" height="22" rx="3" fill="#3a1a1a" stroke="#e74c3c" stroke-width="0.8" opacity="0.6"/>
-    <text x="190" y="25" text-anchor="middle" fill="#fca5a5" font-family="monospace" font-size="9">Layer L — replay full L×n_win window</text>
-    <rect x="0" y="38" width="380" height="22" rx="3" fill="#3a1a1a" stroke="#e74c3c" stroke-width="0.8" opacity="0.6"/>
-    <text x="190" y="53" text-anchor="middle" fill="#fca5a5" font-family="monospace" font-size="9">Layer L-1 — replay full L×n_win window</text>
-    <text x="190" y="78" text-anchor="middle" fill="#6b7280" font-family="monospace" font-size="12">⋮</text>
-    <rect x="0" y="88" width="380" height="22" rx="3" fill="#3a1a1a" stroke="#e74c3c" stroke-width="0.8" opacity="0.6"/>
-    <text x="190" y="103" text-anchor="middle" fill="#fca5a5" font-family="monospace" font-size="9">Layer 1 — replay full L×n_win window</text>
-  </g>
-
-  <!-- Big red bracket -->
-  <line x1="60" y1="160" x2="60" y2="270" stroke="#e74c3c" stroke-width="2"/>
-  <line x1="60" y1="160" x2="70" y2="160" stroke="#e74c3c" stroke-width="2"/>
-  <line x1="60" y1="270" x2="70" y2="270" stroke="#e74c3c" stroke-width="2"/>
-  <text x="50" y="220" text-anchor="end" fill="#e74c3c" font-family="monospace" font-size="10" transform="rotate(-90,50,220)">L layers</text>
-
-  <!-- Cost label -->
-  <rect x="80" y="310" width="300" height="36" rx="6" fill="#4a1a1a" stroke="#e74c3c" stroke-width="1.5"/>
-  <text x="230" y="333" text-anchor="middle" fill="#fca5a5" font-family="monospace" font-size="14" font-weight="700">O(L × n_win) computation</text>
-
-  <!-- Cross -->
-  <line x1="180" y1="360" x2="280" y2="400" stroke="#e74c3c" stroke-width="3" opacity="0.8"/>
-  <line x1="280" y1="360" x2="180" y2="400" stroke="#e74c3c" stroke-width="3" opacity="0.8"/>
-  <text x="230" y="430" text-anchor="middle" fill="#e74c3c" font-family="system-ui,sans-serif" font-size="12">Prohibitive in production</text>
-  <text x="230" y="448" text-anchor="middle" fill="#9ca3af" font-family="system-ui,sans-serif" font-size="10">L=40, n_win=128 → 5,120 token-layers</text>
-
-  <!-- RIGHT: V4.1 Bounded Replay -->
-  <rect x="460" y="56" width="420" height="440" rx="6" fill="#1e1e3a" stroke="#4ade80" stroke-width="1.5" opacity="0.7"/>
-  <text x="670" y="82" text-anchor="middle" fill="#4ade80" font-family="system-ui,sans-serif" font-size="14" font-weight="600">V4.1: Bounded Replay (cheap)</text>
-
-  <!-- Cached prefix -->
-  <rect x="480" y="100" width="260" height="30" rx="4" fill="#2a5a3a" stroke="#4ade80" stroke-width="1"/>
-  <text x="610" y="120" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">Cached Prefix (Global KV hit)</text>
-  <!-- New suffix -->
-  <rect x="750" y="100" width="110" height="30" rx="4" fill="#3a3a6a" stroke="#818cf8" stroke-width="1"/>
-  <text x="805" y="120" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="11">New Suffix</text>
-
-  <!-- Only replay last n_win -->
-  <rect x="720" y="100" width="30" height="30" rx="2" fill="#22543d" stroke="#4ade80" stroke-width="2"/>
-  <text x="735" y="93" text-anchor="middle" fill="#4ade80" font-family="monospace" font-size="9">n_win</text>
-
-  <!-- Single replay block -->
-  <g transform="translate(480,150)">
-    <text x="0" y="0" fill="#9ca3af" font-family="monospace" font-size="10">Decoder Layers</text>
-    <rect x="0" y="10" width="380" height="22" rx="3" fill="#1a3a2a" stroke="#4ade80" stroke-width="0.8" opacity="0.6"/>
-    <text x="190" y="25" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="9">Layer L — replay only last n_win tokens</text>
-    <rect x="0" y="38" width="380" height="22" rx="3" fill="#1a3a2a" stroke="#4ade80" stroke-width="0.8" opacity="0.6"/>
-    <text x="190" y="53" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="9">Layer L-1 — replay only last n_win tokens</text>
-    <text x="190" y="78" text-anchor="middle" fill="#6b7280" font-family="monospace" font-size="12">⋮</text>
-    <rect x="0" y="88" width="380" height="22" rx="3" fill="#1a3a2a" stroke="#4ade80" stroke-width="0.8" opacity="0.6"/>
-    <text x="190" y="103" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="9">Layer 1 — replay only last n_win tokens</text>
-  </g>
-
-  <!-- Cost label -->
-  <rect x="520" y="310" width="300" height="36" rx="6" fill="#1a3a2a" stroke="#4ade80" stroke-width="1.5"/>
-  <text x="670" y="333" text-anchor="middle" fill="#86efac" font-family="monospace" font-size="14" font-weight="700">O(n_win) computation</text>
-
-  <!-- Check -->
-  <text x="670" y="375" text-anchor="middle" fill="#4ade80" font-family="system-ui,sans-serif" font-size="24">✓</text>
-  <text x="670" y="400" text-anchor="middle" fill="#e0e0e0" font-family="system-ui,sans-serif" font-size="11">Approximate ≈ Exact</text>
-  <text x="670" y="418" text-anchor="middle" fill="#9ca3af" font-family="system-ui,sans-serif" font-size="10">(negligible quality loss)</text>
-  <text x="670" y="448" text-anchor="middle" fill="#818cf8" font-family="system-ui,sans-serif" font-size="10">Post-training simulates bounded replay</text>
-  <text x="670" y="466" text-anchor="middle" fill="#818cf8" font-family="system-ui,sans-serif" font-size="10">→ model adapts to approximate state</text>
-
-  <!-- Center arrow -->
-  <polygon points="445,260 455,250 455,270" fill="#e0e0e0" opacity="0.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 760" role="img" aria-labelledby="title desc">
+<title id="title">有界回放：截断依赖，保留多层计算</title>
+<desc id="desc">Decoder 的相关层数为 20；每次 prefill 初始化 SWA</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#5a5a5a"/></marker></defs>
+<style>text {font-family: "PingFang SC", "Microsoft YaHei", sans-serif;}</style>
+<rect width="1000" height="760" fill="#f8f6f3"/>
+<text x="40" y="58" font-size="32" font-weight="600" text-anchor="start" fill="#1a1a1a">有界回放：截断依赖，保留多层计算</text>
+<text x="40" y="101" font-size="22" font-weight="400" text-anchor="start" fill="#6a6a6a">Decoder 的相关层数为 20；每次 prefill 初始化 SWA</text>
+<text x="40" y="163" font-size="25" font-weight="600" text-anchor="start" fill="#1a1a1a">精确恢复：依赖随相关层数向更早位置扩展</text>
+<rect x="40" y="190" width="920" height="76" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="500" y="237" font-size="25" font-weight="400" text-anchor="middle" fill="#1a1a1a">回放 token 范围约为相关层数 × 窗口长度</text>
+<text x="40" y="325" font-size="25" font-weight="600" text-anchor="start" fill="#1a1a1a">Bounded Replay：仅回放最近一个窗口</text>
+<rect x="40" y="355" width="625" height="76" rx="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="352" y="402" font-size="25" font-weight="400" text-anchor="middle" fill="#1a1a1a">更早 prefix：复用已有全局 KV</text>
+<rect x="705" y="355" width="255" height="76" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="832" y="402" font-size="24" font-weight="400" text-anchor="middle" fill="#1a1a1a">最近 128 token</text>
+<path d="M 832 431 L 832 490" stroke="#5a5a5a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<rect x="450" y="490" width="510" height="140" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="470" y="528" font-size="26" font-weight="600" text-anchor="start" fill="#1a1a1a">经过相关网络层</text>
+<text x="470" y="567" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">重建各层 SWA；状态是近似的</text>
+<text x="470" y="599" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">Encoder 旧 prefix 全局 KV 不覆盖</text>
+<text x="40" y="689" font-size="25" font-weight="400" text-anchor="start" fill="#1a1a1a">缩短回放序列，不等于省去层数或得到精确状态。</text>
+<text x="40" y="732" font-size="18" font-weight="400" text-anchor="start" fill="#6a6a6a">博主自绘 · §3.2.2</text>
 </svg>

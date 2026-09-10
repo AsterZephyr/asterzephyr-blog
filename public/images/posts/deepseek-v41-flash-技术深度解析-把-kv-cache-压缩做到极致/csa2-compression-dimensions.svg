@@ -1,78 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480">
-  <rect width="900" height="480" rx="12" fill="#1a1a2e"/>
-
-  <text x="450" y="34" text-anchor="middle" fill="#e0e0e0" font-family="system-ui, sans-serif" font-size="18" font-weight="600">Three Dimensions of KV Cache Compression</text>
-
-  <!-- 3D-ish cube visualization -->
-  <!-- Back face (original size) -->
-  <polygon points="200,100 500,100 530,70 230,70" fill="#4a5568" fill-opacity="0.15" stroke="#718096" stroke-width="0.8" stroke-dasharray="4,3"/>
-  <polygon points="500,100 530,70 530,270 500,300" fill="#4a5568" fill-opacity="0.1" stroke="#718096" stroke-width="0.8" stroke-dasharray="4,3"/>
-  <polygon points="200,100 500,100 500,300 200,300" fill="#4a5568" fill-opacity="0.08" stroke="#718096" stroke-width="0.8" stroke-dasharray="4,3"/>
-
-  <!-- Front face (compressed) - smaller cube inside -->
-  <polygon points="200,180 320,180 340,165 220,165" fill="#48cae4" fill-opacity="0.25" stroke="#48cae4" stroke-width="1.5"/>
-  <polygon points="320,180 340,165 340,245 320,260" fill="#48cae4" fill-opacity="0.2" stroke="#48cae4" stroke-width="1.5"/>
-  <polygon points="200,180 320,180 320,260 200,260" fill="#48cae4" fill-opacity="0.15" stroke="#48cae4" stroke-width="1.5"/>
-
-  <!-- Axis labels with arrows -->
-  <!-- X axis: Entry dimension -->
-  <line x1="200" y1="310" x2="500" y2="310" stroke="#f6ad55" stroke-width="2" marker-end="url(#axArrow)"/>
-  <text x="350" y="332" text-anchor="middle" fill="#f6ad55" font-family="system-ui, sans-serif" font-size="12" font-weight="600">Entry Dimension</text>
-  <text x="350" y="348" text-anchor="middle" fill="#a0aec0" font-family="system-ui, sans-serif" font-size="10">per-head KV size (GQA / MLA)</text>
-
-  <!-- Y axis: Layer dimension -->
-  <line x1="190" y1="300" x2="190" y2="100" stroke="#68d391" stroke-width="2"/>
-  <polygon points="190,100 186,110 194,110" fill="#68d391"/>
-  <text x="170" y="200" text-anchor="middle" fill="#68d391" font-family="system-ui, sans-serif" font-size="12" font-weight="600" transform="rotate(-90, 170, 200)">Layer Dimension</text>
-
-  <!-- Z axis: Sequence dimension -->
-  <line x1="510" y1="310" x2="545" y2="275" stroke="#c084fc" stroke-width="2"/>
-  <polygon points="545,275 537,281 543,287" fill="#c084fc"/>
-  <text x="570" y="280" text-anchor="start" fill="#c084fc" font-family="system-ui, sans-serif" font-size="12" font-weight="600">Sequence</text>
-  <text x="570" y="296" text-anchor="start" fill="#a0aec0" font-family="system-ui, sans-serif" font-size="10">tokens per layer</text>
-
-  <!-- CSA2 labels on the compressed cube -->
-  <text x="260" y="225" text-anchor="middle" fill="#48cae4" font-family="monospace" font-size="11" font-weight="700">CSA2</text>
-
-  <!-- Right side: comparison table -->
-  <rect x="600" y="60" width="270" height="250" rx="8" fill="#16213e" stroke="#2d3748" stroke-width="1"/>
-  <text x="735" y="86" text-anchor="middle" fill="#e0e0e0" font-family="system-ui, sans-serif" font-size="13" font-weight="600">What CSA2 Does</text>
-
-  <!-- Entry -->
-  <rect x="616" y="100" width="238" height="42" rx="4" fill="#f6ad55" fill-opacity="0.08"/>
-  <text x="626" y="117" fill="#f6ad55" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Entry:</text>
-  <text x="626" y="133" fill="#a0aec0" font-family="monospace" font-size="10">Compressed projection from hidden</text>
-
-  <!-- Sequence -->
-  <rect x="616" y="148" width="238" height="42" rx="4" fill="#c084fc" fill-opacity="0.08"/>
-  <text x="626" y="165" fill="#c084fc" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Sequence:</text>
-  <text x="626" y="181" fill="#a0aec0" font-family="monospace" font-size="10">m=2 (enc) / m=1 (dec) + Top-512</text>
-
-  <!-- Layer -->
-  <rect x="616" y="196" width="238" height="42" rx="4" fill="#68d391" fill-opacity="0.08"/>
-  <text x="626" y="213" fill="#68d391" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Layer:</text>
-  <text x="626" y="229" fill="#a0aec0" font-family="monospace" font-size="10">Full / Reindex / Reuse sharing</text>
-
-  <!-- Divider -->
-  <line x1="616" y1="250" x2="854" y2="250" stroke="#2d3748" stroke-width="1"/>
-
-  <text x="626" y="270" fill="#718096" font-family="system-ui, sans-serif" font-size="10">All 3 dimensions simultaneously</text>
-  <text x="626" y="286" fill="#718096" font-family="system-ui, sans-serif" font-size="10">No full attention layers retained</text>
-  <text x="626" y="302" fill="#48cae4" font-family="monospace" font-size="10" font-weight="600">= 890 bytes/token</text>
-
-  <!-- Prior work comparison -->
-  <rect x="600" y="330" width="270" height="130" rx="8" fill="#16213e" stroke="#2d3748" stroke-width="1"/>
-  <text x="735" y="355" text-anchor="middle" fill="#a0aec0" font-family="system-ui, sans-serif" font-size="12" font-weight="600">Prior Work (partial coverage)</text>
-
-  <circle cx="622" cy="378" r="4" fill="#718096"/>
-  <text x="634" y="382" fill="#718096" font-family="system-ui, sans-serif" font-size="10">H2O: sequence only (eviction)</text>
-
-  <circle cx="622" cy="398" r="4" fill="#718096"/>
-  <text x="634" y="402" fill="#718096" font-family="system-ui, sans-serif" font-size="10">IndexCache: layer only</text>
-
-  <circle cx="622" cy="418" r="4" fill="#718096"/>
-  <text x="634" y="422" fill="#718096" font-family="system-ui, sans-serif" font-size="10">Quest: sequence only (query-aware)</text>
-
-  <circle cx="622" cy="438" r="4" fill="#718096"/>
-  <text x="634" y="442" fill="#718096" font-family="system-ui, sans-serif" font-size="10">V4 CSA+HCA: partial (keeps FA layers)</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 675" role="img" aria-labelledby="title desc">
+<title id="title">全局 KV 的三个压缩维度</title>
+<desc id="desc">条目大小 × 条目数量 × 独立缓存层数</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#5a5a5a"/></marker></defs>
+<style>text {font-family: "PingFang SC", "Microsoft YaHei", sans-serif;}</style>
+<rect width="1000" height="675" fill="#f8f6f3"/>
+<text x="40" y="58" font-size="32" font-weight="600" text-anchor="start" fill="#1a1a1a">全局 KV 的三个压缩维度</text>
+<text x="40" y="101" font-size="22" font-weight="400" text-anchor="start" fill="#6a6a6a">条目大小 × 条目数量 × 独立缓存层数</text>
+<rect x="40" y="145" width="920" height="110" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="60" y="183" font-size="26" font-weight="600" text-anchor="start" fill="#1a1a1a">条目表示 Entry</text>
+<text x="60" y="222" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">共享或压缩 head / latent 表示，减少每个条目占用</text>
+<rect x="40" y="285" width="920" height="110" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="60" y="323" font-size="26" font-weight="600" text-anchor="start" fill="#1a1a1a">序列条目 Sequence</text>
+<text x="60" y="362" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">Encoder m=2；Decoder m=1，不做序列合并</text>
+<rect x="40" y="425" width="920" height="110" rx="12" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="60" y="463" font-size="26" font-weight="600" text-anchor="start" fill="#1a1a1a">独立缓存层 Layer</text>
+<text x="60" y="502" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">跨层共享 main KV 与 indexer K，减少重复存储</text>
+<text x="40" y="602" font-size="24" font-weight="400" text-anchor="start" fill="#1a1a1a">稀疏选择约束“读哪些位置”；它与存储容量是不同口径。</text>
+<text x="40" y="647" font-size="18" font-weight="400" text-anchor="start" fill="#6a6a6a">博主自绘 · §2.3</text>
 </svg>

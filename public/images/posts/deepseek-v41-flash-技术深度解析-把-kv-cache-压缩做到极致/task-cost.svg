@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 660" role="img" aria-labelledby="title desc">
+<title id="title">从每 token 指标走到每个成功任务</title>
+<desc id="desc">作者分析 · 示意各项进入成本账，不代表它们只能串行执行</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#5a5a5a"/></marker></defs>
+<style>text {font-family: "PingFang SC", "Microsoft YaHei", sans-serif;}</style>
+<rect width="1000" height="660" fill="#f8f6f3"/>
+<text x="40" y="58" font-size="32" font-weight="600" text-anchor="start" fill="#1a1a1a">从每 token 指标走到每个成功任务</text>
+<text x="40" y="101" font-size="22" font-weight="400" text-anchor="start" fill="#6a6a6a">作者分析 · 示意各项进入成本账，不代表它们只能串行执行</text>
+<rect x="40" y="165" width="200" height="155" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="60" y="203" font-size="26" font-weight="600" text-anchor="start" fill="#1a1a1a">输入与状态</text>
+<text x="60" y="242" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">未命中 prefill</text>
+<text x="60" y="274" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">命中 KV 加载</text>
+<path d="M 240 240 L 280 240" stroke="#5a5a5a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<rect x="280" y="165" width="200" height="155" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="300" y="203" font-size="26" font-weight="600" text-anchor="start" fill="#1a1a1a">生成与工具</text>
+<text x="300" y="242" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">输出 decode</text>
+<text x="300" y="274" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">工具执行</text>
+<path d="M 480 240 L 520 240" stroke="#5a5a5a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<rect x="520" y="165" width="200" height="155" rx="12" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="540" y="203" font-size="26" font-weight="600" text-anchor="start" fill="#1a1a1a">失败与返工</text>
+<text x="540" y="242" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">多次尝试</text>
+<text x="540" y="274" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">额外模型调用</text>
+<path d="M 720 240 L 760 240" stroke="#5a5a5a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<rect x="760" y="165" width="200" height="155" rx="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="780" y="203" font-size="26" font-weight="600" text-anchor="start" fill="#1a1a1a">验收</text>
+<text x="780" y="242" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">质量检查</text>
+<text x="780" y="274" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">人工或自动</text>
+<rect x="40" y="405" width="920" height="120" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="60" y="443" font-size="26" font-weight="600" text-anchor="start" fill="#1a1a1a">一批尝试的总成本 ÷ 验收通过的任务数</text>
+<text x="60" y="482" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">同时报告成功率、完成时延 P50/P95；无成功任务时不报告有限均摊成本</text>
+<text x="40" y="588" font-size="25" font-weight="400" text-anchor="start" fill="#1a1a1a">固定任务集与 scaffold，再比较缓存条件和 effort。</text>
+<text x="40" y="632" font-size="18" font-weight="400" text-anchor="start" fill="#6a6a6a">博主自绘 · 作者分析；不是论文实测结果</text>
+</svg>

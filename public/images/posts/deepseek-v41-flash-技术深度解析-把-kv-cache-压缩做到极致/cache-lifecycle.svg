@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 735" role="img" aria-labelledby="title desc">
+<title id="title">三类状态，三种生命周期</title>
+<desc id="desc">恢复成本降低，允许更积极地释放状态</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#5a5a5a"/></marker></defs>
+<style>text {font-family: "PingFang SC", "Microsoft YaHei", sans-serif;}</style>
+<rect width="1000" height="735" fill="#f8f6f3"/>
+<text x="40" y="58" font-size="32" font-weight="600" text-anchor="start" fill="#1a1a1a">三类状态，三种生命周期</text>
+<text x="40" y="101" font-size="22" font-weight="400" text-anchor="start" fill="#6a6a6a">恢复成本降低，允许更积极地释放状态</text>
+<text x="60" y="170" font-size="24" font-weight="600" text-anchor="start" fill="#1a1a1a">状态</text>
+<text x="275" y="170" font-size="24" font-weight="600" text-anchor="start" fill="#1a1a1a">保留位置 / 时间</text>
+<text x="610" y="170" font-size="24" font-weight="600" text-anchor="start" fill="#1a1a1a">恢复方式</text>
+<rect x="40" y="205" width="920" height="105" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="60" y="249" font-size="24" font-weight="600" text-anchor="start" fill="#1a1a1a">全局 KV</text>
+<text x="275" y="245" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">SSD 持久化</text>
+<text x="275" y="280" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">长尾复用</text>
+<text x="610" y="245" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">命中 prefix 直接复用</text>
+<text x="610" y="280" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">新 suffix 生成新状态</text>
+<rect x="40" y="335" width="920" height="105" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="60" y="379" font-size="24" font-weight="600" text-anchor="start" fill="#1a1a1a">Encoder SWA</text>
+<text x="275" y="375" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">Host DRAM 检查点</text>
+<text x="275" y="410" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">分钟级 TTL</text>
+<text x="610" y="375" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">miss 时回放末尾窗口</text>
+<text x="610" y="410" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">再处理新 suffix</text>
+<rect x="40" y="465" width="920" height="105" rx="12" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="60" y="509" font-size="24" font-weight="600" text-anchor="start" fill="#1a1a1a">Decoder SWA</text>
+<text x="275" y="505" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">不进 prefix cache</text>
+<text x="275" y="540" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">仅供后续 decode</text>
+<text x="610" y="505" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">每次 prefill 回放</text>
+<text x="610" y="540" font-size="23" font-weight="400" text-anchor="start" fill="#1a1a1a">prompt 末尾 128 token</text>
+<text x="40" y="665" font-size="24" font-weight="400" text-anchor="start" fill="#1a1a1a">作者分析：预期复用收益与存储、搬运和恢复成本一起算。</text>
+<text x="40" y="707" font-size="18" font-weight="400" text-anchor="start" fill="#6a6a6a">博主自绘 · §3.2.1–3.2.2；作者分析</text>
+</svg>

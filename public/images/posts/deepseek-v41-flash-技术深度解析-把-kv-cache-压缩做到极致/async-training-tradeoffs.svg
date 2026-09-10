@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 670" role="img" aria-labelledby="title desc">
+<title id="title">异步训练：等待减少，分布仍要控制</title>
+<desc id="desc">长度偏差与策略陈旧，需要分别处理</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#5a5a5a"/></marker></defs>
+<style>text {font-family: "PingFang SC", "Microsoft YaHei", sans-serif;}</style>
+<rect width="1000" height="670" fill="#f8f6f3"/>
+<text x="40" y="58" font-size="32" font-weight="600" text-anchor="start" fill="#1a1a1a">异步训练：等待减少，分布仍要控制</text>
+<text x="40" y="101" font-size="22" font-weight="400" text-anchor="start" fill="#6a6a6a">长度偏差与策略陈旧，需要分别处理</text>
+<text x="60" y="172" font-size="25" font-weight="600" text-anchor="start" fill="#1a1a1a">效率机制</text>
+<text x="350" y="172" font-size="25" font-weight="600" text-anchor="start" fill="#1a1a1a">新增偏差</text>
+<text x="650" y="172" font-size="25" font-weight="600" text-anchor="start" fill="#1a1a1a">对应控制</text>
+<rect x="40" y="210" width="270" height="125" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="60" y="258" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">样本完成后即补充</text>
+<text x="60" y="294" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">减少等待长尾</text>
+<rect x="340" y="210" width="270" height="125" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="360" y="258" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">短样本先返回</text>
+<text x="360" y="294" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">早期分布偏短</text>
+<rect x="640" y="210" width="270" height="125" rx="12" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="660" y="258" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">按 dataset 限并发</text>
+<text x="660" y="294" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">丢弃部分早返短样本</text>
+<rect x="40" y="370" width="270" height="125" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="60" y="418" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">轨迹暂停并恢复</text>
+<text x="60" y="454" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">可跨 checkpoint</text>
+<rect x="340" y="370" width="270" height="125" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="360" y="418" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">旧策略生成片段</text>
+<text x="360" y="454" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">影响当前更新</text>
+<rect x="640" y="370" width="270" height="125" rx="12" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="1.5"/>
+<text x="660" y="418" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">约束 off-policy 程度</text>
+<text x="660" y="454" font-size="22" font-weight="400" text-anchor="start" fill="#1a1a1a">mask 过旧 token loss</text>
+<text x="40" y="591" font-size="25" font-weight="600" text-anchor="start" fill="#1a1a1a">Routing replay 保留实际路由，不消除策略陈旧。</text>
+<text x="40" y="642" font-size="18" font-weight="400" text-anchor="start" fill="#6a6a6a">博主自绘 · §5.2.2</text>
+</svg>
