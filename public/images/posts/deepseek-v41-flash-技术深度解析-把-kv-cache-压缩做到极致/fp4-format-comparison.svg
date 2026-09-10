@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460">
+  <rect width="900" height="460" rx="12" fill="#1a1a2e"/>
+
+  <text x="450" y="34" text-anchor="middle" fill="#e0e0e0" font-family="system-ui, sans-serif" font-size="18" font-weight="600">FP4 Quantization: E2M1 with MXFP4</text>
+
+  <!-- Bit layout comparison -->
+  <text x="60" y="72" fill="#a0aec0" font-family="system-ui, sans-serif" font-size="13" font-weight="600">Bit Layout Comparison</text>
+
+  <!-- FP16 -->
+  <text x="60" y="102" fill="#718096" font-family="monospace" font-size="12">FP16</text>
+  <rect x="130" y="88" width="22" height="22" rx="2" fill="#e53e3e" fill-opacity="0.4" stroke="#e53e3e" stroke-width="1"/>
+  <text x="141" y="103" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="8">S</text>
+  <rect x="154" y="88" width="110" height="22" rx="2" fill="#f6ad55" fill-opacity="0.3" stroke="#f6ad55" stroke-width="1"/>
+  <text x="209" y="103" text-anchor="middle" fill="#f6ad55" font-family="monospace" font-size="9">5-bit exp</text>
+  <rect x="266" y="88" width="220" height="22" rx="2" fill="#68d391" fill-opacity="0.3" stroke="#68d391" stroke-width="1"/>
+  <text x="376" y="103" text-anchor="middle" fill="#68d391" font-family="monospace" font-size="9">10-bit mantissa</text>
+  <text x="500" y="103" fill="#718096" font-family="monospace" font-size="11">= 16 bits</text>
+
+  <!-- FP8 E4M3 -->
+  <text x="60" y="142" fill="#718096" font-family="monospace" font-size="12">FP8</text>
+  <rect x="130" y="128" width="22" height="22" rx="2" fill="#e53e3e" fill-opacity="0.4" stroke="#e53e3e" stroke-width="1"/>
+  <text x="141" y="143" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="8">S</text>
+  <rect x="154" y="128" width="88" height="22" rx="2" fill="#f6ad55" fill-opacity="0.3" stroke="#f6ad55" stroke-width="1"/>
+  <text x="198" y="143" text-anchor="middle" fill="#f6ad55" font-family="monospace" font-size="9">4-bit exp</text>
+  <rect x="244" y="128" width="66" height="22" rx="2" fill="#68d391" fill-opacity="0.3" stroke="#68d391" stroke-width="1"/>
+  <text x="277" y="143" text-anchor="middle" fill="#68d391" font-family="monospace" font-size="9">3-bit m</text>
+  <text x="324" y="143" fill="#718096" font-family="monospace" font-size="11">= 8 bits</text>
+
+  <!-- FP4 E2M1 - highlighted -->
+  <rect x="50" y="160" width="530" height="34" rx="4" fill="#48cae4" fill-opacity="0.06" stroke="#48cae4" stroke-width="1"/>
+  <text x="60" y="182" fill="#48cae4" font-family="monospace" font-size="12" font-weight="700">FP4</text>
+  <rect x="130" y="168" width="22" height="22" rx="2" fill="#e53e3e" fill-opacity="0.5" stroke="#e53e3e" stroke-width="1.5"/>
+  <text x="141" y="183" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="8">S</text>
+  <rect x="154" y="168" width="44" height="22" rx="2" fill="#f6ad55" fill-opacity="0.5" stroke="#f6ad55" stroke-width="1.5"/>
+  <text x="176" y="183" text-anchor="middle" fill="#f6ad55" font-family="monospace" font-size="9">2-exp</text>
+  <rect x="200" y="168" width="22" height="22" rx="2" fill="#68d391" fill-opacity="0.5" stroke="#68d391" stroke-width="1.5"/>
+  <text x="211" y="183" text-anchor="middle" fill="#68d391" font-family="monospace" font-size="8">1</text>
+  <text x="236" y="183" fill="#48cae4" font-family="monospace" font-size="11" font-weight="600">= 4 bits (E2M1)</text>
+  <text x="400" y="183" fill="#718096" font-family="system-ui, sans-serif" font-size="10">wider range, lower precision</text>
+
+  <!-- Scaling scheme -->
+  <text x="60" y="230" fill="#a0aec0" font-family="system-ui, sans-serif" font-size="13" font-weight="600">Scaling Scheme</text>
+
+  <rect x="60" y="244" width="380" height="70" rx="6" fill="#16213e" stroke="#48cae4" stroke-width="1"/>
+  <text x="80" y="267" fill="#48cae4" font-family="monospace" font-size="11" font-weight="600">Per 16-channel block:</text>
+  <text x="80" y="285" fill="#a0aec0" font-family="monospace" font-size="11">1x E4M3 scale (8 bits)</text>
+  <text x="80" y="303" fill="#68d391" font-family="monospace" font-size="10">shared across 16 KV channels</text>
+
+  <rect x="460" y="244" width="400" height="70" rx="6" fill="#16213e" stroke="#f6ad55" stroke-width="1"/>
+  <text x="480" y="267" fill="#f6ad55" font-family="monospace" font-size="11" font-weight="600">Global scale: OMITTED</text>
+  <text x="480" y="285" fill="#a0aec0" font-family="monospace" font-size="11">Max representable: 448 x 6 = 2,688</text>
+  <text x="480" y="303" fill="#a0aec0" font-family="monospace" font-size="11">Actual max in training:      ~10</text>
+
+  <!-- Why it works -->
+  <text x="60" y="345" fill="#a0aec0" font-family="system-ui, sans-serif" font-size="13" font-weight="600">Why FP4 Works for KV Cache</text>
+
+  <rect x="60" y="358" width="780" height="80" rx="6" fill="#16213e" stroke="#2d3748" stroke-width="1"/>
+
+  <text x="80" y="380" fill="#e0e0e0" font-family="monospace" font-size="11">RMS Norm output: L2 norm ≈ sqrt(512) ≈ 22.6</text>
+  <text x="80" y="398" fill="#e0e0e0" font-family="monospace" font-size="11">RoPE: orthogonal transform, preserves norm (rotation)</text>
+  <text x="80" y="416" fill="#e0e0e0" font-family="monospace" font-size="11">E2M1 + E4M3 scale max: 2,688   actual max: ~10   headroom: >200x</text>
+  <text x="700" y="416" fill="#68d391" font-family="monospace" font-size="11" font-weight="700">SAFE</text>
+
+  <!-- Storage math -->
+  <rect x="60" y="440" width="780" height="4" rx="2" fill="#2d3748"/>
+
+  <!-- Storage calculation at bottom is omitted to keep clean; the bit layouts tell the story -->
+</svg>
