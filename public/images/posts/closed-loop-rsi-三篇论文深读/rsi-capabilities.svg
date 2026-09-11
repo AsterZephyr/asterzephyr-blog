@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="850" viewBox="0 0 720 850" role="img" aria-labelledby="title desc">
+<title id="title">把闭环 RSI 拆成可验证的能力</title>
+<desc id="desc">本文综合示意。目标操作化、经验转化、系统沉淀需要依次接受外部迁移验证。三篇论文并未共同实现完整递归闭环。</desc>
+<style>text{font-family:"Arial Unicode MS","Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif}</style>
+<defs><marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#2563eb"/></marker></defs>
+<rect width="720" height="850" fill="#ffffff"/>
+<text x="48" y="58" font-size="30" font-weight="600" fill="#111827">进步，需要穿过三道转换</text>
+<text x="48" y="93" font-size="19" fill="#6b7280">本文综合 · 能力分解，不是已实现的系统流程</text>
+<path d="M 360 280 L 360 318" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M 360 465 L 360 503" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="48" y="140" width="624" height="140" rx="8" fill="#eff6ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="70" y="173" fill="#2563eb" font-size="20" font-weight="600">01 / Aspire</text>
+<text x="70" y="217" fill="#111827" font-size="27" font-weight="600">能力方向 → 可检验的学习目标</text>
+<text x="70" y="252" fill="#6b7280" font-size="21">产物：数据、更新方法、自建验证</text>
+<rect x="48" y="325" width="624" height="140" rx="8" fill="#eff6ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="70" y="358" fill="#2563eb" font-size="20" font-weight="600">02 / S³Gym</text>
+<text x="70" y="402" fill="#111827" font-size="27" font-weight="600">交互经历 → 可执行的经验</text>
+<text x="70" y="437" fill="#6b7280" font-size="21">产物：历史、规则记忆或参数更新</text>
+<rect x="48" y="510" width="624" height="140" rx="8" fill="#eff6ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="70" y="543" fill="#2563eb" font-size="20" font-weight="600">03 / HarnessDev</text>
+<text x="70" y="587" fill="#111827" font-size="27" font-weight="600">改进设想 → 持续生效的系统</text>
+<text x="70" y="622" fill="#6b7280" font-size="21">产物：冻结后可在新任务运行的 harness</text>
+<path d="M 360 650 L 360 698" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="48" y="710" width="624" height="95" rx="8" fill="#f0fdf4" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="70" y="748" font-size="26" fill="#111827" font-weight="600">共同验收：冻结后，在新任务上验证</text>
+<text x="70" y="782" font-size="20" fill="#6b7280">再问：改进后的系统，能否改进下一轮学习？</text>
+</svg>
