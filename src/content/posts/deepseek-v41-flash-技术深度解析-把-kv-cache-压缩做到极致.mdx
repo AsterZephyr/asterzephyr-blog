@@ -17,11 +17,22 @@ import TechGraph from '../../components/blog/TechGraph.astro'
 
 每个 token 的全局 KV cache 只占 890 字节，约为 DeepSeek-V4-Flash 的四分之一、DeepSeek-V1 的四百三十七分之一。按 1M = 1,000,000 token、1 GB = 10⁹ bytes 计算，全局 KV 从 V1 的 389.12 GB 降到 V4.1-Flash 的 0.89 GB。这里比较的是全局 KV，不包括模型权重、SWA 和工作区，也不意味着历史模型都能实际服务 1M 上下文。这个数字说明了状态存储的进步；它能转化成多少吞吐和成本收益，还要看具体负载。
 
-2026 年 9 月，DeepSeek 发布了这份 51 页技术报告。本文沿着 CED、CSA2、量化和缓存恢复逐层拆解，再讨论训练与部署之间的权衡。文中的性能数据均来自作者报告，未做独立复现；“作者分析”部分提出的是工程判断与待验证假设。
+2026 年 9 月，DeepSeek 发布了这份 51 页技术报告。本文跟着一次长任务请求，依次看首次输入如何计算、状态如何保存、缓存失效后如何续接，再讨论训练与部署之间的权衡。文中的性能数据均来自作者报告，未做独立复现；“作者分析”部分提出的是工程判断与待验证假设。
 
 ## 为什么这篇报告重要
 
 长上下文 agent 的输入会在工具调用中逐渐累积。举一个假设的 coding session：系统 prompt 2K + 仓库上下文 100K + 历史工具输出 200K + 当前输入 5K = 307K token。客户端再次发送这些历史，不代表服务端再次计算全部历史：命中的 prefix KV 可以复用，只有未命中的输入需要 prefill。冷缓存、多分支和缓存失效会放大输入计算；高命中率则会把压力转向新 suffix、状态加载和输出生成。[vLLM 的前缀缓存说明](https://docs.vllm.ai/en/latest/design/prefix_caching/)给出了这种复用机制。
+
+后面一直沿用这个 coding session。第一次输入假设没有缓存；下一轮工具调用回来，服务端匹配到一段旧前缀 `P`，后面接着未命中的新输入 `S`。`P` 不一定覆盖上一轮全部内容，前缀是否一致、缓存是否仍在，都影响命中边界。
+
+| 请求走到哪里 | 要解决的问题 | 对应设计 |
+|:---|:---|:---|
+| 第一次读入长 prompt | 全部输入是否都要走完 40 层？ | CED 缩短主体 prefill 路径 |
+| 保存并读取历史状态 | 哪些层共用 KV，每次读取哪些位置？ | CSA2、层级索引与 FP4 |
+| 任务暂停后再次调用 | 全局 KV 还在，局部 SWA 已过期，怎样续接？ | Encoder 有界回放、Decoder 初始化 |
+| 开始生成回答 | 当前 token 经过哪些层，怎样减少每步开销？ | 两半主干共同 decode，配合高效算子与 DSpark |
+
+这条路径也把“少算”“少存”和“更便宜地恢复”分开了。它们作用在同一次请求上，却不是同一笔收益。
 
 长上下文部署同时受计算、内存容量和数据搬运约束。Prefill 往往有较大的计算需求，decode 在一些批量和硬件配置下更受带宽约束，但不存在适用于所有模型与负载的单一瓶颈。尤其需要分开三本账：
 
@@ -66,11 +77,11 @@ DeepSeek-V4.1-Flash 是多模态 MoE 模型，主干参数 552B，另有 196B En
 
 长 prompt 的主体在 prefill 时只经过 encoder，decoder 还要做投影相关处理和末尾窗口回放；decode 时两半都参与当前 token 的计算。因此 8B/16B 是两阶段的激活口径，不能理解为整个 prefill 完全不运行 decoder。输入很长、输出相对短的负载更能体现这一不对称设计的价值。
 
-## CED：减少长 Prompt 的 Prefill 计算
+## 首次输入：CED 怎样缩短长 Prompt 的计算路径
 
 传统 decoder-only 模型在 prefill 时，通常要让全部输入经过每一层。用 N×L 个 token-layer 可以粗略表示需要处理的位置数，但它不等于 attention FLOPs：每层算子、稀疏模式、序列长度都会影响工作量。下面用这个简化计数解释 CED 跳过了什么。
 
-对于输入远长于输出的调用，长 prompt 穿过整个主干是显著开销。CED 把 decoder 的全局 KV 生成与 decoder 自身的逐层前向分离，使 prompt 主体在 encoder 结束后就可以建立 decoder 所需的共享全局状态。
+回到前面的冷缓存请求：307K token 都需要被读入，但不必都走完 40 层。对于输入远长于输出的调用，长 prompt 穿过整个主干是显著开销。CED 把 decoder 的全局 KV 生成与 decoder 自身的逐层前向分离，使 prompt 主体在 encoder 结束后就可以建立 decoder 所需的共享全局状态。
 
 CED 延续了 [YoCo](https://arxiv.org/abs/2405.05254) 的跨层 KV 复用与 prefill 提前退出思路，并对 KV 生成的结构和计算深度作了调整。因此它与前序工作存在明确联系。本文关注报告 §2.2 的具体数据路径，以及它与 CSA2 共享、SWA 回放的组合。
 
@@ -95,7 +106,9 @@ Z_l = H_{L/2} * W_l^{Z}     // 压缩权重也从 encoder 投影
 
 Decoder 每层仍有从自身 hidden states 生成的 SWA KV。它不进入 prefix cache，因此每次 prefill 都需要初始化；Bounded Replay 将这一步限制为最近一个窗口。Encoder 的 SWA 则有独立的短期缓存与 miss 恢复路径，后文会分开说明。
 
-## CSA2：三个维度的 KV Cache 压缩
+## 保存历史：CSA2 让哪些状态跨层共享
+
+Encoder 已经处理了长 prompt，接下来要留下可供后续 query 读取的历史表示。对这个 coding session 而言，CSA2 决定这些表示如何压缩、哪些层共享它们；稀疏索引再决定每次读哪一部分。
 
 KV cache 的大小可以沿三个乘性维度压缩：
 
@@ -148,9 +161,7 @@ KV cache 的大小可以沿三个乘性维度压缩：
 - 第一组（4 层）：Full + 3xReuse
 - 后四组（各 4 层）：Reindex + 3xReuse
 
-<Callout>
-在 V4.1-Flash 的 decoder 里，20 层 CSA2 被分成 5 组 x 4 层。第一组是 Full + 3xReuse，后四组都是 Reindex + 3xReuse。也就是说，20 层 decoder 里只有 1 层做完整计算，4 层做重新索引，15 层纯复用。Reuse Mode 层在 prefill 时只需 15 个 kernel，decode 时只需 11 个。
-</Callout>
+这样，20 层 decoder 中有 1 层 Full、4 层 Reindex、15 层 Reuse。一次 query 经过这些层时，有的层重新挑选历史位置，有的层沿用上一组选好的位置；共享缓存并不意味着跳过本层的 attention。Reuse 层的具体 kernel 数量放到后面的部署部分讨论。
 
 三种模式在所有层中都保留各自的 global Q 和 SWA KV。共享的是 main KV 和 indexer K，这两个占了全局 KV cache 的大头。
 
@@ -176,7 +187,7 @@ Hierarchical Sparse Indexer 的解法很直观，但效果显著：
 2. 同时做 blockwise 候选选择：把全序列按每块 8 个 position 分块，以块内最大的 indexer score 作为块分数，再选分数最高的最多 2048 个 block，收集它们覆盖的 position 形成一个 **candidate pool**（最多 16,384 个位置）
 3. 后续所有 Reindex Mode 层只在这个 candidate pool 内做 Top-K 选择，不需要回到原始的 N 个 position
 
-这把后续 indexer 的搜索空间从 O(N) 降到了 O(候选池大小)，而候选池大小是固定的（16,384），与上下文长度无关。对于 1M token 的上下文来说，这是从 100 万降到 1.6 万，**约 61 倍的搜索空间缩减**。
+这把后续 indexer 的搜索空间从 O(N) 降到了 `O(候选池大小)`，而候选池大小是固定的（16,384），与上下文长度无关。对于 1M token 的上下文来说，这是从 100 万降到 1.6 万，**约 61 倍的搜索空间缩减**。
 
 候选池的假设是：初始层的打分能为深层保留足够有用的位置。这个假设可能在某些检索任务中失效，所以候选池缩小约 61 倍是搜索范围的变化，不是端到端加速倍率，也不是质量无损保证。
 
@@ -206,7 +217,9 @@ FP4 不是免费的，需要 QAT（quantization-aware training），在 post-tra
 
 SWA KV 保持 FP8。全局 KV 的长序列存储收益和短窗口 SWA 的精度权衡不同；移出持久化存储也不意味着 SWA 在运行时没有显存与带宽成本。
 
-## SWA Bounded Replay：用短回放替代长期保存
+## 再次调用：全局 KV 命中，SWA 过期怎么办
+
+现在让这个 coding session 暂停一段时间再继续。**假设前缀 `P` 的全局 KV 仍命中，但 Encoder SWA 的短期检查点已过期**。这时只加载全局 KV 还不能直接续算，因为局部窗口状态也参与后续计算。是否必须为了它重新跑一大段历史，是缓存策略能否省下空间的关键。
 
 报告 §3.2.1 说，V4 的持久化 KV 中 SWA 接近一半。V4 曾提出 Zero SWA Caching，但精确恢复开销过高，生产部署仍保留持久化 SWA。V4.1-Flash 将短期缓存和有界回放结合，才使去掉持久化 SWA 更可行。
 
@@ -222,7 +235,16 @@ Encoder 与 Decoder 的策略分别是：
 | Encoder SWA | Host DRAM 短期保留检查点，分钟级 TTL | miss 时回放 cached prefix 的最后 128 token，再处理新 suffix |
 | Decoder SWA | 不进入 prefix cache | 每次 prefill 都将 prompt 末尾 128 token 的 encoder 输出送入 decoder 初始化 |
 
-Encoder 回放旧 prefix 时只重新生成 SWA，复用全局 KV，不重算或覆盖已有条目；新 suffix 则生成两类状态。报告中的 DRAM 池约占 host DRAM 的 10%，这属于其部署配置，不是所有服务的推荐常数。
+把表中的恢复策略接回同一个请求 `P + S`，逻辑顺序如下（说明数据依赖，不要求部署实现串行执行）：
+
+1. **取回 `P` 的全局 KV。** 已命中的历史表示继续复用，未命中的 `S` 尚待计算。
+2. **恢复 Encoder，再处理 `S`。** 将 `P` 的末尾最多 128 个 token 纳入回放，与新 suffix 一起处理；旧 token 只重建 SWA，不重算或覆盖已有全局 KV；新 token 同时产生全局 KV 和 SWA。
+3. **初始化 Decoder。** 取整个 `P + S` 末尾最多 128 个 token 的 encoder 输出，送入 decoder 各层建立其 SWA。若 `S` 不足 128 token，这段窗口还会覆盖 `P` 的末尾；它与上一步的“旧前缀末尾”不是同一边界。
+4. **转入生成。** 当前 token 经过 encoder 和 decoder，读取共享全局 KV，并更新局部状态，继续这个 coding session。
+
+若 Encoder SWA 检查点仍命中，第二步可直接从检查点续算新 suffix；第三步仍然要做，因为 Decoder SWA 从不进入 prefix cache。若连全局 KV 都未命中，则相应输入仍需重新 prefill，不能套用这里的恢复捷径。（§3.2.1-3.2.2，PDF 第 19-20 页）
+
+用于短期检查点的 DRAM 池约占 host DRAM 的 10%，这是报告的部署配置。其他服务需要结合活跃会话数量、命中率和恢复开销选择容量。
 
 截断后的状态与精确恢复不等价。报告称内部实验几乎未观察到响应质量下降，并在 post-training 中模拟 Decoder 的同样回放以适应部署。不能把这个有限评测结果扩展成所有缓存恢复点都无损。
 
@@ -234,11 +256,11 @@ Encoder 回放旧 prefix 时只重新生成 SWA，复用全局 KV，不重算或
 
 全局 KV 压到约 1/4，再移出原来接近一半的持久化 SWA，报告的同负载持久化 footprint 约降至 V4-Flash 的 1/8。这个分解说明存储收益的来源，不能直接推导总体 serving 成本下降 8 倍。
 
-## 高效组件：mHC、Engram、DSpark
+## 继续生成：mHC、Engram、DSpark 分别省在哪里
 
-除了核心的 CED + CSA2，V4.1-Flash 还集成了三个效率组件：
+状态准备好以后，请求进入输出阶段。CED 不再让当前 token 提前退出，encoder 与 decoder 都要参与计算；CSA2 则继续控制历史状态的共享和读取。在这条路径上，mHC 减少激活读写，Engram 提供可预取的条件记忆，DSpark 尝试用一次验证接受多个候选 token。前两者也参与 prefill，并非生成阶段专属。
 
-<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/component-overview.svg?v=20260910-review1" title="三个效率组件分别减少什么开销" caption="mHC 降低激活读写流量；Engram 提供条件记忆；DSpark 调度草稿验证。依据 §2.4.1–2.4.3。" />
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/component-overview.svg?v=20260910-review1" title="三个效率组件分别减少什么开销" caption="mHC 降低激活读写流量；Engram 提供条件记忆；DSpark 调度草稿验证。依据 §2.4.1-2.4.3。" />
 
 ### Single-Pass mHC 和 Mega-mHC
 
@@ -294,8 +316,8 @@ CSA2 Reuse Mode 层（占大多数）的推理 kernel 数量极少：
 
 | 阶段 | Kernel 数 |
 |:-----|:---------|
-| Prefill (Reuse Mode 层) | 15 |
-| Decode (Reuse Mode 层) | 11 |
+| Prefill（Reuse Mode 层） | 15 |
+| Decode（Reuse Mode 层） | 11 |
 
 报告列出了 FlashMLA、Mega-Gate、Mega-mHC、DeepGEMM、TileKernels、DeepSelect 等协同优化。应按各层模式理解这些实现：例如 Reuse 跳过重新索引，不能把所有索引 kernel 都算进每一个 Reuse 层。
 
@@ -430,7 +452,7 @@ effort 越高，token penalty 系数 k(b) 越小（指数衰减），同等长�
 Figure 9 展示了 effort 从 25 到 100 的完整曲线，结果很有启发性：
 - 8 个 reasoning benchmark 的平均 Pass@1 从 67.1%（effort=25）提升到 76.3%（effort=100），提升了 9.2 个百分点
 - DeepSWE v1.1 从 66.0% 到 74.2%，Terminal-Bench v2.1 从 82.4% 到 90.6%
-- 大部分增益集中在 effort 60-80 范围，60–80 这个区间恢复了 maximum setting 的大部分准确率，同时只用了不到一半的 token budget
+- 大部分增益集中在 effort 60-80 范围，60-80 这个区间恢复了 maximum setting 的大部分准确率，同时只用了不到一半的 token budget
 - Effort 100 相比 80 带来的边际改善很小（1.6-1.8x 的 trajectory 延长换来 2-3 个百分点），maximum tier 适合用于最难的任务
 - 有趣的是，effort control 学到的行为从 single-response reasoning 任务平滑地迁移到了 long-horizon agentic 任务，在 agent 场景中，effort level 控制的是整个 trajectory 的探索和验证深度，而不仅仅是单步回复的长度
 
