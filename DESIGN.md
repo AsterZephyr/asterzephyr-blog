@@ -13,7 +13,7 @@ Georgia with Songti SC / Noto Serif CJK SC / SimSun fallbacks for headings. Nati
 Articles are rows separated by thin rules, with date metadata and an optional pinned label. Search results use the same journal classes and include the same cover, title, summary and tags. Project descriptions and links are always visible, including on touch and keyboard navigation.
 
 ## Layout
-Maximum outer width 1152px with 24px gutters. Reading column remains 768px. Home: painting, author introduction, latest writing. Desktop article rows have a 138px metadata column; mobile stacks metadata above the title.
+Maximum outer width 1152px with 24px gutters. Reading column remains 768px. Home: painting, author introduction, latest writing. The painting fills at least the full dynamic viewport height, without a fixed height cap; the introduction begins below the first screen. Desktop article rows have a 138px metadata column; mobile stacks metadata above the title.
 
 ## Depth
 Use the painting itself for depth. Paper surfaces and separators replace tilted cards, shadows and ornamental gradients. Hero overlays protect text contrast while retaining the painting's color.

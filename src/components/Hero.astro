@@ -17,7 +17,7 @@ import { SITE } from '../data/site';
 </section>
 
 <style>
-  .hero { position: relative; isolation: isolate; display: flex; align-items: center; min-height: min(940px, 94svh); overflow: hidden; background: #353931; color: #f7f0e3; }
+  .hero { position: relative; isolation: isolate; display: flex; align-items: center; min-height: 100vh; min-height: 100dvh; overflow: hidden; background: #353931; color: #f7f0e3; }
   .hero-art { position: absolute; z-index: -2; inset: -24px 0; background: url('/images/hero-bg.jpg') 50% 48% / cover no-repeat; }
   .hero-shade { position: absolute; z-index: -1; inset: 0; background: linear-gradient(180deg, rgb(21 26 23 / .42), transparent 28%, rgb(23 25 21 / .12) 70%, rgb(19 23 19 / .58)), linear-gradient(90deg, rgb(18 24 22 / .57), rgb(25 30 27 / .19) 72%); }
   .hero-content { width: min(1152px, 100%); margin-inline: auto; padding: 160px 24px 190px; }
@@ -36,7 +36,6 @@ import { SITE } from '../data/site';
   @media (hover: hover) { .hero-explore:hover span { transform: translateY(3px); } }
   @keyframes hero-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
   @media (max-width: 767px) {
-    .hero { min-height: 88svh; }
     .hero-art { background-position: 54% 50%; }
     .hero-shade { background: linear-gradient(180deg, rgb(21 26 23 / .42), rgb(21 26 23 / .58) 42%, rgb(21 26 23 / .4) 60%, rgb(21 26 23 / .14) 76%, rgb(19 23 19 / .65)); }
     .hero-content { padding-block: 150px 180px; }
