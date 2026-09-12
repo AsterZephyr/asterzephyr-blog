@@ -69,7 +69,7 @@ public/
    ---
    title: "My New Post"
    date: 2026-05-04
-   tags: [topic1, topic2]
+   tags: [系统与工程]
    summary: "A brief description."
    draft: false
    ---
@@ -80,13 +80,30 @@ public/
 
 Posts with `draft: true` are excluded from production builds.
 
+### Fixed blog tags
+
+Choose one subject tag for every post, including drafts. Add `技术报告解读` only when the article primarily explains a specific paper, research report or engineering report. Do not add model names, products, abbreviations or synonyms as new tags. Keep those terms in the title, summary and body.
+
+| Tag | Scope |
+| --- | --- |
+| AI 与机器学习 | Model design, learning algorithms, training methods and ML foundations |
+| Agent 与编程 | Agents, evaluation, prompts, harnesses and AI-assisted programming |
+| 系统与工程 | Backend systems, databases, networking, infra and execution/performance engineering |
+| 广告与推荐 | Advertising, auctions, recommendation and their algorithms/systems |
+| 工具与效率 | Tool workflows, writing environments and personal productivity |
+| 成长与思考 | Career, business reflection, reading and life |
+
+Classify by the article's main question: an agent runtime overview belongs under `Agent 与编程`; GPU scheduling or inference memory management belongs under `系统与工程`; a model architecture report belongs under `AI 与机器学习`. The report-reading tag is cross-topic and also applies to infra and recommendation reports. Merely citing a paper does not qualify an article for the series.
+
+`src/data/blog-tags.ts` defines the allowed tags and display order; the posts schema enforces one subject plus the optional series tag at build time. Project tags are independent.
+
 ## Content Schemas
 
 ### Posts (`src/content/posts/*.md`)
 - `title` (required) - Post title
 - `date` (required) - Publication date
 - `updated` (optional) - Last updated date
-- `tags` (optional) - String array, defaults to `[]`
+- `tags` (required) - One fixed subject tag plus optional `技术报告解读`; see above
 - `category` (optional) - Category string
 - `summary` (optional) - Brief description for cards and SEO
 - `cover` (optional) - Path to cover image (e.g. `/images/covers/my-post.jpg`)

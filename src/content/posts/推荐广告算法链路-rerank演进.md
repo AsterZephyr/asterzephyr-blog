@@ -1,7 +1,7 @@
 ---
 title: "推荐广告算法链路-Rerank演进"
 date: 2025-08-05
-tags: [广告, 开发, 思考]
+tags: [广告与推荐]
 category: "技术分享"
 ---
 

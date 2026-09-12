@@ -1,9 +1,10 @@
 ---
 import PageLayout from '../../layouts/PageLayout.astro';
 import { getCollection } from 'astro:content';
+import { BLOG_TAGS } from '../../data/blog-tags';
 
 const allPosts = await getCollection('posts', ({ data }) => !data.draft);
-const tags = [...new Set(allPosts.flatMap((p) => p.data.tags))].sort();
+const tags = BLOG_TAGS.filter((tag) => allPosts.some((p) => p.data.tags.includes(tag)));
 
 const tagCounts = tags.map((tag) => ({
   name: tag,

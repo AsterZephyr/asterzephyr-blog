@@ -1,7 +1,7 @@
 ---
 title: "RocketMQ相关"
 date: 2025-03-25
-tags: [开发, 思考]
+tags: [系统与工程]
 category: "技术分享"
 ---
 

@@ -3,6 +3,7 @@ import PageLayout from '../../layouts/PageLayout.astro';
 import BlogCard from '../../components/BlogCard.astro';
 import { getCollection } from 'astro:content';
 import type { GetStaticPaths } from 'astro';
+import { BLOG_TAGS } from '../../data/blog-tags';
 
 export const getStaticPaths = (async ({ paginate }) => {
   const allPosts = await getCollection('posts', ({ data }) => !data.draft);
@@ -16,7 +17,7 @@ export const getStaticPaths = (async ({ paginate }) => {
 const { page } = Astro.props;
 
 const allPosts = await getCollection('posts', ({ data }) => !data.draft);
-const allTags = [...new Set(allPosts.flatMap((p) => p.data.tags))].sort();
+const allTags = BLOG_TAGS.filter((tag) => allPosts.some((p) => p.data.tags.includes(tag)));
 
 const searchIndex = allPosts
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())

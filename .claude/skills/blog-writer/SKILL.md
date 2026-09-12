@@ -24,7 +24,7 @@ Posts are written to the Astro blog at `/Users/hxz/code/asterzephyr-blog/`.
 ---
 title: "文章标题"
 date: YYYY-MM-DD
-tags: [tag1, tag2, tag3]
+tags: [系统与工程]
 category: "分类"
 summary: "一句话摘要，显示在博客卡片上"
 draft: false
@@ -35,7 +35,7 @@ pinned: false
 **File location:** `src/content/posts/[slug].md`
 **File naming:** Use Chinese title or descriptive slug, e.g. `推荐系统召回层设计.md`, `LLM4Rec实践总结.md`
 
-**Existing tags** (reuse when possible): 广告, 开发, 思考, AI, agent, 基础设施, 工具, llm, obsidian, writing, productivity, 推荐, 算法, 健康, web3, 阅读
+**Fixed blog tags**: choose exactly one subject from `AI 与机器学习`, `Agent 与编程`, `系统与工程`, `广告与推荐`, `工具与效率`, `成长与思考`. Add `技术报告解读` only for articles primarily explaining a specific paper or report. Do not invent new tags. See the repository README for boundaries and `src/data/blog-tags.ts` for the authoritative list; the build validates these rules.
 
 **Existing categories**: 技术分享, 个人思考, 工具推荐
 

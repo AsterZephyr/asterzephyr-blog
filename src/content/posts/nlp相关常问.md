@@ -1,7 +1,7 @@
 ---
 title: "nlp相关常问"
 date: 2025-08-20
-tags: [llm, 开发, 思考]
+tags: [AI 与机器学习]
 category: "技术分享"
 ---
 

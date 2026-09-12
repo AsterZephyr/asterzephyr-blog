@@ -12,7 +12,7 @@ Astro 6 static blog. Posts live in `src/content/posts/`.
 ---
 title: "Post Title"
 date: 2026-01-15
-tags: [tag1, tag2]
+tags: [系统与工程]
 summary: "Optional summary"
 draft: false
 ---

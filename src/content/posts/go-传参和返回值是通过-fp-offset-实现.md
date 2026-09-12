@@ -1,7 +1,7 @@
 ---
 title: "Go 传参和返回值是通过 FP+offset 实现"
 date: 2025-05-20
-tags: [开发, 思考]
+tags: [系统与工程]
 category: "技术分享"
 ---
 
