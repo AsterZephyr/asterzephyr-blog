@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="856" viewBox="0 0 560 856">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#2563eb"/></marker></defs>
+<rect width="560" height="856" fill="white"/>
+<g font-family="Arial Unicode MS, sans-serif" fill="#111827">
+<text x="280" y="46" font-size="29" fill="#111827" text-anchor="middle">长任务暂停后，接着哪一步做</text>
+<text x="280" y="81" font-size="20" fill="#6b7280" text-anchor="middle">博主自绘 · §4.1.1、§5.3 概念流程</text>
+<rect x="25" y="110" width="510" height="126" rx="8" fill="#eff6ff" stroke="#d1d5db"/>
+<text x="280" y="144" font-size="26" fill="#111827" text-anchor="middle">① 当前轨迹继续执行</text>
+<text x="280" y="182" font-size="24" fill="#111827" text-anchor="middle">模型生成 → 工具执行 → 返回观察</text>
+<text x="280" y="216" font-size="21" fill="#6b7280" text-anchor="middle">示例：修改服务后，正在跑集成测试</text>
+<path d="M280 236 V267" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="25" y="274" width="510" height="126" rx="8" fill="#f0fdf4" stroke="#d1d5db"/>
+<text x="280" y="308" font-size="26" fill="#111827" text-anchor="middle">② 未完成轨迹暂停</text>
+<text x="280" y="346" font-size="24" fill="#111827" text-anchor="middle">保存生成进度与对应模型状态</text>
+<text x="280" y="380" font-size="21" fill="#6b7280" text-anchor="middle">保存 sandbox 的内存、进程和环境状态</text>
+<path d="M280 400 V431" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="25" y="438" width="510" height="126" rx="8" fill="#eff6ff" stroke="#d1d5db"/>
+<text x="280" y="472" font-size="26" fill="#111827" text-anchor="middle">③ 已完成任务组进入训练</text>
+<text x="280" y="510" font-size="24" fill="#111827" text-anchor="middle">同一 prompt 的 K 条轨迹全部完成</text>
+<text x="280" y="544" font-size="21" fill="#6b7280" text-anchor="middle">使用轨迹奖励与逐 token 正则进行更新</text>
+<path d="M280 564 V595" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="25" y="602" width="510" height="126" rx="8" fill="#f0fdf4" stroke="#d1d5db"/>
+<text x="280" y="636" font-size="26" fill="#111827" text-anchor="middle">④ 下一轮优先恢复未完成任务</text>
+<text x="280" y="674" font-size="24" fill="#111827" text-anchor="middle">还原 sandbox，恢复轨迹生成</text>
+<text x="280" y="708" font-size="21" fill="#6b7280" text-anchor="middle">轨迹可能跨策略版本，需处理 off-policy</text>
+<text x="280" y="822" font-size="20" fill="#6b7280" text-anchor="middle">两类保存各有生命周期；不等于复制一份聊天记录</text>
+</g>
+</svg>

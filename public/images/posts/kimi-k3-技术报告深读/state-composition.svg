@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="856" viewBox="0 0 560 856">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#2563eb"/></marker></defs>
+<rect width="560" height="856" fill="white"/>
+<g font-family="Arial Unicode MS, sans-serif" fill="#111827">
+<text x="280" y="46" font-size="29" fill="#111827" text-anchor="middle">长序列怎样分段并行</text>
+<text x="280" y="81" font-size="20" fill="#6b7280" text-anchor="middle">博主自绘 · §5.1.2 Eq. 17 教学算例</text>
+<rect x="25" y="110" width="510" height="126" rx="8" fill="#eff6ff" stroke="#d1d5db"/>
+<text x="280" y="144" font-size="26" fill="#111827" text-anchor="middle">① 每一段先独立计算</text>
+<text x="280" y="182" font-size="24" fill="#111827" text-anchor="middle">A：S → 0.5S + 2</text>
+<text x="280" y="216" font-size="21" fill="#6b7280" text-anchor="middle">B：S → 0.8S + 3</text>
+<path d="M280 236 V267" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="25" y="274" width="510" height="126" rx="8" fill="#f0fdf4" stroke="#d1d5db"/>
+<text x="280" y="308" font-size="26" fill="#111827" text-anchor="middle">② 交换转移与本地产生量</text>
+<text x="280" y="346" font-size="24" fill="#111827" text-anchor="middle">A 发送 (0.5, 2)</text>
+<text x="280" y="380" font-size="21" fill="#6b7280" text-anchor="middle">B 发送 (0.8, 3)</text>
+<path d="M280 400 V431" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="25" y="438" width="510" height="126" rx="8" fill="#eff6ff" stroke="#d1d5db"/>
+<text x="280" y="472" font-size="26" fill="#111827" text-anchor="middle">③ 按原序列顺序合成</text>
+<text x="280" y="510" font-size="24" fill="#111827" text-anchor="middle">B(A(S)) = 0.4S + 4.6</text>
+<text x="280" y="544" font-size="21" fill="#6b7280" text-anchor="middle">组合满足结合律，不能交换 A、B</text>
+<path d="M280 564 V595" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="25" y="602" width="510" height="126" rx="8" fill="#f0fdf4" stroke="#d1d5db"/>
+<text x="280" y="636" font-size="26" fill="#111827" text-anchor="middle">④ 恢复正确的段入口</text>
+<text x="280" y="674" font-size="24" fill="#111827" text-anchor="middle">若最初 S = 0，则 A 输出 2</text>
+<text x="280" y="708" font-size="21" fill="#6b7280" text-anchor="middle">B 接入 2，输出 4.6；不能直接相加成 5</text>
+<text x="280" y="822" font-size="20" fill="#6b7280" text-anchor="middle">标量便于验算；真实转移是矩阵，状态是矩阵</text>
+</g>
+</svg>

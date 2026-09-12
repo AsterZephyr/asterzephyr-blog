@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="856" viewBox="0 0 560 856">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#2563eb"/></marker></defs>
+<rect width="560" height="856" fill="white"/>
+<g font-family="Arial Unicode MS, sans-serif" fill="#111827">
+<text x="280" y="46" font-size="29" fill="#111827" text-anchor="middle">KDA：先预测，再修正</text>
+<text x="280" y="81" font-size="20" fill="#6b7280" text-anchor="middle">博主自绘 · §2.1.1 Eq. 1 教学算例</text>
+<rect x="25" y="110" width="510" height="126" rx="8" fill="#eff6ff" stroke="#d1d5db"/>
+<text x="280" y="144" font-size="26" fill="#111827" text-anchor="middle">① 保留旧状态</text>
+<text x="280" y="182" font-size="24" fill="#111827" text-anchor="middle">S_old = [[2, 0], [0, 1]]</text>
+<text x="280" y="216" font-size="21" fill="#6b7280" text-anchor="middle">α = [0.5, 0.8]；β = 0.5</text>
+<path d="M280 236 V267" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="25" y="274" width="510" height="126" rx="8" fill="#f0fdf4" stroke="#d1d5db"/>
+<text x="280" y="308" font-size="26" fill="#111827" text-anchor="middle">② 沿 key 通道衰减</text>
+<text x="280" y="346" font-size="24" fill="#111827" text-anchor="middle">S_bar = [[1, 0], [0, 0.8]]</text>
+<text x="280" y="380" font-size="21" fill="#6b7280" text-anchor="middle">k = [1, 0]；v = [3, 0]</text>
+<path d="M280 400 V431" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="25" y="438" width="510" height="126" rx="8" fill="#eff6ff" stroke="#d1d5db"/>
+<text x="280" y="472" font-size="26" fill="#111827" text-anchor="middle">③ 读出预测并计算残差</text>
+<text x="280" y="510" font-size="24" fill="#111827" text-anchor="middle">v_hat = [1, 0]；error = [2, 0]</text>
+<text x="280" y="544" font-size="21" fill="#6b7280" text-anchor="middle">β × k × errorᵀ = [[1, 0], [0, 0]]</text>
+<path d="M280 564 V595" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="25" y="602" width="510" height="126" rx="8" fill="#f0fdf4" stroke="#d1d5db"/>
+<text x="280" y="636" font-size="26" fill="#111827" text-anchor="middle">④ 写回并读取</text>
+<text x="280" y="674" font-size="24" fill="#111827" text-anchor="middle">S_new = [[2, 0], [0, 0.8]]</text>
+<text x="280" y="708" font-size="21" fill="#6b7280" text-anchor="middle">q = [1, 0] → output = [2, 0]</text>
+<text x="280" y="822" font-size="20" fill="#6b7280" text-anchor="middle">仅展示单个 head 的递归核，省略外围变换</text>
+</g>
+</svg>
