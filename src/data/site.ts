@@ -11,9 +11,9 @@ export const SITE = {
     'agent systems & LLM.',
     'open source.',
   ],
-  bio: `I build the prediction and pricing stack for a programmatic ad exchange. CTR models that convert CPM bids into CPC prices, serving millions of auction requests daily. The work is half ML (DNN with FM interactions, isotonic calibration, PCOC monitoring) and half systems (Go on 300+ K8s pods, multi-region TF Serving, Kafka pipelines).`,
-  bioExtended: `Recently I've been designing training pipelines from the ground up: Parquet ingestion, feature canonicalization, cross-feature generation, incremental retraining with cold-start handling. I also lead an AI Agent project that automates ad traffic allocation, turning hours of daily manual ops into LLM-driven analysis and one-click config.`,
-  bioSide: `Side projects: an LLM API gateway aggregating 40+ providers with real-token probing for quality monitoring, and a lightweight agent framework. I'm drawn to the overlap between recommendation systems and large language models, specifically how transformer architectures can improve conversion prediction at scale.`,
+  bio: `I'm Xingze He, a software engineer at BlueFocus. I work on advertising systems, from backend infrastructure and model serving to experimentation and business analysis. I like following a problem all the way through: understanding what people need, building a solution with the team, and checking what actually changed once it meets the real world.`,
+  bioExtended: `Much of my recent work explores how AI can help people research, build, and make decisions. I develop agent tools and reusable workflows for engineering and operations, and share what I learn through technical guides and open-source projects. My interests range from recommendation systems and AI infrastructure to the product decisions that make a tool useful.`,
+  bioSide: `Alongside engineering notes, you'll find essays here on economics, philosophy, learning, and life. I'm interested in how incentives shape behavior, how we make decisions with incomplete information, and how small efforts compound over time. Writing helps me connect these questions to the things I build and the way I live.`,
   social: {
     github: 'https://github.com/asterzephyr',
     twitter: '',
