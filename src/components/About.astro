@@ -1,33 +1,33 @@
 ---
 import { SITE } from '../data/site';
 ---
-<section id="about" class="py-24 bg-[var(--color-surface)] section-animate">
+<section id="about" class="section-wrap">
   <div class="mx-auto max-w-6xl px-6">
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-12 items-center">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-12 lg:gap-20 items-start">
       <div class="md:col-span-2">
-        <div class="relative">
-          <div class="absolute -inset-4 bg-[var(--color-accent-bg)] -z-10 border border-[var(--color-accent-glow)]/20"></div>
+        <div class="relative md:pr-8">
           <img
             src="/images/avatar.jpg"
             alt={`Photo of ${SITE.name}`}
-            class="w-full aspect-[4/5] object-cover"
+            class="w-full max-w-sm aspect-[4/5] object-cover"
+            width="480" height="600"
             loading="lazy"
           />
         </div>
       </div>
       <div class="md:col-span-3">
-        <h2 class="font-heading text-3xl font-bold uppercase tracking-wide mb-2">
-          About Me
+        <h2 class="section-title mb-8">
+          About me
         </h2>
-        <div class="w-12 h-0.5 bg-[var(--color-accent-light)] mb-8"></div>
-        <p class="text-base leading-relaxed mb-4">{SITE.bio}</p>
-        <p class="text-base leading-relaxed mb-4">{SITE.bioExtended}</p>
-        <p class="text-base leading-relaxed mb-8 text-[var(--color-muted)]">{SITE.bioSide}</p>
+        <p class="eyebrow mb-6">Engineer, builder, explorer</p>
+        <p class="text-base leading-[1.9] mb-4">{SITE.bio}</p>
+        <p class="text-base leading-[1.9] mb-4">{SITE.bioExtended}</p>
+        <p class="text-base leading-[1.9] mb-8 text-[var(--color-muted)]">{SITE.bioSide}</p>
         <div class="flex flex-wrap items-center gap-4">
           <a
             href="/resume"
-            target="_blank"
-            class="inline-block bg-[var(--color-accent)] text-white px-6 py-2.5 text-sm font-medium uppercase tracking-wider hover:bg-[var(--color-accent-light)] border-2 border-[var(--color-accent)] hover:border-[var(--color-accent-light)] transition-all"
+            target="_blank" rel="noopener noreferrer"
+            class="text-link"
           >
             Resume / CV
           </a>

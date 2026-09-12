@@ -36,18 +36,18 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
 ---
 <BaseLayout title={title} description={summary || title} image={cover}>
   <Header />
-  <article class="pt-28 pb-16">
+  <article class="pt-32 md:pt-40 pb-16">
     <div class="mx-auto max-w-6xl px-6">
       <div class="max-w-3xl mx-auto">
-        <header class="mb-12">
+        <header class="mb-12 pb-10 border-b border-[var(--color-border)]">
           <time class="text-sm uppercase tracking-wider text-[var(--color-muted)]">{formattedDate}</time>
           {formattedUpdated && (
             <span class="text-sm text-[var(--color-muted)] ml-3">
               (Updated: {formattedUpdated})
             </span>
           )}
-          <h1 class="font-heading text-3xl md:text-4xl font-bold mt-3 mb-4">{title}</h1>
-          {summary && <p class="text-lg text-[var(--color-muted)]">{summary}</p>}
+          <h1 class="reading-title mt-4 mb-4">{title}</h1>
+          {summary && <p class="reading-summary">{summary}</p>}
           {tags.length > 0 && (
             <div class="mt-4">
               <TagList tags={tags} />

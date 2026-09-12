@@ -1,107 +1,71 @@
 ---
 import { SITE } from '../data/site';
 ---
-<section
-  id="home"
-  class="relative w-full h-screen flex items-center justify-center overflow-hidden"
->
-  <div
-    id="hero-bg"
-    class="absolute inset-0 bg-cover bg-center bg-no-repeat parallax-bg"
-    style="background-image: url('/images/hero-bg.jpg')"
-  ></div>
-  <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-amber-950/60"></div>
-
-  <div class="relative z-10 max-w-4xl mx-auto px-6 text-center text-white">
-    <div class="inline-block mb-6">
-      <span class="text-sm uppercase tracking-[0.3em] text-amber-300/80 font-medium">Welcome to my world</span>
-    </div>
-    <h1 class="font-heading text-5xl md:text-7xl lg:text-8xl font-black mb-6 animate-fade-in-up">
-      Hi! I'm <span class="text-gradient">{ SITE.name}</span>.
-    </h1>
-    <p class="text-lg md:text-2xl text-gray-200 mb-2 animate-fade-in-up" style="animation-delay: 0.2s">
-      {SITE.tagline}
-    </p>
-    <p class="text-base md:text-xl text-gray-300 animate-fade-in-up" style="animation-delay: 0.4s">
-      <span>Interested in </span>
-      <span id="typed-text" class="font-semibold text-amber-300"></span>
-      <span class="inline-block w-0.5 h-5 bg-amber-300 ml-0.5 align-middle typed-cursor"></span>
-    </p>
+<section id="home" class="hero" aria-label="Introduction">
+  <div id="hero-bg" class="hero-art" aria-hidden="true"></div>
+  <div class="hero-shade" aria-hidden="true"></div>
+  <div class="hero-content">
+    <p class="hero-greeting hero-enter">Welcome to my world</p>
+    <h1 class="hero-enter">{SITE.name}</h1>
+    <p class="hero-tagline hero-enter">{SITE.tagline}</p>
+    <p class="hero-interests hero-enter">{SITE.subtitles.map((s) => s.replace(/\.$/, '')).join(' / ')}</p>
   </div>
-
-  <a
-    href="#about"
-    class="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 text-amber-300 animate-bounce-slow"
-    aria-label="Scroll down"
-  >
-    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-    </svg>
-  </a>
+  <div class="hero-foot">
+    <a href="#recent-posts" class="hero-explore">Explore the writing <span aria-hidden="true">↓</span></a>
+    <p>Per aspera ad astra.</p>
+  </div>
 </section>
 
 <style>
-  .typed-cursor {
-    animation: blink 1s step-end infinite;
+  .hero { position: relative; isolation: isolate; display: flex; align-items: center; min-height: min(940px, 94svh); overflow: hidden; background: #353931; color: #f7f0e3; }
+  .hero-art { position: absolute; z-index: -2; inset: -24px 0; background: url('/images/hero-bg.jpg') 50% 48% / cover no-repeat; }
+  .hero-shade { position: absolute; z-index: -1; inset: 0; background: linear-gradient(180deg, rgb(21 26 23 / .42), transparent 28%, rgb(23 25 21 / .12) 70%, rgb(19 23 19 / .58)), linear-gradient(90deg, rgb(18 24 22 / .57), rgb(25 30 27 / .19) 72%); }
+  .hero-content { width: min(1152px, 100%); margin-inline: auto; padding: 160px 24px 190px; }
+  .hero-greeting { margin-bottom: 28px; font-size: 11px; letter-spacing: .25em; text-transform: uppercase; }
+  .hero h1 { margin: 0 0 30px -5px; font-family: var(--font-heading); font-size: clamp(64px, 10.5vw, 144px); line-height: 1; letter-spacing: -.065em; font-weight: 400; color: #f7f0e3; text-shadow: 0 2px 24px rgb(14 20 17 / .12); }
+  .hero-tagline { max-width: 620px; font-size: clamp(16px, 1.6vw, 20px); line-height: 1.7; text-wrap: balance; }
+  .hero-interests { max-width: 610px; margin-top: 16px; font-size: 12px; line-height: 1.9; color: #ded7c8; }
+  .hero-enter { animation: hero-enter 450ms ease-out both; }
+  h1.hero-enter { animation-delay: 70ms; }
+  .hero-tagline.hero-enter { animation-delay: 140ms; }
+  .hero-interests.hero-enter { animation-delay: 210ms; }
+  .hero-foot { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); width: min(1104px, calc(100% - 48px)); display: flex; justify-content: space-between; align-items: center; gap: 24px; padding-top: 20px; border-top: 1px solid rgb(247 240 227 / .35); }
+  .hero-explore { display: inline-flex; align-items: center; gap: 28px; font-size: 12px; letter-spacing: .03em; }
+  .hero-explore span { font-size: 22px; transition: transform 180ms ease; }
+  .hero-foot p { font-family: var(--font-heading); font-size: 16px; font-style: italic; }
+  @media (hover: hover) { .hero-explore:hover span { transform: translateY(3px); } }
+  @keyframes hero-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 767px) {
+    .hero { min-height: 88svh; }
+    .hero-art { background-position: 54% 50%; }
+    .hero-shade { background: linear-gradient(180deg, rgb(21 26 23 / .42), rgb(21 26 23 / .58) 42%, rgb(21 26 23 / .4) 60%, rgb(21 26 23 / .14) 76%, rgb(19 23 19 / .65)); }
+    .hero-content { padding-block: 150px 180px; }
+    .hero h1 { font-size: clamp(40px, 13.6vw, 96px); margin-left: -2px; margin-bottom: 24px; letter-spacing: -.065em; }
+    .hero-greeting { font-size: 10px; margin-bottom: 24px; }
+    .hero-interests { max-width: 300px; font-size: 11px; }
+    .hero-foot { bottom: 24px; }
+    .hero-foot p { display: none; }
   }
-  @keyframes blink {
-    50% { opacity: 0; }
-  }
+  @media (prefers-reduced-motion: reduce) { .hero-enter { animation: none; } .hero-explore span { transition: none; } }
 </style>
 
-<script define:vars={{ subtitles: SITE.subtitles }}>
-  function typeWriter() {
-    const el = document.getElementById('typed-text');
-    if (!el) return;
-
-    let wordIndex = 0;
-    let charIndex = 0;
-    let isDeleting = false;
-
-    function tick() {
-      const current = subtitles[wordIndex];
-      if (isDeleting) {
-        el.textContent = current.substring(0, charIndex - 1);
-        charIndex--;
-      } else {
-        el.textContent = current.substring(0, charIndex + 1);
-        charIndex++;
-      }
-
-      let delay = isDeleting ? 40 : 80;
-
-      if (!isDeleting && charIndex === current.length) {
-        delay = 2000;
-        isDeleting = true;
-      } else if (isDeleting && charIndex === 0) {
-        isDeleting = false;
-        wordIndex = (wordIndex + 1) % subtitles.length;
-        delay = 500;
-      }
-
-      setTimeout(tick, delay);
-    }
-
-    tick();
+<script>
+  const bg = document.getElementById('hero-bg');
+  const hero = document.getElementById('home');
+  const motion = window.matchMedia('(min-width: 768px) and (prefers-reduced-motion: no-preference)');
+  if (bg && hero) {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      bg.style.transform = motion.matches ? `translateY(${Math.min(Math.max(-hero.getBoundingClientRect().top * 0.06, 0), 24)}px)` : '';
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+    const syncMotion = () => {
+      window.removeEventListener('scroll', schedule);
+      if (motion.matches) window.addEventListener('scroll', schedule, { passive: true });
+      schedule();
+    };
+    motion.addEventListener('change', syncMotion);
+    syncMotion();
   }
-
-  typeWriter();
-  document.addEventListener('astro:after-swap', typeWriter);
-
-  function initParallax() {
-    const bg = document.getElementById('hero-bg');
-    if (!bg) return;
-    let ticking = false;
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          bg.style.transform = `translateY(${window.scrollY * 0.4}px)`;
-          ticking = false;
-        });
-        ticking = true;
-      }
-    }, { passive: true });
-  }
-  initParallax();
-  document.addEventListener('astro:after-swap', initParallax);
 </script>

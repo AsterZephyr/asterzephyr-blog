@@ -25,31 +25,35 @@ const searchIndex = allPosts
     id: p.id,
     title: p.data.title,
     tags: p.data.tags,
-    date: p.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+    date: p.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
     summary: p.data.summary || '',
+    cover: p.data.cover || '',
+    isoDate: p.data.date.toISOString(),
     pinned: p.data.pinned || false,
   }));
 ---
 <PageLayout title="Blog" description="All blog posts by AsterZephyr.">
-  <div class="pt-28 pb-16">
+  <div class="pt-32 md:pt-40 pb-20">
     <div class="mx-auto max-w-6xl px-6">
-      <header class="mb-14">
-        <h1 class="font-heading text-4xl font-bold uppercase tracking-wide">Blog</h1>
-        <div class="w-12 h-0.5 bg-[var(--color-accent-light)] mt-4 mb-6"></div>
+      <header class="archive-header">
+        <p class="eyebrow mb-4">The journal</p>
+        <h1 class="display-heading">Writing & thinking</h1>
+        <p class="mt-5 mb-8 text-sm text-[var(--color-muted)]">关于系统、智能，以及生活中的问题。</p>
         <div class="relative mb-6">
           <input
             id="blog-search"
-            type="text"
+            type="search"
+            aria-label="Search posts by title, tag or summary"
             placeholder="Search posts by title or tag..."
-            class="w-full md:w-96 px-4 py-2 text-sm border border-[var(--color-border)] bg-white text-[var(--color-body)] placeholder-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent-light)] transition-colors"
+            class="archive-search"
           />
         </div>
         {allTags.length > 0 && (
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-x-6 gap-y-1">
             {allTags.map((tag) => (
               <a
                 href={`/tags/${tag}/`}
-                class="text-xs uppercase tracking-wider px-3 py-1 border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent-light)] transition-colors"
+                class="topic-link"
               >
                 {tag}
               </a>
@@ -60,7 +64,7 @@ const searchIndex = allPosts
 
       <div id="blog-grid">
         {page.data.length > 0 ? (
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="journal-list">
             {page.data.map((post) => (
               <BlogCard post={post} />
             ))}
@@ -96,7 +100,8 @@ const searchIndex = allPosts
       </div>
 
       <div id="search-results" class="hidden">
-        <div id="search-results-list" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+        <p id="search-status" class="sr-only" role="status"></p>
+        <div id="search-results-list" class="journal-list"></div>
         <p id="search-no-results" class="hidden text-[var(--color-muted)] text-center py-20">No matching posts found.</p>
       </div>
     </div>
@@ -104,53 +109,78 @@ const searchIndex = allPosts
 </PageLayout>
 
 <script define:vars={{ searchIndex }}>
-  function initBlogSearch() {
-    const input = document.getElementById('blog-search');
-    const grid = document.getElementById('blog-grid');
-    const results = document.getElementById('search-results');
-    const resultsList = document.getElementById('search-results-list');
-    const noResults = document.getElementById('search-no-results');
-    if (!input || !grid || !results || !resultsList || !noResults) return;
+  const input = document.getElementById('blog-search');
+  const grid = document.getElementById('blog-grid');
+  const results = document.getElementById('search-results');
+  const resultsList = document.getElementById('search-results-list');
+  const noResults = document.getElementById('search-no-results');
+  const status = document.getElementById('search-status');
 
-    input.addEventListener('input', () => {
-      const q = input.value.trim().toLowerCase();
-      if (!q) {
-        grid.classList.remove('hidden');
-        results.classList.add('hidden');
-        return;
-      }
-
-      grid.classList.add('hidden');
-      results.classList.remove('hidden');
-
-      const matched = searchIndex.filter((p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.tags.some((t) => t.toLowerCase().includes(q)) ||
-        p.summary.toLowerCase().includes(q)
-      );
-
-      if (matched.length === 0) {
-        resultsList.innerHTML = '';
-        noResults.classList.remove('hidden');
-        return;
-      }
-
-      noResults.classList.add('hidden');
-      resultsList.innerHTML = matched.map((p) => `
-        <a href="/blog/${p.id}/" class="group block bg-white border border-[var(--color-border)] hover:border-[var(--color-accent-glow)]/50 hover:shadow-lg transition-all duration-300 relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-1 h-full bg-[var(--color-accent-light)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          <div class="p-6">
-            ${p.pinned ? '<span class="inline-block text-[10px] uppercase tracking-widest font-semibold text-[var(--color-accent)] border border-[var(--color-accent-light)] px-2 py-0.5 mb-2">Pinned</span>' : ''}
-            <time class="text-xs uppercase tracking-wider text-[var(--color-muted)]">${p.date}</time>
-            <h3 class="font-heading text-lg font-semibold mt-2 mb-3 group-hover:text-[var(--color-accent)] transition-colors">${p.title}</h3>
-            ${p.summary ? `<p class="text-sm text-[var(--color-body)] line-clamp-3 mb-4">${p.summary}</p>` : ''}
-            ${p.tags.length > 0 ? `<div class="flex flex-wrap gap-2">${p.tags.slice(0, 3).map((t) => `<span class="text-xs uppercase tracking-wider text-[var(--color-accent-light)]">#${t}</span>`).join('')}</div>` : ''}
-          </div>
-        </a>
-      `).join('');
-    });
+  // Text is inserted as textContent, including titles containing HTML-like text.
+  function element(tag, className, text) {
+    const node = document.createElement(tag);
+    node.className = className;
+    if (text) node.textContent = text;
+    return node;
   }
 
-  initBlogSearch();
-  document.addEventListener('astro:after-swap', initBlogSearch);
+  function searchEntry(post) {
+    const entry = element('article', 'journal-entry');
+    const meta = element('div', 'journal-meta');
+    const time = element('time', 'journal-date', post.date);
+    time.dateTime = post.isoDate;
+    meta.append(time);
+    if (post.pinned) meta.append(element('span', 'journal-pin', 'Pinned'));
+    const body = element('div', 'min-w-0');
+    const href = `/blog/${encodeURIComponent(post.id)}/`;
+    if (post.cover) {
+      const cover = element('a', 'journal-cover');
+      cover.href = href;
+      cover.tabIndex = -1;
+      cover.setAttribute('aria-hidden', 'true');
+      const img = document.createElement('img');
+      img.src = post.cover;
+      img.alt = '';
+      img.loading = 'lazy';
+      cover.append(img);
+      body.append(cover);
+    }
+    const title = element('h3', 'journal-title');
+    const link = element('a', '', post.title);
+    link.href = href;
+    title.append(link);
+    body.append(title);
+    if (post.summary) body.append(element('p', 'journal-summary', post.summary));
+    if (post.tags.length) {
+      const tags = element('div', 'journal-tags');
+      post.tags.slice(0, 3).forEach((tag) => {
+        const link = element('a', '', tag);
+        link.href = `/tags/${encodeURIComponent(tag)}/`;
+        tags.append(link);
+      });
+      body.append(tags);
+    }
+    entry.append(meta, body);
+    return entry;
+  }
+
+  if (input && grid && results && resultsList && noResults && status) {
+    const update = () => {
+      const q = input.value.trim().toLowerCase();
+      grid.classList.toggle('hidden', Boolean(q));
+      results.classList.toggle('hidden', !q);
+      if (!q) { resultsList.replaceChildren(); status.textContent = ''; return; }
+      const matched = searchIndex.filter((post) =>
+        post.title.toLowerCase().includes(q) ||
+        post.tags.some((tag) => tag.toLowerCase().includes(q)) ||
+        post.summary.toLowerCase().includes(q)
+      );
+      resultsList.replaceChildren(...matched.map(searchEntry));
+      noResults.classList.toggle('hidden', matched.length > 0);
+      status.textContent = `${matched.length} matching posts`;
+    };
+    input.addEventListener('input', update);
+    window.addEventListener('pageshow', update);
+    update();
+  }
 </script>

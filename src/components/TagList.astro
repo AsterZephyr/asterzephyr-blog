@@ -6,11 +6,11 @@ interface Props {
 const { tags } = Astro.props;
 ---
 {tags.length > 0 && (
-  <div class="flex flex-wrap gap-2">
+  <div class="flex flex-wrap gap-x-5 gap-y-1">
     {tags.map((tag) => (
       <a
         href={`/tags/${tag}/`}
-        class="text-xs uppercase tracking-wider px-3 py-1 border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent-light)] hover:bg-[var(--color-accent-bg)] transition-all"
+        class="topic-link"
       >
         {tag}
       </a>

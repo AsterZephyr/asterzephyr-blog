@@ -1,49 +1,19 @@
 ---
 import type { CollectionEntry } from 'astro:content';
-
-interface Props {
-  post: CollectionEntry<'posts'>;
-}
-
+interface Props { post: CollectionEntry<'posts'>; }
 const { post } = Astro.props;
 const { title, date, summary, tags, cover, pinned } = post.data;
-const formattedDate = date.toLocaleDateString('en-US', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-});
+const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 ---
-<article class="group card-tilt bg-white border border-[var(--color-border)] hover:border-[var(--color-accent-glow)]/50 relative overflow-hidden">
-  <div class="absolute top-0 left-0 w-1 h-full bg-[var(--color-accent-light)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-  {cover && (
-    <a href={`/blog/${post.id}/`} class="block overflow-hidden">
-      <img
-        src={cover}
-        alt={title}
-        class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
-        loading="lazy"
-      />
-    </a>
-  )}
-  <div class="p-6">
-    {pinned && (
-      <span class="inline-block text-[10px] uppercase tracking-widest font-semibold text-[var(--color-accent)] border border-[var(--color-accent-light)] px-2 py-0.5 mb-2">Pinned</span>
-    )}
-    <time class="text-xs uppercase tracking-wider text-[var(--color-muted)]">{formattedDate}</time>
-    <h3 class="font-heading text-lg font-semibold mt-2 mb-3 group-hover:text-[var(--color-accent)] transition-colors">
-      <a href={`/blog/${post.id}/`}>{title}</a>
-    </h3>
-    {summary && (
-      <p class="text-sm text-[var(--color-body)] line-clamp-3 mb-4">{summary}</p>
-    )}
-    {tags.length > 0 && (
-      <div class="flex flex-wrap gap-2">
-        {tags.slice(0, 3).map((tag) => (
-          <a href={`/tags/${tag}/`} class="text-xs uppercase tracking-wider text-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors">
-            #{tag}
-          </a>
-        ))}
-      </div>
-    )}
+<article class="journal-entry">
+  <div class="journal-meta">
+    <time class="journal-date" datetime={date.toISOString()}>{formattedDate}</time>
+    {pinned && <span class="journal-pin">Pinned</span>}
+  </div>
+  <div class="min-w-0">
+    {cover && <a href={`/blog/${post.id}/`} class="journal-cover" tabindex="-1" aria-hidden="true"><img src={cover} alt="" loading="lazy" /></a>}
+    <h3 class="journal-title"><a href={`/blog/${post.id}/`}>{title}</a></h3>
+    {summary && <p class="journal-summary">{summary}</p>}
+    {tags.length > 0 && <div class="journal-tags">{tags.slice(0, 3).map((tag) => <a href={`/tags/${tag}/`}>{tag}</a>)}</div>}
   </div>
 </article>

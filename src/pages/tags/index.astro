@@ -12,9 +12,9 @@ const tagCounts = tags.map((tag) => ({
 }));
 ---
 <PageLayout title="Tags" description="Browse all tags.">
-  <div class="pt-28 pb-16">
+  <div class="pt-32 md:pt-40 pb-20">
     <div class="mx-auto max-w-4xl px-6">
-      <h1 class="font-heading text-4xl font-bold uppercase tracking-wide mb-4">Tags</h1>
+      <h1 class="display-heading mb-4">Tags</h1>
       <div class="w-12 h-0.5 bg-[var(--color-accent-light)] mb-14"></div>
       {tagCounts.length > 0 ? (
         <div class="flex flex-wrap gap-3">

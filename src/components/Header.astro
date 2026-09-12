@@ -1,107 +1,53 @@
 ---
 import { SITE } from '../data/site';
-
-interface Props {
-  transparent?: boolean;
-}
-
+interface Props { transparent?: boolean; }
 const { transparent = false } = Astro.props;
+const currentPath = Astro.url.pathname;
 ---
-<nav
-  id="navbar"
-  class:list={[
-    'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-    transparent ? 'nav-transparent' : 'nav-solid',
-  ]}
-  data-transparent={transparent}
->
-  <div class="mx-auto max-w-6xl px-6 flex items-center justify-between h-16 md:h-20">
-    <a href="/" class="font-heading text-xl font-bold tracking-wide hover:text-[var(--color-accent-light)] transition-colors">
-      {SITE.name}
-    </a>
-    <button id="nav-toggle" class="md:hidden p-2" aria-label="Toggle navigation">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    </button>
+<nav id="navbar" class:list={['site-nav', { 'nav-transparent': transparent }]} data-transparent={transparent} aria-label="Primary navigation">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">{SITE.name}<span aria-hidden="true">.</span></a>
     <ul class="hidden md:flex items-center gap-8">
       {SITE.nav.map((item) => (
-        <li>
-          <a
-            href={item.href}
-            class="text-sm font-medium tracking-wide uppercase hover:text-[var(--color-accent-light)] transition-colors"
-          >
-            {item.label}
-          </a>
-        </li>
+        <li><a href={item.href} class="nav-link" aria-current={currentPath.startsWith(item.href) && !item.href.includes('#') ? 'page' : undefined}>{item.label}</a></li>
       ))}
     </ul>
-  </div>
-  <div id="nav-mobile" class="hidden md:hidden px-6 pb-4">
-    <ul class="flex flex-col gap-3">
-      {SITE.nav.map((item) => (
-        <li>
-          <a
-            href={item.href}
-            class="block text-sm font-medium tracking-wide uppercase hover:text-[var(--color-accent-light)] transition-colors"
-          >
-            {item.label}
-          </a>
-        </li>
-      ))}
-    </ul>
+    <details id="nav-mobile" class="mobile-menu md:hidden">
+      <summary aria-label="Toggle navigation"><span class="menu-label">Menu</span><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-width="1.5" d="M4 8h16M4 16h16" /></svg></summary>
+      <ul>
+        {SITE.nav.map((item) => <li><a href={item.href}>{item.label}</a></li>)}
+      </ul>
+    </details>
   </div>
 </nav>
-
 <style>
-  .nav-transparent {
-    background: transparent;
-    color: #fff;
-  }
-  .nav-solid {
-    background: #fff;
-    color: #1a1a1a;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    border-bottom: 1px solid var(--color-border);
-  }
-  .nav-scrolled {
-    background: #fff !important;
-    color: #1a1a1a !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    border-bottom: 1px solid var(--color-border);
-  }
+  .site-nav { position: fixed; inset: 0 0 auto; z-index: 50; background: var(--color-surface); color: var(--color-heading); border-bottom: 1px solid var(--color-border); transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease; }
+  .nav-transparent { background: transparent; color: #f7f0e3; border-color: transparent; }
+  .nav-transparent.nav-scrolled { background: var(--color-surface); color: var(--color-heading); border-color: var(--color-border); }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; max-width: 1152px; height: 80px; padding-inline: 24px; margin-inline: auto; }
+  .nav-brand { font-family: var(--font-heading); font-size: 25px; letter-spacing: -.045em; }
+  .nav-brand span { margin-left: 2px; }
+  .nav-link { position: relative; display: inline-block; padding-block: 12px; font-size: 12px; letter-spacing: .04em; }
+  .nav-link::after { position: absolute; content: ''; left: 0; right: 0; bottom: 6px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform 180ms ease; }
+  .nav-link[aria-current='page']::after, .nav-link:focus-visible::after { transform: scaleX(1); }
+  .mobile-menu summary { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; list-style: none; }
+  .mobile-menu summary::-webkit-details-marker { display: none; }
+  .menu-label { font-size: 11px; }
+  .mobile-menu ul { position: absolute; top: 100%; left: 0; right: 0; padding: 12px 24px 20px; background: var(--color-surface); color: var(--color-heading); border-bottom: 1px solid var(--color-border); }
+  .mobile-menu li a { display: block; padding-block: 14px; font-size: 14px; }
+  @media (hover: hover) { .nav-link:hover::after { transform: scaleX(1); } }
+  @media (max-width: 767px) { .nav-inner { height: 64px; } .nav-brand { font-size: 23px; } }
 </style>
-
 <script>
-  function initNav() {
-    const navbar = document.getElementById('navbar');
-    const toggle = document.getElementById('nav-toggle');
-    const mobile = document.getElementById('nav-mobile');
-    if (!navbar) return;
-
-    const isTransparent = navbar.dataset.transparent === 'true';
-
-    if (isTransparent) {
-      const onScroll = () => {
-        if (window.scrollY > 80) {
-          navbar.classList.add('nav-scrolled');
-        } else {
-          navbar.classList.remove('nav-scrolled');
-        }
-      };
-      window.addEventListener('scroll', onScroll, { passive: true });
-      onScroll();
-    }
-
-    toggle?.addEventListener('click', () => {
-      mobile?.classList.toggle('hidden');
-    });
-
-    mobile?.querySelectorAll('a').forEach((a) => {
-      a.addEventListener('click', () => mobile?.classList.add('hidden'));
-    });
+  const navbar = document.getElementById('navbar');
+  const mobile = document.querySelector<HTMLDetailsElement>('#nav-mobile');
+  if (navbar?.dataset.transparent === 'true') {
+    const update = () => navbar.classList.toggle('nav-scrolled', window.scrollY > 80);
+    window.addEventListener('scroll', update, { passive: true });
+    update();
   }
-
-  initNav();
-  document.addEventListener('astro:after-swap', initNav);
+  mobile?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => { mobile.open = false; }));
+  mobile?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') { mobile.open = false; mobile.querySelector('summary')?.focus(); }
+  });
 </script>
