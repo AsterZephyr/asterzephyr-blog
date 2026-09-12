@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="630" viewBox="0 0 520 630" role="img" aria-labelledby="title desc"><style>text{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;fill:#e6edf5}.label{font-size:23px}.small{font-size:20px;fill:#a9bacd}.num{font-size:34px;font-weight:700}.head{font-size:26px;font-weight:600}</style><rect width="520" height="630" rx="20" fill="#101c2b"/><title id="title">多卖一个空座的增量计算</title><desc id="desc">航班确定起飞，座位否则空置，无其他收入影响。平均成本300美元不进入这次增量比较。空着新增净额0，卖掉收入100减新增支出20，新增净额80美元。此结果不证明航班整体盈利。</desc>
+<text x="28" y="45" class="head">只看多带一名乘客的变化</text><text x="28" y="80" class="small">教学假设 · 单位：美元</text>
+<rect x="24" y="104" width="472" height="94" rx="12" fill="#273347"/><text x="42" y="141" class="label">航班已确定起飞，座位否则空置</text><text x="42" y="176" class="small">没有更高价买家，也不影响其他收入</text>
+<text x="30" y="239" class="small">平均成本 300 ≠ 这一次新增支出</text>
+<rect x="24" y="264" width="472" height="101" rx="12" fill="#202f42"/><text x="44" y="302" class="label">空着：收入 0 − 新增支出 0</text><text x="44" y="344" class="num">增量净额 0</text>
+<rect x="24" y="383" width="472" height="111" rx="12" fill="#17352f"/><text x="44" y="424" class="label">卖掉：收入 100 − 新增支出 20</text><text x="44" y="471" class="num" style="fill:#82ddbf">增量净额 +80</text>
+<text x="28" y="548" class="label" style="fill:#f5ca78">这张票让结果改善了 80 美元</text><text x="28" y="588" class="small">整趟航班是否盈利，还要看总账。</text></svg>
