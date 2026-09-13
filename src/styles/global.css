@@ -16,10 +16,11 @@
   --font-heading: Georgia, 'Songti SC', 'Noto Serif CJK SC', SimSun, serif;
   --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --space-section: clamp(64px, 8vw, 112px);
+  --nav-height: 81px;
 }
 
 @layer base {
-  html { scroll-behavior: smooth; scroll-padding-top: 100px; }
+  html { scroll-behavior: smooth; scroll-padding-top: var(--nav-height); }
   body { font-family: var(--font-body); color: var(--color-body); background: var(--color-surface); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
   h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); color: var(--color-heading); text-wrap: balance; }
   p { text-wrap: pretty; }
@@ -33,6 +34,14 @@
 
 @layer components {
   .section-wrap { padding-block: var(--space-section); }
+  .viewport-section {
+    min-height: calc(100vh - var(--nav-height));
+    min-height: calc(100dvh - var(--nav-height));
+    display: grid;
+    align-content: center;
+    scroll-margin-top: 0;
+  }
+  .viewport-section > div { width: 100%; }
   .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 40px; }
   .eyebrow { color: var(--color-accent); font-size: 11px; line-height: 1.5; letter-spacing: .16em; text-transform: uppercase; }
   .display-heading { font-size: clamp(36px, 5vw, 64px); font-weight: 400; line-height: 1.15; letter-spacing: -.035em; }
@@ -76,6 +85,7 @@
   .project-entry:hover .project-image img { transform: scale(1.025); }
 }
 @media (max-width: 767px) {
+  :root { --nav-height: 65px; }
   .section-heading { align-items: flex-start; flex-direction: column; gap: 12px; margin-bottom: 28px; }
   .journal-entry { grid-template-columns: minmax(0, 1fr); gap: 14px; padding-block: 28px; }
   .journal-meta { flex-direction: row; align-items: center; padding-top: 0; }
