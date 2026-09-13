@@ -1,6 +1,7 @@
-// One subject per post, plus the optional report-reading series tag.
+// One subject per post, plus an optional reading-series tag.
 export const BLOG_TAGS = [
   '技术报告解读',
+  '读书笔记',
   'AI 与机器学习',
   'Agent 与编程',
   '系统与工程',

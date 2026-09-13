@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="760" viewBox="0 0 520 760" role="img" aria-labelledby="title desc">
+<title id="title">面包涨价的两条可能路径</title><desc id="desc">需求路径：购买意愿增强，短期产量受限，售价可能上调。成本路径：面粉能源人工变贵，原利润空间被压缩，店主尝试提价或调整产量。结果取决于供给与顾客反应。</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#91a9bd"/></marker></defs>
+<style>text{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;fill:#e6edf5;text-anchor:middle}.head{font-size:26px;font-weight:600}.label{font-size:23px}.small{font-size:20px;fill:#afbdcc}.line{stroke:#91a9bd;stroke-width:2;marker-end:url(#arrow)}</style>
+<rect width="520" height="760" rx="20" fill="#101c2b"/>
+<text x="260" y="47" class="head">同样是涨价，起点可以不同</text>
+<text x="260" y="91" class="label" style="fill:#82ddbf">需求变化</text>
+<rect x="30" y="109" width="460" height="64" rx="12" fill="#17352f"/><text x="260" y="150" class="label">人们愿意购买更多面包</text>
+<path d="M260 176 V198" class="line"/>
+<rect x="30" y="210" width="460" height="64" rx="12" fill="#17352f"/><text x="260" y="251" class="label">短期产量来不及增加</text>
+<path d="M260 277 V299" class="line"/>
+<rect x="30" y="311" width="460" height="64" rx="12" fill="#17352f"/><text x="260" y="352" class="label">店主可能提高售价</text>
+<text x="260" y="423" class="label" style="fill:#f5ca78">成本变化</text>
+<rect x="30" y="441" width="460" height="64" rx="12" fill="#343127"/><text x="260" y="482" class="label">面粉、能源或人工变贵</text>
+<path d="M260 508 V530" class="line"/>
+<rect x="30" y="542" width="460" height="64" rx="12" fill="#343127"/><text x="260" y="583" class="label">原有的利润空间被压缩</text>
+<path d="M260 609 V631" class="line"/>
+<rect x="30" y="643" width="460" height="64" rx="12" fill="#343127"/><text x="260" y="684" class="label">尝试提价，或调整产量</text>
+<text x="260" y="741" class="small">结果还取决于供给条件与顾客反应</text>
+</svg>

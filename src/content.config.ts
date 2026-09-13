@@ -11,8 +11,8 @@ const posts = defineCollection({
     updated: z.coerce.date().optional(),
     tags: z.array(z.enum(BLOG_TAGS)).min(1).max(2).refine(
       (tags) => new Set(tags).size === tags.length &&
-        tags.filter((tag) => tag !== '技术报告解读').length === 1,
-      'Choose one fixed subject tag, optionally adding 技术报告解读.',
+        tags.filter((tag) => tag !== '技术报告解读' && tag !== '读书笔记').length === 1,
+      'Choose one fixed subject tag, optionally adding 技术报告解读 or 读书笔记.',
     ),
     category: z.string().optional(),
     summary: z.string().optional(),
