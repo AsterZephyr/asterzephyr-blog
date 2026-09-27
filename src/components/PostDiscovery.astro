@@ -1,0 +1,46 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import { SERIES } from '../data/series';
+import { relatedPosts, resolveSeries } from '../lib/discovery.mjs';
+import { getTranslations, translationFor } from '../lib/translations';
+import LocalizedText from './LocalizedText.astro';
+interface Props { post: CollectionEntry<'posts'> }
+const { post } = Astro.props;
+const posts = await getCollection('posts', ({ data }) => !data.draft);
+const series = resolveSeries(SERIES, posts);
+const paths = series.filter((s) => s.posts.some((p) => p.id === post.id));
+const related = relatedPosts(post, posts, series);
+const translations = await getTranslations();
+---
+{paths.map((series) => {
+  const position = series.posts.findIndex((p) => p.id === post.id);
+  return <nav class="post-series" aria-label={`Reading series: ${series.title}`}>
+    <p class="eyebrow">Reading series · {position + 1} / {series.posts.length}</p>
+    <h2><a href={`/series/${series.id}/`}>{series.title}</a></h2>
+    <ol>{series.posts.map((item, i) => {
+      const translation = translationFor(item, translations);
+      return <li><span aria-hidden="true">{String(i + 1).padStart(2, '0')}</span><a href={`/blog/${item.id}/`} aria-current={item.id === post.id ? 'page' : undefined}>{translation ? <LocalizedText content zh={item.data.title} en={translation.data.title} /> : <span lang="zh-CN">{item.data.title}</span>}</a></li>;
+    })}</ol>
+    <div class="series-step">
+      {position > 0 && <a href={`/blog/${series.posts[position - 1].id}/`}>← Previous in series</a>}
+      {position + 1 < series.posts.length && <a href={`/blog/${series.posts[position + 1].id}/`}>Next in series →</a>}
+    </div>
+  </nav>;
+})}
+{related.length > 0 && <section class="related-posts" aria-label="Related writing">
+  <p class="eyebrow">Keep exploring</p><h2>Related writing</h2>
+  <ul>{related.map((item) => {
+    const translation = translationFor(item, translations);
+    return <li><a href={`/blog/${item.id}/`}>{translation ? <LocalizedText content zh={item.data.title} en={translation.data.title} /> : <span lang="zh-CN">{item.data.title}</span>} <span aria-hidden="true">↗</span></a></li>;
+  })}</ul>
+</section>}
+<style>
+  .post-series, .related-posts { margin-top: 48px; padding-top: 28px; border-top: 1px solid var(--color-border); }
+  h2 { font: 400 26px/1.3 var(--font-heading); margin: 10px 0 22px; }
+  ol, ul { list-style: none; padding: 0; }
+  li { border-top: 1px solid var(--color-border); padding-block: 14px; font-size: 14px; line-height: 1.7; }
+  ol li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; }
+  ol li > span { font-size: 11px; color: var(--color-muted); padding-top: 3px; }
+  a:hover, a[aria-current] { color: var(--color-accent); text-decoration: underline; text-underline-offset: 4px; }
+  .series-step { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; margin-top: 18px; font-size: 12px; }
+</style>

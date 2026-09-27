@@ -8,6 +8,10 @@ import ReaderTools from '../components/ReaderTools.astro';
 import '../styles/reader.css';
 import TagList from '../components/TagList.astro';
 import PrevNext from '../components/PrevNext.astro';
+import PostDiscovery from '../components/PostDiscovery.astro';
+import SharePost from '../components/SharePost.astro';
+import { socialImagePath } from '../lib/social-card.mjs';
+import { TAG_LABELS } from '../data/blog-tags';
 import LocalizedText from '../components/LocalizedText.astro';
 import type { CollectionEntry } from 'astro:content';
 
@@ -39,9 +43,9 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
   day: 'numeric',
 });
 ---
-<BaseLayout title={title} description={summary || title} image={cover}>
+<BaseLayout title={title} description={summary || title} image={socialImagePath(post.id)}>
   <Header />
-  <article class="pt-32 md:pt-40 pb-16" data-has-translation={translation ? '' : undefined}
+  <article data-post-id={post.id} data-post-date={date.toISOString().slice(0, 10)} data-post-topics={tags.map((t) => TAG_LABELS[t] || t).join(' · ')} class="pt-32 md:pt-40 pb-16" data-has-translation={translation ? '' : undefined}
     data-post-title-zh={title} data-post-title-en={translation?.data.title}
     data-post-summary-zh={summary || title} data-post-summary-en={translation?.data.summary || translation?.data.title}>
     <div class="mx-auto max-w-6xl px-6">
@@ -53,13 +57,14 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
               (<LocalizedText zh="更新于" en="Updated" />: <time datetime={updated?.toISOString()}>{formattedUpdated}</time>)
             </span>
           )}
-          <h1 class="reading-title mt-4 mb-4">{translation ? <LocalizedText zh={title} en={translation.data.title} /> : <span lang="zh-CN">{title}</span>}</h1>
-          {summary && <p class="reading-summary">{translation?.data.summary ? <LocalizedText zh={summary} en={translation.data.summary} /> : <span lang="zh-CN">{summary}</span>}</p>}
+          <h1 class="reading-title mt-4 mb-4">{translation ? <LocalizedText content zh={title} en={translation.data.title} /> : <span lang="zh-CN">{title}</span>}</h1>
+          {summary && <p class="reading-summary">{translation?.data.summary ? <LocalizedText content zh={summary} en={translation.data.summary} /> : <span lang="zh-CN">{summary}</span>}</p>}
           {tags.length > 0 && (
             <div class="mt-4">
               <TagList tags={tags} />
             </div>
           )}
+          <SharePost image={socialImagePath(post.id)} title={title} hasTranslation={Boolean(translation)} />
         </header>
       </div>
 
@@ -68,7 +73,7 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
         <div class="reader-body">
           <div class="reader-resume" hidden>
             <button type="button" data-resume-reading></button>
-            <button type="button" data-dismiss-resume aria-label="忽略阅读记录" data-label-zh="忽略阅读记录" data-label-en="Dismiss saved position">×</button>
+            <button type="button" data-dismiss-resume aria-label="Dismiss saved position">×</button>
           </div>
         {cover && (
             <img src={cover} alt={title} data-alt-zh={title} data-alt-en={translation?.data.title || title} class="w-full mb-10 rounded-sm" />
@@ -82,6 +87,7 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
             <Prose><slot /></Prose>
           </div>
           {translation && <template data-english-content><Prose><slot name="english" /></Prose></template>}
+          <PostDiscovery post={post} />
           <PrevNext prev={prev} next={next} />
         </div>
       </div>

@@ -3,7 +3,6 @@ const viewer = document.querySelector<HTMLDialogElement>('.image-viewer');
 const stage = viewer?.querySelector<HTMLElement>('.image-viewer-stage');
 const image = stage?.querySelector('img');
 const caption = viewer?.querySelector<HTMLElement>('.image-viewer-caption');
-const label = (zh: string, en: string) => document.documentElement.dataset.language === 'en' ? en : zh;
 let trigger: HTMLElement | null = null;
 let zoom = 1;
 let overflow = '';
@@ -37,9 +36,12 @@ function showImage(source: HTMLImageElement) {
   if (!viewer || !image || !caption || !stage) return;
   trigger = source; zoom = 1;
   image.alt = source.alt;
-  caption.textContent = source.closest('figure')?.querySelector('figcaption')?.textContent || source.alt;
+  image.lang = source.closest<HTMLElement>('[lang]')?.lang || content?.lang || 'en';
+  const sourceCaption = source.closest('figure')?.querySelector('figcaption');
+  caption.lang = sourceCaption?.closest<HTMLElement>('[lang]')?.lang || image.lang;
+  caption.textContent = sourceCaption?.textContent || source.alt;
   image.onload = sizeImage;
-  image.onerror = () => { caption.textContent = label('图片加载失败，请关闭后重试。', 'Image could not load. Close and try again.'); };
+  image.onerror = () => { caption.lang = 'en'; caption.textContent = 'Image could not load. Close and try again.'; };
   image.removeAttribute('style');
   image.src = source.currentSrc || source.src;
   overflow = document.documentElement.style.overflow;
@@ -58,16 +60,16 @@ async function copyCode(button: HTMLButtonElement, code: HTMLElement) {
     try { success = document.execCommand('copy'); } catch {}
     field.remove(); button.focus({ preventScroll: true });
   }
-  button.textContent = success ? label('已复制', 'Copied') : label('复制失败，请手动选择', 'Select and copy manually');
-  window.setTimeout(() => { button.textContent = label('复制代码', 'Copy code'); }, 2200);
+  button.textContent = success ? 'Copied' : 'Select and copy manually';
+  window.setTimeout(() => { button.textContent = 'Copy code'; }, 2200);
 }
 function enhance() {
   if (!content) return;
   content.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
     if (img.closest('a, button')) return;
     img.tabIndex = 0; img.setAttribute('role', 'button'); img.setAttribute('aria-haspopup', 'dialog');
-    img.setAttribute('aria-label', `${label('放大图片', 'Enlarge image')}${img.alt ? `: ${img.alt}` : ''}`);
-    img.title = label('点击放大', 'Click to enlarge');
+    img.setAttribute('aria-label', `Enlarge image${img.alt ? `: ${img.alt}` : ''}`);
+    img.title = 'Click to enlarge';
     if (img.dataset.zoomReady) return;
     img.dataset.zoomReady = 'true';
     img.addEventListener('click', () => showImage(img));
@@ -81,15 +83,16 @@ function enhance() {
     if (!code) return;
     const existing = pre.parentElement?.querySelector<HTMLButtonElement>('.code-copy');
     if (pre.parentElement?.classList.contains('reader-code')) {
-      if (existing) existing.textContent = label('复制代码', 'Copy code');
+      if (existing) existing.textContent = 'Copy code';
       return;
     }
     const wrapper = document.createElement('div'); wrapper.className = 'reader-code not-prose';
     const toolbar = document.createElement('div'); toolbar.className = 'reader-code-toolbar';
+    toolbar.lang = 'en';
     const title = document.createElement('span'); title.textContent = pre.dataset.codeTitle || pre.dataset.language || 'code';
     title.title = title.textContent;
     const button = document.createElement('button'); button.type = 'button'; button.className = 'code-copy';
-    button.textContent = label('复制代码', 'Copy code'); button.setAttribute('aria-live', 'polite');
+    button.textContent = 'Copy code'; button.setAttribute('aria-live', 'polite');
     button.addEventListener('click', () => copyCode(button, code));
     toolbar.append(title, button); pre.before(wrapper); wrapper.append(toolbar, pre);
   });

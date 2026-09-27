@@ -50,26 +50,34 @@ function applyLanguage(language: Language, persist = false) {
   const anchorId = readingAnchor?.id;
   const anchorOffset = readingAnchor?.getBoundingClientRect().top;
   root.dataset.language = language;
-  root.lang = language === 'zh' ? 'zh-CN' : 'en';
   if (persist) {
     try { localStorage.setItem(preferenceKey, language); } catch { /* Private/storage-disabled browsers still work in this page. */ }
+    const url = new URL(location.href);
+    if (url.searchParams.has('lang')) {
+      url.searchParams.set('lang', language);
+      history.replaceState(history.state, '', url);
+    }
   }
   swapArticle(language);
+  // Keep the edition selected by RSS/search/share links throughout a reading path.
+  document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((link) => {
+    // Search results carry the edition that actually matched the query.
+    if (link.closest('[data-search-results]')) return;
+    const url = new URL(link.href, location.href);
+    if (url.origin === location.origin && /^\/(blog|series|tags)(\/|$)/.test(url.pathname)) {
+      url.searchParams.set('lang', language);
+      link.href = url.href;
+    }
+  });
   document.querySelectorAll<HTMLButtonElement>('[data-set-language]').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.setLanguage === language));
-  });
-  document.querySelectorAll<HTMLElement>('[data-placeholder-zh]').forEach((element) => {
-    element.setAttribute('placeholder', element.dataset[language === 'zh' ? 'placeholderZh' : 'placeholderEn'] || '');
-  });
-  document.querySelectorAll<HTMLElement>('[data-label-zh]').forEach((element) => {
-    element.setAttribute('aria-label', element.dataset[language === 'zh' ? 'labelZh' : 'labelEn'] || '');
   });
   document.querySelectorAll<HTMLImageElement>('[data-alt-zh]').forEach((element) => {
     element.alt = element.dataset[language === 'zh' ? 'altZh' : 'altEn'] || '';
   });
   document.querySelectorAll<HTMLTimeElement>('time[datetime]').forEach((element) => {
     const date = new Date(element.dateTime);
-    if (!Number.isNaN(date.getTime())) element.textContent = date.toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+    if (!Number.isNaN(date.getTime())) element.textContent = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
   });
   const meta = document.querySelector<HTMLElement>('[data-post-title-zh]');
   if (meta) {
@@ -95,13 +103,18 @@ if (location.hash) {
 }
 document.querySelectorAll<HTMLElement>('.language-switch').forEach((control) => { control.hidden = false; });
 window.addEventListener('storage', (event) => {
-  if (event.key === preferenceKey && (event.newValue === 'zh' || event.newValue === 'en')) applyLanguage(event.newValue);
+  const requested = new URLSearchParams(location.search).get('lang');
+  if (requested !== 'zh' && requested !== 'en' && event.key === preferenceKey && (event.newValue === 'zh' || event.newValue === 'en')) applyLanguage(event.newValue);
 });
-window.addEventListener('pageshow', (event) => {
-  if (!event.persisted) return;
-  // Back/forward may restore a document that predates the user's latest choice.
+function restoreLanguage() {
   try {
+    const requested = new URLSearchParams(location.search).get('lang');
+    if (requested === 'zh' || requested === 'en') { applyLanguage(requested); return; }
     const saved = localStorage.getItem(preferenceKey);
     if (saved === 'zh' || saved === 'en') applyLanguage(saved);
   } catch {}
+}
+window.addEventListener('popstate', restoreLanguage);
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) restoreLanguage();
 });

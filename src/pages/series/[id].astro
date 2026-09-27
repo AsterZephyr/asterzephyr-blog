@@ -1,0 +1,20 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import BlogCard from '../../components/BlogCard.astro';
+import { getCollection } from 'astro:content';
+import { SERIES } from '../../data/series';
+import { resolveSeries } from '../../lib/discovery.mjs';
+export async function getStaticPaths() {
+  return resolveSeries(SERIES, await getCollection('posts')).map((series) => ({ params: { id: series.id }, props: { series } }));
+}
+const { series } = Astro.props;
+---
+<PageLayout title={series.title} description={series.description}>
+  <div class="mx-auto max-w-6xl px-6 pt-32 md:pt-40 pb-20">
+    <a href="/series/" class="text-link mb-8">← All series</a>
+    <p class="eyebrow mb-4">Reading series · {series.posts.length} articles</p>
+    <h1 class="display-heading">{series.title}</h1>
+    <p class="mt-5 mb-12 text-[var(--color-muted)]">{series.description}</p>
+    <ol class="journal-list">{series.posts.map((post, index) => <li><p class="eyebrow mt-8">Part {index + 1}</p><BlogCard post={post} /></li>)}</ol>
+  </div>
+</PageLayout>

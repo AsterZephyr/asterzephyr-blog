@@ -4,13 +4,16 @@ Chinese and English share the existing page URL and canonical URL. No locale rou
 
 ## Reading behavior
 
-- The first visit follows the browser's first preferred language: Chinese → Chinese; other languages → English.
-- The header's 中文 / EN buttons override that choice. `asterzephyr-language` in localStorage remembers the choice across pages and visits. If storage is unavailable the current page still switches normally.
+- The site shell (home, About, navigation, labels and controls) is always English. Only blog titles, summaries, article bodies and their section headings switch languages.
+- The first visit's blog content follows the browser's first preferred language: Chinese → Chinese; other languages → English.
+- The blog and tag pages' header 中文 / EN buttons override that choice. `asterzephyr-language` in localStorage remembers the choice across pages and visits. If storage is unavailable the current page still switches normally.
 - The original article remains available without JavaScript. Switching controls appear only once initialized.
 - English article content is built into an inert HTML template. Switching moves the chosen content into the document, so only one body participates in reading, accessibility, anchors and diagram rendering.
-- Heading IDs are mapped back to the original article's IDs so shared section links work in either language. Search matches Chinese and English titles, summaries and translated tag names.
+- Heading IDs are mapped back to the original article's IDs so shared section links work in either language. Full-text search indexes Chinese and English bodies separately, including code and section headings. Results open the matched edition and share the original heading anchors.
 - Older posts without an English version retain their original language, with a visible “Chinese only” notice. Original figures/screenshots may still contain Chinese labels; English posts disclose this.
-- This is a reading convenience, not separate-language SEO: RSS and server-generated social previews continue to use the original post. English-specific URLs are not generated.
+- Chinese and English RSS feeds live at `/rss.xml` and `/rss-en.xml`. They contain the latest 30 available editions as titles and summaries, with links to the full articles.
+- Search, RSS and sharing use `?lang=zh` or `?lang=en` on the existing article path; these hints override saved/browser preferences for that visit, and flow through article, tag and series links. Canonical URLs remain unchanged. Manual switching updates an existing hint and saves the preference.
+- Social preview PNGs contain both titles when a translation exists. A static shared URL has a common server-generated preview; this does not provide separate English-language SEO.
 
 ## Content maintenance
 

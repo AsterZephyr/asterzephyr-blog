@@ -1,0 +1,53 @@
+---
+interface Props { image: string; title: string; hasTranslation: boolean }
+const { image, title, hasTranslation } = Astro.props;
+---
+<div class="post-actions"><button type="button" data-open-share hidden>Share article ↗</button><a href="/rss.xml">RSS · Chinese</a><a href="/rss-en.xml">RSS · English</a></div>
+<dialog id="share-post" aria-labelledby="share-heading" data-translated={String(hasTranslation)}>
+  <header><h2 id="share-heading">Share this article</h2><button type="button" data-share-close aria-label="Close sharing">Close ×</button></header>
+  <img src={image} alt={`Share card: ${title}`} width="1200" height="630" loading="lazy" />
+  <label for="share-url" data-share-language>Article link</label><input id="share-url" type="url" readonly />
+  <div class="share-actions"><button type="button" data-copy-link>Copy link</button><a href={image} download="asterzephyr-article.png">Download card ↓</a></div>
+  <p data-share-status role="status"></p>
+</dialog>
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>('#share-post')!;
+  const trigger = document.querySelector<HTMLButtonElement>('[data-open-share]')!;
+  const input = dialog.querySelector<HTMLInputElement>('#share-url')!;
+  const status = dialog.querySelector<HTMLElement>('[data-share-status]')!;
+  let overflow = '';
+  trigger.hidden = false;
+  trigger.addEventListener('click', () => {
+    const language = dialog.dataset.translated === 'true' && document.documentElement.dataset.language === 'en' ? 'en' : 'zh';
+    const url = new URL(document.querySelector<HTMLLinkElement>('link[rel="canonical"]')!.href);
+    url.searchParams.set('lang', language);
+    input.value = url.href;
+    dialog.querySelector<HTMLElement>('[data-share-language]')!.textContent = `${language === 'en' ? 'English' : 'Chinese'} article link`;
+    status.textContent = ''; overflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden'; dialog.showModal();
+  });
+  dialog.querySelector('[data-share-close]')?.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+  dialog.addEventListener('close', () => { document.documentElement.style.overflow = overflow; trigger.focus({ preventScroll: true }); });
+  dialog.querySelector('[data-copy-link]')?.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(input.value); status.textContent = 'Link copied.'; }
+    catch { input.focus(); input.select(); status.textContent = 'Select and copy the link above.'; }
+  });
+</script>
+<style>
+  .post-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; margin-top: 26px; font-size: 12px; color: var(--color-muted); }
+  .post-actions button, .post-actions a { min-height: 36px; display: inline-flex; align-items: center; }
+  .post-actions button[hidden] { display: none; }
+  a:hover, button:hover { color: var(--color-accent); }
+  dialog { width: min(700px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); margin: auto; padding: 24px; background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-body); overflow: auto; }
+  dialog::backdrop { background: #26272266; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+  h2 { font: 400 26px/1.3 var(--font-heading); }
+  header button { font-size: 12px; min-height: 44px; }
+  img { width: 100%; height: auto; border: 1px solid var(--color-border); }
+  label { display: block; font-size: 12px; margin-top: 20px; }
+  input { display: block; width: 100%; padding: 12px; margin-top: 8px; border: 1px solid var(--color-border); background: transparent; font-size: 12px; }
+  .share-actions { display: flex; flex-wrap: wrap; gap: 24px; font-size: 13px; margin-top: 18px; align-items: center; }
+  .share-actions button { background: var(--color-heading); color: var(--color-surface); padding: 10px 18px; }
+  [data-share-status] { min-height: 1.5em; font-size: 12px; margin-top: 12px; }
+</style>

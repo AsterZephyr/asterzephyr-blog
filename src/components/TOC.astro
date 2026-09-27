@@ -6,9 +6,9 @@ const toc = Astro.props.headings.filter((h) => h.depth === 2 || h.depth === 3);
 <aside class="reader-sidebar" hidden={toc.length === 0}>
   <details class="reader-toc" open>
     <summary><LocalizedText zh="本文目录" en="On this page" /><span class="reader-progress" aria-hidden="true">0%</span></summary>
-    <nav aria-label="本文目录" data-label-zh="本文目录" data-label-en="On this page">
+    <nav aria-label="On this page">
       <ol class="reader-toc-list">
-        {toc.map((h) => <li><a href={`#${h.slug}`}>{h.text}</a></li>)}
+        {toc.map((h) => <li><a href={`#${h.slug}`} lang="zh-CN">{h.text}</a></li>)}
       </ol>
     </nav>
   </details>

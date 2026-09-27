@@ -19,7 +19,7 @@ const nextEn = next && translationFor(next, translations);
       <a href={`/blog/${prev.id}/`} class="group block">
         <span class="text-xs uppercase tracking-wider text-[var(--color-muted)]"><LocalizedText zh="上一篇" en="Previous" /></span>
         <span class="block font-heading text-sm font-semibold mt-1 group-hover:text-[var(--color-accent)] transition-colors">
-          {prevEn ? <LocalizedText zh={prev.data.title} en={prevEn.data.title} /> : <span lang="zh-CN">{prev.data.title}</span>}
+          {prevEn ? <LocalizedText content zh={prev.data.title} en={prevEn.data.title} /> : <span lang="zh-CN">{prev.data.title}</span>}
         </span>
       </a>
     )}
@@ -29,7 +29,7 @@ const nextEn = next && translationFor(next, translations);
       <a href={`/blog/${next.id}/`} class="group block">
         <span class="text-xs uppercase tracking-wider text-[var(--color-muted)]"><LocalizedText zh="下一篇" en="Next" /></span>
         <span class="block font-heading text-sm font-semibold mt-1 group-hover:text-[var(--color-accent)] transition-colors">
-          {nextEn ? <LocalizedText zh={next.data.title} en={nextEn.data.title} /> : <span lang="zh-CN">{next.data.title}</span>}
+          {nextEn ? <LocalizedText content zh={next.data.title} en={nextEn.data.title} /> : <span lang="zh-CN">{next.data.title}</span>}
         </span>
       </a>
     )}

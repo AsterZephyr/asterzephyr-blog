@@ -8,7 +8,6 @@ const resume = document.querySelector<HTMLElement>('.reader-resume');
 const resumeButton = document.querySelector<HTMLButtonElement>('[data-resume-reading]');
 const desktop = matchMedia('(min-width: 1280px)');
 const key = `asterzephyr-reading:${location.pathname.replace(/\/$/, '')}`;
-const label = (zh: string, en: string) => document.documentElement.dataset.language === 'en' ? en : zh;
 let saved: ReturnType<typeof parseReadingPosition> = null;
 try { saved = parseReadingPosition(localStorage.getItem(key)); } catch { /* Storage is optional. */ }
 let headings: HTMLElement[] = [];
@@ -97,6 +96,7 @@ function build() {
     const link = document.createElement('a');
     link.href = `#${encodeURIComponent(heading.id)}`;
     link.textContent = heading.textContent;
+    link.lang = heading.closest<HTMLElement>('[lang]')?.lang || article.lang;
     link.addEventListener('click', (event) => {
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       event.preventDefault(); dismiss(); if (!desktop.matches) toc.open = false;
@@ -117,7 +117,7 @@ function build() {
         children.id = `reader-sections-${index}`;
         const toggle = document.createElement('button');
         toggle.type = 'button';
-        toggle.setAttribute('aria-label', label('展开或折叠子章节：', 'Toggle subsections: ') + parent.querySelector('a')?.textContent);
+        toggle.setAttribute('aria-label', 'Toggle subsections: ' + parent.querySelector('a')?.textContent);
         toggle.setAttribute('aria-controls', children.id);
         const group = { children, toggle, manual: false };
         toggle.addEventListener('click', () => { group.manual = true; expand(group, group.children.hidden); });
@@ -132,7 +132,13 @@ function build() {
   toc.open = desktop.matches;
   if (saved && resume && resumeButton && !location.hash) {
     const heading = headings.find((node) => node.id === saved.id);
-    resumeButton.textContent = `${label('继续上次阅读', 'Continue reading')} · ${Math.round(saved.progress * 100)}%${heading ? ` — ${heading.textContent}` : ''}`;
+    resumeButton.textContent = `Continue reading · ${Math.round(saved.progress * 100)}%`;
+    if (heading) {
+      const section = document.createElement('span');
+      section.lang = heading.closest<HTMLElement>('[lang]')?.lang || article.lang;
+      section.textContent = ` — ${heading.textContent}`;
+      resumeButton.append(section);
+    }
     resume.hidden = false;
   }
   requestAnimationFrame(measure);

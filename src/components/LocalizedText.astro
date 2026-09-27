@@ -1,5 +1,6 @@
 ---
-interface Props { zh: string; en: string; }
-const { zh, en } = Astro.props;
+interface Props { zh: string; en: string; content?: boolean; }
+// Only blog content opts into language switching. Site copy stays English.
+const { zh, en, content = false } = Astro.props;
 ---
-<span data-lang="zh" lang="zh-CN">{zh}</span><span data-lang="en" lang="en">{en}</span>
+{content ? <><span data-lang="zh" lang="zh-CN">{zh}</span><span data-lang="en" lang="en">{en}</span></> : <span lang="en">{en}</span>}

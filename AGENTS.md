@@ -6,12 +6,14 @@ Astro 6 static blog. Posts live in `src/content/posts/`.
 
 Every new blog post must be published in both Chinese and English, sharing its existing URL.
 
+The homepage, About, navigation and interface copy stay English. Only blog content (titles, summaries, bodies and section headings) switches languages; use `LocalizedText content` for those fields.
+
 - Write the Chinese original in `src/content/posts/<name>.mdx` and the complete English counterpart in `src/content/translations/<name>.mdx` in the same change. Translate the full text, title, summary, captions and accessible labels; do not substitute a summary for a translation.
 - English frontmatter must include `sourceFile` and `sourceHash` (SHA-256 of the complete Chinese source). Preserve dates, tags, pinned status, links, data, formulas and executable code. Import only components actually used.
 - When revising an already translated original, update and review the English version in the same change, then refresh the hash. Never change only the hash to silence validation.
 - If either version is unfinished, keep the original as `draft: true`. Published pinned posts also require English versions.
 - `docs/legacy-untranslated-posts.json` is a frozen list of older untranslated posts, not an escape hatch for new posts. Do not add new files to it to bypass validation.
-- Before pushing, run `npm test` and `npm run build`, then verify the same-URL 中文 / EN switch for the new article. The build rejects missing, draft or stale English counterparts. See `docs/bilingual-blog.md`.
+- Before pushing, run `npm test` and `npm run build`, then verify the same-URL 中文 / EN switch for the new article. The build rejects missing, draft or stale English counterparts. It also generates full-text indexes and share cards; run `npm run check:discovery` after the build to check generated feeds, card assets and series links. See `docs/bilingual-blog.md`.
 
 ## Blog Post Format
 
@@ -179,3 +181,10 @@ Place images in `public/images/posts/<post-slug>/`. Reference as `/images/posts/
 npm run dev      # dev server
 npm run build    # production build, verify before pushing
 ```
+
+## Discovery and sharing
+
+- Curated reading order lives in `src/data/series.ts` and references exact source filenames; missing, draft or duplicate members fail validation. Do not use publication date as a substitute for series order.
+- Site interface and series descriptions remain English. Article titles, summaries and bodies remain bilingual. Search result links retain their matched language.
+- Pagefind uses an English primary index and an explicitly Chinese merged index so Chinese segmentation works without changing the English site shell.
+- Share cards are generated during the Astro build from published metadata using the vendored OFL font. Do not commit generated `dist` files or add build-time network font requests.
