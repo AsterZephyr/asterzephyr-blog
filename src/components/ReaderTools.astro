@@ -1,0 +1,17 @@
+---
+import LocalizedText from './LocalizedText.astro';
+---
+<dialog class="image-viewer" aria-label="查看大图" data-label-zh="查看大图" data-label-en="Image viewer">
+  <div class="image-viewer-toolbar">
+    <button type="button" data-zoom="out" aria-label="缩小" data-label-zh="缩小" data-label-en="Zoom out">−</button>
+    <button type="button" data-zoom="reset" aria-label="重置缩放" data-label-zh="重置缩放" data-label-en="Reset zoom">100%</button>
+    <button type="button" data-zoom="in" aria-label="放大" data-label-zh="放大" data-label-en="Zoom in">+</button>
+    <button type="button" data-viewer-close autofocus><LocalizedText zh="关闭" en="Close" /><span aria-hidden="true"> ×</span></button>
+  </div>
+  <div class="image-viewer-stage" tabindex="0" role="region" aria-label="图片区域，放大后可用方向键平移" data-label-zh="图片区域，放大后可用方向键平移" data-label-en="Image area; use arrow keys to pan when zoomed"><img alt="" draggable="false" /></div>
+  <p class="image-viewer-caption" aria-live="polite"></p>
+</dialog>
+<script>
+  import '../scripts/reader-navigation';
+  import '../scripts/reader-media';
+</script>
