@@ -1,0 +1,422 @@
+---
+title: "RL for LLM: Why Is Reinforcement Learning Training for Large Models So Hard?"
+date: 2026-06-07
+tags: [AI 与机器学习]
+summary: "Why did DeepSeek-R1 succeed with RL while most academic reproductions completely failed? Understanding the fundamental limitations of RL training for LLMs, five failure modes, and entropy collapse from the perspective of pass@k."
+draft: false
+sourceFile: "rl-for-llm-为什么强化学习训练大模型这么难.mdx"
+sourceHash: "6845703108fa2ce71d2b730a75012de14ac4c07652e226ae1863a9fee2a8c5ab"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+import Callout from '../../components/blog/Callout.astro'
+
+<Callout type="info">
+**Document purpose**: This is a learning document for everyone — whether or not you've had prior exposure to RL. It will help you understand:
+- What is reinforcement learning (RL) training for LLMs?
+- Why did DeepSeek-R1 succeed with RL while most academic reproductions fail to work?
+- How to determine whether RL is effective for your use case?
+
+**Context**: Since 2025, RL training for LLMs has become a hot topic, marked by DeepSeek-R1. In practice, however, a large number of papers only "work" on the Qwen series of models, and completely fail when applied to other models. This article analyzes the root cause of this phenomenon.
+</Callout>
+
+---
+
+## Part 1: Background — What Is RL Training for LLMs?
+
+### From SFT to RL: Three Stages of Post-Training
+
+Going from "pre-training complete" to "ready to use," a large model must go through the **post-training** stage:
+
+| Stage | Method | What It Does | Analogy |
+|-|-|-|-|
+| Stage 1 | SFT (Supervised Fine-Tuning) | Learn instruction formats and response paradigms | A student reads a textbook and learns how to format solutions |
+| Stage 2 | RLHF / DPO | Learn preferences, avoid harmful outputs | A teacher grades homework, marking good and bad |
+| Stage 3 | RL (GRPO/DAPO) | Self-reinforce on verifiable tasks | A student does practice problems, checks answers, and reinforces correct reasoning |
+
+Key distinctions:
+
+- **SFT**: Tells the model "what a correct answer looks like" — imitation learning
+- **RLHF/DPO**: Tells the model "which one is better" — preference learning
+- **RL (reasoning)**: Lets the model "try on its own, then check the answer" — exploration + reinforcement
+
+### Why Did RL Suddenly Get Hot?
+
+In January 2025, the DeepSeek-R1 paper demonstrated an astonishing result:
+
+> Pure RL training (GRPO), without any SFT data, enabled a 671B MoE model to achieve 96.3% accuracy on the AIME math competition, approaching OpenAI o1 levels.
+
+This drove the entire academic community into a frenzy: if you don't need expensive human-annotated data and can improve reasoning ability with just a reward function, then couldn't you just "do unlimited practice problems" to get stronger?
+
+---
+
+## Part 2: Current Progress — Who's Doing It and How Well?
+
+### Overview of Mainstream RL Algorithms
+
+<TechGraph src="/images/posts/rl-for-llm-为什么强化学习训练大模型这么难/11-rl-landscape.svg" title="RL for LLM Algorithm Landscape" caption="From PPO to GRPO/DAPO — the positioning and applicable scenarios of each algorithm" />
+
+| Algorithm | Core Idea | Representative Work | Key Characteristics |
+|-|-|-|-|
+| PPO | Policy gradient + clipping + Critic | InstructGPT, o1 | Requires 4 models; stable but expensive |
+| DPO | Direct policy optimization from preference pairs | Zephyr, Mistral | Offline, simple, but cannot explore |
+| GRPO | Group-relative advantage estimation | DeepSeek-R1 | No Critic, online sampling, prone to entropy collapse |
+| DAPO | Decoupled KL + dynamic temperature | ByteDance proRL | Mitigates entropy collapse, but still requires a strong base |
+| RLOO | Leave-one-out baseline | Academic research | Simplified variant of PPO |
+
+<TechGraph src="/images/posts/rl-for-llm-为什么强化学习训练大模型这么难/14-rl-algorithms-compare.svg" title="RL Algorithm Comparison" caption="Core differences and applicability conditions of PPO/GRPO/DAPO/DPO" />
+
+### Actual Industry Results
+
+| Model | Scale | RL Method | AIME 2024 | Publicly Verified? |
+|-|-|-|-|-|
+| OpenAI o1 | ~200B+ (rumored) | PPO + PRM | 96.4% | No |
+| DeepSeek-R1 | 671B MoE | GRPO | 96.3% | Yes (open-source) |
+| Qwen3 (A3B MoE) | A3B (30B+ total) | RL few steps | 90+ | Partial |
+| Qwen 2.5 72B | 72B Dense | RL | ~80+ | Partial |
+
+### The State of Academic "Reproduction"
+
+A large number of papers claim to have achieved "significant improvements" using GRPO/DAPO on small models (7B/8B). But there are serious problems:
+
+<Callout type="warning">
+**Core controversy**: Almost every academic RL paper that "works" was run on Qwen 2.5 or Qwen 3. When switching to Llama or other models, the same algorithms produce zero effect.
+
+Root cause analysis:
+- Research by Wu et al. (2026) suggests that the Qwen series may suffer from **benchmark contamination** (data leakage) on benchmarks like AIME
+- If the model has already "memorized" some of the answers, RL is merely reinforcing memory rather than truly learning to reason
+- Llama 3.2 with DAPO on AIME: **accuracy stays at 0 throughout**
+</Callout>
+
+---
+
+## Part 3: Why Doesn't RL Work in Most Scenarios?
+
+### Root Cause: RL Cannot Teach a Model New Capabilities
+
+<TechGraph src="/images/posts/rl-for-llm-为什么强化学习训练大模型这么难/13-rl-prerequisite.svg" title="Prerequisites for RL" caption="RL can only reinforce capabilities the model already has — it cannot create new ones" />
+
+This is the single most important sentence for understanding RL for LLMs:
+
+> **RL can only reinforce things the model can already (occasionally) do. If pass@k = 0, RL has no gradient signal whatsoever.**
+
+Explanation:
+
+- **pass@k**: the probability that at least one of k samples is correct
+- How GRPO works: for each prompt, sample k responses; correct ones get positive advantage, incorrect ones get negative advantage
+- If all k responses are **entirely wrong**: all advantages are 0, gradients are 0, **nothing is learned**
+- If all k responses are **entirely correct**: all advantages are also 0, and likewise nothing new is learned
+
+**Feynman explanation**: RL is like a coach who can only say "that was good, that was bad." If the athlete **can't clear the bar at all** (pass@k=0), no amount of coaching helps — the problem isn't strategy, it's ability.
+
+### GRPO's Specific Mechanism and Limitations
+
+```python
+for prompt in dataset:
+    responses = model.sample(prompt, k=64)  # sample k responses
+    rewards = [verify(r) for r in responses]  # 0 or 1
+
+    mean_r = mean(rewards)
+    std_r = std(rewards)
+    advantages = [(r - mean_r) / std_r for r in rewards]
+
+    # If rewards are all 0: advantages are all 0 -> no update
+    # If rewards are all 1: advantages are all 0 -> no update
+    # Only when "some are right and some are wrong" is there a gradient signal
+
+    policy_gradient_update(model, responses, advantages)
+```
+
+### Five Failure Modes
+
+| Failure Mode | Symptom | Root Cause |
+|-|-|-|
+| 1. Zero Signal | Acc stays at 0, loss unchanged | Base model too weak, pass@k=0, no gradient |
+| 2. Entropy Collapse | Entropy drops sharply, outputs become repetitive | Policy converges prematurely to a few high-reward paths |
+| 3. pass@k Decline | mean@1 rises but pass@k drops | RL killed diversity |
+| 4. Reward Hacking | Reward goes up but actual quality goes down | Model found loopholes in the reward |
+| 5. Spurious Improvement | Improvement only on specific benchmarks | Base model already "memorized" the answers |
+
+### Entropy Collapse in Detail
+
+<TechGraph src="/images/posts/rl-for-llm-为什么强化学习训练大模型这么难/12-entropy-collapse.svg" title="Entropy Collapse Phenomenon" caption="In healthy RL training, entropy decreases slowly; in unhealthy training, it plummets to zero" />
+
+Entropy measures the **diversity** of model outputs. How entropy changes during normal RL training:
+
+- **Healthy**: entropy decreases slowly (the policy is focusing), but stays within a reasonable range
+- **Unhealthy**: entropy drops sharply to near 0 (the policy degenerates into deterministic output)
+
+From experimental data:
+
+- **Qwen3 8B + GRPO**: entropy drops quickly from ~6 to ~2, while acc rises — this is normal learning
+- **Qwen3 8B + DAPO**: entropy first drops then rises (DAPO's dynamic temperature counteracts collapse)
+- **Llama + DAPO/GRPO**: entropy stays at ~6 unchanged — because acc=0, there's no signal driving policy change
+
+<Callout type="warning">
+**Key insight**: Llama's entropy not dropping is not a "good thing" (maintaining diversity) but a "bad thing" (the model isn't learning at all). The premise that GRPO doesn't entropy-collapse only matters when entropy collapse would indicate a problem — if learning never started, entropy naturally won't change.
+</Callout>
+
+### Why Only the Qwen Series "Works"?
+
+1. **Qwen3's pretraining quality is extremely high**: Even the A3B MoE without RL already has a non-zero pass@64 on the base model
+2. **AIME benchmark leakage suspicion**: Wu et al. (2026) pointed out that the Qwen series performs anomalously well on benchmarks like AIME
+3. **GPT-class 120B+ is the real dividing line**: Only models at this scale see effective RL calibration
+4. **Academic RL papers using small Qwen models should be questioned**
+
+---
+
+## Part 4: The Right Mental Model — How to Understand RL for LLMs
+
+### RL Is Not Magic, It's a Selection Mechanism
+
+Think of RL as a **selection exam**, not a **teaching process**:
+
+|  | What RL Actually Does | What RL Cannot Do |
+|-|-|-|
+| Capability dimension | Turn occasional pass@64 correctness into pass@1 | Make tasks with pass@64=0 solvable |
+| Strategy dimension | Reinforce high-probability correct paths | Create entirely new reasoning paths |
+| Knowledge dimension | Better invoke existing knowledge | Inject new knowledge |
+
+### When Is RL Effective?
+
+When **all** of the following conditions are met:
+
+1. **Base model is strong enough**: pass@k > 0 (the model can "occasionally" get it right)
+2. **Reward is verifiable**: there's a clear right/wrong judgment (math answers, code execution, logical reasoning)
+3. **Model is large enough**: 20B+ or large MoE — small models have too low a capability ceiling
+4. **Training infrastructure is solid**: large-scale online sampling, distributed rollout generation
+
+### The Relationship Between pass@k and RL Effectiveness
+
+| pass@64 Range | RL Effectiveness | Explanation |
+|-|-|-|
+| 0% | Completely ineffective | No positive samples -> no gradient -> Acc stays at 0 forever |
+| 1–10% | Difficult but possible | Sparse signal, requires massive sampling and long training |
+| 10–50% | Ideal range | Clear good/bad contrast, abundant gradient signal |
+| 50–90% | Diminishing returns | Model is already quite good, little room for improvement |
+| >90% | Nearly ineffective | When all are correct, advantage=0, likewise no gradient |
+
+---
+
+## Part 5: Learning Roadmap — How to Get Started with RL for LLMs
+
+### Level 1: Conceptual Understanding (1–2 days)
+
+- Read Sections 2–3 of the DeepSeek-R1 paper (GRPO method description)
+- Understand the basic policy gradient formula
+- Understand the difference between GRPO and PPO (with or without a Critic)
+
+### Level 2: Hands-on Experiments (1–2 weeks)
+
+- Run a simple experiment using the **OpenRLHF** or **veRL** framework
+- Choose a sufficiently strong base model (Qwen3-30B+ or DeepSeek series recommended)
+- Verify the RL pipeline on a simple math task (GSM8K)
+- Observe the curves for entropy, reward, and KL divergence
+
+### Level 3: Deep Understanding (1 month+)
+
+- Read the DAPO paper — understand the mechanisms to combat entropy collapse
+- Read proRL (ByteDance) — understand how industry stabilizes training
+- Experiment with different base models (compare Qwen vs Llama), observe "doesn't work" phenomena firsthand
+- Study Process Reward Model (PRM) vs Outcome Reward Model (ORM)
+
+### Level 4: Frontier Questions (Ongoing)
+
+- Can RL truly expand a model's capability frontier? Or can it only optimize within the existing capability range?
+- How to design better rewards (beyond binary correct/incorrect)?
+- Why is RL for VLMs (Vision-Language Models) particularly hard?
+- Engineering challenges of running RL on large MoE models (router collapse, expert imbalance)
+
+---
+
+## Part 5.5: GRPO Algorithm Derivation — From Policy Gradient to Group-Relative Advantage
+
+### The Standard Form of Policy Gradient
+
+The core objective of reinforcement learning is to maximize expected return:
+
+```
+J(theta) = E[sum of rewards]
+Policy Gradient: nabla J = E[nabla log pi(a|s) * A(s,a)]
+```
+
+Where A(s,a) is the advantage function — measuring how much better this action is compared to the "average."
+
+### PPO's Critic Problem
+
+PPO uses a separate Value Network (Critic) to estimate the advantage:
+
+```
+A(s,a) = R(s,a) - V(s)  (baseline estimated by Critic)
+```
+
+The problem: training the Critic requires a 5th large model (Actor + Reference + Reward + Critic), **doubling memory and compute costs**.
+
+### GRPO's Core Insight
+
+DeepSeek's solution: **drop the Critic, replace the baseline with statistics from the same group of samples**.
+
+For each prompt x, sample k responses (y_1, ..., y_k) and compute their respective rewards (r_1, ..., r_k):
+
+```
+GRPO Advantage:
+  A_i = (r_i - mean(r_1..k)) / std(r_1..k)
+
+Compare with PPO:
+  A_i = r_i - V(s)  (requires an extra network)
+
+GRPO's A_i is entirely determined by the group's statistics, no extra parameters needed.
+```
+
+### Gradient Update Formula
+
+```
+L_GRPO = -E[ min(rho * A, clip(rho, 1-eps, 1+eps) * A) ] + beta * KL(pi || pi_ref)
+
+Where:
+  rho = pi_theta(y|x) / pi_old(y|x)  -- importance sampling ratio
+  A = GRPO advantage (group-normalized)
+  beta * KL = distance penalty from the reference model
+```
+
+### Why the KL Penalty Is Critical
+
+Without the KL term, the model degrades rapidly (reward hacking):
+
+```
+Without KL penalty:
+  Step 100: Model discovers a certain output format that always scores high
+  Step 500: All outputs converge to the same format (entropy collapse)
+  Step 1000: Outputs completely lose diversity, even though reward is high
+
+With KL penalty:
+  pi_theta cannot drift too far from pi_ref
+  = Forces preservation of the base model's language capability and diversity
+```
+
+---
+
+## Part 5.6: How to Design an Effective RL Experiment
+
+### Experiment Checklist
+
+| Step | Content | Consequence of Skipping |
+|-|-|-|
+| 1. Verify pass@k | Test whether the base model's pass@64 > 0 | RL gets zero signal |
+| 2. Reward validation | Confirm the reward function has sufficient discriminability | Reward hacking |
+| 3. Baseline comparison | SFT on positive samples vs RL | Cannot prove RL provides additional value |
+| 4. Entropy monitoring | Plot entropy curves in real time | Don't know when to stop |
+| 5. Multi-seed repetition | At least 3 random seeds | Results not reproducible |
+
+### Minimum Viable Experiment Configuration
+
+```yaml
+model: Qwen3-30B-A3B (or larger)
+dataset: GSM8K (math, verifiable)
+reward: exact_match(predicted_answer, ground_truth)
+sampling:
+  k: 64 (samples per prompt)
+  temperature: 1.0 (ensure diversity)
+  max_tokens: 2048
+training:
+  lr: 1e-6
+  batch_size: 128 prompts (= 128 * 64 = 8192 samples/step)
+  kl_coeff: 0.05
+  clip_eps: 0.2
+  epochs: 3-5
+monitoring:
+  - entropy (should decrease slowly, NOT crash)
+  - mean_reward (should increase)
+  - pass@1 (target metric)
+  - pass@64 (diversity check - should NOT decrease)
+```
+
+### Common Mistakes
+
+1. **k too small**: k=4 almost certainly yields all-0 or all-1 rewards, no gradient
+2. **Temperature too low**: temperature=0.3 makes pass@k approach pass@1, losing exploration
+3. **Learning rate too high**: lr=1e-5 causes immediate entropy collapse
+4. **Forgetting to monitor pass@k**: mean@1 rising but pass@k falling = policy degradation
+
+---
+
+## Part 5.7: Special Challenges of VLM (Vision-Language Model) RL
+
+### Why VLM RL Is Harder
+
+| Dimension | LLM RL | VLM RL |
+|-|-|-|
+| Reward design | Math/code have precise verifiers | Visual QA is highly subjective |
+| Sampling efficiency | Pure text tokens, fast generation | Image + text, forward pass 3-5x slower |
+| Search space | Token sequence | Token sequence + spatial reasoning |
+| Failure mode | Entropy collapse | Hallucination amplification |
+
+### VLM-Specific Failure Mode: Hallucination Amplification
+
+```
+Normal VLM: Occasionally fabricates objects not present in the image (hallucination rate ~15%)
+
+Risk after RL:
+  If the reward only verifies "answer correctness" without verifying "image consistency":
+  The model learns to fabricate more details to improve answer hit rate
+  -> Hallucination rate may rise from 15% to 40%
+  -> "More correct but more fake"
+```
+
+### Currently Viable Directions
+
+1. **Grounding Reward**: Additionally verify during reward whether "the answer is derived from image evidence"
+2. **OCR/Detection Verification**: Use external detectors to verify visual claims
+3. **Rejection Sampling + SFT**: First use RL to sample high-quality examples, then SFT (safer but slower)
+
+---
+
+## Part 6: Key Papers and Resources
+
+### Must-Read Papers
+
+- **DeepSeek-R1** (2025) — Complete description of the GRPO method and large-scale RL training
+- **DAPO** (ByteDance, 2025) — Decoupled Alignment Policy Optimization, solving entropy collapse
+- **DPO** (Rafailov et al., 2023) — The original Direct Preference Optimization paper
+- **InstructGPT** (Ouyang et al., 2022) — The pioneering work on RLHF
+- **Wu et al., 2026** — Analysis of Qwen AIME benchmark contamination
+
+### Frameworks and Tools
+
+- **OpenRLHF** — Open-source RLHF/GRPO training framework
+- **veRL** (Volcano Engine) — ByteDance's RL training framework
+- **TRL** (Hugging Face) — Transformer Reinforcement Learning library
+- **DeepSpeed-Chat** — Microsoft's RLHF training solution
+
+### Recommended Reading Order
+
+1. InstructGPT → Understand why RLHF is needed
+2. DPO → Understand "you can do preference learning without RL"
+3. DeepSeek-R1 → Understand "why RL is needed again"
+4. DAPO → Understand "the pitfalls of RL and how to fix them"
+5. Wu et al. → Understand "why many results are unreliable"
+
+---
+
+## Conclusion and Reflections
+
+<Callout type="info">
+**Key Takeaways**:
+1. **RL is not a silver bullet**: It can only reinforce existing capabilities, not create new ones
+2. **Model scale is a prerequisite**: A 7B model has pass@k=0 on hard tasks, making RL completely ineffective
+3. **The academia vs. industry gap**: Industry uses 200B+ models + large-scale infrastructure; academia uses 7B + single machines — they're not even on the same playing field
+4. **Qwen experimental results require caution**: Benchmark contamination may exist, and conclusions may not generalize
+5. **Entropy collapse is the key metric**: Monitoring entropy changes during training is the core method for determining whether RL is working properly
+</Callout>
+
+**Questions for you to ponder**:
+1. If RL can only reinforce existing capabilities, where does the "emergent reasoning" demonstrated by DeepSeek-R1 come from?
+2. Why does OpenAI insist on using PPO (more expensive) instead of switching to GRPO (cheaper) like the academic community?
+3. If Qwen's AIME scores were "memorized," how would you design a benchmark that's impossible to contaminate?
+4. Does RL have more promise in code generation (with executable verification) than in mathematical reasoning? Why?
+
+---
+
+## Related Articles
+
+- [AI Inference Learning Roadmap 2026 Panorama](/blog/ai-inference-学习-roadmap-2026全景图) — A more macro-level AI inference engineering learning roadmap, covering the relationship between training and inference

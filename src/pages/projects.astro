@@ -1,6 +1,7 @@
 ---
 import PageLayout from '../layouts/PageLayout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
+import LocalizedText from '../components/LocalizedText.astro';
 import { getCollection } from 'astro:content';
 
 const allProjects = await getCollection('projects');
@@ -14,7 +15,7 @@ const projects = allProjects.sort((a, b) => {
 <PageLayout title="Projects" description="Projects and experiments by AsterZephyr.">
   <div class="pt-32 md:pt-40 pb-20">
     <div class="mx-auto max-w-6xl px-6">
-      <h1 class="display-heading mb-4">Projects</h1>
+      <h1 class="display-heading mb-4"><LocalizedText zh="项目" en="Projects" /></h1>
       <div class="w-12 h-0.5 bg-[var(--color-accent-light)] mb-14"></div>
       {projects.length > 0 ? (
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
@@ -23,7 +24,7 @@ const projects = allProjects.sort((a, b) => {
           ))}
         </div>
       ) : (
-        <p class="text-[var(--color-muted)] text-center py-20">Projects coming soon.</p>
+        <p class="text-[var(--color-muted)] text-center py-20"><LocalizedText zh="项目即将上线。" en="Projects coming soon." /></p>
       )}
     </div>
   </div>

@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow5"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr5" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#374151"/></marker>
+    <linearGradient id="lossGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fecaca"/>
+      <stop offset="100%" stop-color="#dcfce7"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="600" fill="#ffffff"/>
+
+  <text x="480" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">梯度下降：从损失曲面到参数更新</text>
+  <text x="480" y="52" text-anchor="middle" font-size="12" fill="#6b7280">所有深度学习训练的核心算法 — 沿梯度反方向迈步以最小化损失</text>
+
+  <!-- Loss landscape visualization -->
+  <rect x="40" y="75" width="420" height="260" rx="8" fill="#f9fafb" stroke="#d1d5db" filter="url(#shadow5)"/>
+  <text x="250" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">损失曲面 (Loss Landscape)</text>
+
+  <!-- Simplified contour plot -->
+  <ellipse cx="220" cy="210" rx="160" ry="100" fill="none" stroke="#fca5a5" stroke-width="1.5"/>
+  <ellipse cx="220" cy="210" rx="120" ry="75" fill="none" stroke="#fdba74" stroke-width="1.5"/>
+  <ellipse cx="220" cy="210" rx="80" ry="50" fill="none" stroke="#fde047" stroke-width="1.5"/>
+  <ellipse cx="220" cy="210" rx="40" ry="25" fill="none" stroke="#86efac" stroke-width="1.5"/>
+  <circle cx="220" cy="210" r="6" fill="#16a34a"/>
+  <text x="220" y="250" text-anchor="middle" font-size="10" fill="#16a34a">全局最小值</text>
+
+  <!-- Gradient descent path -->
+  <circle cx="350" cy="150" r="5" fill="#dc2626"/>
+  <text x="360" y="145" font-size="9" fill="#dc2626">起点 (随机初始化)</text>
+  <line x1="348" y1="153" x2="310" y2="170" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arr5)"/>
+  <circle cx="308" cy="172" r="4" fill="#ea580c"/>
+  <line x1="306" y1="175" x2="275" y2="190" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arr5)"/>
+  <circle cx="273" cy="192" r="4" fill="#d97706"/>
+  <line x1="271" y1="195" x2="245" y2="205" stroke="#d97706" stroke-width="1.5" marker-end="url(#arr5)"/>
+  <circle cx="243" cy="207" r="3" fill="#16a34a"/>
+
+  <text x="80" y="310" font-size="10" fill="#6b7280">等高线 = 相同损失值的参数组合</text>
+  <text x="80" y="326" font-size="10" fill="#6b7280">红→绿 = 损失从高到低</text>
+
+  <!-- Update formula -->
+  <rect x="500" y="75" width="420" height="260" rx="8" fill="#eff6ff" stroke="#2563eb" filter="url(#shadow5)"/>
+  <text x="710" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#2563eb">参数更新规则</text>
+
+  <text x="530" y="140" font-size="14" font-weight="600" fill="#111827">theta_new = theta_old - lr * gradient</text>
+
+  <rect x="530" y="160" width="360" height="50" rx="4" fill="#dbeafe"/>
+  <text x="545" y="180" font-size="11" fill="#374151">theta  = 模型参数 (权重 W 和偏置 b)</text>
+  <text x="545" y="200" font-size="11" fill="#374151">lr     = 学习率 (步长大小, 如 0.001)</text>
+
+  <rect x="530" y="220" width="360" height="50" rx="4" fill="#dcfce7"/>
+  <text x="545" y="240" font-size="11" fill="#374151">gradient = dLoss/dTheta (损失对参数的偏导数)</text>
+  <text x="545" y="260" font-size="11" fill="#374151">方向 = 损失上升最快的方向, 取反 = 下降最快</text>
+
+  <text x="530" y="305" font-size="11" font-weight="600" fill="#7c3aed">核心直觉：闭着眼摸脚下坡度，朝下坡迈一步</text>
+
+  <!-- SGD vs Mini-batch vs Full Batch -->
+  <rect x="40" y="360" width="880" height="220" rx="8" fill="#f9fafb" stroke="#d1d5db"/>
+  <text x="480" y="388" text-anchor="middle" font-size="14" font-weight="700" fill="#111827">三种梯度计算策略对比</text>
+
+  <!-- SGD -->
+  <rect x="70" y="405" width="250" height="155" rx="6" fill="#fef2f2" stroke="#dc2626"/>
+  <text x="195" y="430" text-anchor="middle" font-size="12" font-weight="600" fill="#dc2626">SGD (单样本)</text>
+  <text x="85" y="455" font-size="10" fill="#374151">每次用 1 个样本计算梯度</text>
+  <text x="85" y="475" font-size="10" fill="#374151">更新频率：极高</text>
+  <text x="85" y="495" font-size="10" fill="#16a34a">优点：更新快、跳出局部最小</text>
+  <text x="85" y="515" font-size="10" fill="#dc2626">缺点：方向噪声大、不稳定</text>
+  <text x="85" y="540" font-size="10" fill="#6b7280">GPU 利用率低 (无法并行)</text>
+
+  <!-- Mini-batch -->
+  <rect x="350" y="405" width="250" height="155" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+  <text x="475" y="430" text-anchor="middle" font-size="12" font-weight="600" fill="#16a34a">Mini-Batch (推荐)</text>
+  <text x="365" y="455" font-size="10" fill="#374151">每次用 32-4096 个样本</text>
+  <text x="365" y="475" font-size="10" fill="#374151">典型 batch_size = 256</text>
+  <text x="365" y="495" font-size="10" fill="#16a34a">优点：方向稳定 + GPU 并行</text>
+  <text x="365" y="515" font-size="10" fill="#16a34a">优点：batch 内随机性有正则效果</text>
+  <text x="365" y="540" font-size="10" font-weight="600" fill="#16a34a">工业界标准做法</text>
+
+  <!-- Full Batch -->
+  <rect x="630" y="405" width="250" height="155" rx="6" fill="#eff6ff" stroke="#2563eb"/>
+  <text x="755" y="430" text-anchor="middle" font-size="12" font-weight="600" fill="#2563eb">Full Batch (全量)</text>
+  <text x="645" y="455" font-size="10" fill="#374151">每次用全部训练数据</text>
+  <text x="645" y="475" font-size="10" fill="#374151">一个 epoch 只更新一次</text>
+  <text x="645" y="495" font-size="10" fill="#16a34a">优点：梯度方向最准确</text>
+  <text x="645" y="515" font-size="10" fill="#dc2626">缺点：内存爆炸、收敛慢</text>
+  <text x="645" y="540" font-size="10" fill="#6b7280">K-Means 就是这种 (所以不可扩展)</text>
+</svg>

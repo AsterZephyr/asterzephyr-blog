@@ -1,5 +1,7 @@
 ---
 import { SITE } from '../data/site';
+import LocalizedText from './LocalizedText.astro';
+
 
 const year = new Date().getFullYear();
 ---
@@ -36,7 +38,7 @@ const year = new Date().getFullYear();
       </div>
       <div class="w-8 h-px bg-[var(--color-accent-light)]/40"></div>
       <div class="text-xs text-[var(--color-muted)]">
-        &copy; {year} {SITE.name}. Built with Astro & Obsidian.
+        &copy; {year} {SITE.name}. <LocalizedText zh="使用 Astro 与 Obsidian 构建。" en="Built with Astro & Obsidian." />
       </div>
     </div>
   </div>

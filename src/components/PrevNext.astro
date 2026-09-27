@@ -1,5 +1,7 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import LocalizedText from './LocalizedText.astro';
+import { getTranslations, translationFor } from '../lib/translations';
 
 interface Props {
   prev?: CollectionEntry<'posts'>;
@@ -7,14 +9,17 @@ interface Props {
 }
 
 const { prev, next } = Astro.props;
+const translations = await getTranslations();
+const prevEn = prev && translationFor(prev, translations);
+const nextEn = next && translationFor(next, translations);
 ---
 <nav class="flex justify-between items-start gap-4 mt-16 pt-8 border-t border-[var(--color-border)]">
   <div class="flex-1">
     {prev && (
       <a href={`/blog/${prev.id}/`} class="group block">
-        <span class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Previous</span>
+        <span class="text-xs uppercase tracking-wider text-[var(--color-muted)]"><LocalizedText zh="上一篇" en="Previous" /></span>
         <span class="block font-heading text-sm font-semibold mt-1 group-hover:text-[var(--color-accent)] transition-colors">
-          {prev.data.title}
+          {prevEn ? <LocalizedText zh={prev.data.title} en={prevEn.data.title} /> : <span lang="zh-CN">{prev.data.title}</span>}
         </span>
       </a>
     )}
@@ -22,9 +27,9 @@ const { prev, next } = Astro.props;
   <div class="flex-1 text-right">
     {next && (
       <a href={`/blog/${next.id}/`} class="group block">
-        <span class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Next</span>
+        <span class="text-xs uppercase tracking-wider text-[var(--color-muted)]"><LocalizedText zh="下一篇" en="Next" /></span>
         <span class="block font-heading text-sm font-semibold mt-1 group-hover:text-[var(--color-accent)] transition-colors">
-          {next.data.title}
+          {nextEn ? <LocalizedText zh={next.data.title} en={nextEn.data.title} /> : <span lang="zh-CN">{next.data.title}</span>}
         </span>
       </a>
     )}

@@ -1,0 +1,303 @@
+---
+title: "The Codebook Utilization Illusion: Seven Engineering Trade-offs in RQ-VAE Semantic ID Training"
+date: 2026-06-13
+tags: [广告与推荐]
+category: "技术分享"
+summary: "Shrink the codebook vector dimension and utilization soars to 90%+ — does that mean the model has learned well? From codebook collapse to Scaling Laws, a deep dissection of seven core engineering trade-offs in RQ-VAE Semantic ID training."
+sourceFile: "码本利用率的骗局-rqvae-semantic-id-训练的七个工程权衡.mdx"
+sourceHash: "2e13d9daea267ae465f97ecfdfe3bd71c5da7e96f083add2bb9c31d1400fd820"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+If you make the codebook vector dimension very small, codebook utilization can soar to 90%+. Does that mean the model has learned well?
+
+The answer is: **not necessarily — in fact, it's very likely an illusion.**
+
+Semantic ID (SID) is becoming the core technical approach for replacing traditional Hash IDs in recommendation and advertising systems. Between 2024 and 2026, Kuaishou, ByteDance, and Xiaohongshu have all released new approaches including variable-length SIDs, distribution-level SIDs, and end-to-end joint training. But the most common confusion frontline practitioners encounter is: **metrics contradict each other — high utilization means high collision rate; large dimensions cause utilization to collapse.**
+
+This article dissects the core engineering trade-offs in RQ-VAE SID training across seven dimensions, helping you build a complete decision-making framework.
+
+## Part 1: From VQ-VAE to Full-Feature Tokenization — Where Are We Now
+
+<TechGraph src="/images/posts/rqvae-sid-training-tradeoffs/01-sid-landscape.svg" title="SEMANTIC ID TECHNOLOGY EVOLUTION" caption="From VQ-VAE to full-feature tokenization, each generation solves the core bottleneck of the previous one" />
+
+### Terminology Alignment
+
+| Term | Meaning | Analogy |
+|------|---------|---------|
+| **Codebook** | A set of learnable vectors, each called a "codeword" | A dictionary where each entry is a semantic atom |
+| **Codebook utilization** | The proportion of codewords that have data assigned to them out of the total | The proportion of dictionary entries that have actually been looked up |
+| **Collision rate** | The proportion of different items mapped to the same SID | Two different people assigned the same national ID number |
+| **RQ** | Multi-layer codebooks, each layer encodes the residual of the previous layer | First say the country, then the province, then the city — progressively finer-grained |
+| **FSQ** | Each dimension is independently discretized, no learned codebook | Round temperature to the nearest integer, each axis independent |
+| **OPQ** | Rotate the data space first, then perform product quantization | Rotate the coordinate system to the direction of maximum variance, then partition into grid cells |
+
+### Core Evolution Across Four Generations
+
+| Generation | Method | Problem Solved | New Problem Introduced |
+|------------|--------|---------------|----------------------|
+| 1st | VQ-VAE | Continuous → discrete representation | Codebook collapse, capacity only K |
+| 2nd | RQ-VAE | Exponential capacity K^L | Utilization vs. dimension contradiction |
+| 3rd | FSQ / RQOPQ | Eliminate collapse / Batch training | FSQ has a low ceiling / OPQ is engineering-complex |
+| 4th | End-to-end SID | Collaborative signals incorporated | Drift, collapse, limited in ads scenarios |
+
+Each generation solves the core bottleneck of the previous one while introducing new engineering constraints. There is no silver bullet.
+
+---
+
+## Part 2: Codebook Dimension vs. Utilization — The Core Paradox
+
+<TechGraph src="/images/posts/rqvae-sid-training-tradeoffs/02-codebook-tradeoff.svg" title="The Trade-off Between Codebook Dimension and Utilization" caption="Smaller dimensions yield higher utilization, but each codeword has weaker expressiveness — high utilization may be an illusion" />
+
+### Why Does a Small Dimension Lead to High Utilization?
+
+It's counterintuitive at first glance, but there are three progressively deeper mechanisms behind it.
+
+<Callout type="info" title="Mechanism 1: Distance Degeneracy in High-Dimensional Space">
+In d-dimensional space, as d increases, the Euclidean distance between any two points converges toward the constant &radic;d. The distance differences between all codewords and the input shrink, diluting the "nearest neighbor" advantage — a few codewords monopolize assignments while most starve.
+
+Analogy: In an enormous parking lot, all spaces are nearly the same distance from the entrance. A driver remembers the first spot they parked in and keeps parking there forever.
+</Callout>
+
+<Callout type="info" title="Mechanism 2: Gradient Signal Dilution">
+When updating the codebook via EMA, the gradient signal each component receives is proportional to 1/d. The higher the dimension, the more data assignments a codeword needs to move effectively — codewords that randomly dominate early on become increasingly dominant.
+</Callout>
+
+<Callout type="info" title="Mechanism 3: The Passive Effect of the Information Bottleneck">
+When the dimension is extremely small, a single codeword cannot carry enough information, so the system is forced to recruit more codewords to collectively represent the data — utilization is forced upward. **This is the real reason "utilization is high," but it does not mean "used well."**
+</Callout>
+
+### How to Tell If Utilization Is Artificially Inflated
+
+| Metric | Healthy Range | Typical Value When Dimension Is Too Small |
+|--------|--------------|------------------------------------------|
+| Codebook utilization | &gt; 70% | 95%+ (artificially inflated) |
+| Collision rate | &lt; 5% | 30%+ (catastrophic) |
+| Singleton cluster ratio | &lt; 10% | Low (all codewords are being used) |
+| Reconstruction error (MSE) | Continuously decreasing | Significantly increasing |
+
+<Callout type="warning" title="Utilization > 95% Is Also a Warning Signal">
+It means the dimension is probably too small and the collision rate is almost certainly over the threshold. You must simultaneously monitor utilization + collision rate + reconstruction error.
+</Callout>
+
+### How to Find the Sweet Spot
+
+1. **Fix the total information budget**: Decide how many bits you need (e.g., 4 layers &times; 1024 codebook = 40 bits)
+2. **Sweep dimension and watch collision rate**: Start from d=32 and gradually decrease, monitoring the collision rate inflection point
+3. **The point just before collision rate spikes** is your sweet spot
+4. **Re-sweep after adding Sinkhorn** — the balancing strategy will change the optimal dimension
+
+---
+
+## Part 3: Training Strategy Toolbox
+
+<TechGraph src="/images/posts/rqvae-sid-training-tradeoffs/03-training-strategies.svg" title="Training Strategy Decision Tree" caption="Choose the Tokenizer training approach based on scenario constraints: offline first, end-to-end with caution" />
+
+### Three-Strategy Comparison
+
+| Dimension | Sinkhorn | RQOPQ | FSQ |
+|-----------|----------|-------|-----|
+| Resolves collapse | Mitigates | Significantly mitigates | Fundamentally eliminates |
+| Utilization | 80%+ | 85%+ | 100% |
+| Expressiveness ceiling | High | High | Medium-low |
+| Training complexity | Low (a few extra lines of code) | Medium (need to understand OPQ) | Low |
+| Batch training | Supported | Supported | Supported |
+| Online-offline consistency | Good | Good | Best (no codebook lookup) |
+
+### Sinkhorn Balancing (Codebook Rebalance)
+
+During the codeword assignment phase of each batch, instead of simple nearest-neighbor assignment, Sinkhorn iterations solve an optimal transport problem to force roughly uniform assignment across all codewords.
+
+Reference paper: [OptVQ (Tsinghua, 2024)](https://arxiv.org/abs/2412.15195) formalizes this approach, proving that traditional VQ's nearest-neighbor search is equivalent to online K-Means and naturally falls into local optima (once a feature lands in a Voronoi cell, it gets locked in by commitment loss). OptVQ replaces greedy search with optimal transport, achieving 100% codebook utilization and SOTA reconstruction quality in experiments.
+
+```python
+# Sinkhorn codebook balancing pseudocode
+def sinkhorn_assign(distances, n_iters=3):
+    # distances: [batch_size, codebook_size]
+    Q = exp(-distances / temperature)
+    for _ in range(n_iters):
+        Q = Q / Q.sum(dim=0, keepdim=True)  # Column normalization: each codeword is uniform
+        Q = Q / Q.sum(dim=1, keepdim=True)  # Row normalization: each sample is normalized
+    return Q.argmax(dim=1)
+```
+
+Effect: utilization rises from 30% to 80%+, but may sacrifice reconstruction quality (forced assignment is not necessarily semantically optimal). Suitable as an emergency fix when codebook collapse is severe.
+
+### RQOPQ (Kuaishou One Search)
+
+Traditional RQ quantizes directly in the original space, where data distribution may be uneven. OPQ first learns a rotation matrix R to project the data into a coordinate system where variance is uniform across subspaces, then performs product quantization.
+
+The key advantage is that **it can be batch-trained** — gradients can backpropagate through the rotation matrix, making the entire pipeline end-to-end differentiable. No need for full-dataset K-means initialization as in traditional approaches.
+
+### FSQ (Finite Scalar Quantization)
+
+Completely abandons learnable codebooks; each dimension is independently rounded to a finite set of integers. Total codebook size = product of levels per dimension.
+
+```python
+# FSQ: independent quantization per dimension
+levels = [8, 6, 5, 5, 5]  # Total capacity = 8*6*5*5*5 = 6000
+z_q = [round_to_nearest(z_i, L_i) for z_i, L_i in zip(z, levels)]
+```
+
+Codebook collapse cannot happen (there is no codebook), and utilization is naturally 100%. But expressiveness is limited by the dimensional combinations. Practitioner feedback: "We spent half a year hacking on FSQ and felt the ceiling was just too low."
+
+---
+
+## Part 4: End-to-End Training vs. Freeze — The Stability War
+
+### Two Deployment Paradigms
+
+| Dimension | Freeze Mode | End-to-End Mode |
+|-----------|------------|-----------------|
+| Pipeline | Train Tokenizer offline &rarr; freeze for inference | Tokenizer and downstream model jointly updated by gradients |
+| Signal | Multimodal semantics only | Semantics + collaborative (CTR/CVR) |
+| Stability | Excellent (SID never changes) | Drift risk |
+| Timeliness | Poor (periodic retraining) | Good (real-time adaptation) |
+| Engineering difficulty | Low | High |
+
+### Why Drift Is Terrifying
+
+Imagine this scenario:
+
+1. Day 1, Item A's SID = \[3, 7, 2\]
+2. The CTR model learns that \[3, 7, 2\] is associated with "high-CTR athletic shoes"
+3. Day 2, after an end-to-end update, Item A's SID drifts to \[3, 7, 5\]
+4. The CTR model's knowledge of \[3, 7, 2\] is invalidated; \[3, 7, 5\] is a new ID — cold start
+
+**Even worse is the cascading effect**: Tokenizer drift &rarr; unstable CTR model training target &rarr; CTR performance jitter &rarr; bidding system anomalies.
+
+<Callout type="warning" title="The Consensus in Ads Scenarios">
+End-to-end has theoretical benefits, but CVR/bidding systems are extremely sensitive to ID stability. In practice, one team shipped an end-to-end CVR model but "ultimately didn't dare to roll it out fully."
+</Callout>
+
+### ByteDance UniSID's Choice
+
+ByteDance's [UniSID (2026)](https://arxiv.org/abs/2602.10445) proposes an end-to-end SID generation framework:
+
+- Jointly optimizes embeddings and SIDs (no more two-stage cascaded compression)
+- Multi-granularity contrastive learning aligns semantics of different items across SID hierarchy levels
+- Summary-based ad reconstruction mechanism encourages SIDs to capture high-level semantics
+- Experimental results: Hit Rate improves by 4.62% over SOTA baselines
+
+But with prerequisites: large-scale data volume dilutes per-item drift impact; recommendation scenarios have lower stability requirements than ads scenarios.
+
+### The Compromise: Layered Freeze
+
+The most robust current engineering practice:
+
+```
+Multimodal Large Model (completely frozen, inference only)
+       ↓ embedding
+Tokenizer (optionally fine-tuned / periodically retrained)
+       ↓ SID
+CTR/CVR Model (trained normally)
+```
+
+The Tokenizer doesn't need online learning — unless you've injected collaborative signals into it.
+
+---
+
+## Part 5: Five Failure Modes and Diagnostics
+
+<TechGraph src="/images/posts/rqvae-sid-training-tradeoffs/04-failure-modes.svg" title="Five Failure Modes and Diagnostics" caption="Each failure mode has distinct symptoms, root causes, and remediation strategies" />
+
+### Diagnostic Priority Order
+
+When training goes wrong, investigate in this order:
+
+| Priority | Check Item | Healthy Standard | Problem Signal |
+|----------|-----------|-----------------|----------------|
+| P0 | Reconstruction error | Continuously decreasing | Not decreasing / increasing |
+| P1 | Codebook utilization | &gt; 70% | &lt; 30% or &gt; 95% |
+| P2 | Collision rate | &lt; 5% | &gt; 15% |
+| P3 | Per-layer residual decrease | Layer L &lt; Layer L-1 | Some layer's residual rebounds |
+| P4 | Online-offline diff rate | &lt; 0.1% | &gt; 1% |
+
+### The Importance of Deduplication
+
+An easily overlooked trick: deduplicate on the same multimodal embedding during training — each unique creative passes through RQ only once.
+
+Effect: utilization improves noticeably (avoids head creatives repeatedly reinforcing a few codewords), training efficiency improves, and codeword distribution becomes more uniform.
+
+---
+
+## Part 6: Differentiated Strategies for Head vs. Tail
+
+### The Core Contradiction
+
+| Scenario | ID Embedding State | Collaborative Signal | Need SID? |
+|----------|-------------------|---------------------|-----------|
+| Head items | Well-trained | Rich | No (may even hurt) |
+| Tail items | Under-trained / cold start | Scarce | Strongly yes |
+
+### Approach Comparison
+
+**Approach 1: Gate Weighting** — ID embedding and SID embedding are blended via a gate network. In practice, feedback is that the effect is limited; the gate struggles to learn meaningful routing.
+
+**Approach 2: IDProxy (Xiaohongshu)** — Head items directly use the Item ID embedding, completely bypassing SID. Only tail/new items go through SID. Hard routing, simple and effective.
+
+**Approach 3: In-Graph Dedup + Long-Tail Augmentation** — Deduplicate head items in the training graph (reduce their codeword assignment weight) and oversample or use contrastive learning to augment the long tail.
+
+<Callout type="tip" title="Practical Advice">
+Start with IDProxy hard routing to establish a baseline, then try soft gating to see if there's incremental gain.
+</Callout>
+
+---
+
+## Part 7: A Sober Reflection on Scaling Laws
+
+> The Scaling Laws in recommendation systems right now are all a sham. Look at how LLM Scaling Laws came about — recommendation systems are a completely different story.
+
+### Why Hash IDs Have No Scaling Law
+
+The prerequisites for LLM Scaling Laws to hold:
+
+1. **Finite vocabulary** (32K–128K tokens)
+2. **More parameters &rarr; richer representation of the same token**
+3. **Generalization based on semantic compositionality**
+
+Hash IDs in recommendation systems:
+
+1. Vocabulary grows with items (potentially hundreds of millions)
+2. Each ID is an independent parameter, sharing no information
+3. New item = new random vector, no generalization
+
+**The real significance of SID** is not that "IDs look nicer" — it's an attempt to give recommendation systems an NLP-like finite vocabulary, mapping the infinite item space into a combinatorial space of finite semantic codewords.
+
+### But for Ads Systems
+
+Ads systems have a large number of business features manually set by advertisers (bids, budgets, targeting criteria) that cannot possibly be "semanticized." Full-feature tokenization is unrealistic in ads scenarios.
+
+**The realistic path**: a hybrid approach — content features go through SID, business features retain independent embeddings. Discrete IDs still need to be used unapologetically.
+
+---
+
+## Questions for Your Reflection
+
+<Callout type="note" title="Open Questions">
+1. **The Pareto frontier of utilization vs. collision rate** — Does a closed-form solution exist for dimension / codebook size that minimizes collision rate given a fixed total bits budget?
+
+2. **Is FSQ's ceiling really that low?** — 32 levels per dimension, 8 dimensions = 32^8 &asymp; 10^12. Is the bottleneck capacity or the learning algorithm?
+
+3. **Drift control** — If we add an anchor loss to SIDs (penalizing changes relative to the previous version), can we absorb collaborative signals while maintaining stability?
+
+4. **Barriers to full tokenization** — Expressing bids / budgets / targeting conditions via binning + unified codebook — are the barriers technical or organizational?
+
+5. **The ultimate question** — If a recommendation system achieves a finite vocabulary + Scaling Law, what is its fundamental difference from an LLM whose token granularity is "item semantic atoms"?
+</Callout>
+
+---
+
+## References
+
+| Paper | Year | Core Contribution |
+|-------|------|-------------------|
+| [OptVQ: Preventing Local Pitfalls via Optimal Transport](https://arxiv.org/abs/2412.15195) | 2024 | Sinkhorn replaces nearest neighbor, 100% utilization |
+| [VQGAN-LC: Scaling Codebook to 100K](https://papers.neurips.cc/paper_files/paper/2024/file/1716d022edeac750e57a2986a7135e13-Paper-Conference.pdf) | NeurIPS 2024 | Codebook scale expanded to 100K level, 99% utilization |
+| [OneSearch (Kuaishou)](https://arxiv.org/abs/2509.03236) | 2025 | KHQE: Keyword-enhanced Hierarchical Quantization Encoding |
+| [QARM (Kuaishou)](https://arxiv.org/abs/2311.06710) | 2023 | Multimodal alignment + R-KMeans codebook construction |
+| [UniSID (ByteDance)](https://arxiv.org/abs/2602.10445) | 2026 | End-to-end SID generation, Hit Rate +4.62% |
+| [Variable-Length Semantic IDs](https://arxiv.org/abs/2602.16375) | 2026 | Variable-length SIDs: Gumbel-Softmax dVAE |
+| [Practitioner's Handbook](https://dl.acm.org/doi/10.1145/3746252.3761612) | ACM 2025 | Industrial-grade SID practical guide |

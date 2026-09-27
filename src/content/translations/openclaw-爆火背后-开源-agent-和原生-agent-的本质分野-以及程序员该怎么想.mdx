@@ -1,0 +1,175 @@
+---
+title: "Behind the OpenClaw Hype: The Essential Divergence Between Open-Source Agents and Native Agents, and How Programmers Should Think About It"
+date: 2026-03-23
+tags: [Agent 与编程]
+sourceFile: "openclaw-爆火背后-开源-agent-和原生-agent-的本质分野-以及程序员该怎么想.mdx"
+sourceHash: "b5c190bd53e21f6c5f8791142b445c60c00b831a56f598604a0be43a7b56647a"
+---
+
+import Figure from '../../components/blog/Figure.astro'
+
+
+In early 2026, an open-source project called [OpenClaw](https://github.com/openclaw/openclaw) (known as ClawBot/Clawdbot in the early community) became one of the fastest-growing AI projects on GitHub. The main repo hit 330k stars, 64k forks, and over 20,000 commits, with OpenAI and Vercel as official sponsors. It exploded even more in the Chinese-speaking community: Tsinghua University Press is publishing a physical book called *OpenClaw Super-Individual Hands-On Manual*, the accompanying tutorial runs to 400,000 Chinese characters, and deployment guides are plastered all over Bilibili and CSDN. In terms of sheer buzz, this is something the open-source world hasn't seen since Stable Diffusion in 2024.
+
+But amid the discussion around OpenClaw, I've noticed a question that keeps coming up yet is rarely analyzed seriously: how exactly does it differ from "native" coding agents like Cursor, GitHub Copilot, and Claude Code? Not at the feature-list level—but in the sense that they are answering a fundamentally different question.
+
+This article attempts to spell that out clearly.
+
+## What OpenClaw Is: Not Another Cursor
+
+First, a key clarification. Many people hear about OpenClaw for the first time and assume it's yet another AI coding tool. It's not.
+
+OpenClaw positions itself as a **general-purpose AI Agent runtime**. Its core architecture consists of a local Gateway process (WebSocket control plane) that connects to various LLM backends (Anthropic, OpenAI, Google, Chinese domestic models—whatever you want), and then plugs into 22+ messaging platforms through a Channel mechanism (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Feishu, WeCom, DingTalk, Microsoft Teams, Matrix, LINE, etc.). It also provides a Web UI, a TUI terminal interface, and native clients for macOS/iOS/Android. The official distribution even includes Voice Wake keywords, Talk Mode voice conversations, and a Live Canvas visualization workspace. Think of it as an operating-system layer for AI Agents.
+
+<Figure src="/images/posts/openclaw-爆火背后-开源-agent-和原生-agent-的本质分野-以及程序员该怎么想/image.png" alt="image.png" />
+
+Its Skill system (already 1,800+ skills on ClawHub) lets an Agent do far more than write code: file management, calendar management, knowledge-base construction, automated workflows, drawing, web monitoring, even quantitative trading. Some people wire it into Feishu as an internal enterprise assistant; others run it on an old Android phone as a 24/7 personal Agent.
+
+Cursor, GitHub Copilot Coding Agent, and Claude Code, on the other hand, are positioned as **professional coding Agents**. The problem they solve is: how to make AI efficiently read code, write code, run tests, and open PRs inside a code repository.
+
+The two answer different questions: OpenClaw answers "how to weave an AI Agent into your entire digital life," while the latter answer "how to make AI a competent Software Engineer."
+
+## The Technical Divergence of Two Paths
+
+Once you understand the positioning difference, the technical divergence becomes clear. Let's start with a panoramic view of the full topology of both ecosystems, then break it down dimension by dimension.
+
+<Figure src="/images/posts/openclaw-爆火背后-开源-agent-和原生-agent-的本质分野-以及程序员该怎么想/image 1.png" alt="image.png" />
+
+On the left is the OpenClaw ecosystem: users are knowledge workers and operations staff, connecting through 12+ IM channels; the core is Gateway + Skills + multi-Agent scheduling; the underlying layer can freely choose domestic or overseas models. On the right is the native coding agent ecosystem: users are professional developers, connecting through IDE/Terminal/Cloud; the core is code indexing + multi-file editing + sandbox runtime; the model layer tends toward deeply optimized, purpose-built models.
+
+From user profiles and access methods to core engines and model strategies, the two ecosystems make different choices at virtually every layer. Let's unpack them dimension by dimension.
+
+### Runtime Environment: Local-First vs Cloud-Isolated
+
+OpenClaw is a local-first design. The Gateway runs on your own machine, data lives in the `~/.clawdbot/` directory, and the process is managed via `launchctl` (macOS) or systemd. It trusts the local environment—the Agent can directly manipulate your filesystem, execute shell commands, and access the local network. This gives it enormous flexibility, but it also means the security boundary is the user's own responsibility.
+
+Cursor and Claude Code take a different path. Cursor's Agent runs inside an IDE sandbox with terminal commands sandboxed by default; Claude Code asks for user confirmation before executing dangerous operations; GitHub Copilot's Coding Agent (Project Padawan) goes further, cloning the repo, spinning up the environment, and executing code entirely in a cloud sandbox without ever touching your local machine.
+
+<Figure src="/images/posts/openclaw-爆火背后-开源-agent-和原生-agent-的本质分野-以及程序员该怎么想/image 2.png" alt="image.png" />
+
+This isn't about who's right and who's wrong—it's dictated by the scenario. If you want an Agent to manage your files, send messages, and control local applications, local-first is the only option. If you want an Agent to autonomously work safely inside a large codebase, a sandbox is a must.
+
+### Model Strategy: Neutral Relay vs Deep Binding
+
+A major selling point of OpenClaw is model-agnosticism. Its `models.providers` configuration lets you connect to Anthropic, OpenAI, Google, DeepSeek, Kimi, and any number of other model backends simultaneously—even supporting relay stations to use various models at extremely low cost. There are tons of community tutorials on configuring API relays and using domestic models to save money. This is a real need for Chinese developers: direct connections to the Anthropic API are unstable and expensive, while DeepSeek costs only 5–30 RMB per month for daily use.
+
+By contrast, native coding agents vary in their degree of binding. Cursor is the most open, supporting Claude, GPT, Gemini, and other models—it has even trained its own Composer model (Composer 2 scored 61.7 on Terminal-Bench 2.0). Claude Code naturally binds to Anthropic's models, though it has started supporting third-party providers. GitHub Copilot was historically tied to OpenAI but has now added Claude and Gemini.
+
+But there's an essential distinction here: coding agents demand far more from their models than general-purpose Agents do. Writing code requires the model to understand the full codebase context, generate syntactically correct diffs, and handle complex multi-file edits. That's why Cursor invests resources in training its own Composer model rather than acting as a pure model router. In OpenClaw's scenarios—sending a Feishu message with DeepSeek, managing a calendar—the capability requirements are much lower, so "cheap and good enough" outranks "maximally intelligent."
+
+| Dimension | OpenClaw | Cursor/Claude Code/Copilot |
+| --- | --- | --- |
+| Core Scenario | General-purpose AI assistant | Professional coding Agent |
+| Runtime Environment | Local Gateway | IDE Sandbox / Cloud |
+| Model Strategy | Neutral, multi-model | Deep optimization of few models |
+| Extension Method | Skill marketplace (1,800+) | Plugin/MCP/Custom Commands |
+| Collaboration Model | Multi-Agent coordination | Human-in-the-loop programming |
+| Primary Users | Knowledge workers / super-individuals | Professional developers |
+| Deployment Cost | 5–50 RMB/month (domestic models) | $20–200/month (subscription) |
+
+### Multi-Agent Architecture: Where OpenClaw Truly Leads
+
+If OpenClaw can't match Cursor and Claude Code in coding capability, it is genuinely ahead in multi-Agent coordination.
+
+Clawe (a 684-star multi-Agent coordination system within the OpenClaw ecosystem) demonstrates a fascinating paradigm: you can deploy a "team" of 4 Agents, each with an independent identity, workspace, and scheduled heartbeat. Clawe the captain wakes up every 15 minutes to check the task board and assigns work to Inky (content editor), Pixel (designer), and Scout (SEO specialist). The Agents collaborate via shared files and a Convex backend.
+
+<Figure src="/images/posts/openclaw-爆火背后-开源-agent-和原生-agent-的本质分野-以及程序员该怎么想/image 3.png" alt="image.png" />
+
+What does this look like? An AI version of Trello + Slack + Cron Job. Each Agent doesn't passively wait for instructions—it "shows up for work" on schedule and checks whether there's anything in its queue. This pattern is especially valuable for non-technical scenarios: content production, customer service, operations.
+
+Native coding agents are also building multi-Agent capabilities, but in a different direction. Cursor's Subagents are a parallel exploration mode for navigating a codebase, where each subagent can use a different model for a different subtask (e.g., Opus writes core logic, Composer 2 scaffolds, GPT 5.2 runs tests). Claude Code supports spawning multiple agents to work on different parts and then merging results. These are all instances of **parallel decomposition of a single goal**, not the **multi-role long-term collaboration** seen in OpenClaw.
+
+## Why OpenClaw Exploded in the Chinese Market
+
+OpenClaw's popularity is no accident—there are several structural reasons behind it.
+
+**First, it solves the "last mile" problem for domestic models.** Starting in the second half of 2025, domestic models like DeepSeek, Kimi, and Tongyi Qianwen have been approaching GPT-4 levels in general conversational scenarios. But an API alone is not a product. OpenClaw gives these models a ready-to-use runtime framework: install OpenClaw, configure a domestic model API, and you instantly have an AI assistant that runs inside Feishu/WeCom/DingTalk. The gap between model and application is filled by OpenClaw.
+
+**Second, the fragmentation of China's enterprise IM ecosystem.** Domestic enterprise messaging has at least three titans—Feishu, WeCom, and DingTalk—plus a large developer and cryptocurrency community using Telegram and Discord. OpenClaw's Channel architecture is a natural fit for this fragmentation: one Agent configuration, 22+ platforms covered (from WhatsApp to iMessage to Matrix to Nostr, hitting nearly every major IM). This isn't a pressing need in overseas markets (which basically run on Slack + Teams), but in the Chinese market it's a genuine pain point.
+
+**Third, the "super-individual" narrative strikes a chord with the zeitgeist.** The core concept the OpenClaw community hammers home is "one person + OpenClaw = limitless possibilities." The 400,000-character tutorial devotes large sections to showing how one person can use OpenClaw to do the work of a whole team: automated content production, calendar management, file management, multi-platform operations. This isn't a technical selling point—it's an emotional one. In early 2026, amid big-company layoffs and a cooling startup market, the narrative "one person replaces an entire team" has powerful viral appeal.
+
+**Fourth, the deployment barrier has been driven to rock bottom.** The Feishu Miaoda recipe deploys for free in 1 minute; the BT Panel approach takes 3 minutes; the enterprise solution offers a 14-day free trial. By comparison, Cursor starts at $20/month, Claude Code requires a Claude subscription or API credits, and GitHub Copilot is also paid. The OpenClaw + domestic model combo can keep monthly costs to 5–50 RMB.
+
+## The Impact on Programmers: Not Replacement, but Stratification
+
+Now we arrive at the question many people care about most: what impact will these Agent tools have on programmers?
+
+My judgment is that the impact is real, but it isn't simple "replacement"—it is **accelerating capability stratification** within the developer population.
+
+### Programming Work Is Being Redefined
+
+Let's look at the coding-agent side first. Data cited by Cursor's official team: 70% of engineers at Brex are already using Cursor, and Sentry's VP of Engineering says "watching dozens of agent branches merge every day has become the norm." Claude Code can work across terminals, IDEs, desktops, the web, and phones, supporting automated PR reviews and issue triage. GitHub Copilot's Project Padawan can assign an issue directly to an AI, letting it autonomously produce a tested PR.
+
+What does this mean? It means a large volume of "implementation-type" programming work—translating clear requirements into code, writing tests, fixing bugs, doing migrations—is being taken over by Agents. Not in the future tense; in the present continuous.
+
+But at the same time, all these tools emphasize human-in-the-loop. Cursor lets you approve every step in Plan mode; Claude Code asks for confirmation before dangerous operations; Copilot automatically assigns human reviewers to PRs. The Agent executes; the human decides and reviews.
+
+### OpenClaw's Impact Is More Subtle
+
+The disruption OpenClaw brings is not a replacement of programmers' coding ability, but an erosion of the role of "programmer as tool-builder."
+
+In the past, if an operations person wanted an automated workflow (say, monitoring competitor websites daily, scraping information, generating reports, and posting them to a Feishu group), she would need a programmer to write scripts or build a system. Now she can assemble it herself with OpenClaw + Skills. A large share of OpenClaw's tutorial cases target **non-technical users**: content creators, operations staff, knowledge workers, solo entrepreneurs.
+
+This means a class of demands is shifting from "requires a programmer to develop" to "users self-assemble." Not all demands, but the "glue work" involving IM integrations, file management, calendar automation, and simple data processing is indeed being democratized by Agent tools.
+
+### What Capability Stratification Actually Means
+
+Synthesizing the impact from both sides, I see a three-layer structure taking shape:
+
+<Figure src="/images/posts/openclaw-爆火背后-开源-agent-和原生-agent-的本质分野-以及程序员该怎么想/image 4.png" alt="image.png" />
+
+Layer 1 work is shrinking rapidly. A programmer with 3 years of experience using Cursor's Agent mode to write standard CRUD is about as fast—or even faster—than a 1-year-experience programmer writing it by hand. This means the traditional growth path for junior developers (accumulating experience through writing tons of CRUD) is being compressed.
+
+Layer 2, on the other hand, is expanding. Because Agents can handle more implementation details, humans can push forward more projects per unit of time. But this requires the ability to review Agent output, judge architectural soundness, and make tradeoff decisions. Developing these abilities isn't just a matter of writing more code—it demands systems thinking and domain experience.
+
+Layer 3 is currently unaffected in any substantive way, but over the long term it too will be augmented by Agents.
+
+## Market Impact: Several Changes Already Underway
+
+### The IDE War Has Shifted from Feature Competition to Ecosystem Competition
+
+In 2024, the competitive focus among IDEs was "whose completions are more accurate." By 2026, it became "whose Agent ecosystem is richer." Cursor has three extension mechanisms—Plugin Marketplace + Skills + MCP—plus its proprietary Composer model. Claude Code supports CLAUDE.md instruction files, custom commands, hooks, and MCP. GitHub Copilot has Extensions and GitHub Actions integration.
+
+This is no longer a competition between tools; it's a competition between platforms. Every player is trying to become the "operating system" for AI-native development. OpenClaw doesn't pose a direct threat in the coding domain, but it has opened an independent front on the general-purpose Agent platform track, using an open-source + community + low-cost strategy to attract a massive base of non-professional developer users.
+
+### "AI Agent Middlemen" Are Becoming a Business Model
+
+One interesting phenomenon in the OpenClaw ecosystem is the boom in API relay stations. Because OpenClaw supports custom `baseUrl` by design, a whole crop of relay service providers has sprung up, offering proxied access to Anthropic/OpenAI APIs at prices typically far below official rates. Some relay stations even require specific User-Agent headers to distinguish between official Claude Code clients and third-party calls.
+
+This ecosystem illustrates one thing: as long as the Agent runtime is sufficiently open, the infrastructure market around it will form spontaneously. Model provider → relay provider → Agent runtime → Skill developer → end user—a complete value chain is taking shape.
+
+### Enterprise Procurement Logic Is Changing
+
+Previously, the logic for enterprises buying development tools was: pick a good IDE or CI/CD platform and give it to the dev team. Now the logic has become: pick an Agent platform, let it take over as much repetitive work as possible, and keep the creative work for humans.
+
+Cursor's enterprise edition emphasizes Team Rules, Codebase Indexing, and Security (SOC 2 certification), positioning itself to "make the entire development team more productive." OpenClaw's enterprise-grade solutions (such as JVSClaw) take a different path: "let non-technical teams use AI Agents too," with integration into enterprise IM platforms as the core selling point.
+
+One targets engineers; the other targets the entire organization. Two markets, two procurement logics, and so far no direct collision. But in the long run, as coding agents continue to grow in capability and OpenClaw's Skill ecosystem continues to expand, the two will converge at the level of "enterprise AI infrastructure."
+
+## How Programmers Should Think About This
+
+After all this analysis, let's return to a practical question: as a programmer, facing the dual shock of OpenClaw and native coding agents, how should you adjust your positioning?
+
+Here are my thoughts—not necessarily correct, but at least grounded in my own work experience:
+
+**First, embrace Agents as tools, but don't downgrade yourself into an Agent reviewer.** If your daily work becomes "write prompts for the Agent, then review its output," you're effectively doing a QA role. The real value lies in your ability to propose architectural solutions that Agents can't come up with and make system-level judgments they can't make.
+
+**Second, pay attention to the "demand evaporation" caused by OpenClaw-type tools.** Automation scripts, IM bots, and data scraping tools that previously required a programmer to write can now, in many cases, be assembled through Agent + Skills. This isn't a bad thing, but it means you need to move toward higher-value work: doing what Agents can't do well.
+
+**Third, learn Agent engineering itself.** Skill development for Agents, MCP server setup, multi-Agent coordination, Agent security auditing—these are new engineering domains. The most active contributors in the OpenClaw community aren't "using" Agents; they're "building" Agents. The same goes for Plugin developers in the Cursor ecosystem and custom skill authors for Claude Code. People who build Agent toolchains are harder to replace than people who use Agents.
+
+**Fourth, don't over-anxietize.** In March 2026, Agent tools are still iterating rapidly (OpenClaw's latest version is 2026.3.12, Cursor just released Composer 2 last week, and Claude Code updates almost weekly). This means the current capability boundaries don't represent the endgame. But it also means that tricks you learn today might be obsolete in three months. More useful than anxiety is maintaining contact with these tools and hands-on practice, building your own judgment.
+
+---
+
+**References:**
+
+- [OpenClaw Main Repository](https://github.com/openclaw/openclaw) - 330k stars, MIT License
+- [OpenClaw Official Documentation](https://docs.openclaw.ai/)
+- [Awesome OpenClaw Tutorial](https://awesome.tryopenclaw.asia/) - 400,000-word Chinese tutorial
+- [Clawe: Multi-agent coordination system](https://github.com/getclawe/clawe)
+- [OpenClaw Cloud: Cloud-native Agent Deployment](https://github.com/openperf/openclaw-cloud)
+- [Cursor Composer 2 Release](https://www.cursor.com/blog/composer-2)
+- [Claude Code Official Documentation](https://docs.anthropic.com/en/docs/claude-code)
+- [GitHub Copilot: The agent awakens](https://github.blog/news-insights/product-news/github-copilot-the-agent-awakens/)

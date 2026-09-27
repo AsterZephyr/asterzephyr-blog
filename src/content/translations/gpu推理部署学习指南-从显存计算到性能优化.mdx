@@ -1,0 +1,448 @@
+---
+title: "GPU Inference Deployment Study Guide: From VRAM Calculation to Performance Optimization"
+date: 2026-06-07
+tags: [系统与工程]
+summary: "Given a GPU with 16 GB of VRAM, how large a model can you deploy? From VRAM calculation, storage hierarchy, and the Roofline Model to quantization strategies — build a complete cognitive framework for GPU inference deployment organized by Bloom's taxonomy."
+draft: false
+sourceFile: "gpu推理部署学习指南-从显存计算到性能优化.mdx"
+sourceHash: "a54a938bdea4727373357d01cfaa4ddaa1d5533f62248a2cfea0b71026a7e504"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+import Callout from '../../components/blog/Callout.astro'
+
+<Callout type="info">
+**Document positioning**: This is a study guide organized by progressive knowledge levels. It starts from the most fundamental question — "how much VRAM does a model need?" — and works its way up to performance bottleneck analysis and optimization strategies.
+
+**Core question**: Suppose you have a GPU with 16 GB of VRAM. How large a model can you deploy? What will the inference speed be? How can you optimize it?
+</Callout>
+
+---
+
+## Level 1: Calculating Model VRAM Usage (Remember + Understand)
+
+<Callout type="info">
+**Level objective**: Be able to quickly estimate the VRAM requirement of any model at any precision, and judge whether it fits in a given GPU.
+</Callout>
+
+### Core Formula
+
+VRAM usage during model inference consists of three parts:
+
+```
+VRAM Usage = Parameters (B) × Bytes per Parameter + KV Cache + Activations
+```
+
+Where:
+
+- **Parameters**: The "size" of the model — e.g., 7B = 7 billion parameters
+- **Bytes per parameter**: Depends on precision (FP32=4, FP16=2, INT8=1, INT4=0.5)
+- **KV Cache**: Cached attention states during inference — typically reserve ~2 GB
+- **Activations**: Intermediate results during forward pass — usually much smaller than the first two
+
+### VRAM Requirements at Different Precisions
+
+| Precision | Bytes per Param | 7B Model Usage | Fits in 16 GB | Typical Use |
+|-|-|-|-|-|
+| FP32 | 4 bytes | 28 GB | ~3.5B | Training (rarely used for inference) |
+| FP16/BF16 | 2 bytes | 14 GB | ~7B (tight) | Standard inference precision |
+| INT8/FP8 | 1 byte | 7 GB | ~14B | Quantized inference (good quality) |
+| INT4 | 0.5 bytes | 3.5 GB | ~28B | Extreme quantization (some accuracy loss) |
+
+### Feynman Explanation
+
+Think of a model as a book. "Parameters" are the word count; "precision" is how much space each word takes up. FP32 is like large handwriting (4 cm per character), FP16 is like typeset print (2 cm per character), INT4 is like microfiche (0.5 cm per character). 16 GB of VRAM is your bookshelf — you have to fit the book onto it before you can "read" (run inference).
+
+<Callout type="info">
+**Practical conclusion**: With 16 GB of VRAM (e.g., RTX 4080/4090), you can deploy roughly a 6–7B model at FP16; INT4 quantization can squeeze in a ~28B model, but at a cost to both speed and accuracy. In practice, you also need to reserve ~2 GB for KV Cache and activations.
+</Callout>
+
+<TechGraph src="/images/posts/gpu推理部署学习指南-从显存计算到性能优化/10-model-memory-footprint.svg" title="Model VRAM Footprint" caption="Comparison of model weight VRAM requirements at different precisions" />
+
+---
+
+## Level 2: Storage Hierarchy & Offloading (Understand + Apply)
+
+<Callout type="info">
+**Level objective**: Understand the difference between "can fit" and "can actually use," and master how different storage media affect inference speed.
+</Callout>
+
+### Core Insight: Speed Determines Everything
+
+Model weights can reside in three places: GPU VRAM, CPU memory, or disk. In theory, CPU memory + disk is "infinitely large" — any model fits. But **inference speed** depends on the bandwidth of moving data to the compute units.
+
+### Storage Hierarchy Comparison
+
+<TechGraph src="/images/posts/gpu推理部署学习指南-从显存计算到性能优化/08-storage-hierarchy.svg" title="Storage Hierarchy Pyramid" caption="From HBM to HDD, bandwidth gaps exceed 10,000×" />
+
+| Tier | Bandwidth | Latency | Load 7B FP16 (14 GB) | Role |
+|-|-|-|-|-|
+| HBM (GPU VRAM) | 3,350 GB/s | ns-level | ~4 ms | Weights + KV Cache |
+| DDR5 (CPU memory) | ~100 GB/s | hundreds of ns | ~140 ms (33× slower) | Offload overflow weights |
+| NVMe SSD | ~7 GB/s | µs-level | ~2.0 s (478× slower) | Cold data / checkpoints |
+| HDD | ~0.2 GB/s | ms-level | ~70 s (16,750× slower) | Archival (unusable for inference) |
+
+### Feynman Explanation
+
+Think of inference as cooking. VRAM is the spice rack next to the stove (grab it instantly), CPU memory is the kitchen cabinet (a few steps away), an SSD is the pantry down the hall (you have to walk there), and an HDD is the supermarket (a half-hour round trip). You can't fetch salt from the supermarket every time you stir-fry — even though the supermarket has unlimited salt.
+
+### Industrial-Grade Solution: KV Cache Hot/Cold Separation
+
+Moonshot AI proposed the **Mooncake** architecture:
+
+- Hot data (KV Cache currently used for active inference) stays in VRAM
+- Cold data (KV Cache from historical conversation turns) is migrated to remote memory/SSD pools
+- Predictive prefetching moves data back to VRAM before it is needed
+
+A similar idea is vLLM's **PagedAttention**: managing KV Cache in "pages" to avoid memory fragmentation and improve VRAM utilization.
+
+<Callout type="warning">
+**Key judgment**: "Can fit" does not mean "can use." Storing KV Cache on disk is theoretically possible, but inference slows down by 500× or more — for online services, that's effectively unusable. When making deployment decisions, **speed (throughput / latency) is the core metric**.
+</Callout>
+
+---
+
+## Level 3: The Roofline Model — A Performance Bottleneck Analysis Framework (Analyze)
+
+<Callout type="info">
+**Level objective**: Master the Roofline Model analysis method and be able to determine whether a GPU compute task is "Memory-Bound" or "Compute-Bound."
+</Callout>
+
+### Core Concept: Arithmetic Intensity
+
+```
+Arithmetic Intensity = Compute (FLOPS) / Data Movement (Bytes)
+```
+
+This ratio measures: for every byte of data moved, how many compute operations can be performed.
+
+### Two Regions of the Roofline Model
+
+<TechGraph src="/images/posts/gpu推理部署学习指南-从显存计算到性能优化/07-roofline-model.svg" title="Roofline Model" caption="A unified framework for determining whether a task is Memory-Bound or Compute-Bound" />
+
+- **Memory-Bound (left half)**: Low arithmetic intensity; data movement is the bottleneck. Compute units are "waiting for data."
+- **Compute-Bound (right half)**: High arithmetic intensity; compute capacity is the bottleneck. Data is already in place, but compute can't keep up.
+- **Ridge Point (inflection point)**: Peak FLOPS / Peak Bandwidth. For the H100, the ridge point is approximately 295 FLOPS/Byte.
+
+### Why Is LLM Decode Memory-Bound?
+
+The decode phase generates only 1 token at a time:
+
+1. It performs a GEMV (matrix × vector): compute = 2 × parameter count
+2. But the full weight matrix must be loaded: data movement = parameter count × bytes per parameter
+3. For a 7B FP16 model: FLOPS = 14G, data movement = 14 GB → arithmetic intensity = 1.0
+4. H100 ridge point is at 295 → arithmetic intensity of 1.0 is far to the left → **extremely Memory-Bound**
+
+**Intuitive understanding**: GPU compute utilization is below 1%. Almost all time is spent waiting for data to be moved from VRAM to the compute units.
+
+### How to Diagnose
+
+Use NVIDIA's **NSight Compute (NCU)** tool to profile the arithmetic intensity of each kernel and see whether it falls on the left half (mem-bound) or right half (compute-bound) of the Roofline chart.
+
+<Callout type="info">
+**Key data point**: A 4B model measured on the H20 showed a memory-access bandwidth ratio exceeding 70, meaning GPU compute is severely underutilized. This is why small models have extremely low GPU utilization during decode.
+</Callout>
+
+---
+
+## Level 4: How Quantization Changes the Performance Landscape (Analyze + Evaluate)
+
+<Callout type="info">
+**Level objective**: Understand that quantization is not just a "save space" tool — it is a means of changing the nature of the performance bottleneck. Master when quantization is effective and when it is not.
+</Callout>
+
+### Two Mechanisms by Which Quantization Changes Arithmetic Intensity
+
+**Mechanism 1: More compute per unit of data**
+
+- FP16: Load 2 bytes, perform 1 multiply-accumulate
+- INT4: Load 0.5 bytes, perform 1 multiply-accumulate + dequantize computation
+- Result: The "value density" (compute per byte) of each byte increases → arithmetic intensity rises
+
+**Mechanism 2: KV Cache quantization reduces bandwidth demand**
+
+- FP16 KV Cache: Each token occupies 2 bytes × heads × head_dim
+- INT8 KV Cache: Footprint halved → data loaded into the SM is halved → bandwidth bottleneck is alleviated
+
+<TechGraph src="/images/posts/gpu推理部署学习指南-从显存计算到性能优化/09-quantization-effect.svg" title="Effect of Quantization on the Roofline" caption="Quantization pushes arithmetic intensity to the right, shifting from the memory-bound region toward the compute-bound region" />
+
+### The "Ceiling Effect" of Quantization
+
+| Scenario | Quantization Effect | Reason |
+|-|-|-|
+| Small model + small batch + Decode | Significant | Originally deeply memory-bound; quantization greatly alleviates it |
+| Large model + large batch + Decode | Diminishing returns | Already approaching compute-bound; the bottleneck is no longer data movement |
+| Prefill phase (long prompt) | Almost none | Already compute-bound by nature (large matrix GEMM) |
+
+### Feynman Explanation
+
+Quantization is like compressing shipping boxes. If the courier's carrying speed is the bottleneck (memory-bound), compressing boxes lets the same speed move more content → effective. But if the bottleneck is unpacking and inspection speed (compute-bound), compression actually makes things worse (you still have to decompress) → ineffective or even slower.
+
+<Callout type="info">
+**Core insight**: The essence of quantization is not "saving VRAM" — it is **changing the arithmetic intensity**, transforming a memory-bound problem into a compute-bound problem. Once you understand this, you can judge whether quantization is effective for your specific scenario.
+</Callout>
+
+---
+
+## Level 5: Integrated Strategy Selection (Evaluate + Create)
+
+<Callout type="info">
+**Level objective**: Based on a specific scenario (model size, batch size, inference phase), choose the most appropriate optimization strategy.
+</Callout>
+
+### Decision Matrix
+
+| Scenario | Bottleneck Type | Recommended Optimization | Quantization Benefit |
+|-|-|-|-|
+| Small model + small batch + Decode | Memory-Bound | Weight quantization (INT4/INT8) | Significant |
+| Large model + large batch + Decode | Compute-Bound | Multi-GPU parallelism (TP/PP) | Diminishing |
+| Prefill phase (long prompt) | Compute-Bound | Flash Attention, tensor parallelism | Almost none |
+| Large KV Cache footprint | Memory-Bound | KV Cache quantization, PagedAttention | Significant |
+| Insufficient VRAM capacity | Capacity bottleneck | Quantization / Offload / Multi-GPU sharding | Directly solves the problem |
+
+### Practical Deployment Decision Flow
+
+1. **First check if it fits**: Parameters × bytes per param + 2 GB headroom ≤ VRAM?
+2. **Doesn't fit → quantize or upgrade the card**: INT4 shrinks by 4×, INT8 by 2×
+3. **Fits → benchmark**: Run benchmarks to measure throughput and latency
+4. **Speed insufficient → analyze the bottleneck**: NCU profile, determine mem-bound vs. compute-bound
+5. **Memory-bound → quantization is effective**; **Compute-bound → add GPUs / add compute**
+
+---
+
+## Key Takeaways
+
+1. **16 GB VRAM practical upper limit**: ~6–7B at FP16, ~14B at INT4 (speed drops due to dequantization overhead)
+2. **"Can fit" and "can run" are two different questions**: The core metric is always speed (throughput / latency), not whether it fits
+3. **The essence of quantization is changing arithmetic intensity**: Transforming a memory-bound problem into a compute-bound problem
+4. **Large model + large batch is inherently compute-bound**: Quantization's acceleration effect is limited in this regime
+5. **The Roofline Model is the unified analysis framework**: Learn to use NCU to see which side of the ridge point an operator falls on
+
+---
+
+## Recommended Learning Path
+
+### Beginner (Level 1–2)
+
+- **llm-memory-calculator**: An online tool for calculating model VRAM requirements
+- **Hugging Face Model Cards**: Check model parameter counts and recommended precisions
+- **GGUF/GPTQ/AWQ format comparison**: Understand the applicable scenarios for different quantization formats
+
+### Intermediate (Level 3–4)
+
+- **NVIDIA Roofline Analysis with NSight Compute**: Official Roofline analysis tutorial
+- **vLLM source code + PagedAttention paper**: The industry standard for KV Cache management
+- **Mooncake paper** (Moonshot AI): KV Cache pooled storage architecture
+
+### Advanced (Level 5)
+
+- [GPTQ paper (arxiv 2210.17323)](https://arxiv.org/abs/2210.17323)
+- [AWQ paper (arxiv 2306.00978)](https://arxiv.org/abs/2306.00978)
+- [FlashAttention paper (arxiv 2205.14135)](https://arxiv.org/abs/2205.14135)
+- [NSight Compute](https://developer.nvidia.com/nsight-compute) — NVIDIA GPU kernel profiling tool
+
+---
+
+## Appendix: Technical Reference & Validation Data
+
+### GPU Specs Quick Reference
+
+| Metric | H100 SXM | H20 | A100 80GB | RTX 4090 | RTX 4080 |
+|-|-|-|-|-|-|
+| BF16 TFLOPS | 989 | 148 | 312 | 165 | 97 |
+| HBM Bandwidth | 3.35 TB/s | 4.0 TB/s | 2.0 TB/s | 1.0 TB/s | 0.72 TB/s |
+| VRAM Capacity | 80 GB | 96 GB | 80 GB | 24 GB | 16 GB |
+| Ridge Point | ~295 | ~37 | ~156 | ~165 | ~135 |
+
+*Ridge Point = Peak FLOPS / Peak BW (FLOPS/Byte). A higher value means the GPU is less likely to be memory-bound.*
+
+### Quantization Scheme Comparison
+
+| Scheme | Weight Precision | Compression Ratio | Quality Loss | Use Case |
+|-|-|-|-|-|
+| GPTQ | INT4/INT3 | 4–5x | Low (&lt;1% PPL) | Offline quantization, GPU inference |
+| AWQ | INT4 | 4x | Very low | Activation-aware, preserves critical channels |
+| GGUF | Q4_K_M/Q5 | 3–4x | Low | CPU/hybrid inference (llama.cpp) |
+| FP8 | FP8 (E4M3) | 2x | Very low | Native H100 support, no dequantization overhead |
+| SmoothQuant | INT8 | 2x | Very low | Simultaneous weight + activation quantization |
+
+### Paper & Tool Index
+
+- [GPTQ](https://arxiv.org/abs/2210.17323) -- Post-training quantization for generative pre-trained transformers
+- [AWQ](https://arxiv.org/abs/2306.00978) -- Activation-aware Weight Quantization for LLM compression
+- [FlashAttention](https://arxiv.org/abs/2205.14135) -- Fast and memory-efficient exact attention with IO-awareness
+- [vLLM / PagedAttention](https://arxiv.org/abs/2309.06180) -- Efficient Memory Management for Large Language Model Serving
+- [Mooncake](https://arxiv.org/abs/2407.00079) -- Disaggregated KV Cache Management (Moonshot AI)
+- [NSight Compute](https://developer.nvidia.com/nsight-compute) -- NVIDIA GPU kernel profiling tool
+- [SmoothQuant](https://arxiv.org/abs/2211.10438) -- Accurate and efficient post-training quantization for LLMs
+
+---
+
+## Level 5.5: Prefill vs Decode -- Dual-Phase Performance Characteristics
+
+<Callout type="info">
+**Goal of this layer**: Understand that the two phases of LLM inference have entirely different performance bottlenecks and require entirely different optimization strategies.
+</Callout>
+
+### Prefill Phase
+
+Processes all of the user's input tokens at once. It is essentially a **GEMM (matrix–matrix multiplication)**:
+
+```
+Prefill:
+  Q: [seq_len, hidden_dim]
+  K: [seq_len, hidden_dim]
+  Attention: [seq_len, seq_len] -- full matrix multiply
+  FLOPs: O(seq_len^2 * hidden_dim + seq_len * hidden_dim^2)
+
+  Nature: Compute-Bound (high arithmetic intensity)
+  Bottleneck: GPU compute
+  Optimization: TP parallelism / Flash Attention / Tensor Core utilization
+```
+
+### Decode Phase
+
+Generates tokens one at a time. It is essentially a **GEMV (matrix–vector multiplication)**:
+
+```
+Decode (per step):
+  Q: [1, hidden_dim]  -- only 1 new token
+  K: [1, hidden_dim]  -- only 1 new KV added
+  Attention: Q vs all historical KVs
+
+  Compute: 2 * params (GEMV)
+  Data movement: params * bytes_per_param (full weight load)
+  Arithmetic intensity: 2 / bytes_per_param = 1.0 (FP16)
+
+  Nature: Extremely Memory-Bound
+  Bottleneck: Memory bandwidth
+  Optimization: Quantization / Speculative Decoding / Batching
+```
+
+### Why Batching Can Save Decode
+
+A single decode step is a GEMV (memory-bound), but **merging multiple requests into a batch turns it into a GEMM (compute-bound)**:
+
+| Batch Size | Compute Type | Arithmetic Intensity (FP16) | GPU Utilization |
+|-|-|-|-|
+| 1 | GEMV | 1.0 | < 1% |
+| 8 | Small GEMM | 8.0 | ~3% |
+| 64 | Medium GEMM | 64.0 | ~22% |
+| 256 | Large GEMM | 256.0 | ~87% |
+
+**This is the significance of Continuous Batching**: it's not about "handling more requests" (that's throughput) — it **fundamentally changes the performance characteristics of the decode phase**, shifting it from memory-bound to compute-bound.
+
+---
+
+## Level 5.6: How Continuous Batching Works
+
+<Callout type="info">
+**Goal of this layer**: Understand why vLLM's continuous batching is an order of magnitude more efficient than traditional static batching.
+</Callout>
+
+### The Problem with Static Batching
+
+Traditional approach: wait until a full batch is collected, do prefill together, then decode together until all requests finish.
+
+```
+Static Batch (batch_size=4):
+  Req 1: [prefill----][decode------------------]  (200 tokens)
+  Req 2: [prefill----][decode--------]            (100 tokens)
+  Req 3: [prefill----][decode-]                    (30 tokens)
+  Req 4: [prefill----][decode------]               (80 tokens)
+                                     ^ Req 3 already done but still occupying a slot
+
+Problem: Req 3 finishes at step 30, but must wait for Req 1 to generate all 200 tokens
+GPU utilization: only ~52% on average (weighted avg sequence length / max sequence length)
+```
+
+### The Continuous Batching Solution
+
+After each step, **completed requests exit immediately and waiting requests join immediately**:
+
+```
+Continuous Batching:
+  Step 1-30: [Req1, Req2, Req3, Req4] (batch=4)
+  Step 31:   Req3 done -> removed -> Req5 joins
+  Step 31-80: [Req1, Req2, Req4, Req5] (batch=4, GPU fully loaded)
+  Step 81:   Req4 done -> Req6 joins
+  ...
+
+GPU utilization: close to 100% (batch always full)
+```
+
+### Chunked Prefill: Eliminating Latency Spikes
+
+New problem: if an 8K-token request enters prefill, it blocks all requests currently decoding.
+
+Solution: split the prefill into multiple chunks (e.g., 512 tokens each) and interleave with decode:
+
+```
+Without chunked prefill:
+  [Prefill 8K tokens (50ms)]  -- all decode requests blocked for 50ms
+
+With chunked prefill (chunk=512):
+  [Prefill 512][Decode batch][Prefill 512][Decode batch]...
+  Each chunk ~3ms, decode requests wait at most 3ms
+```
+
+---
+
+## Level 5.7: NCU Hands-On Kernel Analysis
+
+<Callout type="info">
+**Goal of this layer**: Learn how to use NSight Compute to analyze the performance bottlenecks of real kernels.
+</Callout>
+
+### Typical Decode Kernel NCU Report
+
+```
+Kernel: ampere_bf16_s16816gemm_bf16_128x128_ldg8_f2f_stages_32x3_tn
+Grid: [1, 1, 1]  Block: [128, 1, 1]
+Duration: 12.4 us
+Memory Throughput: 89.2% (near peak = memory-bound)
+Compute Throughput: 3.1% (compute severely underutilized)
+Achieved Occupancy: 24.3%
+```
+
+Interpretation:
+- Memory Throughput 89% + Compute Throughput 3% = **classic memory-bound kernel**
+- Compute utilization is only 3% — the GPU spends almost all its time waiting for data
+- Optimization direction: reduce data movement (quantization), not add more compute
+
+### Prefill Kernel Comparison
+
+```
+Kernel: sm90_xmma_gemm_bf16bf16_bf16f32_f32_tn_n_tilesize256x128x64
+Grid: [8, 4, 1]  Block: [128, 1, 1]
+Duration: 2.1 ms
+Memory Throughput: 42.7%
+Compute Throughput: 78.3% (near peak = compute-bound)
+Achieved Occupancy: 91.2%
+```
+
+Interpretation:
+- Compute Throughput 78% = **compute-bound**, the GPU is actually computing
+- Optimization direction: better GEMM kernels (CUTLASS/Triton), TP parallelism
+
+### Hands-On Commands
+
+```bash
+# Profile a single inference request
+ncu --set full --target-processes all \
+  --output profile_report \
+  python -c "from vllm import LLM; m=LLM('meta-llama/Llama-3-8B'); m.generate('Hello')"
+
+# Show only the top 10 most time-consuming kernels
+ncu --metrics sm__throughput.avg_pct_of_peak_sustained_elapsed,\
+dram__throughput.avg_pct_of_peak_sustained_elapsed \
+  --top 10 python run_inference.py
+```
+
+---
+
+## Related Articles
+
+- [GPU Compute for Video Generation Inference: Starting from an Arithmetic Problem](/blog/视频生成推理的gpu算力-从一道算术题说起) -- Compute analysis for video generation
+- [vLLM KV Cache Block Manager Deep-Dive Tutorial](/blog/vllm-kv-cache-block-manager-深度教程) -- Engineering implementation of KV Cache management
+- [AI Inference Learning Roadmap 2026 Panorama](/blog/ai-inference-学习-roadmap-2026全景图) -- A comprehensive learning roadmap for inference engineering

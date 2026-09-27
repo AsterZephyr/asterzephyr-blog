@@ -1,0 +1,383 @@
+---
+title: "GPU Compute for Video Generation Inference: Starting from an Arithmetic Problem"
+date: 2026-06-07
+tags: [系统与工程]
+summary: "1,600 H100s doing video generation inference can only handle 42 QPS online — starting from a simple division problem, we break down why video generation is the most compute-dense task in AI inference today."
+draft: false
+sourceFile: "视频生成推理的gpu算力-从一道算术题说起.mdx"
+sourceHash: "be22033899ad1976b11d9ca9695189497a457d7d6b26e680d01c25e3f188b26e"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+## Prologue: A Seemingly Simple Division
+
+Someone did the math: **1,600 H100s doing video generation inference can only handle about 40-something QPS for an online AIGC service.**
+
+How? The formula is simple:
+
+```
+300 / 8 * 43 / 1600 = 1.0
+```
+
+What do these four numbers represent? Why can 1,600 top-tier GPUs "only" serve 42 concurrent requests? This article breaks it down from scratch.
+
+---
+
+## Step 1: How Long Does One H20 Take to Generate a 10-Second Video?
+
+The answer is **300 seconds (5 minutes)**.
+
+This is the first number in the formula. The H20 is NVIDIA's "nerfed" GPU for the Chinese market — compute is capped, but memory capacity and bandwidth are left intact.
+
+> Why so slow? We'll explain the computational load of video generation in detail later. For now, build the intuition: one GPU, crunching away for 5 minutes, just to produce 10 seconds of video.
+
+---
+
+## Step 2: How Much Faster Is the H100 Than the H20?
+
+The answer is **about 8x**. This is the "/ 8" in the formula.
+
+<TechGraph src="/images/posts/视频生成推理的gpu算力-从一道算术题说起/02-h100-vs-h20-comparison.svg" title="H100 vs H20 Performance Comparison" caption="Video generation is compute-bound — the compute gap directly determines the performance gap" />
+
+| Metric | H100 SXM | H20 | Ratio |
+|-|-|-|-|
+| BF16 Compute | 989 TFLOPS | 148 TFLOPS | 6.7x |
+| FP8 Compute | 1,979 TFLOPS | 296 TFLOPS | 6.7x |
+| Memory Bandwidth | 3.35 TB/s | 4.0 TB/s | 0.84x |
+| Memory Capacity | 80 GB | 96 GB | 0.83x |
+
+Key insight: **Video generation is compute-bound**, not memory-bound. Therefore:
+
+- The H20's higher bandwidth (4.0 vs 3.35 TB/s) **doesn't help** in this scenario
+- The H20's larger memory (96 vs 80 GB) **also doesn't help** in this scenario
+- The only thing that determines performance is **compute**: 989 / 148 = 6.7x, and with some engineering optimizations it's roughly 8x
+
+So: **H100 single-card time to generate a 10-second video = 300 / 8 = 37.5 seconds**
+
+---
+
+## Step 3: With 1,600 H100s Working Simultaneously, How Much QPS Can You Support?
+
+<TechGraph src="/images/posts/视频生成推理的gpu算力-从一道算术题说起/03-qps-calculation-logic.svg" title="QPS Calculation Logic" caption="Each GPU takes 37.5 seconds to process one request; 1,600 GPUs working in parallel" />
+
+Each GPU takes 37.5 seconds to process one request; 1,600 GPUs working in parallel:
+
+```
+QPS = 1600 / 37.5 = 42.7
+```
+
+**Conclusion: With all 1,600 H100s fully saturated, you can just barely support 42–43 QPS of 10-second video generation.**
+
+---
+
+## Wait — Why Does This Feel Wrong Intuitively?
+
+1,600 H100s! That's a top-tier compute cluster. Running LLM inference, you could handle thousands of requests per second. Why does video generation only get 42?
+
+To understand this, you need to know what video generation is actually computing.
+
+---
+
+## The Video Generation Compute Pipeline
+
+<TechGraph src="/images/posts/视频生成推理的gpu算力-从一道算术题说起/01-pipeline-architecture.svg" title="Video Generation Compute Pipeline" caption="The complete processing flow of a single video generation request" />
+
+A video generation request goes through the following steps:
+
+```
+Text Prompt -> Text Encoder -> Latent Space Noise
+                                    |
+                          DiT Denoising Loop (30–100 steps)
+                                    |
+                         3D VAE Decoder -> Video Output
+```
+
+The key is that middle loop: **the DiT (Diffusion Transformer) denoising loop**.
+
+Each denoising step is a full Transformer forward pass. A typical configuration is **50 steps**. In other words, generating a single video requires running 50 complete large-model inference passes.
+
+---
+
+## Why Is Each Step So Expensive? The O(T²) Curse of Attention
+
+<TechGraph src="/images/posts/视频生成推理的gpu算力-从一道算术题说起/05-attention-complexity.svg" title="Attention Complexity Growth" caption="From images to video, attention cost grows quadratically" />
+
+The fundamental difference between video and images: **the time dimension**.
+
+- Image generation: 1 frame, patched into some number of tokens (say 1,024)
+- Video generation: 10 seconds × 16 fps = 160 frames; even after 4x temporal compression via VAE, that's still 40 temporal positions
+
+Total tokens = spatial tokens × temporal tokens. If an image has 1,024 tokens, a 10-second video has:
+
+```
+1024 * 40 = 40,960 tokens (compressed)
+```
+
+And the self-attention cost of a Transformer is **O(N²)** — double the token count, quadruple the compute.
+
+Going from an image (1 frame) to a video (160 frames), even with 4x temporal compression by the VAE:
+
+```
+40^2 / 1^2 = 1,600x
+```
+
+**This is the fundamental reason video generation is expensive: it's not that the frame count grows linearly — it's that the attention cost grows quadratically.**
+
+---
+
+## Adding It All Up
+
+<TechGraph src="/images/posts/视频生成推理的gpu算力-从一道算术题说起/04-compute-comparison.svg" title="Compute Comparison Across Tasks" caption="Video generation requires 2,000x the compute of LLM inference" />
+
+Taking a typical 10B-parameter video generation model as an example:
+
+| Component | Value |
+|-|-|
+| Model parameters | ~10B |
+| Latent tokens/step | ~216K |
+| Single-step FLOPS | 2 * 10B * 216K = 4.32 PFLOPS |
+| Denoising steps | 50 |
+| **Total FLOPS** | **4.32 * 50 = 216 PFLOPS** |
+
+Comparison with other tasks:
+
+| Task | Compute per request | Multiple (vs LLM) |
+|-|-|-|
+| LLM (1K tokens) | ~0.1 PFLOPS | 1x |
+| Image generation | ~10 PFLOPS | 100x |
+| Video generation (10s 720p) | ~200 PFLOPS | 2,000x |
+| Video generation (10s 1080p) | ~600 PFLOPS | 6,000x |
+
+The compute required for video generation is **2,000x** that of LLMs. This explains why on the same cluster, LLMs can achieve thousands of QPS while video generation only manages 42.
+
+---
+
+## Validation with Real-World Benchmarks
+
+Benchmarks from open-source projects provide reference points:
+
+| Model | Video specs | Single H100 latency |
+|-|-|-|
+| CogVideoX-5B | 6s / 720x480 / 50 steps | ~90s |
+| CogVideoX1.5-5B | 5s / 1360x768 / 50 steps | ~550s |
+| Open-Sora | 768x768 / 50 steps | ~1656s (28 minutes) |
+| LTX-Video (2B) | 5s / 768x512 | ~2s (extremely small model) |
+
+Academic benchmarks show 90–1656 seconds, yet our estimate was 37.5 seconds?
+
+---
+
+## Production Optimization: From 90 Seconds to 37.5 Seconds
+
+The gap exists because **production systems employ extensive engineering optimizations**:
+
+1. **Step distillation (Consistency Distillation)**: 50 steps → 4–8 steps, yielding 6–12x speedup
+2. **FP8/INT8 quantization**: effectively ~2x compute throughput
+3. **More aggressive VAE compression**: e.g., LTX-Video uses a 1:192 compression ratio
+4. **Smaller models**: production doesn't necessarily use 10B+; it could be 2–5B
+5. **Flash Attention / operator fusion**: reducing memory round-trips
+
+With these optimizations stacked, bringing a single H100 from the academic 90 seconds down to ~37.5 seconds is entirely reasonable.
+
+---
+
+## Multi-GPU Parallelism: Can We Reduce Latency Further?
+
+<TechGraph src="/images/posts/视频生成推理的gpu算力-从一道算术题说起/06-sequence-parallelism-scaling.svg" title="Sequence Parallelism Scalability" caption="8 GPUs achieve 6x speedup; communication overhead costs about 25%" />
+
+Yes. Here's the data from Open-Sora using Sequence Parallelism:
+
+| GPU count | Latency | Speedup |
+|-|-|-|
+| 1x | 1656s | 1.0x |
+| 2x | 863s | 1.9x |
+| 4x | 466s | 3.6x |
+| 8x | 276s | 6.0x |
+
+8 GPUs achieve 6x speedup (not the ideal 8x—communication overhead costs 25%).
+
+But there's a tradeoff here: using 8 GPUs to accelerate a single request doesn't improve QPS (it may even decrease it). Production systems must balance **per-request latency** against **total throughput**:
+
+- If optimizing for QPS: each GPU independently handles one request (37.5s latency, 42 QPS)
+- If optimizing for latency: a group of 8 GPUs handles one request (~5s latency, but QPS drops to ~5)
+
+---
+
+## Summary: Why 1,600 H100s Can Only Do 42 QPS
+
+Back to the original formula:
+
+```
+300(H20 latency) / 8(performance ratio) * 43(concurrency) / 1600(GPUs) = 1.0(fully saturated)
+```
+
+The fundamental reasons:
+
+1. **O(T²) Attention**: 160 frames of video bring 25,600x the attention overhead compared to a single image
+2. **Multi-step denoising**: 50 steps = 50 complete forward passes
+3. **Massive token sequences**: ~216K tokens, far exceeding an LLM's 1–4K
+4. **Compute-bound**: purely reliant on raw compute; bandwidth and memory capacity can't help
+
+Video generation is the **most compute-dense task** in current AI inference, bar none.
+
+---
+
+## Appendix: Technical Details
+
+### A. Architecture of Sora / Kling / CogVideoX
+
+- All based on the **DiT (Diffusion Transformer)** architecture
+- Use **3D VAE** for simultaneous temporal and spatial compression
+- Video is encoded into **spacetime patches** serving as Transformer tokens
+- Full spatio-temporal attention across all frames
+
+### B. Temporal Pyramid Optimization
+
+Transforms uniform temporal attention (T²) into a pyramid structure:
+
+```
+Total cost = 1/3 * (T² + (T/2)² + (T/4)²) = 0.44 * T²
+```
+
+This halves the compute cost and is one of the main directions for efficiency optimization in current video generation.
+
+### C. LTX-Video's Extreme Approach
+
+- 2B parameters (vs. Sora's rumored 30B+)
+- 1:192 compression ratio (32×32×8 spatiotemporal downsampling)
+- 2 seconds to generate a 5-second video on H100
+- The tradeoff: quality cannot match Sora / Kling
+
+---
+
+## Computational Anatomy of the DiT Architecture
+
+Understanding the compute demands of video generation requires diving into DiT's internal structure.
+
+### 3D VAE: The First Layer of Spatiotemporal Compression
+
+Before entering the DiT, video first passes through a 3D VAE (Variational Autoencoder) for spatiotemporal compression. Unlike the 2D VAE used in image generation, a 3D VAE performs downsampling simultaneously in both spatial and temporal dimensions:
+
+```
+Raw video: [T=160, H=720, W=1280, C=3]
+              |
+        3D VAE Encoder (spatial 8x, temporal 4x)
+              |
+Latent:  [T=40, H=90, W=160, C=16]
+```
+
+Compression ratio: `160 * 720 * 1280 * 3 / (40 * 90 * 160 * 16) = 48x`
+
+Even after 48x compression, the latent tensor remains enormous: 40 × 90 × 160 = 576,000 space-time positions. After patchification (typically 2×2 patches), this becomes ~144,000 tokens.
+
+### Patchification: From Pixels to Tokens
+
+DiT slices the latent tensor into fixed-size patches, with each patch becoming a token:
+
+```
+Latent [40, 90, 160] -> Patch (2x2 spatial) -> [40, 45, 80] = 144,000 tokens
+```
+
+Each token is linearly projected into a hidden_dim-dimensional vector (typically 1536–4096), then fed into Transformer blocks.
+
+### The Terrifying Cost of Full Attention
+
+DiT applies full spatio-temporal attention over all tokens:
+
+```
+Q, K, V shape: [144000, num_heads, head_dim]
+Attention matrix: [144000, 144000] -- a single matrix with 20.7B elements
+Per attention head: 2 * 144000^2 * head_dim FLOPs
+All heads + projection: ~2 * seq_len^2 * hidden_dim
+```
+
+Taking hidden_dim=2048 and 30 layers as an example:
+- Single-layer attention FLOPs: 2 × 144000² × 2048 = 84.9 TFLOPS
+- Single-layer FFN FLOPs: 2 × 144000 × 2048 × 8192 = 4.8 TFLOPS
+- 30 layers total: 30 × (84.9 + 4.8) = 2.7 PFLOPS / step
+- 50 denoising steps: **135 PFLOPS / video**
+
+This is the actual order of compute for a single 10-second video request.
+
+---
+
+## Production Optimization Practices: Going from Academic 90s to Practical 37s
+
+### Consistency Distillation: Step Compression
+
+The academic-standard 50-step DDPM sampling is extremely inefficient. Production systems use distillation techniques to compress the step count down to 4–8 steps:
+
+| Method | Steps | Quality (FVD) | Speedup |
+|-|-|-|-|
+| DDPM 50 steps | 50 | Baseline | 1x |
+| DDIM 20 steps | 20 | -3% | 2.5x |
+| LCM (distilled) | 4–8 | -5% | 6–12x |
+| Consistency Model | 1–2 | -15% | 25–50x |
+
+LCM (Latent Consistency Models) is currently the most commonly used approach in production: quality loss is manageable (FVD drops only 5%), with a 6–12x speed improvement.
+
+### FP8 Quantization: Doubling Compute
+
+H100 natively supports FP8 (E4M3 format) computation:
+
+- FP16 TFLOPS: 989
+- FP8 TFLOPS: 1,979 (doubled)
+- Quality impact: virtually lossless (video generation is not sensitive to precision)
+
+Practical results with FP8: per-step latency drops from ~1.8ms/step to ~1.0ms/step.
+
+### Speculative Denoising
+
+Analogous to speculative decoding in LLMs, the latest work brings the "speculation" idea to denoising:
+
+1. Use a small model (e.g., 1B) to quickly predict a rough latent
+2. Use a large model (e.g., 10B) to verify and correct
+3. A single verification pass can "accept" multiple steps from the small model
+
+Theoretical speedup of 2–3x; still in the research stage.
+
+---
+
+## Cost Economics: How Much Does It Cost to Generate a Video?
+
+### GPU-Hour Cost Comparison
+
+| GPU | Cloud Price ($/hr) | Time for 10s Video | Cost per Video |
+|-|-|-|-|
+| H100 SXM (AWS p5) | $32.77 | 37.5s | $0.34 |
+| H100 PCIe (Lambda) | $2.49 | 45s | $0.031 |
+| A100 80GB | $1.89 | ~90s | $0.047 |
+| H20 (China cloud) | ~$1.50 | 300s | $0.125 |
+
+### Economics at Scale
+
+Taking Kling as an example: assume 1 million daily active users, each generating an average of 3 videos per day:
+
+```
+Daily requests: 3M videos
+Peak QPS: 3M / 86400 * 3 (peak-to-trough ratio) = ~104 QPS
+H100s needed: 104 * 37.5 / 1 = 3,900
+Annual cost (H100 PCIe): 3,900 * $2.49 * 8760 = $85M/year
+```
+
+This explains why video generation services are priced far higher than text/image AI services.
+
+---
+
+## References
+
+- [DiT Paper](https://arxiv.org/abs/2212.09748)
+- [SD3/MM-DiT](https://arxiv.org/abs/2403.03206)
+- [OpenAI Sora Report](https://openai.com/index/video-generation-models-as-world-simulators/)
+- [Open-Sora](https://github.com/hpcaitech/Open-Sora)
+- [CogVideoX](https://arxiv.org/abs/2408.06072)
+- [LTX-Video](https://arxiv.org/abs/2501.00103)
+- [Temporal Pyramid](https://arxiv.org/abs/2503.09566)
+
+---
+
+## Related Articles
+
+- [GPU Inference Deployment Study Guide: From Memory Calculation to Performance Optimization](/blog/gpu推理部署学习指南-从显存计算到性能优化) -- A more foundational GPU performance analysis framework
+- [World Model TP Parallelism Deep Dive: Why TP=N Is Slower Than TP=1](/blog/world-model-tp并行深度分析-为什么tp-n比tp-1还慢) -- Parallelism strategy choices for video generation models

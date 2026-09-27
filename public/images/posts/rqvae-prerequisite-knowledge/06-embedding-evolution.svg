@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 680" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow6"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr6" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#374151"/></marker>
+  </defs>
+  <rect width="960" height="680" fill="#ffffff"/>
+
+  <text x="480" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">Embedding 技术演进：从 One-Hot 到对比学习</text>
+  <text x="480" y="52" text-anchor="middle" font-size="12" fill="#6b7280">表征学习 20 年——如何把离散符号变成连续语义向量</text>
+
+  <!-- Era 1: One-Hot -->
+  <rect x="40" y="75" width="200" height="180" rx="8" fill="#f9fafb" stroke="#6b7280" stroke-width="1.5" filter="url(#shadow6)"/>
+  <text x="140" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#374151">One-Hot Encoding</text>
+  <text x="140" y="118" text-anchor="middle" font-size="10" fill="#6b7280">~2010 | 无语义</text>
+  <line x1="55" y1="128" x2="225" y2="128" stroke="#e5e7eb"/>
+  <text x="55" y="148" font-size="10" fill="#374151">"猫" → [0,0,1,0,...,0]</text>
+  <text x="55" y="166" font-size="10" fill="#374151">"狗" → [0,0,0,1,...,0]</text>
+  <text x="55" y="190" font-size="10" fill="#dc2626">维度 = 词表大小 (百万级)</text>
+  <text x="55" y="208" font-size="10" fill="#dc2626">无法表达相似性</text>
+  <text x="55" y="226" font-size="10" fill="#dc2626">任意两词距离相同</text>
+  <text x="55" y="246" font-size="9" fill="#6b7280">cos(猫,狗)=0, cos(猫,石头)=0</text>
+
+  <line x1="240" y1="165" x2="268" y2="165" stroke="#374151" stroke-width="1.5" marker-end="url(#arr6)"/>
+
+  <!-- Era 2: Word2Vec -->
+  <rect x="270" y="75" width="200" height="180" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow6)"/>
+  <text x="370" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#2563eb">Word2Vec / GloVe</text>
+  <text x="370" y="118" text-anchor="middle" font-size="10" fill="#6b7280">2013 | 分布式语义</text>
+  <line x1="285" y1="128" x2="455" y2="128" stroke="#e5e7eb"/>
+  <text x="285" y="148" font-size="10" fill="#374151">"猫" → [0.2, -0.5, 0.8]</text>
+  <text x="285" y="166" font-size="10" fill="#374151">"狗" → [0.3, -0.4, 0.7]</text>
+  <text x="285" y="190" font-size="10" fill="#16a34a">低维稠密 (50-300 维)</text>
+  <text x="285" y="208" font-size="10" fill="#16a34a">相似词向量距离近</text>
+  <text x="285" y="226" font-size="10" fill="#16a34a">king-man+woman=queen</text>
+  <text x="285" y="246" font-size="9" fill="#dc2626">静态：一个词只有一个向量</text>
+
+  <line x1="470" y1="165" x2="498" y2="165" stroke="#374151" stroke-width="1.5" marker-end="url(#arr6)"/>
+
+  <!-- Era 3: BERT -->
+  <rect x="500" y="75" width="200" height="180" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow6)"/>
+  <text x="600" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">BERT / GPT</text>
+  <text x="600" y="118" text-anchor="middle" font-size="10" fill="#6b7280">2018 | 上下文相关</text>
+  <line x1="515" y1="128" x2="685" y2="128" stroke="#e5e7eb"/>
+  <text x="515" y="148" font-size="10" fill="#374151">"bank(河岸)" ≠ "bank(银行)"</text>
+  <text x="515" y="166" font-size="10" fill="#374151">同词不同语境=不同向量</text>
+  <text x="515" y="190" font-size="10" fill="#16a34a">上下文感知 (768-1024维)</text>
+  <text x="515" y="208" font-size="10" fill="#16a34a">预训练+微调范式</text>
+  <text x="515" y="226" font-size="10" fill="#16a34a">大规模无监督预训练</text>
+  <text x="515" y="246" font-size="9" fill="#dc2626">计算量大、推理慢</text>
+
+  <line x1="700" y1="165" x2="728" y2="165" stroke="#374151" stroke-width="1.5" marker-end="url(#arr6)"/>
+
+  <!-- Era 4: Contrastive -->
+  <rect x="730" y="75" width="200" height="180" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow6)"/>
+  <text x="830" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#7c3aed">对比学习</text>
+  <text x="830" y="118" text-anchor="middle" font-size="10" fill="#6b7280">2020+ | 自监督</text>
+  <line x1="745" y1="128" x2="915" y2="128" stroke="#e5e7eb"/>
+  <text x="745" y="148" font-size="10" fill="#374151">正样本对拉近</text>
+  <text x="745" y="166" font-size="10" fill="#374151">负样本对推远</text>
+  <text x="745" y="190" font-size="10" fill="#16a34a">无需标注数据</text>
+  <text x="745" y="208" font-size="10" fill="#16a34a">SimCLR/MoCo/CLIP</text>
+  <text x="745" y="226" font-size="10" fill="#16a34a">多模态对齐</text>
+  <text x="745" y="246" font-size="9" fill="#6b7280">推荐中: SID 的 Encoder 训练</text>
+
+  <!-- Item Embedding in RecSys -->
+  <rect x="40" y="280" width="880" height="180" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+  <text x="480" y="308" text-anchor="middle" font-size="14" font-weight="700" fill="#ea580c">推荐系统中的 Embedding 演进</text>
+
+  <rect x="70" y="325" width="190" height="120" rx="6" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="165" y="348" text-anchor="middle" font-size="11" font-weight="600" fill="#ea580c">MF (矩阵分解)</text>
+  <text x="85" y="370" font-size="10" fill="#374151">User × Item 交互矩阵</text>
+  <text x="85" y="388" font-size="10" fill="#374151">分解为两个低秩矩阵</text>
+  <text x="85" y="406" font-size="10" fill="#374151">内积 = 预测评分</text>
+  <text x="85" y="430" font-size="9" fill="#6b7280">协同过滤的矩阵形式</text>
+
+  <line x1="260" y1="385" x2="288" y2="385" stroke="#374151" stroke-width="1.5" marker-end="url(#arr6)"/>
+
+  <rect x="290" y="325" width="190" height="120" rx="6" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="385" y="348" text-anchor="middle" font-size="11" font-weight="600" fill="#ea580c">Deep Embedding</text>
+  <text x="305" y="370" font-size="10" fill="#374151">ID → Embedding Table</text>
+  <text x="305" y="388" font-size="10" fill="#374151">随模型端到端训练</text>
+  <text x="305" y="406" font-size="10" fill="#374151">每个 ID 独立参数</text>
+  <text x="305" y="430" font-size="9" fill="#6b7280">DeepFM/DIN 的标配</text>
+
+  <line x1="480" y1="385" x2="508" y2="385" stroke="#374151" stroke-width="1.5" marker-end="url(#arr6)"/>
+
+  <rect x="510" y="325" width="190" height="120" rx="6" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="605" y="348" text-anchor="middle" font-size="11" font-weight="600" fill="#ea580c">双塔 Embedding</text>
+  <text x="525" y="370" font-size="10" fill="#374151">User Tower → user emb</text>
+  <text x="525" y="388" font-size="10" fill="#374151">Item Tower → item emb</text>
+  <text x="525" y="406" font-size="10" fill="#374151">内积近似相关性</text>
+  <text x="525" y="430" font-size="9" fill="#6b7280">支持 ANN 离线检索</text>
+
+  <line x1="700" y1="385" x2="728" y2="385" stroke="#374151" stroke-width="1.5" marker-end="url(#arr6)"/>
+
+  <rect x="730" y="325" width="170" height="120" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+  <text x="815" y="348" text-anchor="middle" font-size="11" font-weight="600" fill="#dc2626">Semantic ID</text>
+  <text x="745" y="370" font-size="10" fill="#374151">连续 emb → 离散码字</text>
+  <text x="745" y="388" font-size="10" fill="#374151">有限词表 + 组合</text>
+  <text x="745" y="406" font-size="10" fill="#374151">支持自回归生成</text>
+  <text x="745" y="430" font-size="9" fill="#16a34a">Scaling Law 的前提</text>
+
+  <!-- Key insight -->
+  <rect x="40" y="480" width="880" height="180" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="480" y="508" text-anchor="middle" font-size="13" font-weight="700" fill="#92400e">Word2Vec 的核心思想 — 推荐系统 Item2Vec 的直接来源</text>
+
+  <rect x="70" y="525" width="400" height="60" rx="6" fill="#ffffff" stroke="#d97706"/>
+  <text x="270" y="548" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">CBOW (连续词袋)</text>
+  <text x="270" y="570" text-anchor="middle" font-size="11" fill="#374151">上下文词 → 预测中间词</text>
+
+  <rect x="500" y="525" width="400" height="60" rx="6" fill="#ffffff" stroke="#d97706"/>
+  <text x="700" y="548" text-anchor="middle" font-size="12" font-weight="600" fill="#92400e">Skip-gram</text>
+  <text x="700" y="570" text-anchor="middle" font-size="11" fill="#374151">中间词 → 预测上下文词</text>
+
+  <text x="70" y="610" font-size="11" fill="#374151">推荐系统应用：把用户行为序列 [item1, item2, item3, ...] 当作"句子"，用 Word2Vec 训练 item embedding。</text>
+  <text x="70" y="630" font-size="11" fill="#374151">Airbnb (2018): 用 listing 的浏览/点击序列训练 listing embedding，实现个性化搜索排序。</text>
+  <text x="70" y="650" font-size="11" fill="#374151">阿里 (2018): Graph Embedding with Side Information — 在 item 图上做随机游走生成序列，再用 Skip-gram 训练。</text>
+  <text x="70" y="670" font-size="10" font-weight="600" fill="#7c3aed">这条技术线最终演化为 SID 的 RQ-VAE Encoder — 不同之处在于 VQ 把连续 emb 进一步离散化。</text>
+</svg>

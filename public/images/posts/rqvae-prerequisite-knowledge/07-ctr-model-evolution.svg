@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 750" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow7"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr7" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#374151"/></marker>
+  </defs>
+  <rect width="960" height="750" fill="#ffffff"/>
+
+  <text x="480" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">CTR 预估模型完整演进路线</text>
+  <text x="480" y="52" text-anchor="middle" font-size="12" fill="#6b7280">从逻辑回归到多目标多场景大模型 — 工业推荐/广告系统的核心模块</text>
+
+  <!-- Generation 1: Linear -->
+  <rect x="40" y="75" width="880" height="90" rx="8" fill="#f9fafb" stroke="#6b7280" filter="url(#shadow7)"/>
+  <text x="60" y="98" font-size="12" font-weight="700" fill="#374151">第一代：线性模型 (2007-2014)</text>
+  <rect x="60" y="110" width="130" height="40" rx="4" fill="#e5e7eb" stroke="#6b7280"/>
+  <text x="125" y="135" text-anchor="middle" font-size="11" font-weight="600" fill="#374151">LR</text>
+  <line x1="190" y1="130" x2="218" y2="130" stroke="#374151" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="220" y="110" width="130" height="40" rx="4" fill="#e5e7eb" stroke="#6b7280"/>
+  <text x="285" y="135" text-anchor="middle" font-size="11" font-weight="600" fill="#374151">FTRL</text>
+  <line x1="350" y1="130" x2="378" y2="130" stroke="#374151" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="380" y="110" width="130" height="40" rx="4" fill="#e5e7eb" stroke="#6b7280"/>
+  <text x="445" y="135" text-anchor="middle" font-size="11" font-weight="600" fill="#374151">GBDT+LR</text>
+  <text x="540" y="128" font-size="10" fill="#374151">核心：人工特征工程 + 线性组合</text>
+  <text x="540" y="148" font-size="10" fill="#6b7280">Facebook 2014: GBDT 做特征交叉, LR 做预测</text>
+
+  <!-- Generation 2: FM family -->
+  <rect x="40" y="180" width="880" height="90" rx="8" fill="#eff6ff" stroke="#2563eb" filter="url(#shadow7)"/>
+  <text x="60" y="203" font-size="12" font-weight="700" fill="#2563eb">第二代：因子分解机 (2014-2017)</text>
+  <rect x="60" y="215" width="120" height="40" rx="4" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="120" y="240" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">FM</text>
+  <line x1="180" y1="235" x2="208" y2="235" stroke="#2563eb" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="210" y="215" width="120" height="40" rx="4" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="270" y="240" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">FFM</text>
+  <line x1="330" y1="235" x2="358" y2="235" stroke="#2563eb" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="360" y="215" width="120" height="40" rx="4" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="420" y="240" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">AFM</text>
+  <text x="510" y="233" font-size="10" fill="#374151">核心：隐向量内积自动做二阶特征交叉</text>
+  <text x="510" y="253" font-size="10" fill="#6b7280">突破：不需手动枚举特征组合, 解决稀疏场景</text>
+
+  <!-- Generation 3: Deep -->
+  <rect x="40" y="285" width="880" height="110" rx="8" fill="#f0fdf4" stroke="#16a34a" filter="url(#shadow7)"/>
+  <text x="60" y="308" font-size="12" font-weight="700" fill="#16a34a">第三代：Embedding + MLP (2016-2019)</text>
+  <rect x="60" y="320" width="100" height="40" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="110" y="345" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">Wide&amp;Deep</text>
+  <line x1="160" y1="340" x2="178" y2="340" stroke="#16a34a" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="180" y="320" width="100" height="40" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="230" y="345" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">DeepFM</text>
+  <line x1="280" y1="340" x2="298" y2="340" stroke="#16a34a" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="300" y="320" width="100" height="40" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="350" y="345" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">DCN</text>
+  <line x1="400" y1="340" x2="418" y2="340" stroke="#16a34a" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="420" y="320" width="100" height="40" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="470" y="345" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">xDeepFM</text>
+  <text x="540" y="338" font-size="10" fill="#374151">核心：Embedding 表 + DNN 自动高阶交叉</text>
+  <text x="540" y="358" font-size="10" fill="#6b7280">突破：端到端学习, 不需人工特征工程</text>
+  <text x="60" y="385" font-size="10" fill="#7c3aed">Google 2016 Wide&amp;Deep → Huawei 2017 DeepFM → Google 2017 DCN → Microsoft 2018 xDeepFM</text>
+
+  <!-- Generation 4: Attention -->
+  <rect x="40" y="410" width="880" height="110" rx="8" fill="#faf5ff" stroke="#7c3aed" filter="url(#shadow7)"/>
+  <text x="60" y="433" font-size="12" font-weight="700" fill="#7c3aed">第四代：Attention 序列建模 (2018-2021)</text>
+  <rect x="60" y="445" width="100" height="40" rx="4" fill="#f3e8ff" stroke="#7c3aed"/>
+  <text x="110" y="470" text-anchor="middle" font-size="10" font-weight="600" fill="#7c3aed">DIN</text>
+  <line x1="160" y1="465" x2="178" y2="465" stroke="#7c3aed" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="180" y="445" width="100" height="40" rx="4" fill="#f3e8ff" stroke="#7c3aed"/>
+  <text x="230" y="470" text-anchor="middle" font-size="10" font-weight="600" fill="#7c3aed">DIEN</text>
+  <line x1="280" y1="465" x2="298" y2="465" stroke="#7c3aed" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="300" y="445" width="100" height="40" rx="4" fill="#f3e8ff" stroke="#7c3aed"/>
+  <text x="350" y="470" text-anchor="middle" font-size="10" font-weight="600" fill="#7c3aed">BST</text>
+  <line x1="400" y1="465" x2="418" y2="465" stroke="#7c3aed" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="420" y="445" width="100" height="40" rx="4" fill="#f3e8ff" stroke="#7c3aed"/>
+  <text x="470" y="470" text-anchor="middle" font-size="10" font-weight="600" fill="#7c3aed">SIM</text>
+  <text x="540" y="463" font-size="10" fill="#374151">核心：Attention 捕获用户兴趣动态变化</text>
+  <text x="540" y="483" font-size="10" fill="#6b7280">突破：建模用户行为序列, 兴趣多峰分布</text>
+  <text x="60" y="510" font-size="10" fill="#7c3aed">阿里 2018 DIN → 阿里 2019 DIEN → 阿里 2019 BST (Transformer) → 阿里 2020 SIM (长序列)</text>
+
+  <!-- Generation 5: Multi-task -->
+  <rect x="40" y="535" width="880" height="90" rx="8" fill="#fff7ed" stroke="#ea580c" filter="url(#shadow7)"/>
+  <text x="60" y="558" font-size="12" font-weight="700" fill="#ea580c">第五代：多目标/多场景 (2020-2023)</text>
+  <rect x="60" y="570" width="100" height="40" rx="4" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="110" y="595" text-anchor="middle" font-size="10" font-weight="600" fill="#ea580c">MMOE</text>
+  <line x1="160" y1="590" x2="178" y2="590" stroke="#ea580c" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="180" y="570" width="100" height="40" rx="4" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="230" y="595" text-anchor="middle" font-size="10" font-weight="600" fill="#ea580c">PLE</text>
+  <line x1="280" y1="590" x2="298" y2="590" stroke="#ea580c" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="300" y="570" width="100" height="40" rx="4" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="350" y="595" text-anchor="middle" font-size="10" font-weight="600" fill="#ea580c">DCN v2</text>
+  <line x1="400" y1="590" x2="418" y2="590" stroke="#ea580c" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="420" y="570" width="100" height="40" rx="4" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="470" y="595" text-anchor="middle" font-size="10" font-weight="600" fill="#ea580c">AutoInt</text>
+  <text x="540" y="588" font-size="10" fill="#374151">核心：CTR+CVR+时长 联合建模, 场景适配</text>
+  <text x="540" y="608" font-size="10" fill="#6b7280">突破：多目标 Pareto 优化, 解决 SSB 问题</text>
+
+  <!-- Generation 6: Foundation -->
+  <rect x="40" y="640" width="880" height="95" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2" filter="url(#shadow7)"/>
+  <text x="60" y="663" font-size="12" font-weight="700" fill="#dc2626">第六代：基础模型 + 生成式 (2023-Now)</text>
+  <rect x="60" y="678" width="120" height="40" rx="4" fill="#fecaca" stroke="#dc2626"/>
+  <text x="120" y="703" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">HSTU (Meta)</text>
+  <line x1="180" y1="698" x2="208" y2="698" stroke="#dc2626" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="210" y="678" width="120" height="40" rx="4" fill="#fecaca" stroke="#dc2626"/>
+  <text x="270" y="703" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">OneRec (快手)</text>
+  <line x1="330" y1="698" x2="358" y2="698" stroke="#dc2626" stroke-width="1" marker-end="url(#arr7)"/>
+  <rect x="360" y="678" width="120" height="40" rx="4" fill="#fecaca" stroke="#dc2626"/>
+  <text x="420" y="703" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">SID+LLM</text>
+  <text x="510" y="696" font-size="10" fill="#374151">核心：Semantic ID + 自回归生成式推荐</text>
+  <text x="510" y="716" font-size="10" fill="#6b7280">突破：有限词表, Scaling Law, 端到端生成 item</text>
+</svg>

@@ -1,0 +1,140 @@
+---
+title: "The Next Step for Test-Time Scaling: Letting LLMs Discover Their Own Reasoning Strategies"
+date: 2026-05-11
+tags: [技术报告解读, AI 与机器学习]
+category: "技术分享"
+sourceFile: "TestTimeScaling的下一步-让LLM自己发现推理策略.mdx"
+sourceHash: "53e691ed489f5ad7335ccc8dc7198af71d0b62a3c9f4b91f9d03c4a92047cd9a"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+The core idea of Test-Time Scaling (TTS) is simple: spend more compute at inference time in exchange for better results. Self-Consistency samples 64 reasoning paths and votes, Best-of-N generates multiple answers and picks the best with a verifier, Adaptive Stopping halts early when confidence is high enough—these methods have brought substantial improvements on math reasoning benchmarks.
+
+But all these strategies share one common trait: **they are entirely hand-designed by humans.** Researchers rely on intuition to decide when to branch, when to prune, when to stop, when to vote. Each strategy is a single hand-picked point in the vast space of "compute allocation."
+
+Google's [AutoTTS](https://arxiv.org/abs/2605.08083) paper (HuggingFace #1 Paper of the Day) poses a natural question that nobody had attempted before: **can we let an LLM search for better TTS strategies on its own?**
+
+The answer is yes. An LLM agent (Claude Code) searched for 5 rounds in an offline environment, spent $39.9 and 160 minutes, and discovered strategies that outperform all hand-designed baselines—and these strategies generalize to unseen benchmarks and model scales.
+
+This article breaks down AutoTTS's technical approach, analyzes the core problem it solves (how to make the search feasible), and discusses its implications for the broader "LLM as meta-optimizer" paradigm beyond TTS.
+
+## All TTS Strategies Are Hand-Picked Special Cases in the Same Control Space
+
+Before understanding AutoTTS, we need to see a structural fact that has been overlooked.
+
+Existing TTS strategies appear to have diverse forms—some do parallel sampling, some do sequential extension, some do tree search, some do adaptive stopping—but the paper points out that most strategies can be represented in a unified "width-depth" control space. Width is the number of parallel reasoning branches; depth is the number of reasoning steps per branch. In this space, each strategy is a specific trajectory:
+
+<TechGraph src="/images/posts/TestTimeScaling的下一步-让LLM自己发现推理策略/strategy-space.svg" title="TTS Strategy Space" caption="All TTS strategies are hand-picked trajectories in the width-depth control space" />
+
+The value of this unified perspective is that it transforms "designing a TTS strategy" from "inventing a new heuristic" into "searching for a good trajectory in a control space." And search can be automated—provided you can make the cost of searching manageable.
+
+## AutoTTS: From Designing Strategies to Designing Environments
+
+AutoTTS's core paradigm shift is: **humans no longer directly design TTS strategies; instead, they design a search environment and let an LLM agent automatically discover strategies within it.**
+
+Specifically, the human's job becomes defining four elements: the state space (how many branches exist, how deep each is, what probe signals have been obtained), the action space (branch, continue, probe, prune, stop), the feedback signal (accuracy-compute tradeoff), and the search objective (maximize accuracy while controlling the compute budget).
+
+The LLM agent's job is to iteratively propose candidate strategies (in code form) within this environment, evaluate their performance, analyze failure causes, and propose improvements.
+
+The elegance of this division of labor lies in the fact that the environment definition is relatively stable (the width-depth space doesn't change much), but the strategy space is open-ended—the agent can discover patterns of branching/pruning/stopping combinations that humans might never think of.
+
+<TechGraph src="/images/posts/TestTimeScaling的下一步-让LLM自己发现推理策略/autotts-flow.svg" title="AUTOTTS Pipeline" caption="Offline data collection → Replay environment → Discovery loop (5 rounds) → Select best → Generalization validation" />
+
+## Three Key Innovations That Make the Search Feasible
+
+Directly letting an LLM search for TTS strategies faces three obstacles: evaluation cost is too high, the search space is too large, and the feedback signal is too coarse. AutoTTS addresses each with a dedicated design.
+
+### Offline Replay Environment: Evaluation Without Re-Invoking the LLM
+
+This is AutoTTS's most critical engineering insight.
+
+Evaluating a candidate TTS strategy typically means: for each problem, run the strategy (branch, probe, prune, stop), and every step requires calling the base LLM to generate reasoning content or probe intermediate answers. If you search over 100 candidate strategies, evaluate each on 100 problems, with an average of 50 LLM calls per problem—that's 500,000 LLM inference calls in total, a completely unacceptable cost.
+
+AutoTTS's approach is: **complete all LLM calls upfront.** For each problem, pre-sample 128 complete reasoning trajectories, slice each trajectory into fixed-length intervals, and record the intermediate answer (probe signal) at the end of each interval. This data is stored in a "replay matrix."
+
+Afterward, when evaluating any candidate strategy, each action of the strategy (branch = fetch a new trajectory from the replay matrix, continue = fetch the next interval, probe = read the stored probe signal) is a lookup operation on the replay matrix, requiring no LLM calls whatsoever. Evaluation becomes deterministic, cheap, and repeatable.
+
+This design works because TTS strategy control decisions (when to branch, prune, stop) depend only on probe signals and branch state, not on modifications the strategy makes to reasoning content—the strategy doesn't alter the reasoning trajectories themselves; it only selects which trajectories to follow and how far.
+
+### Beta Parameterization: A Single Scalar Controls All Hyperparameters
+
+In preliminary experiments, the AutoTTS team found that the LLM agent tended to propose strategies with a large number of hyperparameters—up to 10. With a budget of only 5 search rounds, a 10-dimensional hyperparameter space is impossible to explore adequately, and the agent would converge to extreme solutions that overfit the search set (e.g., overly aggressive pruning thresholds).
+
+The solution is beta parameterization: each candidate strategy is allowed to expose only one scalar hyperparameter, beta, and all internal thresholds, probabilities, and budget allocations must be deterministic functions of beta. Moreover, this mapping must be monotonic—a larger beta corresponds to a larger compute budget.
+
+This compresses the search space from high-dimensional parameter tuning to a one-dimensional sweep. During evaluation, you only need to sweep across the range of beta to obtain the strategy's complete scaling curve (accuracy vs. compute cost tradeoff).
+
+The constraint is strong, but it doesn't limit the expressiveness of the strategy itself—the agent can still freely design branching/pruning/stopping logic; it's just that all internal thresholds must be derived from beta. This is a clever balance between "strategy flexibility" and "search feasibility."
+
+### Execution Trace Feedback: Telling the Agent *Why* It Failed
+
+If you only give the agent a scalar feedback (accuracy 0.45, token count 12000), it knows the strategy isn't good enough but doesn't know *why* it isn't good enough. Too few branches? Pruned too early? Or stopped too late?
+
+AutoTTS records the complete execution trace during each evaluation—what decision the strategy made at every step, the state changes of each branch, the probe signal values, and the final answer aggregation process. These traces are provided as part of the context to the explorer LLM, enabling it to diagnose specific failure modes.
+
+For example, if the agent sees "on a certain class of problems, the strategy pruned away the branch that ultimately had the correct answer at step 3," it can make targeted adjustments to the pruning logic in the next round. This is far more efficient than just looking at a scalar score and blindly trying a new strategy.
+
+This aligns with findings from another recent work: in agent loops for code generation and harness engineering, fine-grained execution feedback significantly improves discovery efficiency.
+
+## Results: What $39.9 Discovered
+
+### Discovery Cost
+
+The entire search process used AIME24 as the search set, replay environments for four Qwen3 models (0.6B/1.7B/4B/8B), 5 rounds of search, and Claude Code as the explorer agent. Total cost: $39.9, duration: 160 minutes.
+
+The reason this cost is so low is entirely thanks to the offline replay environment—no base LLM inference calls were made during the search process. All costs came from explorer LLM (Claude Code) API calls.
+
+### Strategy Quality
+
+The discovered strategies outperform all hand-designed baselines (SC@64, ASC, ESC, Parallel-Probe) on the search set (AIME24), dominating the entire accuracy-compute Pareto frontier.
+
+More importantly, generalization:
+
+**Cross-benchmark generalization.** After being discovered on AIME24, the strategies were tested directly on AIME25 and HMMT25—two math reasoning benchmarks never used during search—and still outperformed hand-designed baselines. This indicates the discovered strategies are not overfitting to the search set but capturing some universal structure of math reasoning tasks.
+
+**Cross-model-scale generalization.** The search was conducted in a joint environment across four Qwen3 models (0.6B–8B), and the discovered strategies were effective at every model scale. This indicates the strategies' effectiveness doesn't depend on a specific level of model capability.
+
+The paper doesn't publicly disclose the specific code logic of the discovered strategies (it's in the appendix but the HTML version didn't render completely), but from the descriptions, the discovered strategies contain non-intuitive patterns that humans would be unlikely to hand-design—such as non-uniform branch expansion at specific depths, or making pruning decisions based on the variance of probe signals rather than their absolute values.
+
+## The Bigger Picture: LLMs as Meta-Optimizers
+
+AutoTTS's technical contribution is specific (a TTS strategy discovery framework), but the paradigm it points to is general: **using LLMs to automatically search for algorithms that previously required hand-design by human experts.**
+
+This paradigm has three elements:
+
+1. **Define the search space.** Parameterize the algorithm to be designed as a structured space. AutoTTS uses the width-depth control space, but other domains can define other spaces.
+2. **Build a cheap evaluation environment.** This is the core bottleneck. AutoTTS's offline replay reduces evaluation cost from "calling the base LLM" to "table lookup." Not every domain has such a clean path to cheap evaluation, but the principle is universal: if you can reduce evaluation cost by orders of magnitude, search becomes feasible.
+3. **Use an LLM as the explorer.** The LLM's advantage is that it can read code, understand execution traces, and generate new candidate solutions. This is far more flexible than traditional hyperparameter search (grid search, Bayesian optimization)—it searches not parameter space but program space.
+
+AutoTTS is not the first instance of this paradigm. Google DeepMind's FunSearch (2023) used LLMs to search for mathematical functions, surpassing the best known human solutions on the cap set problem. AlphaCode generated massive numbers of candidate programs and then filtered them. But AutoTTS may be the first work to apply "LLM-driven algorithm search" to "the LLM's own reasoning strategies"—an LLM optimizing how LLMs reason.
+
+This self-referential structure is interesting. It hints at a potential positive feedback loop: better reasoning strategies → stronger LLM capabilities → better explorer → discovery of even better reasoning strategies. Of course, whether this loop actually converges or hits a fixed point currently has no theoretical guarantee.
+
+### Limitations and Open Questions
+
+AutoTTS's success rests on two premises:
+
+**Premise one: TTS strategy control decisions don't alter the reasoning trajectories themselves.** The strategy only selects "which trajectory to follow and how far," without affecting the trajectory's content. This is what makes offline replay possible. But if a TTS strategy involves active intervention in the reasoning process (e.g., inserting corrective prompts at intermediate steps, or dynamically adjusting the current branch's reasoning direction based on other branches' results), the replay environment is no longer applicable.
+
+**Premise two: The width-depth space sufficiently covers effective strategies.** The paper itself acknowledges that many TTS methods involve richer structures—tree search, verifier-guided refinement, multi-round debate, etc.—that cannot be simply described by width and depth. The current AutoTTS is a proof-of-concept demonstrating the feasibility of "automatically discovering strategies in a structured space," but designing the control space still requires human expert judgment.
+
+Another noteworthy limitation is that the discovered strategies have currently only been validated on math reasoning tasks, which have natural verifiability (answers are deterministic). For open-ended tasks (writing, translation, creative generation), evaluating TTS strategies is inherently more difficult, and the feasibility of automated discovery is correspondingly lower.
+
+### Takeaways for Practitioners
+
+**If you're doing TTS optimization:** AutoTTS's offline replay approach is worth borrowing, even if you don't use its full framework. After pre-collecting reasoning trajectories, you can quickly evaluate a large number of hand-designed strategy variants without re-running inference each time. This alone is an engineering optimization that reduces costs by orders of magnitude.
+
+**If you're building agent frameworks:** AutoTTS is a successful case of agents doing algorithm discovery. Its three design principles—cheap evaluation environments, one-dimensional parameterization to control search complexity, fine-grained execution feedback to help agents diagnose failures—can transfer to other "let LLMs search for algorithms" scenarios.
+
+**If you're following LLM long-term trends:** The direction AutoTTS points to is a meta-optimization loop of "LLMs improving LLMs." Currently it's still at the proof-of-concept stage—validated in only one domain (TTS), and the search space definition still depends on humans. But if this paradigm can extend to more domains (training strategy discovery, architecture search, reward function design), the bottleneck for LLM development might shift from "needing more human experts to design improvements" to "needing better search environment design."
+
+---
+
+**References:**
+
+- [LLMs Improving LLMs: Agentic Discovery for Test-Time Scaling](https://arxiv.org/abs/2605.08083) - Google/UMD/Meta (2026.5)
+- [Listwise Policy Optimization: Group-based RLVR as Target-Projection on the LLM Response Simplex](https://arxiv.org/abs/2605.06139) - Tencent Hunyuan (2026.5)
+- [FunSearch: Making New Discoveries in Mathematical Sciences Using LLMs](https://www.nature.com/articles/s41586-023-06924-6) - Google DeepMind (2023)
+- [Parallel-Probe: Efficient Test-Time Scaling via Cross-Branch Information](https://arxiv.org/abs/2602.07028) - UMD (2026)

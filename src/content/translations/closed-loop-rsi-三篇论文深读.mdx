@@ -1,0 +1,431 @@
+---
+title: "How Does an Agent Know It's Actually Improving? Three Papers Dissecting Closed-Loop RSI"
+date: 2026-09-11
+tags: [技术报告解读, Agent 与编程]
+category: "技术分享"
+summary: "A joint reading of Aspire, S³Gym, and HarnessDev: combining paper case studies with pedagogical walkthroughs to trace goal formation, experience formation, and behavior internalization, explaining each benchmark's tasks, feedback, scoring, and controls step by step."
+draft: false
+sourceFile: "closed-loop-rsi-三篇论文深读.mdx"
+sourceHash: "748f3a057f7b12a5d3b6ba9e81fd9e6d1ab180bf6ee0db97d30369e3e716ca3a"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+Give an Agent a test set, a scorer, and training tools, then let it iterate until the score improves. That is a clear, executable improvement process.
+
+But if you simply say "become a better engineer," things change. Should it shore up algorithms first, or learn to read unfamiliar code? When a one-off edit happens to pass the tests, should it memorize the code pattern or the debugging process? After distilling the lesson "check carefully before committing," how do you ensure that this lesson actually changes behavior on the next task?
+
+These three questions also exist in human learning: **how a direction turns into action, how an experience turns into a lesson, and how a lesson turns into a stable way of working.**
+
+Place them back into the discussion of Recursive Self-Improvement (RSI), and you can see a premise that is often taken for granted: the learning tasks and reliable feedback are already prepared. We might call this kind of setup—where the agent only needs to search for an improvement method—a "half loop," and call the direction that further takes on goal decomposition, experience judgment, and system modification a "closed loop." The term "half loop" here is a metaphor to aid discussion, not a unified classification of all RSI research.
+
+Aspire, S³Gym, and HarnessDev, released between late August and early September 2026, turned each of these capabilities into a researchable evaluation target. The three papers come from research teams with overlapping members, cite each other, and share a project homepage—they are not independent replications from three separate teams.
+
+<Callout type="info" title="Stating this article's perspective upfront">
+All three papers retain an external evaluation standard while handing over learning direction, experience interpretation, and system modification to the Agent to varying degrees. This article reads the experiments along these three capabilities: which decisions can be made autonomously, whether the artifacts pass independent inspection, and what is still missing before the next round of recursion.
+</Callout>
+
+<TechGraph src="/images/posts/closed-loop-rsi-三篇论文深读/rsi-capabilities.svg" title="From Direction to Behavior" caption="Synthesized diagram for this article, drawn based on the problem setups of the three papers. Arrows express the dependency between capabilities, not that the papers have already chained them into a single system." />
+
+## Separating the Three Questions First
+
+Imagine an engineering Agent that must continuously work on unfamiliar codebases. We will keep using it throughout to connect the three papers. This is a pedagogical scenario, not an actual shared experiment from the papers.
+
+Yesterday it fixed a bug; today it needs to decide whether to change itself. That decision involves at least three layers:
+
+| Decision to be made | Possible artifacts | Corresponding paper's focus |
+| --- | --- | --- |
+| Which capability should it work on next? | Sub-goals, training data, update methods, self-built verification | Aspire: can a broad direction be correctly operationalized? |
+| What does yesterday's experience tell it? | Annotated history, reusable rules, training samples | S³Gym: can experience improve the next decision? |
+| How can it make lessons persistently effective? | Workflows, tool strategies, state management, completion checks | HarnessDev: can it create and evolve a runnable system? |
+
+The three questions affect each other, yet each can fail independently. If the data selection is wrong, even the most stable training procedure may steer the model off course; if the experience judgment is correct, the summary may still lose the conditions needed for execution; if the rule is written into code, it may never actually enter the invocation path.
+
+There is another role that must be distinguished: **feedback visible during learning versus the evaluation the researchers use for acceptance.**
+
+The external evaluation is not necessarily a perfect Golden Verifier. It could be programmatic rules, or model-based scoring under a fixed rubric. Hiding the evaluation content tests whether the Agent can find its own direction; retaining the evaluation itself lets the researchers judge whether it has improved. The two are not contradictory.
+
+## What Benchmark Papers Are Really Studying
+
+Ordinary task evaluations typically fix the Agent, give it a batch of problems, and measure completion rate. A self-improvement benchmark additionally gives it a learning or development phase, then checks **what that phase left behind and whether those changes improved subsequent behavior**. The object under test shifts from a single response to "the process that produces the next version of the Agent."
+
+Therefore, when reading this kind of paper, you should follow a single experiment through: what the researchers hand the Agent at the start; what it is allowed to change; what feedback is provided during learning; when artifacts are frozen; and finally what tasks and criteria are used for acceptance. Looking only at the final leaderboard conflates learning ability, initial capability, tool support, and version selection.
+
+For example, System A starts at 80 points and reaches 81 after learning; System B starts at 30 and reaches 45. A has stronger final capability, but B achieved a larger gain under this setup. This is a pedagogical example illustrating that "the strongest Agent" and "the Agent that improves most from experience" are not the same ranking. Judging the latter also requires comparing learning budgets, repeated experiments, and whether original capabilities were damaged.
+
+Each of the three papers shifts the center of gravity of the experiment: Aspire does not specify concrete learning tasks for the Agent; S³Gym does not directly provide programmatically computed rewards to the explorer, letting it judge and reuse experience; HarnessDev does not provide a mature solving system, letting the model build and evolve one itself. What they provide are **experimental setups for diagnosing capabilities**, not three new algorithms that have already solved the problem.
+
+Decomposing capabilities also does not mean causality is fully isolated. Low scores in Aspire may stem from both data selection and training mistakes simultaneously; S³Gym's summary gains depend on exploration, judgment, and compression together; HarnessDev's results reflect the interplay between the execution model and the system. The papers narrow the problem through controls and trajectories, but you cannot look at a single aggregate score and declare one link as the sole cause.
+
+## Aspire: Turning "Getting Better" into Verifiable Learning Objectives
+
+### What's Handed to the Agent Is the Operationalization of the Goal
+
+In typical post-training, humans have already decided which benchmark to optimize, what the tasks look like, and how answers are scored. The agent can find data, train, and compare checkpoints, but most of the search revolves around "how to improve this metric."
+
+Aspire hides the task names and evaluation details, giving only a natural-language capability direction. The agent must decide on its own: what gap does this direction correspond to, what data should it find, what update method should it use, and how should it self-evaluate.
+
+<Figure src="/images/posts/closed-loop-rsi-三篇论文深读/aspire-objective.png" alt="Aspire contrasts explicit tasks with vague objectives: the latter requires the agent to simultaneously decide what to optimize and how to optimize it" caption="Aspire original Figure 1, PDF page 2. The new work added in the bottom half is diagnosing gaps, decomposing objectives, and constructing learning signals; on the far right, what's being verified is whether gains on self-constructed proxy objectives transfer." />
+
+[View original image](/images/posts/closed-loop-rsi-三篇论文深读/aspire-objective.png)
+
+For an engineering agent, "become better at handling unfamiliar repositories" can be decomposed into "reduce root-cause misdiagnosis," "improve tool-call accuracy," or "fix issues without breaking existing behavior." These directions require different data. Grinding through large volumes of short function-completion problems won't necessarily improve cross-file diagnosis; self-built verification that only checks whether a patch compiles may also miss behavioral regression.
+
+Therefore, what Aspire calls "autonomous objectives" needs to be understood precisely: <strong>the macro capability direction is still given by humans; what the agent autonomously selects are trainable, verifiable intermediate objectives.</strong> It does not test whether the system can decide from scratch what it should ultimately pursue.
+
+The research environment also actively takes on infrastructure work. The agent selects data, launches SFT or GRPO, sets parameters, runs self-tests, branches, and stops through a unified set of tools; the controller handles scheduling, resource limits, and checkpoint verification. This way, whether training is misconfigured no longer swallows the entire problem, and whether the objective was well-chosen becomes easier to observe. [Methods and boundaries in Aspire §3](https://arxiv.org/html/2608.31111v1#S3).
+
+### How an Aspire Experiment Begins and What Gets Submitted
+
+Taking weight evolution as an example, the input is an initial model, a capability direction, callable actions, and a budget. The agent first selects or constructs training data, registers data sources and intended use, then selects the training method, parameters, and parent checkpoint. Training completion doesn't mean the candidate is valid: the controller first confirms the model genuinely comes from this experiment's lineage, files are intact, and the update actually occurred—only then can the candidate enter evaluation.
+
+The agent can repeatedly check on its self-built validation set, and based on results, swap data, change the training plan, branch from an old checkpoint, or stop. What the researchers ultimately accept is the submitted model, not how polished its learning plan looks. If the harness is what's being modified, then the deliverable becomes the frozen prompts, workflows, tool strategies, and verification logic; the running model's weights remain unchanged.
+
+The paper uses three sets of experiments to observe this, and their scores cannot be combined into a single aggregate:
+
+| Experiment | Specific Change and Control |
+| --- | --- |
+| RQ1: Explicit tasks become broad objectives | Uses PostTrainBench's task evaluation, comparing explicit task references with vague-objective runs; the official results are not strictly single-variable prompt-only paired comparisons |
+| RQ2: Autonomously changing weights | Starting from instruction-finetuned Qwen models, comparing before and after updates on Aspire's hidden capability tasks; further split into final-only and adaptive-feedback |
+| RQ3: Autonomously changing harness | Fixed Qwen3.5-4B, compared against original Qwen-Agent; creates a successor system once, frozen before testing on research writing tasks |
+
+RQ2 and RQ3 use six directions including scientific reasoning, humanities and social sciences, medicine, mathematics, logic and reliability with instruction following, and academic writing. Evaluation items are written by experts and scored by slicing according to the corresponding objective; tasks that can be scored with deterministic rules use rules, while open-ended responses use a judge under a fixed rubric. What it verifies is whether the agent's self-constructed learning signals can align with these external standards, not whether the agent gets to define whatever outcome counts as success. [Aspire §3, §4.1, Appendices A, C](https://arxiv.org/pdf/2608.31111).
+
+### Hidden Test Items ≠ No Scoring Feedback at All
+
+Aspire's main autonomous weight-evolution experiment uses 520 expert-written evaluation items covering six capability directions. The agent cannot see the questions, answers, per-item feedback, or scoring process. But whether it can see aggregate scores during learning depends on the protocol.
+
+| Protocol | What's Visible During Learning | What the Final Result Answers |
+| --- | --- | --- |
+| Final-only | Results from self-built validation; no mid-run official scores | Without official scores to guide it, did the agent's self-selected final model actually improve |
+| Adaptive-feedback | Self-built validation results, plus a limited number of hidden evaluation aggregate scores | Can sparse aggregate scores help search, filter, and retain better candidates |
+
+The latter repeatedly queries the same capability slice, so it involves adaptive selection. Even though the items are never revealed, this score has already participated in version selection. It cannot be straightforwardly treated as a result from a test set that was completely uninvolved in development.
+
+The final-only results are more restrained: Qwen3.5-4B and Qwen3.5-9B each run twice on six objectives, for 24 runs total. Each run uses at most 40 GPU-hours of training and can produce multiple candidates, but only one final checkpoint is submitted. The paper reports the arithmetic mean of two runs per "model × objective," denoted Avg@2; this represents the average of two final scores, not the best of two.
+
+Of 12 model–objective combinations, only Qwen3.5-9B's science and academic reasoning average exceeded the initial model, going from 45.33 to 48.00. Counting by individual runs, 3/24 final checkpoints exceeded their respective baselines. <strong>1/12 and 3/24 use different denominators and cannot be conflated into the same kind of success rate.</strong> Although these two science-task runs both scored 48.00, the specific items answered correctly were not entirely identical; this supports a positive result on the same evaluation slice but is not yet sufficient to claim stable, broad capability growth. [Aspire §4.3, Appendix C.3, PDF pages 9–10, 21–22](https://arxiv.org/pdf/2608.31111).
+
+### Case Study 1: The Checklist Hit Full Marks, but the Learning Objective Was Misaligned
+
+<strong>Paper trajectory: how a proxy objective goes astray.</strong> Aspire's harness experiment gave the direction of improving academic and scientific writing. GPT-5.6 Luna started from the existing Qwen-Agent, designed its own validation, then decided how to modify the system. The key steps below are organized from Appendix D; unpublished prompt content is not filled in.
+
+| Stage | What the Agent Actually Did |
+| --- | --- |
+| Establishing proxy objective | Used a self-built validation prompt and an eight-item checklist to evaluate the original system, scoring 7/8 |
+| Choosing modifications | Added a fixed five-part answer template: research question, design, analysis, risks, and limitations |
+| Self-acceptance | Original prompt rose to 8/8; two other structurally similar prompts also scored 8/8 |
+| Stopping search | Ended after approximately 40 minutes, froze the successor harness |
+| External acceptance | In hidden evaluation, the original system's task-macro was 28.64; Luna's successor was 19.32; both are means of three executions of the frozen system |
+
+The task-macro in the table gives each evaluation item equal weight, averaging first by item, then reporting the mean across three executions of the frozen system; its statistical target differs from the Avg@2 used in the training experiments.
+
+The modification path was: identify structural gaps, fill in the template, then pass self-testing. The problem was that <strong>it treated "answer is structurally complete" as the proxy objective for "can better fulfill various research requests."</strong> When the authors inspected hidden-task outputs, they found that some questions originally asking for explanations of mechanisms, formulas, parameters, and engineering details had been rewritten into research design proposals. The answers were more tidy but didn't provide the content the questions were asking for.
+
+This is the fork between "self-judged success" and "the direction is actually correct": self-testing can only prove that the modification satisfies the self-selected checklist; whether the checklist itself covers real needs remains unproven. The comparison here is between complete successor systems; the trajectory supports the interpretation of template over-specialization, but it does not isolate the causal effect of the template alone. [Aspire §4.4, Table 2 and Appendix D, PDF pages 13–14, 23](https://arxiv.org/pdf/2608.31111).
+
+<strong>Pedagogical thought experiment: how to decompose an objective into training tasks.</strong> Return to the engineering agent that received the request to "more reliably fix unfamiliar repositories." What follows illustrates one objective-decomposition method; it is not a success trajectory validated by the paper.
+
+It first categorizes failure samples by symptom: didn't locate the root cause, made incorrect modifications, submitted without verification. Suppose trajectories show the third type recurring; only then does it propose an intermediate objective: "identify what verification evidence is still missing before patch completion." This objective is more specific than "learn more programming" and can produce trainable samples: input consists of the problem, patch, and execution logs; output consists of failure hypotheses not yet ruled out and the checks that should be run.
+
+If taking the weight path, these samples can be organized as SFT inputs and targets; if taking the harness path, they can become a pre-submission checklist procedure. Regardless of which path is chosen, a separate set of held-out examples should be reserved to check whether it can distinguish "relevant tests passed," "old results were re-quoted," and "tests failed but the summary claims success." Final acceptance then uses repository tasks that were uninvolved in development to verify repair effectiveness.
+
+Conversely, if it simplifies the objective to "include a sentence saying tests passed in every response," it would replay Luna's problem: the self-built checklist can score full marks while capability may not have grown. From broad objective to training task, what truly needs to be preserved is the chain of correspondence: <strong>failure evidence → capability gap → training samples → verification criteria</strong>. The experience judgments in the next section are precisely about providing credible raw material for this chain.
+
+### An Upward Curve May Just Be Recovery from Damage
+
+Of the 30 configuration–objective combinations in adaptive-feedback, 28 produced checkpoints that were evaluated, 21 produced checkpoints that qualified for retention, and ultimately only one combination retained a candidate that exceeded the initial model. This result comes from selection in which aggregate score feedback participated; there is no additional confirmation set. It cannot be upgraded to a generalization improvement independently replicated.
+
+The original paper has a math-task trajectory very worth remembering:
+
+| Comparison Target | Score |
+| --- | ---: |
+| Pre-training Qwen3.5-4B | 17.86 |
+| First evaluated checkpoint | 0.79 |
+| Second evaluated checkpoint | 1.75 |
+| Third evaluated checkpoint | 2.38 |
+
+From the first to the third checkpoint, the score increased by 1.59 points; relative to pre-training, it was still 15.48 points lower. If you only plot the three post-training points, the story becomes "continuous self-improvement." Add back the initial model as a baseline, and the reader sees something entirely different: training first caused regression, and subsequent search only recovered a small fraction.
+
+<Figure src="/images/posts/closed-loop-rsi-三篇论文深读/aspire-regression.png" alt="Aspire Figure 7: of 30 combinations only one retained improvement; the math trajectory rises but remains below the initial score" caption="Aspire original Figure 7, PDF page 12. The left panel tallies the entire filtering process, the middle panel tallies local changes, and the right panel preserves the pre-training baseline. The three panels have different denominators and comparison targets." />
+
+[View original image](/images/posts/closed-loop-rsi-三篇论文深读/aspire-regression.png)
+
+The paper also records a specific failure: five final checkpoints used MMLU data in numeric-label format for SFT, and all 279 corresponding evaluation outputs degenerated into single digits. This case suggests that the answer format of training data can also destroy existing behavior. However, it is a trajectory observation without randomized controls, so co-occurrence alone cannot prove that regression was caused solely by this factor.
+
+Aspire's rollback mechanism rejects candidates that do not exceed the initial score. This makes "retained scores don't decrease" hold, but non-negativity is a guarantee brought by the filtering rule—it does not mean every update was effective. For engineering agents, three reference points should be maintained simultaneously: the initial system, the current candidate, and the actually retained version. Comparing only adjacent versions makes it easy to mistake recovery for growth.
+
+## S³Gym: How Experiences Become Reusable Knowledge for Next Time
+
+Even when the learning direction is correct, an Agent may accumulate many experiences yet fail to learn reusable methods. S³Gym breaks this process further into Self-Testing, Self-Judging, and Self-Improvement.
+
+### The Agent Scores Itself; Researchers Keep a Separate Ledger
+
+S³Gym uses seven text-based games. Their states, actions, and consequences can be executed programmatically, making them suitable for observing sequential decisions while also enabling verifiable results to be computed in the background.
+
+In a single interaction, the Agent first observes the current state and history, then simultaneously produces an action and a self-score. **This self-score is an estimate of the immediate reward for that action, not a measure of "how confident I am."** After the environment executes the action, it returns the new state and visible feedback; in the background, a separate ground-truth reward computed from the actual rules is saved.
+
+In the main setup, the step-by-step background rewards and final scores are not directly given to the Agent during the exploration phase. Therefore, the scores in memory come from the Agent's own judgment, while the researchers can compare the two ledgers after the fact: what the Agent believed happened versus what the environment actually produced.
+
+<Figure src="/images/posts/closed-loop-rsi-三篇论文深读/s3gym-protocol.png" alt="S³Gym's separated exploration and evaluation flow: experiences are reused via history, summary, or parameter training; ground-truth rewards are kept on the evaluation side" caption="S³Gym original Figure 2, PDF page 7. Key reading points are the hidden environment scores and the independent held-out evaluation at the bottom. Evaluation trajectories are not added to the next round of experience." />
+
+[View original image](/images/posts/closed-loop-rsi-三篇论文深读/s3gym-protocol.png)
+
+The exploration environment is relatively lenient; the evaluation environment is stricter. Let's look at how each of these changes tests whether a strategy can transfer.
+
+"Creating one's own experiences" here means the Agent chooses actions, explores strategies, and thereby generates interaction trajectories. The game rules and environments are provided by the researchers—the Agent does not invent the entire world itself. [S³Gym §4, Table 2](https://arxiv.org/html/2608.31100v1#S4).
+
+### What Each of the Seven Games Tests
+
+Text games are not meant to simulate complete reality; they compress "action—state change—consequence" into reproducible, inspectable environments. Each of the seven tasks exposes a different information gap, and they should not all be understood as general Q&A.
+
+| Game | What the Agent Decides Each Step | Changes from Exploration to Evaluation |
+| --- | --- | --- |
+| Chess | Infer hidden movement rules from historical states, predict piece coordinates | Pieces increase from 12 to 22 |
+| Minesweeper | Choose to reveal, flag, or unflag cells based on local numeric constraints | Goes from two extra lives to immediate termination on first mine |
+| Nullify | Select two cells at the current index to combine, ultimately eliminating all cells | Expression construction steps increase from 3–7 to 5–10 |
+| Tetris | Choose the landing column and rotation angle for the next piece | Board shrinks from 10×10 to 8×8 |
+| Snake | Choose the next movement direction | Collision changes from an invalid-action penalty to a termination condition |
+| Plants-vs-Zombies | Arrange plants based on resources, enemy positions, and turn number | Battlefield changes from 3×7 to 5×6 |
+| Trust Evolution | Choose to cooperate or betray based on interaction history | Sampling shifts from favoring easy opponents to uniform sampling |
+
+Source: S³Gym Table 2 and Appendix A. The table describes the experimental configuration in this paper, not the universal rules of these games in other implementations.
+
+An experiment first measures the starting point without any cross-episode experience; then explores, saves or compresses experiences, and takes exams in the strict environment at fixed intervals. Exams use independent seeds, and trajectories do not flow back into memory or training data. This way, changes in subsequent exam scores can be interpreted as transfer from exploration-derived experience rather than memorization of exam answers.
+
+History and Summary are compared within the same model–game combination, keeping exploration seeds, evaluation seeds, interaction budgets, and decoding settings consistent, with the main variable being the representation of cross-episode experience. They do not necessarily consume the same number of tokens: summaries involve additional compression calls. The main table covers seven models with complete results; auxiliary training experiments use Qwen3-8B separately, and those results cannot be directly treated as same-condition ablations against the commercial models' in-context results.
+
+The three "Selfs" are not three unrelated score tables either. Self-Testing is primarily reflected in what exploration trajectories are generated; Self-Judging can be directly compared by matching self-scores against background rewards; Self-Improvement is verified by subsequent strict evaluations. To further demonstrate that a particular exploration strategy is better, one would need to substitute exploration strategies under the same budget as a controlled comparison—one cannot infer exploration quality solely from final gains.
+
+### Three Memory Pathways, Three Different Losses
+
+The paper compares three pathways through which experience enters future decisions.
+
+| Pathway | What the Next Decision Reads | What Is Preserved, and What Might Be Lost |
+| --- | --- | --- |
+| History ICL | Raw interaction records with self-scores | Retains state details, but consumes context and includes irrelevant information |
+| Summary Memory | Model-generated summaries of retained strategies, error-avoidance rules, next-step directions | Compresses history, but may delete applicability conditions or preserve incorrect judgments |
+| Parameter Training | Updated parameters from interaction samples | No need to re-read history each time, but noise may be written into model behavior |
+
+The summary here primarily compresses cross-episode experience; the current episode's interactions still retain the raw history. This should not be understood as the Agent being unable to see even the board or action logs during the current episode.
+
+### Case Study Two: One Betrayal Scored High—Should the Agent Remember "Always Betray from Now On"?
+
+Trust Evolution is well-suited for distinguishing "an experience" from "reusable knowledge." Each round, the Agent chooses to cooperate (collaborate) or betray (cheat), and the opponent uses a stable strategy within a game. The payoff rules for the Agent are as follows:
+
+| Agent / Opponent | Opponent Cooperates | Opponent Betrays |
+| --- | ---: | ---: |
+| Agent Cooperates | +2 | −1 |
+| Agent Betrays | +3 | 0 |
+
+These payoffs come from the paper's Appendix A. A higher immediate payoff for the current action does not automatically mean the best strategy for the entire game, because the opponent may change their next action based on your history.
+
+**Paper excerpt: a single action and the authors' interpretation.** The original §6.3 records a GPT-5.5 case with a `cheat` action and a background reward of 3.0. The authors argue that an effective summary transformed the payoff information into a decision rule conditioned on the opponent type. However, the excerpt does not provide the complete opponent trajectory or the self-score for that step, making it impossible to verify step by step how it identified the opponent, formed the summary, and then changed the next action.
+
+**Pedagogical walkthrough: why experience must preserve opponent conditions.** Below, using the paper's payoff rules, we construct a two-game, ten-round comparison. Assume Opponent A always cooperates; Opponent B cooperates in the first round, then copies the Agent's previous-round action. The opponent setups and scores below are for explanatory purposes only, not a continuation of the real trajectory described above.
+
+In round one, the Agent chooses to betray. Both opponents cooperate, so it gets +3 in both cases. At this point, compressing the experience into "betrayal is advantageous, so always betray" discards the most important unknown: how the opponent responds.
+
+The fork appears only in round two. Against Opponent A, continuing to betray still yields +3; against Opponent B, both sides betray, and the payoff drops to 0. If the Agent self-scores +3 again based on previous success, then in the second game a judgment error emerges: "self-score +3, actual 0." The background score is not visible during exploration in the main experiment, but the Agent could re-derive this consequence from the known payoff rules and visible interaction history.
+
+| Ten-Round Results with Fixed Strategy | A: Always Cooperates | B: Copies Previous Round |
+| --- | ---: | ---: |
+| Agent Always Betrays | 10×3 = 30 | 3 + 9×0 = 3 |
+| Agent Always Cooperates | 10×2 = 20 | 10×2 = 20 |
+
+This calculation only compares two fixed strategies and does not claim to have found the optimal strategy for a ten-round game. It suffices to show that while the first-round observation is identical, the rule worth retaining long-term must wait for more evidence.
+
+Thus, experience can have three different quality levels:
+
+- **Event record:** Last round I betrayed, the opponent cooperated. It preserves the fact without specifying the scope of applicability.
+- **Incorrect generalization:** Betrayal is always better. It expands a single local success into an unconditional strategy.
+- **Executable conditional rule:** Record the opponent's reaction to prior actions; if retaliatory changes appear, re-compare results over several consecutive rounds; when evidence is insufficient, continue distinguishing opponent types and avoid prematurely fixing a strategy.
+
+The third kind of rule is not just a longer reflection. It explicitly specifies the state to preserve, the trigger conditions for re-evaluation, and the next steps to take. History ICL preserves the raw dialogue from both rounds; Summary Memory should preserve this conditional structure; if samples are used for training, one must avoid cherry-picking only the first-round high-self-score actions and repeatedly reinforcing unconditional betrayal.
+
+**Self-Testing** here is responsible for generating experiences that can distinguish opponent types, **Self-Judging** is responsible for correcting estimates of action consequences, and **Self-Improvement** must further verify whether the organized rules improve performance against independent opponents in strict configurations. Getting the self-score right only completes the middle step.
+
+Mapping this to engineering Agents: the first time "adding an assertion made the test pass" should not be directly summarized as "all failures can be solved with this assertion." Reusable experience should preserve: what changes trigger what evidence checks, what signs indicate insufficient checking, and how to continue investigating when conditions are not met. The next section will show that even these conditions can be lost when written into the system. [S³Gym §4.2, §6.3, Appendix A.4, PDF pages 7–8, 18, 25](https://arxiv.org/pdf/2608.31100).
+
+### Summaries Can Indeed Help Learning, but No Single Pathway Uniformly Wins
+
+In the main experiments, each in-context learning trajectory has 30 exploration episodes; evaluation occurs every three exploration episodes, with only three strict-mode episodes per checkpoint. The paper simultaneously records the running average score, peak score, and AUC+.
+
+AUC+ can be understood as: accumulating the area of the evaluation curve that lies above the initial score, along the exploration progression. The same peak value maintained longer generally yields a larger cumulative area; but it only counts positive area—**losses below the baseline are not deducted**. So one must still examine the full curve and final performance. Different games have different scales, so raw AUC+ values cannot be meaningfully averaged across games.
+
+Below, we excerpt only the comparison of the same model across two games, not using it to rank all tasks:
+
+| GPT-5.5 AUC+ | History ICL | Summary Memory |
+| --- | ---: | ---: |
+| Chess | 0.474 | 16.840 |
+| Plants-vs-Zombies | 548.499 | 33.219 |
+
+Source: S³Gym Table 4, PDF page 12. The Chess task here is piece position prediction under hidden movement rules, not standard chess play. The unit of AUC+ is game score multiplied by exploration episodes; only compare the two methods within the same row.
+
+Summary massively increases the positive area in the first row but notably decreases it in the second. The authors' case analysis offers a useful explanation: some experiences can be compressed into stable reasoning steps, while other decisions depend on precise local state and timing. In PvZ, "develop economy first, defend in time" sounds reasonable, but it is insufficient to determine which lane needs defending right now or whether current resources are enough.
+
+This remains an interpretation of results and trajectories, not a causal ablation showing "removing which sentence from the summary costs how many points." A more robust engineering conclusion is: memory format needs to be validated per task—one cannot presume that shorter and more abstract is always better. [S³Gym §5.3, §6.3](https://arxiv.org/pdf/2608.31100).
+
+### Accurate Judgment Does Not Automatically Produce Effective Strategy
+
+S³Gym also separately tests self-score quality, using two metrics to distinguish "recognizing the outcome" from "estimating the value correctly":
+
+- **Agreement:** Whether the self-score and background reward are simultaneously greater than zero, or simultaneously not greater than zero. If the self-score is +3 and the actual reward is +1, this step still counts as agreement; it only checks whether there was positive reward.
+- **Normalized Mean Absolute Error (NMAE):** First scales both self-scores and rewards by each game's value range, then computes the mean absolute difference—lower is better. It checks whether the magnitudes match; whether the +3 vs. +1 above corresponds to a large error depends on the respective scaling ranges.
+
+High agreement may simply reflect that most actions have no reward. Therefore, one must also examine magnitude error and whether judgment aids subsequent decisions. The paper combines exploration between two evaluations into a segment and compares that segment's judgment quality with the next evaluation's gain. The aggregated segment-level correlation coefficients are −0.010 (agreement) and −0.018 (negative NMAE; negated so that higher values indicate better judgment), both near zero: segments with more accurate judgment did not show stable subsequent gain advantages. **This is a correlation observation—it cannot be concluded that accurate judgment is useless.** [S³Gym Tables 5–6, PDF pages 16–17](https://arxiv.org/pdf/2608.31100).
+
+Parameter training also has pros and cons. The auxiliary experiment uses Qwen3-8B, with no history or summary provided during evaluation. Trust Evolution's peak score reached 30, with 18 out of 19 post-update checkpoints above the starting point; but PvZ dropped from an initial 23 to 6 across all post-update checkpoints. The paper suggests possible causes including experience noise and exploration-evaluation mismatch, but has not isolated these factors individually.
+
+This is not a complete comparison of the three pathways on the same set of commercial models, so it cannot be used to conclude that parameter training is superior or inferior to in-context learning. What it directly demonstrates is: once experience enters the parameters, gains can be preserved, but errors can also be cemented.
+
+## HarnessDev: After Writing Experience into the System, Does It Actually Run?
+
+Aspire discusses learning direction; S³Gym discusses experience reuse; HarnessDev replaces the artifact being evaluated with a runnable harness.
+
+A harness is the execution system wrapped around a model: how to loop calls between the model and tools, how to organize context, save state, handle failures, when to check results and end a task. It determines whether experience can become default behavior.
+
+### The Model That Writes the System and the Model That Uses the System Need Separate Accounting
+
+HarnessDev has two phases. Creation starts from a weak seed: input interfaces and basic tools like files and processes already exist, but no one has pre-written the task-solving loop, recovery strategies, or validation rules for you. The Creator fills these in to form a complete system based on task type, constraints, and a small number of development cases. Evolution then starts from the code harness it created, reads downstream execution feedback, and continues modifying.
+
+<Figure src="/images/posts/closed-loop-rsi-三篇论文深读/harness-seed.png" alt="HarnessDev weak seed provides input interfaces and basic tools but not task-solving strategies; development can only see development tasks" caption="HarnessDev original Figure 2, PDF page 5. The weak seed is responsible for getting the program started; the creator is responsible for organizing tools into a system that can continuously complete tasks." />
+
+[View original image](/images/posts/closed-loop-rsi-三篇论文深读/harness-seed.png)
+
+To understand this experiment, you need to separate three things:
+
+- <strong>Creator</strong>: The model that creates or modifies the harness.
+- <strong>Executor</strong>: The model that executes downstream tasks within the frozen harness.
+- <strong>Development environment</strong>: The existing workbench that supports the creator in reading files, modifying code, and debugging.
+
+Self-Eval uses the same model for both creator and executor, testing whether it can write a usable system for itself. Unified-Eval standardizes the execution model to Gemini 3.1 Pro, observing how different creators' artifacts perform under a common executor. Fixing the executor reduces model capability variance but cannot eliminate compatibility issues between harness and model.
+
+Creation covers four domains and five downstream benchmarks, totaling 2,207 independent tasks. The paper observes that generated systems can approach or exceed selected mature system references in writing and machine learning experiments, while still showing clear gaps in code and search research. The "human harness references" here are paired with different execution models, and some data comes from external public results. <strong>Exceeding the reference score does not mean exceeding humans, nor can the entire gap be attributed to harness design.</strong> [HarnessDev §3–4.2, Tables 3–4](https://arxiv.org/html/2609.01437v1#S4).
+
+### What Kind of System Is Delivered, and What Does the Scorer Read?
+
+The Creator receives task type descriptions, tool and permission constraints, brief design guidance, and 1–3 development cases, then uses visible feedback to modify the weak seed. Creation independently creates three harnesses for each creator–benchmark combination, validates each separately and takes the average, denoted avg@3. This measures average performance across three creation runs; the three executions in Aspire's writing experiment are repeated runs of the same frozen system.
+
+What gets delivered after freezing depends on the downstream domain. The five benchmarks are not five homogeneous Q&A pools:
+
+| Downstream Evaluation | # Tasks | What Is Actually Validated |
+| --- | ---: | --- |
+| SWE-bench Pro public split | 731 | Actual changes and patches in the repository, scored by task success |
+| Terminal-Bench 2.1 | 89 | Final environment state after tool execution, scored by task success |
+| MLE-bench | 75 | Machine learning experiment submissions, evaluated by medal metric |
+| EQ-Bench3 | 46 | Final written text, scored by rubric |
+| BrowseComp | 1,266 | Retrieved answers, evaluated by accuracy |
+
+Total: 2,207 unique tasks. Evolution uses feedback tasks from among these; it doesn't count a separate set of new tasks. [HarnessDev Table 2, §3.4 and Appendix C](https://arxiv.org/pdf/2609.01437).
+
+This artifact boundary is critical: the harness writing `status=success` does not directly earn a score. SWE scoring is based on real repository diffs; Terminal scoring is based on the final environment state. Audit logs are used to explain the process and cannot substitute for task completion.
+
+Internally, the system must organize six categories of functionality: execution loop, tool invocation, context, state and memory, lifecycle and recovery, and result validation. These are not considered complete just because "there's a file for each in the directory." For example, when a tool returns an error, lifecycle logic needs to decide whether to retry or exit; context needs to retain the reason for retrying; final validation then checks whether the artifact satisfies requirements. The scorer looks at overall results; execution traces help researchers locate which segment didn't work.
+
+After entering Evolution, the creator can modify versions within a budget of ten official full evaluation pairs; between two official evaluations there are also limited small-sample probes. Each candidate is tracked as a frozen commit unit and only enters the official trajectory after completing evaluation on both 100 SWE tasks and 89 Terminal tasks. The creator then declares a final version, which is observed for transfer on 630 SWE tasks whose scores are not returned to the creator. This process simultaneously tests development, feedback utilization, and version selection—it is not unlimited trial-and-error until the best score is found.
+
+### Defining a State Class Does Not Mean Persistent Memory Has Formed
+
+HarnessDev's runtime audit is valuable because it doesn't just check whether a certain module exists in the source code.
+
+All 18 code harnesses implemented explicit execution loops. 11 defined a State class, but only one provided a state-saving interface, and only one implemented periodic checkpointing; across the 26,679 recorded task traces, no checkpoint events were observed.
+
+This body of evidence supports a clear conclusion: declaring a state structure is far from sufficient to prove that a persistent saving mechanism was effective in this evaluation. It does not prove the system has no temporary state whatsoever, nor can it be used to claim these modules would never trigger under all possible scenarios.
+
+<Figure src="/images/posts/closed-loop-rsi-三篇论文深读/harness-mechanisms.png" alt="HarnessDev evidence density heatmap for six mechanism categories, with the state and memory column being overall lighter" caption="HarnessDev original Figure 5, PDF page 10. Colors represent mechanism evidence density normalized and aggregated across domains and phases; the state and memory column is weaker. This is not a success rate heatmap, nor an ablation experiment measuring each mechanism's contribution." />
+
+[View original image](/images/posts/closed-loop-rsi-三篇论文深读/harness-mechanisms.png)
+
+For our engineering agents, the difference is very concrete. It can write a save function, but only when the main loop calls it when needed, the failure recovery reads it, and the task resumed after recovery uses it to avoid redundant work—only then has experience entered system behavior. Presence in source code, actual invocation, and ultimate benefit are three different levels of evidence.
+
+### Case Study Three: From "Check Before Completion" to Checks That Actually Fire
+
+<strong>Paper trajectory: How three consecutive versions were modified and validated.</strong> HarnessDev Appendix I records the evolution process of Opus 4.8 under its own execution setting. Its initial harness passed 68/100 on the SWE feedback set and scored 74.157 on Terminal. Here we continue using T1, T2, T3 from the appendix to denote three official modifications, avoiding counting incomplete attempts as evolution gains.
+
+<strong>Step one: confirm the failure data first, then decide what to change.</strong> The Creator found 56 SWE records in the event stream with a score of null and did not immediately treat null as failure; it continued reading summaries and raw results to confirm the baseline was indeed 68/100. It then attributed roughly ten of the 32 failures to build, compilation, or import issues. The modification direction therefore became: tasks after editing cannot declare completion based solely on self-testing—a real pre-completion execution check must be added, along with artifact cleanup handling for abnormal termination.
+
+This corresponds to the engineering agent we've been discussing: first decompose "unreliable fixes" into observable failure types, then turn experience into completion rules. The first version includes multiple changes simultaneously, so the score improvement cannot be fully credited to any single check function.
+
+<strong>Step two: make the check read real changes instead of relying on model memory.</strong> After the first version improved, the creator examined edit records and determined that remaining problems did not primarily stem from string replacement failures. It then added `_current_diff()`, letting the pre-completion self-review read the repository's actual diff. The input changed from "I remember what I changed" to "what actually happened in the files."
+
+<strong>Step three: find branches that never fired.</strong> This self-review relies on git diff, but many Terminal tasks produce files through shell commands that don't fall within the repository change branch. T2's mechanism did not trigger for these types of tasks. T3 therefore records explicit write paths, whether commands were executed, and recent files in the working directory, allowing non-git tasks to also undergo pre-completion artifact review.
+
+| Frozen Version | SWE Feedback Score | Terminal Feedback Score |
+| --- | ---: | ---: |
+| H0: Original system | 68.0 | 74.157 |
+| T1: Pre-completion execution check and other modifications | 73.0 | 75.281 |
+| T2: Added self-review based on real diff | 75.0 | 73.034 |
+| T3: Extended self-review to non-git artifacts | 74.0 | 74.157 |
+
+Source: HarnessDev Appendix I, PDF pages 40–41. Each row is the complete version result, not an ablation score for the corresponding module's individual contribution.
+
+<strong>Mechanism summary:</strong> Below is a simplified flow organized from the appendix of the final mechanism; this is not a verbatim copy of the source code. Timeout and other recovery branches are omitted.
+
+```text
+Model requests to end task
+  → Collect execution and validation records from this round
+  → If repository task: read real diff
+  → If non-git task: read write paths and recent artifacts
+  → Submit evidence to model for pre-completion self-review
+  → If self-review finds issues, continue modifying and validating
+  → Submit actual artifacts after completion flow is satisfied
+```
+
+Here we can answer four distinct questions in sequence. <strong>Was it written?</strong> There are clear versions and change records. <strong>Did it fire?</strong> The repository self-review fired, but it once missed the non-git branch, which was subsequently expanded in coverage. <strong>Did firing solve the problem?</strong> The appendix notes that all 25 SWE failure tasks in T2 had already triggered reflection, so "called the self-review" still doesn't guarantee correct judgment. <strong>Did it transfer overall?</strong> The final version improved from 63.02 to 67.46 on the frozen SWE-Pro-630, providing a positive result for this evolution path; it cannot prove every component contributed gains, nor does it mean transferability to arbitrary tasks or models.
+
+Version selection is also part of the case study. The creator ultimately chose T3 rather than continuing to spend the remaining seven official evaluation budgets. T1's mean across both metrics was actually about 0.06 points higher than T3, with the same total number of tasks evaluated; the creator interpreted this small difference as within run-to-run noise and considered the final mechanism's coverage. This selection did not conflate "latest version," "highest visible score," and "best unseen score."
+
+This path traces experience internalization down to actual behavior: failure classification determines the check strategy, execution exposes missed branches, and modifications are re-validated. Next, we place it back in the context of comparisons with other models.
+
+### After the Feedback Set Improves, You Still Need to Freeze the Version and Look at New Tasks
+
+Per the Evolution protocol described earlier, 100 SWE and 89 Terminal tasks are used for development feedback, and another 630 SWE tasks are used for frozen validation. <strong>Only the latter group's scores are not returned to the creator.</strong> Therefore, Terminal scores count as feedback set performance and cannot be considered transfer scores on unseen tasks.
+
+Below, three rows from Table 6 are selected to show effective transfer, diminished gains, and transfer degradation respectively. The feedback column is the average of the two development benchmarks; the unseen column only tests SWE-Pro-630. Their difference cannot be treated as "generalization loss" from the same distribution.
+
+| Creator / Execution Model | Visible Feedback Paired Score | Unseen SWE-Pro-630 |
+| --- | --- | --- |
+| Opus 4.8 / self | 71.1 → 74.1 | 63.02 → 67.46 |
+| Qwen 3.7 Max / self | 41.8 → 55.7 | 42.22 → 43.65 |
+| GPT-5.5 / fixed Gemini | 56.6 → 59.1 | 42.22 → 31.90 |
+
+Source: HarnessDev Table 6, PDF page 12, comparing the initial H0 with the creator's declared final version. There is only one evolution trajectory per creator–executor condition.
+
+In the complete results, all five self-execution trajectories performed better than H0 on unseen tasks; among the four fixed-Gemini trajectories, only Opus's artifact improved while the rest degraded. Therefore, the conclusion is neither "modifying the harness is useless" nor "letting the model iterate always makes it stronger." <strong>Some improvements are effective, but their gains depend on the execution model, and version selection can also be misled by visible feedback.</strong>
+
+The paper also observes that paired scores from repeated runs of the same version exhibit fluctuation. Small increases without repeated measurements and runtime evidence cannot be directly attributed to code changes. Cost also needs separate accounting: the execution tokens statistics in the paper measure the executor's consumption in solving downstream tasks; they do not include the creator's tokens for developing the system, let alone the full cost of improvement. [HarnessDev §4.3, Appendix B.4](https://arxiv.org/pdf/2609.01437).
+
+## Putting the Three Papers Together: How Far from a Complete Recursive Closed Loop?
+
+Now looking back at the three capabilities from the beginning—they are not a fixed pipeline of "first train, then write memory, then modify code." Goal decomposition may reveal the need to change tools; tool modification may produce new experience; new experience may in turn overturn the original capability diagnosis.
+
+But this set of papers has not yet turned this kind of mutual interaction into a long-term, unified experiment. "Recursive" in particular requires asking one more step: <strong>Has the improved system taken over the next round of improvement work, making the learning process itself more effective?</strong>
+
+Aspire's framework allows promoting a trained descendant as the decision model between rounds, but the runs reported in this paper all fix the initial decision model. Its harness experiment also only creates one successor without continuing to let H1 evolve into H2. HarnessDev fixes the development environment supporting the creator, leaving "whether the evolved harness can become the development environment for the next round" to future research.
+
+For engineering agents, these results can be crystallized into a concrete research design. Suppose the agent attributes its recent failures to "insufficient pre-completion validation"—it should then leave a traceable record like this:
+
+1. <strong>Propose a falsifiable learning objective.</strong> State which failures might be caused by insufficient validation and which are root cause misdiagnosis or implementation errors; seek counterexamples for your own judgment.
+2. <strong>Write experience as operations with trigger conditions.</strong> For example, after a code modification, the completion check needs to read post-modification test results and verify whether the results are related to the current change; it cannot rely solely on the model claiming success.
+3. <strong>Implement and confirm the invocation path.</strong> Observe in real execution whether the check fires, what it reads, how it changes the termination decision, and simultaneously record the additional resources it consumes.
+4. <strong>Freeze the version and validate using tasks not involved in the modification.</strong> Compare the initial system, candidate system, and retained system, run repeatedly to estimate fluctuation, and check whether old capabilities have degraded.
+5. <strong>Let the retained version take on the next round of learning.</strong> Under a comparable budget, verify whether it is better at discovering problems, designing validation, and selecting updates—rather than just scoring higher on the first batch of tasks.
+
+This is an experimental recommendation derived from the three papers, not a jointly published and validated protocol from the authors. The first three steps check direction, experience, and system; the last two gradually approach transfer and recursion.
+
+The human learning analogy should also stop here. Game scores and closed task sets make experiments reproducible, but they haven't solved the problem of constantly changing real-world goals and multiple goals conflicting with each other. Who ultimately defines "getting better" remains outside the experimental boundary.
+
+Goal formation must leave evidence of capability gaps; experience formation must leave applicability conditions; behavior internalization must leave records of triggers and benefits. What the next round of recursion must verify is whether these changes have made the agent better at accomplishing these three things.
+
+## Original Papers and Scope of Reading
+
+This article is based on three arXiv v1 papers. Experimental scores cited in the text come from the papers; no experiments were re-run. Teaching calculations are separately noted. The arXiv submission date for Aspire and S³Gym is 2026-08-31, with PDF-marked dates of 2026-09-01; HarnessDev's arXiv submission date is 2026-09-01, with a PDF-marked date of 2026-09-02. Blog dates and paper dates are recorded separately.
+
+- [Aspire: Can Models Self-Evolve from Vague Goals?](https://arxiv.org/abs/2608.31111) — Focus on §3–4 and Appendices A, C, D: goal operationalization, information boundaries, candidate filtering, and failure trajectories.
+- [S3Gym: Can LLMs Turn Self-Testing and Self-Judging into Self-Improvement?](https://arxiv.org/abs/2608.31100) — Focus on §4–6 and Appendix A: interaction protocols, experience paths, self-scoring, strict-mode evaluation, and game interfaces.
+- [HarnessDev: Can LLMs Create and Evolve Their Own Agent Harness?](https://arxiv.org/abs/2609.01437) — Focus on §3–4, §6, and Appendices B–I: role separation, frozen evaluation, runtime evidence, resource scoping, and development cases.
+
+All original figures were cropped directly from the corresponding PDF pages; the Chinese overview diagram was synthesized and drawn for this article. The goal decomposition for engineering Agents and the ten-round comparison of Trust Evolution are pedagogical derivations, not experimental results from the papers. Quoted original trajectories from cases are cited to specific sections; steps not publicly available are not filled in as experimental facts.

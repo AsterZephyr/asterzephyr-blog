@@ -1,0 +1,162 @@
+---
+title: "Interaction Models: When AI Models Natively Understand 'Time'"
+date: 2026-05-12
+tags: [技术报告解读, AI 与机器学习]
+category: "技术分享"
+sourceFile: "Interaction-Models-当AI模型原生理解时间.mdx"
+sourceHash: "31adedce6e2161b2a745867a4414b3f50216db38ff69c40e8913a2dd155cb827"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+# Interaction Models: When AI Models Natively Understand "Time"
+
+Ask GPT-4o Realtime to time 30 seconds for you. It can't. Ask it to count your push-ups in real time. It can't do that either. Ask it to interrupt and correct you the instant you mispronounce a word. Still can't.
+
+Not because the model isn't smart enough. GPT-4o is top-tier on virtually every intelligence benchmark. The reason it can't is more fundamental: it doesn't know what "now" is. Its worldview is turn-based—you finish speaking, then it starts thinking; it finishes speaking, then it's your turn again. Between turns, the model's perception is frozen.
+
+In May 2026, Thinking Machines Lab published a technical blog post called [Interaction Models](https://thinkingmachines.ai/blog/interaction-models/). They trained a 276B MoE model (12B active parameters) whose core design alternates between consuming a chunk of input and generating a chunk of output every 200 milliseconds. The model doesn't wait for you to finish—it listens to your speech, watches your video, and organizes its response all at the same time. Interruptions, overlaps, silences, simultaneous speech—the most natural behaviors in human conversation—require no external components whatsoever; they are all native capabilities of the model.
+
+This isn't "a faster voice assistant." It's a challenge to the fundamental paradigm underlying human-computer interaction: if an AI model can natively perceive the passage of time, what does human-AI collaboration look like?
+
+## The Structural Problem with Turn-Based Systems
+
+To understand why Interaction Models matter, you first need to see a fundamental flaw in current voice AI architectures.
+
+Clark and Brennan proposed in 1991 three foundations for effective collaboration: **co-presence** (both parties can perceive what the other is perceiving), **immediacy** (information is received at the moment it is produced), and **simultaneity** (sending and receiving information happen at the same time). Face-to-face human conversation naturally satisfies all three. But every commercialized voice AI today—including GPT-4o Realtime, Gemini Live, Qwen-omni—structurally violates all three.
+
+The reason lies at the architecture level. Take OpenAI's Realtime API as an example. Its interaction flow is:
+
+<TechGraph src="/images/posts/Interaction-Models-当AI模型原生理解时间/turn-based-vs-streaming.svg" title="Interaction Architecture Comparison" caption="Turn-based (waits for VAD to determine end of speech before processing) vs. streaming (continuous input/output every 200ms)" />
+
+The core component of a turn-based architecture is VAD (Voice Activity Detection). VAD is a signal processing module independent of the LLM, responsible for determining whether the user is speaking and whether they've finished. GPT Realtime API's server VAD has three configurable parameters: activation threshold, prefix padding duration (default 300ms), and silence trigger duration (default 500ms). Once the VAD determines the user has stopped speaking, the audio buffer is submitted to the model for processing.
+
+What does this mean? It means that during the entire time the user is speaking, the model's perception is frozen. It doesn't know what the user is currently saying, what tone they're using, or what expression they have. When the user pauses mid-sentence to take a sip of coffee, the VAD may falsely determine they've finished, and the model jumps in prematurely. When the user has said half a sentence and wants to be interrupted for a correction, the model has no idea it should interrupt—because the VAD is telling it "the user is still speaking."
+
+Thinking Machines Lab cites an observation from an Anthropic model card: users reported that Claude felt "too slow" in interactive mode, while an autonomous harness could actually leverage the model's capabilities better. Their commentary is sharp: this isn't a model capability problem, it's an interface design flaw. "Imagine resolving an important disagreement via email instead of face to face."
+
+## Micro-Turns: Building Time into the Model
+
+The core design of Interaction Models is the **multi-stream micro-turn**: every 200 milliseconds, the model alternately consumes a chunk of input and generates a chunk of output. From the model's perspective, it processes a single interleaved token sequence:
+
+```
+input_0  output_0  input_1  output_1  input_2  output_2  ...
+```
+
+From the human's perspective, input and output happen simultaneously—you're speaking while the model is thinking and responding. The 200ms granularity is fine enough that it feels continuous.
+
+This design has several key implications:
+
+**No artificially defined turn boundaries.** In a turn-based system, "when to speak" is decided by VAD. In Interaction Models, the model can choose to speak or remain silent at every 200ms time step, and this decision is the model's own. Interruptions, overlaps, waiting, simultaneous speech—these aren't edge cases requiring special handling; they're behaviors the model naturally expresses within the token sequence.
+
+**Time becomes a native dimension of the model.** Because the model continuously processes the time stream, it can perceive "how long has it been since the last event." This turns tasks like "time 30 seconds for me" or "remind me to breathe every 4 seconds"—impossible in turn-based models—into basic capabilities of Interaction Models.
+
+**The input stream is multimodal.** Each 200ms input chunk can contain any combination of audio, video frames, and text. Audio is encoded via dMel (discrete Mel spectrogram), converted through a lightweight bag-of-embeddings layer—no separate encoder like Whisper is needed. Video frames are split into 40×40 patches and encoded through hMLP (hierarchical MLP). All encoders and the Transformer backbone are jointly trained from scratch, with no pretrained frozen encoders.
+
+<TechGraph src="/images/posts/Interaction-Models-当AI模型原生理解时间/tml-architecture.svg" title="TML INTERACTION MODEL" caption="276B MoE Transformer unified processing of audio/video/text, encoder-free early fusion" />
+
+The model is a 276B parameter MoE (Mixture of Experts) with 12B active parameters. Choosing MoE over dense is a critical engineering judgment: the 200ms time budget imposes extremely tight inference latency requirements. The 12B active parameter count can meet the latency constraint on current hardware, while the 276B total parameter count provides sufficient model capacity.
+
+The audio output end uses a flow head (based on flow matching) to directly generate mel spectrograms, eliminating the need for a standalone TTS model. The entire system—dMel encoding, hMLP visual encoding, Transformer backbone, flow head—is jointly trained from scratch. This is a design principle repeatedly emphasized in the TML blog: **encoder-free early fusion**, using the lightest possible encoders to feed raw signals into the Transformer as early as possible, letting the model learn cross-modal representations on its own.
+
+## Three Generations of Real-Time Voice Architecture
+
+To understand where Interaction Models sit in the arc of technical evolution, you need to view them alongside previous generations of real-time voice architectures.
+
+**Generation Zero: Pipeline architecture.** Alexa, Google Assistant, early smart speakers. ASR converts speech to text → NLU understands intent → backend services process the request → TTS converts text back to speech. Every stage is serial, and end-to-end latency is measured in seconds. The interaction pattern is strict command-response.
+
+**Generation One: End-to-end turn-based.** GPT-4o Realtime (2024.10), Gemini Live. The model natively processes audio tokens, no longer requiring separate ASR and TTS pipelines. This dramatically reduces latency and allows the model to understand audio-dimensional information like intonation and emotion. But the interaction pattern is still turn-based—VAD determines when the user has finished speaking, and only then does the model begin generating. GPT Realtime's turn-taking latency on FD-bench V1 is 1.18 seconds.
+
+**Generation 1.5: Dual-stream full-duplex.** Kyutai's Moshi (2024.9) was the first model to attempt full-duplex voice conversation. It uses a 7B dense Transformer to model two parallel audio streams—the user's voice stream and the model's voice stream—using the Mimi neural audio codec to compress audio to 1.1kbps. The model can generate responses while the user is still speaking, with a theoretical latency of about 200ms.
+
+Moshi validated the feasibility of full-duplex, but exposed a fundamental contradiction: **a small model can be fast but not smart.** A 7B-parameter dense model meets the speed requirements, but its intelligence level is insufficient. Reviewers on HN reported: ask Moshi what year it is, and it answers "2019"; try to chat with it, and it rambles incoherently about European football or the Russia-Ukraine conflict; responses seem fast on the surface, but it's actually stalling with cached filler phrases while the real answer takes a long time to emerge.
+
+**Generation Two: Micro-turn streaming.** TML's Interaction Models. The core difference from Moshi isn't just a larger model (276B vs 7B), but three architectural leaps:
+
+| Dimension | Moshi (2024) | TML Interaction (2026) |
+|:-----|:-------------|:-----------------------|
+| Modality | Audio only | Audio + Video + Text |
+| Temporal awareness | Can listen and speak simultaneously, but doesn't understand time | Natively perceives the passage of time |
+| Deep reasoning | None (7B model is the ceiling) | Background model handles it asynchronously |
+| Audio encoding | Mimi neural codec | dMel + lightweight embedding |
+| Intelligence level | Low (frequent factual errors) | Competitive (IFEval 89.7%) |
+
+One HN commenter predicted TML's approach when Moshi was released: "A 7B model isn't going to be too smart. If a 70B model has about 1 second of latency, there's probably a system architecture that pairs one or two fast models with a slow model."—two years later, TML's interaction model + background model is exactly this idea.
+
+## Validating the Bitter Lesson in the Interaction Domain
+
+The TML blog directly cites Sutton's Bitter Lesson (2019): "Systems designed by hand will ultimately be surpassed by advances in general-purpose computation methods."
+
+In the context of real-time voice AI, what counts as "hand-designed systems"?
+
+**VAD is a hand-designed component.** It uses signal processing methods to determine whether the user is speaking, and this determination is completely independent of conversational content. VAD doesn't know whether a user's pause is for thinking or drinking coffee, doesn't know whether the user's tone is seeking to interrupt, doesn't know whether the user is talking to someone else. TML's assessment: VAD is "much dumber than the model itself."
+
+**Turn detection is a hand-designed component.** Determining whether the user has finished speaking and whether to respond is, in current systems, harness-level logic unrelated to the LLM's capabilities.
+
+**Dialog management is a hand-designed component.** In turn-based architectures, multi-turn conversation state management, context windows, and history compression are all engineering outside the model.
+
+These hand-designed components share a common ceiling effect: **scaling the model doesn't make them better.** You can upgrade GPT-4o to GPT-5, making the model smarter, but VAD is still the same VAD, turn detection is still the same turn detection. Growth in model intelligence and growth in interaction capability are decoupled.
+
+TML's core argument is: **interaction capabilities must become part of the model so that scaling simultaneously improves both intelligence and collaborative ability.** Under the Interaction Models architecture, a larger model is not only smarter but also better at judging when to speak, when to wait, and when to interrupt—because these decisions and understanding conversational content are handled by the same model.
+
+The persuasiveness of this argument lies in specific capability demonstrations. TML defined several new benchmarks to measure temporal awareness:
+
+- **TimeSpeak**: The model needs to say the right thing at user-specified time points (e.g., "remind me to breathe every 4 seconds")
+- **CueSpeak**: The model needs to speak at the semantically correct moment (e.g., "tell me the correct word every time I switch languages"—requiring a response while the user is still speaking)
+- **RepCount**: Real-time counting of repetitive actions from a video stream (e.g., push-ups)
+
+These tasks share a common characteristic: existing models—including GPT-Realtime-2.0—fundamentally cannot complete them. Not because they aren't smart enough, but because their architecture makes it impossible. A turn-based model's perception is frozen while generating a response; it simply cannot watch video in real time and count reps while the user is doing push-ups.
+
+## Background Model: Decoupling Real-Time Interaction from Deep Thinking
+
+Another key design of Interaction Models is the dual-model architecture: the interaction model handles real-time interaction, while the background model handles deep reasoning.
+
+This isn't a simple "fast model + slow model" division of labor. TML emphasizes that the interaction model itself is competitive on intelligence benchmarks—IFEval 89.7% (GPT-Realtime-2.0 is 89.6%), Audio MultiChallenge 43.4% (GPT-Realtime-2.0 minimal is 37.6%). The interaction model is not a "dim-witted front desk."
+
+But some tasks genuinely require deeper thinking—complex reasoning, code analysis, planning—things that cannot be completed within a 200ms time step. The background model works as follows:
+
+1. The interaction model determines that the current task requires deep reasoning and sends the full conversation context (not a condensed query) to the background model
+2. The background model runs asynchronously while the interaction model stays online—it can answer follow-up questions, receive new inputs, and maintain the conversational flow
+3. The background model's results flow in **at a natural gap in the conversation**, rather than abruptly interrupting the current exchange
+
+The elegance of this design lies in its analogy to human collaboration: you're chatting with a colleague while waiting for them to look up some data for you, and when they find it, they tell you at a natural pause rather than cutting you off mid-sentence.
+
+The benchmark data makes the background model's value clear: on BigBench Audio, without the background model it's 75.7%, and with it jumps to 96.5% (GPT-Realtime-2.0 xhigh thinking mode scores 96.6%). In other words, the interaction model + background model combination matches GPT's thinking mode in terms of intelligence, but without sacrificing real-time responsiveness.
+
+## What's Left Unsaid Matters More Than What's Said
+
+As a company tech blog, Interaction Models is selectively disclosed. An honest assessment needs to focus on what it *doesn't* say:
+
+**Training data is completely undisclosed.** A 276B MoE model trained from scratch—data scale, data sources, data mix—not a single word. This isn't unusual for a tech blog, but it means there is no reproducibility path.
+
+**Background model latency data is missing.** The interaction model's turn-taking latency is 0.40 seconds (FD-bench V1), but how long does it take for the background model to receive a task and return a result? This critical data point is not provided. If the background model needs 10 seconds to answer a question, the actual experience of the dual-model architecture would diverge noticeably from expectations.
+
+**Underperforms competitors on video QA.** On the QIVD benchmark (video + audio QA, streaming scenario), TML scores 54.0, GPT-Realtime-2.0 gets 57.5, and Qwen 3.5 gets 59.0. This is the only major benchmark among TML's published data where it trails—suggesting that in pure video understanding capability, the micro-turn architecture's advantages haven't fully translated yet.
+
+**New benchmarks are internally defined.** TimeSpeak, CueSpeak, and other benchmarks used to showcase temporal awareness capabilities were designed by TML themselves. Competitors "basically cannot complete" these tasks—but this also means the comparison is incomplete. When you define the benchmark, you inherently have a first-mover advantage.
+
+**Long sessions remain an unsolved problem.** Continuous audio-video streams rapidly accumulate context. TML themselves acknowledge that "very long sessions still require careful context management—this is an active research direction." Context management is already hard in text scenarios; in scenarios with 5 frames per second of video + continuous audio, context accumulates orders of magnitude faster.
+
+**On defensibility.** In the HN discussion, someone asked directly: the architecture is public, what stops Anthropic/Google/OpenAI/Meta from reproducing it? One commenter's answer was quite insightful: the published architecture is just the tip of the iceberg—hyperparameter tuning, data recipes, custom kernels, RL/eval infrastructure represent massive PhD-level engineering accumulation. But this answer also implies: if big tech companies decide to invest resources in doing the same thing, TML's time window is limited.
+
+Taking it all together: **the technical direction is correct, the engineering execution is impressive, but the current model is closer to a proof of concept than a production-ready system.** This isn't a put-down—the first system to prove that "a model can natively understand time" is inherently enormously valuable.
+
+## Implications for Practitioners
+
+**If you're building voice AI products:** The ceiling of VAD + turn-based models is already visible. The core question isn't "how to build better VAD" but "should we continue using VAD at all." The capabilities Interaction Models demonstrate (real-time video understanding, temporal awareness, simultaneous speech) are structurally impossible on turn-based architectures—not something optimization can solve. If your product roadmap requires these capabilities in 2–3 years, you need to start evaluating streaming architectures now.
+
+**If you're working on LLM inference optimization:** 200ms micro-turns impose fundamentally different requirements on inference frameworks. Existing LLM inference libraries (vLLM, TensorRT-LLM) are optimized for large-chunk prefill + long-sequence decoding. Micro-turn architectures need frequent small prefills, streaming sessions (reusing KV cache in GPU memory across requests), and deterministic train-inference alignment. TML has already contributed some streaming session optimizations to the open-source SGLang (PR #19171), including batch-invariant kernel implementations on Blackwell GPUs. The engineering challenges in this direction—overhead control for frequent small prefills, MoE routing efficiency under extremely low latency—will become core topics for the next generation of inference frameworks.
+
+**If you're interested in AI's long-term direction:** The endgame Interaction Models point toward isn't "a faster voice assistant" but "continuously co-present AI." If a model can truly do what TML demonstrates—quietly watching your screen while you work, alerting you when it spots a bug, naturally waiting while you drink your coffee instead of jumping in with an answer—then the paradigm of human-computer interaction shifts from "you ask, I answer" to "always beside you." This has profound implications for product design, privacy, and compute costs. The compute cost of continuously running a 276B MoE model is far higher than on-demand invocation of a turn-based model, but TML is clearly betting that the collaborative value of continuous perception far exceeds this cost differential.
+
+The turn-based interface isn't an inherent limitation of AI—it's engineering path dependence. The prompt-response paradigm in the NLP world, the request-response paradigm in the web world, the half-duplex communication in traditional telephone systems—these are all design choices driven by technical constraints, not the natural form of human collaboration. The first model to seriously attempt to break this path dependence has arrived. It's still rough, still has many unsolved engineering problems, and it's still unclear whether big tech will catch up within 12 months. But it has proven one thing: **AI models can natively understand time, rather than pretending to.**
+
+---
+
+**References:**
+
+- [Interaction Models](https://thinkingmachines.ai/blog/interaction-models/) - Thinking Machines Lab (2026.5)
+- [Moshi: A speech-text foundation model for real time dialogue](https://github.com/kyutai-labs/moshi) - Kyutai (2024.9)
+- [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime) - OpenAI (2024.10)
+- [The Bitter Lesson](http://www.incompleteideas.net/IncIdeas/BitterLesson.html) - Rich Sutton (2019)
+- [Grounding in Communication](https://doi.org/10.1037/10096-006) - Clark & Brennan (1991)

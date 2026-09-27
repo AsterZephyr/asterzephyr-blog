@@ -1,0 +1,159 @@
+---
+title: "Cross-Request KV Caching: Zero-Cost Acceleration for Recommendation Inference"
+date: 2026-05-17
+tags: [广告与推荐]
+category: "技术分享"
+sourceFile: "cross-request-kv-cache-推荐系统推理的零成本加速.mdx"
+sourceHash: "5051b8a6fcf9ded9de18ae777a9a6dbc4900c94695b7e5ceeacc5925acc6c5b1"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+KV caching is already standard practice for LLMs: when generating a new token, reuse cached keys and values instead of recomputing them for every preceding token. The same technique applies to recommendation systems, where the potential speedup is even more extreme: **an LLM cache eliminates O(N) repeated computation, while a recommendation cache eliminates O(C×N) computation repeated across candidates**, where C is the number of candidates, typically 50–200.
+
+This article examines the design space, engineering implementation, and production pitfalls of KV caching in recommendation systems.
+
+## Why Recommendation Systems Need KV Caching Even More Than LLMs
+
+### The LLM Case
+
+```
+Token generation: [already generated t₁...tₙ] → generate tₙ₊₁
+Cache function: avoid recomputing the KV for t₁...tₙ
+Speedup: O(N) → O(1) per token
+```
+
+### The Recommendation Case
+
+```
+Scoring: score C candidates sharing the same user's behavior sequence
+Without cache: C complete forward passes (~1500 tokens each)
+With cache: 1 user-side computation + C lightweight candidate computations (~16 tokens)
+Speedup: O(C×N) → O(N + C×d), or ~30–50x
+```
+
+<TechGraph src="/images/posts/cross-request-kv-cache-推荐系统推理的零成本加速/kv-cache-comparison.svg" title="KV CACHE COMPARISON" caption="Without vs. with caching: share user-side computation to make candidate scoring lightweight" />
+
+## Prerequisites
+
+### 1. Causal Attention Mask (Required)
+
+The mathematical prerequisite for KV caching is that **user-side token representations must not depend on ad-side tokens.**
+
+Under a causal mask:
+- S-tokens attend only to preceding S-tokens.
+- NS-tokens can attend to all S-tokens plus preceding NS-tokens.
+
+Place all user-side tokens before the ad-side tokens, and the user's KV becomes independent of the candidate—it can be cached safely.
+
+**Full attention does not work**: with bidirectional attention, S-token representations change depending on the candidate. This is why BERT-style recommendation models cannot use this optimization.
+
+### 2. Clear User/Item Separation (Required)
+
+Model inputs must divide cleanly into a user side and a candidate side:
+- User side (cacheable): behavior sequence, user profile, and contextual features.
+- Candidate side (per candidate): ad or product features.
+
+If there are user–item cross features, such as a user's historical CTR for a category, either compute them in advance and put them on the user side, or place them on the candidate side and recompute them.
+
+### 3. A Fixed Number of User-Side Tokens (Recommended, Not Required)
+
+A variable number of user-side tokens complicates cache management: each entry's shape must be recorded. In practice, padding to a fixed length solves this.
+
+## Engineering Implementation
+
+### Choosing an Architecture
+
+<TechGraph src="/images/posts/cross-request-kv-cache-推荐系统推理的零成本加速/inference-architecture.svg" title="INFERENCE SERVICE ARCHITECTURE CHOICES" caption="Three caching approaches: GPU-local, Redis cluster, and a two-tier hybrid (the preferred production option)" />
+
+| Approach | Latency | Hit Rate | Memory Overhead | Suitable For |
+|------|------|--------|---------|---------|
+| GPU-local | &lt;1ms | Low (hits only within the same Pod) | Uses GPU memory | Small scale, fixed routing |
+| Redis | 2–5ms | High (globally shared) | Separate cluster | Large-scale, stateless services |
+| Two-tier hybrid | &lt;1ms (hot) / 3ms (cold) | Highest | Moderate | Preferred for production |
+
+### Cache Key Design
+
+```
+cache_key = f"{user_id}:{seq_hash}:{model_version}"
+```
+
+- `user_id`: user identifier.
+- `seq_hash`: hash of the behavior sequence; a sequence change invalidates the cache.
+- `model_version`: invalidates old entries after a model update.
+
+### TTL Strategy
+
+- **Short TTL (seconds)**: multiple ad slots on the same page share the cache.
+- **Medium TTL (minutes)**: reuse while the user continuously scrolls a feed.
+- **Long TTL (hours)**: combine with incremental updates, computing only the delta for new behavior.
+
+In practice: `TTL = min(average user request interval × 3, 5 minutes)`
+
+### Cache Invalidation
+
+Three invalidation scenarios:
+1. **Model updates**: clear the full cache; during canary releases, old and new models each maintain their own caches.
+2. **Behavior sequence changes**: automatic invalidation through seq_hash.
+3. **Feature changes**, such as real-time label updates: invalidate as needed or accept briefly stale data.
+
+## Production Pitfalls
+
+### Pitfall 1: Cache Stampede
+
+All requests miss the cache at once → an avalanche of full computation → service failure.
+
+Solution: **staggered TTL + singleflight**.
+```python
+# For concurrent requests from one user, only the first computes; the others wait.
+async def get_or_compute(user_id, seq):
+    lock = await cache.acquire_lock(f"compute:{user_id}")
+    if lock:
+        kv = compute_user_kv(seq)
+        cache.set(user_id, kv)
+        cache.release_lock(f"compute:{user_id}")
+        return kv
+    else:
+        return await cache.wait_for(user_id, timeout=10ms)
+```
+
+### Pitfall 2: GPU Memory OOM
+
+KV cache per user ≈ 2 × n_layers × seq_len × d_model × dtype_size
+= 2 × 6 × 1500 × 256 × 2 bytes = 9.2MB / user
+
+1000 concurrent users → 9.2GB of GPU memory!
+
+Solutions:
+- Quantize the cache to INT8, halving its size.
+- Cache only the KV of the last 2–3 layers; deeper-layer KV has the greatest influence on results.
+- Use LRU eviction and tiers based on user activity.
+
+### Pitfall 3: Accuracy Drift
+
+Incremental updates accumulate error: each time a new token's KV is appended, LayerNorm statistics deviate slightly. After 100 updates, accuracy may decline.
+
+Solution: perform a full refresh after every N incremental updates. Determine N through offline evaluation; typically N=50–100.
+
+## Quantified Benefits
+
+Publicly reported ByteDance data for the OneTrans setting:
+
+| Metric | Without Cache | With Cache | Improvement |
+|------|---------|---------|------|
+| P99 latency | 45ms | 14ms | 3.2x |
+| Average latency | 25ms | 8ms | 3.1x |
+| GPU utilization | 85% | 40% | Halves GPU requirements |
+| Throughput (QPS/GPU) | 2000 | 6000 | 3x |
+
+## Implications for Practitioners
+
+1. **Causal attention is a strategic choice.** It enables KV caching—a free 3–5x speedup. If you still use full attention, migrating to causal attention is the highest-ROI optimization.
+2. **Two-tier caching is the optimal production solution.** Keep hot users on the local GPU and the full set in Redis, providing the best balance of hit rate and latency.
+3. **Design the cache alongside the model.** The model's token ordering—users first, candidates afterward—and attention mask directly determine whether caching is feasible.
+4. **Monitor the cache hit rate.** Below 70% indicates a problem with the TTL strategy or routing. At high hit rates, speedup approaches the theoretical ceiling.
+
+---
+
+*This article draws on the OneTrans system paper and engineering experience adapting LLM serving best practices (vLLM/TGI) to recommendation systems.*

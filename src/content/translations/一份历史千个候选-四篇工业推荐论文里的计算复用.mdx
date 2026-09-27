@@ -1,0 +1,305 @@
+---
+title: "How Recommendation Systems Reduce Repeated Computation: Four Industrial Papers Explained"
+date: 2026-09-24
+tags: [技术报告解读, 广告与推荐]
+category: "技术分享"
+summary: "ReST, SequenceO1, LazFormer, and UNIQUE — four industrial recommendation papers from September 2026. On the surface they tackle long sequences and unified retrieval-ranking; underneath, they all answer the same question: when one user history must score many candidates, which parts do you compute only once, and at which layer do you reuse them?"
+sourceFile: "一份历史千个候选-四篇工业推荐论文里的计算复用.mdx"
+sourceHash: "2d974a6e2f533066b2f55889f4fa45365eab7cfb0aa5f98b516fbacd3420b8dc"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+# How Recommendation Systems Reduce Repeated Computation: Four Industrial Papers Explained
+
+> Papers covered (all arXiv preprints; page numbers below refer to each paper's PDF):<br/>
+> **ReST**: From Language to Behavior: Scaling Sequence Transformers for Industrial Recommendation Ranking with Rec-Native Designs, ByteDance, [arXiv 2609.01240](https://arxiv.org/abs/2609.01240)<br/>
+> **SequenceO1**: End-to-End Ultra-Long (100K) Sequence Modeling in Recommendation with Low-Rank Caching, ByteDance, RecSys '26, [arXiv 2609.08443](https://arxiv.org/abs/2609.08443)<br/>
+> **LazFormer**: Scaling Transformers for Industrial Recommendation via Transferable Generative Pre-training, Alibaba International Digital Commerce, [arXiv 2609.14978](https://arxiv.org/abs/2609.14978)<br/>
+> **UNIQUE**: A Unified Retrieval and Ranking System for Large-Scale Feed Recommendation, Baidu et al., RecSys '26, [arXiv 2609.23718](https://arxiv.org/abs/2609.23718)
+
+Over three weeks in September, four industrial recommendation papers with online A/B results appeared on arXiv: two from ByteDance, one from Alibaba International, one from Baidu. The title keywords differ — ReST talks about rec-native Transformer scaling, SequenceO1 about 100K long sequences, LazFormer about generative pre-training, UNIQUE about unified retrieval and ranking.
+
+Read the four together, and you'll notice they spend the most ink on the same thing. In a single recommendation request there is only one user history, yet scores must be produced for tens to thousands of candidates. The bigger the model and the longer the history, the more it matters that "the user side" of the computation is done only once — whoever pulls that off can fit a much larger model into the same latency budget. Where the four papers mainly differ is *at which layer* they place this "compute once" artifact: within a single request, across multiple training samples from the same user, across consecutive serving requests, or across the retrieval and ranking stages.
+
+Below I unpack each paper along this thread: first the modeling, then how they save compute, then a side-by-side comparison, and finally a separate list of things the papers don't explain clearly enough — places where claims deserve a discount.
+
+## 1. Why Recommendation Can't Just Copy LLM Scaling
+
+The LLM scaling playbook is well established: decoder-only Transformer, scale data + parameters + compute together, loss drops as a power law. Recommendation teams have been trying to port this playbook for the past two years — HSTU, OneTrans, and RankMixer are all attempts in this direction. In its introduction, ReST boils down the reasons the port doesn't work into two points, and the other three papers are effectively responding to these same two points.
+
+**The first is signal quality.** In language, every token is a reliable observation; in user behavior, the signal is contaminated by accidental clicks, casual scrolling, and impressions driven by position bias. Time gaps between actions are also uneven — two adjacent clicks might be seconds apart or days apart — so encoding position by ordinal index alone loses that information. The supervision signal is also sparse: an LLM has a "next token" label at every position, while a ranking model has only a single delayed 0/1 conversion label. ReST observes an even more specific phenomenon: in a hybrid ranker that combines a "sequence module + traditional DLRM features," the main loss can take a shortcut through highly memorization-capable non-sequence features, leaving the sequence module with almost no gradient. The larger the model, the worse this problem gets. They call it *sequence starvation*.
+
+**The second is the shape of computation.** LLM inference generates one sequence forward. Ranking pairs one history with N candidates. If you concatenate the user history with each candidate and run the decoder separately for every candidate, the compute is N·(T + C), where T is the user side and C is the candidate side. Factor out the user side and compute it only once, and it becomes T + N·C. When T is much larger than C, the gap between these two formulations is a factor of N.
+
+<TechGraph src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/compute-shape.svg" title="Computation shapes of LLM vs. recommendation ranking" caption="Illustration: In an LLM every position has a label; in ranking one history serves N candidates, with sparse and delayed labels. Whether the user side can be computed just once determines how large a sequence model can be deployed (diagram by the author, based on the discussion in ReST Section 1)" />
+
+Prior industrial approaches to long sequences mostly used two-stage retrieval: SIM, TWIN, and TWIN V2 first cluster offline or retrieve by category a small relevant slice of behavior, then run target attention. These methods work in production, but the retrieval step is optimized separately from the final ranking objective. ByteDance's STCA at WWW 2026 pushed end-to-end modeling to 10K: it removes self-attention within the history and keeps only single-query cross attention from candidate to history, so per-layer complexity grows linearly with length. SequenceO1's baseline is STCA 10K plus TWIN V2, and ReST also lists STCA as a baseline.
+
+```mermaid
+graph LR
+    A[DIN<br/>target attention] --> B[SIM / TWIN V2<br/>retrieve then attend]
+    A --> C[STCA 10K<br/>single query cross attention]
+    C --> D[SequenceO1 100K<br/>compression + caching]
+    E[LLaMA-style / HSTU<br/>decoder-only] --> F[ReST<br/>heavy encoder, light decoder]
+    E --> G[LazFormer<br/>generative pretraining + ranking]
+    H[TIGER / RQ-VAE<br/>semantic ID retrieval] --> I[UNIQUE<br/>single-layer codebook + shared forward for retrieval & ranking]
+```
+
+The four papers start from different places, and the sequence lengths they deal with differ by two orders of magnitude. Let's start with an overview:
+
+<TechGraph src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/sequence-length-map.svg" title="How long is the sequence, and how does history enter the model" caption="Illustration: the sequence lengths handled by the four papers and how history enters the model; x-axis is log scale (drawn by the blogger, based on experiment setups and deployment sections of the four original papers)" />
+
+UNIQUE's sequences are very short—strictly speaking, it is not a long-sequence paper. I still include it here because it pushes "reuse" in a different direction: retrieval and ranking share a single forward pass. This point is discussed in Section 5.
+
+## 2. ReST: Feed the Sequence Module Well, Then Split the Computation in Two
+
+ReST comes from ByteDance; the scenario is CVR prediction for TikTok Shop Ads. What it does can be divided into two parts: one part lets the sequence encoder keep stacking improvements on recommendation data; the other part makes it runnable within a 50ms P99 latency budget.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/rest-fig1.png" alt="ReST architecture: heavy sequence encoder T and light cross decoder C" caption="Source: ReST original paper Figure 1, PDF page 3; faithful crop only" />
+
+### 2.1 Three Modifications in the Encoder
+
+ReST's encoder starts from LLaMA-style blocks (causal self-attention + SwiGLU) and modifies three things.
+
+**Dual-Gated Attention (DGA)** adds a sigmoid gate before and after the attention. The value gate suppresses unreliable behavioral features before aggregation; the output gate controls how much the attended context can rewrite the current representation after aggregation. The paper specifically notes that it did not adopt HSTU's SiLU output gate, because SiLU has no upper bound and caused attention output divergence at their scale. In the ablation (Table 3), adding only the output gate gives +0.03%; gating Q/K/V all together reaches +0.06% but costs 14.9% more FLOPs; output gate plus value gate also reaches +0.06% with only 7.5% more FLOPs. The latter was the final choice.
+
+**RoPE + RoTE** splits the attention heads into two groups: one group uses standard RoPE to encode position indices; the other group uses Rotary Temporal Embedding, which buckets real timestamps at per-head granularities and then applies rotation. Appendix A.2 gives the industrial implementation: one head uses RoPE, and the remaining heads use seven granularities—second, minute, hour, day, week, quarter, and year. Because it still uses rotation matrices, the dot product depends only on the difference of two time buckets, and FlashAttention works as before. In the ablation, RoPE contributes +0.04%; adding single-granularity (second) RoTE brings it to +0.08%; multi-granularity reaches +0.12%. The paper explicitly states: all variants already feed the time difference as an additional feature of the token, so the +0.08% is the extra gain from "writing time into the attention itself."
+
+**Stabilized Residual Normalization (SRN)**: the first ~25% of layers use Post-LN, the rest use Pre-LN (the Mix-LN approach), and each residual branch is multiplied by a learnable scalar initialized to 0.01. In deep networks, this starts close to identity mapping, and residual updates gradually open up during training. Under a 16-layer setup, Mix-LN alone gives +0.02%, SRN gives +0.08%.
+
+### 2.2 Sequence Starvation and Two Training-Time Auxiliary Losses
+
+This is the most useful part of ReST for ads teams—small changes, and easy to reproduce.
+
+The approach attaches a separate CVR prediction head on the sequence side that can only see the sequence output and candidate ad features, not the non-sequence DLRM features, with weight λ = 0.1. An additional SigLIP-style contrastive loss pulls the sequence representation and the non-sequence representation of the same user closer together. Both losses are used only during training and removed at inference time.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/rest-fig2.png" alt="Gradient norms of the sequence encoder with and without the auxiliary sequence CVR loss" caption="Source: ReST original paper Figure 2, PDF page 4; faithful crop only" width="70%" />
+
+Appendix A.3 gives concrete numbers: after adding the auxiliary loss, the average gradient norm of Q/K/V projections across encoder layers rises from 2.35 to 8.50. Table 4 shows that this loss helps all sequence models, and the larger the model, the greater the benefit: LLaMA goes from +0.16% at Base to +0.22% at Large, STCA goes from +0.13% to +0.20%. ReST itself only sees +0.07% to +0.12%; the authors' explanation is that its encoder inherently depends less on this loss.
+
+Additionally, all baselines in the main table already include this auxiliary loss. So ReST's lead over LLaMA and HSTU does not include this component of the gain.
+
+### 2.3 Heavy Encoder, Light Decoder
+
+The decoder uses only four semantic query tokens ([CLS], context, user, ad) to read the encoder's output. There are two compute-saving designs.
+
+- **Projection-free KV**: the encoder output is used directly as K and V, without redoing K/V projections for each candidate.
+- **Token-Specific Parameterization**: each of the four query tokens has its own set of Q, output gate, and FFN parameters. Parameter count increases, but activation FLOPs stay the same.
+
+The Architecture group in Table 3 breaks down the cost: adding the decoder brings +0.05% AUC with only 0.2% more FLOPs; without projection-free KV, FLOPs would increase by 6.7% with the same AUC. The same group also has another row: **adding MoE in the encoder, +500% parameters, +0.00% AUC**. On this task, the encoder's bottleneck is not parameter count.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/rest-tab3.png" alt="ReST architecture and block design ablation table" caption="Source: ReST original paper Table 3, PDF page 7; faithful crop only" width="60%" />
+
+Once the structure is decomposed this way, the system side leverages the boundary to do two things:
+
+- **User-level shared-prefix training (ULT)**: Multiple training samples from the same user within a time window are merged into a single union sequence; the encoder runs once, and a prefix mask ensures each sample only sees its own history at that point in time. On top of a training framework that already has operator fusion, mixed precision, and padding removal, end-to-end throughput improves by another 5.8×.
+- **Shared-prefix serving**: Each request runs the encoder only once, and all candidates reuse the result, reducing the per-request inference cost of the sequence part by up to 20×.
+
+### 2.4 Results
+
+Offline on TikTok Shop Ads data, relative AUC is reported against the online DLRM baseline. Under the Large configuration (sequence part ≈ 32 GFLOPs), ReST achieves +0.92%, LLaMA +0.70%, HSTU +0.61%, and a parameter-matched modern encoder-decoder (Trans.) +0.72%. The paper states that in this scenario, an offline improvement of +0.05% is already practically meaningful.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/rest-fig4.png" alt="ReST scaling curves along sequence length, depth, and width axes" caption="Source: ReST original paper Figure 4, PDF page 6; faithful crop only" />
+
+The scaling curves are the core evidence in this paper. As sequence length increases from 100 to 16K, LLaMA without the auxiliary loss barely improves, while with it ReST gains an additional ~0.4% across the entire range. Along the depth axis, LLaMA plateaus after 8 layers and HSTU after 16 layers, whereas ReST climbs from +0.59% to +0.76%. Along the width axis from 128 to 512, LLaMA and HSTU flatten around 256, and ReST is the only one still monotonically increasing at 512.
+
+Online A/B test over one week, experiment group at 20% traffic, meeting the 50ms P99 latency constraint: online streaming AUC +1.31%, advertiser value metric Advv +11.93% (p < 0.01), now fully rolled out.
+
+<Callout type="warning" title="Three things to note when reading ReST's numbers">
+The online AUC of +1.31% is higher than the offline Large configuration's +0.92%, indicating that the deployed configuration differs from the one in the offline table, but the paper does not disclose the online configuration's layer count, sequence length, or hardware. The exact definition of Advv is not public, and such ad revenue metrics are also affected by bidding and budget allocation—+11.93% should not be directly interpreted as the magnitude of model accuracy improvement. The scaling fit ΔAUC = a·F^b has its R² computed in log space, the exponent b ranges between 0.09 and 0.10, and the main difference among the three curves lies in the coefficient a.
+</Callout>
+
+## 3. SequenceO1: Compressing 100K History into a Cacheable Fixed Size
+
+SequenceO1 also comes from ByteDance, with Douyin (TikTok China) ranking as its application scenario, and has been published at RecSys '26. Its starting point is STCA at 10K: pushing further to 100K, the bottleneck is no longer just per-layer computation but also sample storage, host-to-GPU transfer, and distributed communication. So its approach is: make the 100K portion depend only on the user, compress it to a fixed size, and cache it as aggressively as possible.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/seq-fig2.png" alt="SequenceO1 overview: existing bottlenecks, model, training, inference" caption="Source: SequenceO1 original paper Figure 2, PDF page 3; faithful crop only" />
+
+### 3.1 Sketch Attention: Softmax in the Other Direction
+
+Sketch Attention uses k globally shared learnable prototypes as queries, computes affinities against the 100K behavior items to get a k×n matrix, then performs weighted aggregation to produce a k×d sketch. The online configuration uses k = 1024, d = 128, stacking two layers for refinement.
+
+The key lies in the direction of softmax. Standard attention applies softmax per query across all tokens—each prototype independently picks out the most relevant behaviors. Sketch Attention reverses this: each behavior applies softmax across all prototypes, meaning every behavior must distribute its weight of 1 across the prototypes. Under the first approach, multiple prototypes can all crowd onto a few salient behaviors, leaving the bulk of the history unattended. The reversed approach guarantees that every behavior contributes to the sketch. Since the sketch is generated before knowing what the candidates are, it needs to preserve the history as completely as possible; the selection work is left to the downstream STCA.
+
+Once the sketch is computed, the model follows two paths: the most recent 10K behaviors go through STCA directly to capture short-term interests; the sketch undergoes another round of STCA to read long-term signals. The two paths are fused by MixFormer.
+
+Table 3 compares several compression methods. When all compress to 1K×128, Sketch Attention is +1.07% over the STCA(512) baseline, TWIN V2-style KMeans clustering achieves only +0.30%, block averaging +0.46%, position-bucketed queries +0.72%, and a Lightning Attention compressor +0.83%. The mediocre performance of position-bucketed queries suggests that relevant behaviors are often far apart in the sequence—a property that differs from language.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/seq-tab3.png" alt="100K compression method comparison" caption="Source: SequenceO1 original paper Table 3, PDF page 7; faithful crop only" width="60%" />
+
+### 3.2 Caching, Batching, and Precomputation
+
+The sketch depends only on the user, so it can be cached. The cache key includes user ID, model version, history timestamp, and sketch configuration, with TTL-based invalidation. Training-side TTL is 3 hours with a hit rate of ~0.5; serving uses the same interface with a TTL of 1 hour and a hit rate of ~0.6. Using the same caching interface for both training and serving also reduces inconsistency between the two.
+
+Two additional supporting mechanisms:
+
+- **MRLB** (Multi-Request Level Batching): During training, multiple requests from the same user within a short time window are grouped together; the sketch is computed once and shared across all targets in the group. The appendix estimates with R = 40.
+- **Pipeline lift**: Since the sketch depends only on the user, it can start computing as soon as the request arrives, running in parallel with retrieval. If the cache is hit, it's a direct lookup; if not, the computation doesn't eat into the ranking latency budget.
+
+There is also a FlashSA fused kernel that computes affinities and per-prototype softmax statistics in tiles, avoiding materializing the full k×n matrix in HBM.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/seq-fig1.png" alt="SequenceO1 training/inference FLOPs vs. effectiveness up to 100K" caption="Source: SequenceO1 original paper Figure 1, PDF page 2; faithful crop only" width="60%" />
+
+### 3.3 How to Read the Numbers
+
+The most eye-catching figures in the abstract and Figure 1 are 49.9× and 63.9×. You need to understand how they are calculated (Appendix G):
+
+- Only the GEMM FLOPs of the 100K branch are counted; the overhead of the recent 10K branch and the ranker is excluded from both sides;
+- On the training side, the formula is evaluated with a hit rate of 0.5 and R = 40; on the inference side, with a hit rate of 0.6 and R = 300;
+- The comparison baseline is running STCA directly on 100K—a system that does not actually exist online.
+
+So these are analytical estimates based on observed hit rates, not end-to-end measured speedups. The paper does not report online latency, GPU utilization, or the effect of cache staleness on quality.
+
+On the effectiveness side, Figure 1(c) shows that at an average length of 85K, SequenceO1 retains 83% of the gain from directly extending STCA (+1.07% vs. +1.29%). The legend splits STCA into "measured" and "estimated" points, so the +1.29% reference value itself may be extrapolated. In the production offline comparison, the baseline is STCA 10K + TWIN V2; SequenceO1 removes TWIN V2 and replaces it with the 100K sketch branch: all targets improve—Finish AUC +0.29%, Dislike AUC +1.29%, UAUC +3.63%.
+
+Online experiments ran for one month on Douyin and Douyin Lite, with all metrics statistically significant. Douyin: 30-day active users +0.20%, watch time +1.50%, completion rate +2.33%, comments +3.59%, likes +2.36%, dislikes −6.98%. Douyin Lite: completion rate +3.49%, comments +8.61%.
+
+## 4. LazFormer: Reusing Parameters—and Training Data
+
+LazFormer comes from Alibaba International Digital Commerce Group. The scenario is homepage recommendations on a large e-commerce platform, jointly predicting CTR and CVR. It handles the longest sequences—2048 by default, extended to 9216 in experiments—though its approach to long sequences is the most straightforward. The novelty here is mainly in the training pipeline: how pre-trained parameters are connected to the ranking model, and how the same batch of data can safely be trained on for multiple epochs.
+
+### 4.1 How Pre-training Connects to Ranking
+
+The first step is generative pre-training. Next-item prediction is performed on one year of user behavior (16 million users, 11 billion tokens), with a 5-layer Transformer, 16,000 in-batch negatives, and InfoNCE. Pre-training simultaneously yields sparse item embeddings and dense Transformer parameters.
+
+The problem arises because the ranking stage has features absent during pre-training—such as add-to-cart, purchase, and the time interval between these events and the most recent click. Naively concatenating these features into the input disrupts the representation space learned during pre-training. LazFormer's solution is a Transferable Residual Adapter: new features pass through a down-GELU-up two-layer mapping and are added to the token representation, with the up matrix initialized to zero. At the start of ranking, the new features have zero effect—the model is equivalent to the pre-trained model—and then it gradually learns to use the new features. This is the same zero-initialization idea behind LoRA.
+
+The ablation (Table 3) compares several approaches: transferring only sparse parameters gives CTR AUC 0.7699; directly concatenating new features gives 0.7701; adding a randomly initialized fusion layer before input projection gives 0.7699; zero-initialized adapter gives 0.7735. Another noteworthy result: when new features are not used at all, CTR GAUC is decent, but CVR AUC drops to 0.8809. Signals like add-to-cart and purchase are essential for conversion prediction.
+
+### 4.2 How History Is Handled During Ranking
+
+The ranking model is request-level: one sample is one request, containing one history and all candidates in that request. The history is serialized, transmitted, and encoded only once.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/laz-fig2.png" alt="LazFormer's hybrid sparse attention mask" caption="Source: LazFormer original paper Figure 2, PDF page 4; faithful crop only" width="60%" />
+
+The history is processed in three stages:
+
+- **Coarse-to-fine compression**: The most recent 1024 items are kept as-is; older items are sum-pooled every 8 items;
+- **Hybrid sparse attention**: History tokens use a sliding window of 128 with causal attention, and the most recent 128 items are global tokens; candidates can attend to all history, but candidates cannot see each other—each can only see itself;
+- **Layer-wise pruning**: The deeper the layer, the fewer history tokens are retained, down to a minimum of 128.
+
+Implementation-wise, flex attention is used to compile the mask into block-sparse kernels. The final configuration has an attention sparsity of 92.63%, yielding a 5.1× attention speedup, with AUC only 0.10 percentage points lower than full self-attention. The authors' trade-off logic: the compute saved is redirected to more layers, longer sequences, and more training epochs, and that gain exceeds the 0.10-point loss.
+
+### 4.3 Multi-Epoch: Reset Sparse Parameters Each Round
+
+The "overfitting after one epoch" phenomenon in recommendations is well known: the embedding table has too many parameters, and seeing the same data a second time is enough to memorize it. LazFormer's approach is to reset the sparse parameters back to their pre-trained state at the beginning of each epoch, while the dense parameters carry over from the previous round.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/laz-tab4.png" alt="LazFormer multi-epoch training strategy comparison" caption="Source: LazFormer original paper Table 4, PDF page 7; faithful crop only" width="60%" />
+
+Table 4 results:
+
+| Configuration | CTR AUC |
+|---|---|
+| Train from scratch, 1 epoch | 0.7577 |
+| Load pre-trained sparse and freeze, 1 epoch | 0.7675 |
+| Load pre-trained sparse and continue updating, 1 epoch | 0.7699 |
+| Continue updating sparse, 3 epochs | **0.7387** |
+| Reset sparse each epoch, 3 epochs | 0.7731 |
+| Reset sparse each epoch + load pre-trained dense, 3 epochs | 0.7761 |
+
+Continuing to update sparse parameters for three epochs drops AUC by 3 percentage points compared to training for just one epoch. Only with per-epoch resetting do three epochs outperform one.
+
+### 4.4 Results
+
+Offline: CTR AUC 0.7735, which is 0.74 percentage points above the best baseline (OneTrans 0.7661); the three-round training version reaches 0.7761. The paper states that on this dataset, 0.1 percentage points is considered significant. When scaled down to match the baseline's 3 layers and 1024 sequence length, it still achieves 0.7704 with 14G training FLOPs—less than vanilla Transformer's 20G.
+
+Two-week online A/B test on the homepage recommendation feed, with a 3-layer SORT-family model as the control: IPV +5.21%, orders +3.38%, buyers +3.70%, GMV +9.85%. After scaling the model from 3 layers to 5 and increasing sequence length, single-machine QPS on an A10 drops by 12.1%.
+
+<Callout type="note" title="LazFormer's comparison conditions">
+All baselines are compared under a unified setup of 1024 length and 3 layers, and all load the same set of pretrained sparse parameters—this setup is fair in itself. However, STCA was designed for long sequences of 10K+, so comparing at 1024 length doesn't let it show its strengths; the paper's description of STCA ("aggressively compressing the user history") also doesn't fully match STCA's original mechanism. The online results don't report significance tests, and the PDF template still has placeholder text "Conference'17"—this is a fairly early preprint.
+</Callout>
+
+## 5. UNIQUE: One Forward Pass Shared by Retrieval and Ranking
+
+UNIQUE comes from Baidu (in collaboration with Beihang University and City University of Hong Kong), RecSys '26, deployed in Baidu App's homepage feed, discovery page, and short video—three scenarios, and deployed at the **retrieval stage**.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/uni-fig1.png" alt="UNIQUE overview: three modules—UIGN, EQN, and TDN" caption="Source: UNIQUE original paper Figure 1, PDF page 4; faithful crop only" />
+
+### 5.1 Single-Layer Codebook
+
+Generative retrieval typically uses RQ-VAE to assign multi-layer semantic IDs to items. UNIQUE argues that the multi-layer structure has two problems: if the first layer makes a mistake, subsequent layers propagate the error; popular items consume most of the code capacity, squeezing long-tail items into a handful of codes.
+
+Its approach is to switch to a single-layer codebook: in production, one layer of 16,384 codes replaces the original 128×128 two-layer structure, keeping the same total capacity. Before quantization, item embeddings pass through a set of DSSM-style multi-task two-tower models trained with feedback signals like relevance, CTR, watch time, and completion rate, so the codes carry information about "how users actually responded" rather than just content metadata. The codebook is updated via EMA, and during assignment the distance is adjusted by code usage frequency: the more a code is used, the higher the assignment cost.
+
+<Figure src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/uni-fig2.png" alt="Resource concentration comparison between single-layer and two-layer codebooks" caption="Source: UNIQUE original paper Figure 2, PDF page 7; faithful crop only" width="60%" />
+
+Production codebook analysis shows that the variance in resource count per code drops from 1510.85 to 389.57; the average share of the top category within each code rises from 65.43% to 78.08%. In other words, code load becomes more balanced, and the content within each code is more concentrated in the same category.
+
+### 5.2 Early Fusion and Target Split
+
+The model is a Transformer: the prefix consists of user profile plus three behavioral segments (short-term: 100 impressions including non-clicks; mid-term: 200 satisfied views; interest sequences organized by category: 200 items), followed by candidate item tokens and candidate code tokens. The prefix performs self-attention internally; candidate tokens can only attend to the prefix and cannot see each other—the same idea as LazFormer's candidate isolation.
+
+A single forward pass produces two types of results: the output at code token positions goes through an MLP to produce code logits for retrieval; the output at item token positions feeds into multiple task heads for scoring. The paper's main argument is that ranking supervision signals also improve the representations used for retrieval.
+
+The sequence length of 501 is specified in the public dataset implementation details; the production sequence length is not stated separately in the paper.
+
+### 5.3 The Deployment Details Are the Most Valuable Part of This Paper
+
+UNIQUE's offline experiments use only one public dataset, KuaiRand-Pure, which has only 7,583 items—the authors themselves call this just a "sanity check." What's truly valuable for reference in this paper is the deployment and cost information, which is rarely seen in industrial papers:
+
+- Approximately 400 NVIDIA L20 GPUs, one GPU bound per instance, TensorRT FP16;
+- Peak ~10,000 QPS, average latency 37ms, P99 89ms, online inference MFU 44.23%;
+- Cost per thousand requests approximately $0.0013;
+- At retrieval time, 100 codes are selected, retrieving hundreds of thousands of items; inner-product pre-ranking takes the top 10K, then items are grouped by code for ranking with 30 items per code;
+- Cache window of 15 seconds at midday, 30 seconds in the evening, with cache hit rates of 37% and 60% respectively;
+- New items enter the training pipeline within 5 minutes of first impression, and quantization completes within 1 hour.
+
+One-week online A/B test: total watch time +0.96%, total distribution volume +1.08%, retention +0.70%, new user watch time +1.44%. Candidates from UNIQUE retrieval account for 22.5% of the retrieval pool. Long-tail candidate share increases by 25.7% relatively, and category coverage increases by 23.3% relatively.
+
+<Callout type="warning" title="'Unified retrieval-ranking' needs a caveat">
+From the deployment description, what UNIQUE has launched online is one retrieval source: after code-prediction-based retrieval, there are still inner-product pre-ranking and an independent ranking stage, and the A/B control group is "the previous retrieval pipeline." So the online gains validate a better retrieval source; truly merging retrieval and ranking into a single model has not yet been proven online. Additionally, the paper's introduction says deployment started in February 2026, while Section 4.1.2 says January—the two are inconsistent.
+</Callout>
+
+## 6. Putting Them Together: What Gets Computed Only Once, and at Which Layer Is It Reused
+
+The four papers differ significantly in their modeling approaches, but if we look only at the "saving compute" thread, they all reuse user-side computation—just at different levels.
+
+<TechGraph src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/reuse-matrix.svg" title="What gets computed only once, and at which layer is it reused" caption="Diagram: comparing reuse strategies across four papers at four levels—within-request, across training samples, across requests, and across pipeline stages (drawn by the author, based on method and system sections of the four original papers)" />
+
+**Within-request reuse is already table stakes**—all four papers do it, just with different implementations: ReST splits into encoder and decoder; LazFormer and UNIQUE append candidates after the history and use masks to isolate attention between candidates; SequenceO1's sketch naturally depends only on the user. When writing a new ranking model today, if the history has to be re-encoded from scratch for every candidate, that's hard to justify.
+
+**Reuse on the training side is the most easily underestimated**. ReST's ULT delivered a 5.8× throughput improvement on top of an already well-optimized training framework. LazFormer changed samples to the request level, so the same history is serialized and transmitted only once. Neither touched the model architecture—all they changed was how samples are organized. A large portion of the training cost for long-sequence models is spent repeatedly storing and moving the same history around.
+
+**Cross-request caching introduces freshness problems**. Both SequenceO1 and UNIQUE implemented cross-request caching, with a 1-hour TTL and a 15–30 second window respectively. A user's most recent behavior won't enter the sketch until the cache expires. SequenceO1 compensates for this with a "most recent 10K go through a separate branch," which is likely one of the reasons it retains its dual-path structure. But neither paper quantifies the effect loss caused by stale caches.
+
+**Cross-stage reuse is still in its early days**. UNIQUE lets retrieval and ranking share representations; SequenceO1 pushes sketch computation forward into the retrieval stage. LazFormer reuses parameters from the training pipeline: pre-trained parameters are handed to the ranker, and the same data is safely trained for multiple epochs.
+
+All four papers borrowed techniques from LLMs, and all four adapted them:
+
+<TechGraph src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/llm-borrow.svg" title="Techniques borrowed from LLMs and how they were adapted for recommendations" caption="Diagram: seven LLM practices vs. the four papers' adaptations in recommendation scenarios (drawn by the author, based on the method sections and ablation tables of the four original papers)" />
+
+The direction of adaptation is broadly consistent: LLM practices assume tokens are reliable, evenly spaced, densely supervised, and that computation unfolds along a single sequence—recommendation data violates all of these. RoTE handles non-uniform time intervals, DGA handles behavioral noise, auxiliary losses handle sparse supervision, and sketch caching plus shared-prefix handle the "one history, many candidates" computation shape. The most telling example is the ReST ablation row: MoE is the standard approach for low-cost scaling in LLMs, but on this task it added 5× parameters with absolutely zero change in AUC.
+
+## 7. What These Four Papers Don't Make Clear
+
+**Offline metrics cannot be compared across papers**. ReST reports AUC as a percentage relative to their online DLRM; SequenceO1 reports relative improvement over STCA(512) or STCA 10K; LazFormer reports absolute AUC and percentage points; UNIQUE reports HR and NDCG on public datasets. "+0.92%" and "+0.74 pt" are not the same unit, and the four papers share no datasets whatsoever.
+
+**Online metrics are even less comparable**. Ad revenue +11.93%, GMV +9.85%, completion rate +2.33%, watch time +0.96%—these four numbers correspond to advertising revenue, e-commerce transactions, content consumption, and retrieval source replacement respectively, and the baseline maturity levels also differ. Larger numbers do not mean the model improvement is greater.
+
+**Training costs are essentially undisclosed**. None of the four papers provide the GPU-hours required for training. LazFormer reports per-training-run FLOPs, SequenceO1 reports analytical FLOPs, ReST reports throughput multiples, and only UNIQUE gives the hardware scale and unit cost for online serving. For teams wanting to reproduce the work, this is exactly the information they need most.
+
+**SequenceO1's gains depend on cache hit rate**. The formula in the appendix is quite clear: expected FLOPs equal the cost on a hit plus (1 − hit rate) times the SA computation. The sparser user visits are, the lower the hit rate, and the smaller the gains. The hit rates of 0.5 and 0.6 were measured under Douyin's visit frequency; for a business where users only visit once or twice a day, the results would be noticeably different.
+
+**The two ByteDance papers share a common technical lineage**. SequenceO1's authors overlap significantly with the original STCA paper's authors, and ReST also uses STCA as a baseline—both papers' internal baselines are ByteDance's own systems. They mutually corroborate that the "heavy computation on the user side, light computation on the candidate side" direction is viable, but they cannot be considered cross-validation from two independent teams.
+
+## 8. For People Working in Ads and Recommendations
+
+If you have a "DLRM + sequence module" hybrid ranker, the following things can be tried directly without major architectural changes:
+
+1. **First check whether the sequence branch is "starving."** Look at the gradient norms of the sequence module; attach an auxiliary CTR/CVR head to the sequence side that cannot see DLRM features, starting with λ = 0.1. ReST's data shows that the larger the model, the greater the gains from this step.
+2. **Change sample organization before changing the model.** Merge samples from the same request and same user so that the history is stored, transmitted, and encoded only once. ULT's 5.8× and LazFormer's request-level samples were both achieved without modifying the model.
+3. **When adding new features to a pre-trained model, zero-initialize the new branches.** This is a very low-cost practice; LazFormer's ablation shows that direct concatenation loses effectiveness.
+4. **If you want to train for more epochs, reset embeddings each epoch.** Reset sparse parameters; continue training dense parameters. LazFormer's Table 4 provides a very clear comparison.
+5. **When implementing user-side caching, define the key and TTL first, then the model.** The cache key should at least include the model version and history timestamp—otherwise, after a model update you'll read sketches from the old version. How long to set the TTL requires considering both hit rate and freshness loss simultaneously; online testing is best.
+6. **Don't rush to add MoE inside the sequence encoder.** At the very least, run a controlled experiment like the one in ReST first.
+
+## References and Image Sources
+
+- Chen et al. *From Language to Behavior: Scaling Sequence Transformers for Industrial Recommendation Ranking with Rec-Native Designs.* ByteDance, arXiv 2609.01240, 2026.
+- Guan et al. *SequenceO1: End-to-End Ultra-Long (100K) Sequence Modeling in Recommendation with Low-Rank Caching.* RecSys '26, arXiv 2609.08443, DOI 10.1145/3773078.3831864.
+- Li et al. *LazFormer: Scaling Transformers for Industrial Recommendation via Transferable Generative Pre-training.* Alibaba International Digital Commerce, arXiv 2609.14978, 2026.
+- Liu et al. *UNIQUE: A Unified Retrieval and Ranking System for Large-Scale Feed Recommendation.* RecSys '26, arXiv 2609.23718, DOI 10.1145/3773078.3831936.
+- Original figures from the papers are lossless crops of the corresponding PDF pages with no modifications; figures labeled "drawn by the author" were created by the author of this post based on the paper contents.

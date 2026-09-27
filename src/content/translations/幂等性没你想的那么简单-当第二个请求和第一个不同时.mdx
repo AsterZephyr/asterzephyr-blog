@@ -1,0 +1,221 @@
+---
+title: "Idempotency Is Harder Than You Think — When the Second Request Differs from the First"
+date: 2026-05-11
+tags: [系统与工程]
+category: "技术分享"
+sourceFile: "幂等性没你想的那么简单-当第二个请求和第一个不同时.mdx"
+sourceHash: "be54e459f9ed87502a78029115f3b0de575ec78337d84feb7006566b2ec256a1"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+When it comes to idempotency design for APIs, most backend engineers' first instinct is: attach an Idempotency-Key to the request, store the response on the server side, and return the stored result on retry. Stripe's classic blog post popularized this pattern across the entire industry, and it's become virtually the standard practice for payment APIs.
+
+This implementation works for every demo.
+
+But a recent article by Dochia (292 points on HN, 174 comments) pointed out a widely overlooked problem: **most idempotency implementations are essentially just a replay cache — they assume the retry request is completely identical to the original. What actually brings production systems down is when the second request differs from the first.**
+
+Same Idempotency-Key, but the amount changed from €10 to €100. Is it a retry? A client bug? Or a new operation? Should the server replay the old response, reject the request, or treat key+content as a new operation? You can pick any strategy — but the server must take an explicit stance. In 174 HN comments, there are at least three different answers to this question, with no consensus.
+
+This article dissects eight scenarios that a replay cache can't handle, analyzes the opposing viewpoints of two camps of engineers on HN, and examines the real-world impact of these edge cases in payment and ad billing systems.
+
+## Eight Scenarios a Replay Cache Can't Handle
+
+Let's first review the standard replay cache flow: the client sends a POST request with an Idempotency-Key, the server checks whether it has seen this key before — if not, it executes the operation and stores the response; if yes, it returns the stored response directly. This works perfectly when "the exact same request is retried once."
+
+But in production, "the exact same request is retried once" is merely the simplest of all possible scenarios. The complete scenario matrix from Dochia:
+
+| Scenario | Can replay cache handle it? | Core difficulty |
+|:---------|:---------------------------|:----------------|
+| Retry of an identical request | Yes | None |
+| Retry arrives while the first request is still executing | No | Idempotency layer becomes part of concurrency control |
+| First request succeeded locally but crashed before event publication | No | Local rows and external side effects out of sync |
+| First request called the payment provider, provider accepted, but process died before recording the result | No | Database cannot infer whether money has been transferred |
+| Same key + different request content | No | Identity ambiguity: retry or new operation? |
+| Duplicate operation with no key | No | Cannot identify duplicates |
+| Retry after key expiration | No | Conflict between expiration policy and consistency |
+| Retry after deployment/schema change/region switch | No | Hash computation changed, old retries look like new requests |
+
+If your idempotency design only handles the first row, what you've built isn't idempotency — it's a replay cache. For some endpoints that might be enough, but it's not a complete solution.
+
+## The Most Controversial Case: Same Key, Different Amount
+
+First request:
+
+```json
+{
+  "accountId": "acc_1",
+  "amount": "10.00",
+  "currency": "EUR",
+  "merchantReference": "invoice-7781"
+}
+```
+
+Second request, same Idempotency-Key `abc-123`:
+
+```json
+{
+  "accountId": "acc_1",
+  "amount": "100.00",
+  "currency": "EUR",
+  "merchantReference": "invoice-7781"
+}
+```
+
+Three possible strategies:
+
+**Strategy A: Silently replay the old response.** The client sent a €100 payment request and got back a €10 payment result. If the client doesn't carefully compare response fields, it will believe the €100 payment succeeded. This isn't idempotency — this is silent misinterpretation.
+
+**Strategy B: Return 409 Conflict.** This is Dochia's recommendation and the stance of one camp of engineers on HN. The rationale: the same scoped key being used for a different canonical command is itself a client bug and should be surfaced immediately. A common client mistake is using `cartId` instead of `paymentAttemptId` as the idempotency key — a shopping cart may have multiple checkout attempts, each with a different amount.
+
+**Strategy C: Treat key+content hash as a compound ID.** That is, `(key, hash(content))` together determine the operation identity. Same key but different content is treated as a different operation. This is reasonable in some scenarios, but the key is no longer an idempotency key in the traditional sense — it becomes part of a compound operation identifier.
+
+All three strategies are valid choices, as long as you document them explicitly. The most dangerous zone is the middle ground: the client thinks it's safely retrying, while the server silently interprets the second request as something else.
+
+## Two Opposing Camps on HN
+
+The most heated debate in the 174 HN comments wasn't about the case above, but about a more fundamental question: **how much responsibility should the idempotency layer bear?**
+
+<TechGraph src="/images/posts/幂等性没你想的那么简单-当第二个请求和第一个不同时/design-debate.svg" title="Two Camps of Idempotency Design" caption="Minimalist camp (a single unique constraint) vs Full Replay camp (store request + response + state)" />
+
+**The minimalist camp (represented by stickfigure)** has a core argument: upon seeing a duplicate idempotency key, regardless of request content, always return 409. Don't store responses, don't do replays. When the client receives a 409, it knows the operation has already been executed; as for the specific result, the client can query via other interfaces.
+
+His reasoning is practical: this reduces the problem to a single unique constraint, handleable with standard database transactions. No need to hash request content, no worries about PII storage, no need to deal with the contract question of "replay old response or return current resource state." He claims to have built multiple e-commerce APIs this way, all running well.
+
+The rebuttal comes from halestock and pdonis: **a 409 doesn't tell the client whether the original request succeeded.** If the client sent a payment request and the network timed out, it doesn't know whether the money was deducted. After retrying it receives a 409 — okay, the original request was indeed processed. But what was the result? Success? Failure? Partial completion? A 409 doesn't carry this information.
+
+The minimalist camp responds: 409 is only returned when the original request succeeded; if it failed, re-execute. But pdonis pressed on a critical case: **what if the original request is still executing?** It has neither succeeded nor failed, but the retry has already arrived.
+
+Here the divergence between the two camps becomes fundamental: the minimalists consider this essentially a concurrency control problem — "serialize with database transactions, one succeeds and the other gets 409, same as ordinary concurrent programming." The full replay camp believes concurrent retries need an explicit IN_PROGRESS state, and the retry request should either wait or receive a 202 + Retry-After — because the client needs to know the final result of the operation, not just that "someone is already doing it."
+
+Another important voice on HN came from scott_w: **payments are simply not atomic operations.** You shouldn't pretend they are. You need to store the state of each step, handle things asynchronously, and after a timeout, query status using the key returned by the processor. "Even that's not perfect — Braintree will return a 500 in the middle of processing a payment, so you still need backend reconciliation."
+
+The real divergence revealed by this discussion isn't a technical question but a **question of responsibility boundaries**: should the idempotency layer be a thin guard (minimalist camp) or a full operation manager (replay camp)?
+
+## Concurrency: INSERT-first Atomic Ownership
+
+No matter which camp you choose, concurrency handling is unavoidable. Two identical requests arrive at two API instances nearly simultaneously:
+
+<TechGraph src="/images/posts/幂等性没你想的那么简单-当第二个请求和第一个不同时/concurrent-sequence.svg" title="INSERT-FIRST Concurrency Sequence" caption="INSERT ON CONFLICT atomically acquires execution rights, avoiding the check-then-insert race condition" />
+
+The key is the INSERT-first pattern: attempt to insert the idempotency record (with IN_PROGRESS status) first, then execute business logic. Not check-then-insert.
+
+The classic check-then-insert mistake:
+
+```
+existing = find_by_key(key)
+if existing does not exist:
+    create_payment()           # Both instances reach this line
+    insert_idempotency_record()
+```
+
+Both requests observe "does not exist," both requests execute the side effect. The atomicity guarantee of INSERT ON CONFLICT DO NOTHING ensures only one request acquires execution rights.
+
+After acquiring execution rights, the local happy path completes all operations in a single transaction:
+
+```sql
+BEGIN;
+  INSERT INTO idempotency_requests (...) VALUES (...) -- IN_PROGRESS
+  INSERT INTO payments (...) VALUES (...);            -- business row
+  INSERT INTO outbox (...) VALUES (...);              -- event
+  UPDATE idempotency_requests SET status = 'COMPLETED', response_body = '...';
+COMMIT;
+```
+
+A single transaction covers the idempotency record, business row, and outbox event. This is the cleanest version.
+
+But if there's an external call in the middle — say, calling a payment provider — things change. Holding a database transaction while calling an external API is a disaster (connection pool exhaustion, timeouts causing lock stalls), but not holding a transaction means local state might say IN_PROGRESS while the external operation has already completed. At this point what you need is no longer a single idempotency request table, but an operation state machine and a recovery worker.
+
+Regarding Redis SET NX EX: at best it's an execution guard, not an idempotency solution. It doesn't durably remember operation results. If the Redis lock expires while the payment provider is still processing, another request can enter. If the process dies after the provider succeeds but before the response is stored, the lock doesn't help the retry request figure out what happened.
+
+## Hash the Command, Not the Bytes
+
+Determining whether two requests are "the same" is harder than it looks. These two JSON bodies should be considered the same command:
+
+```json
+{"amount": "10.00", "currency": "EUR"}
+{"currency": "EUR", "amount": "10.00"}
+```
+
+Field order and whitespace shouldn't affect the judgment. But default values are a subtler trap:
+
+```json
+{"accountId": "acc_1", "amount": "10.00", "currency": "EUR"}
+{"accountId": "acc_1", "amount": "10.00", "currency": "EUR", "channel": "web"}
+```
+
+If `channel: "web"` is a server-side default, are these two requests logically equivalent? Maybe. Make that decision before hashing.
+
+The correct approach is to hash the validated command, not the raw HTTP body:
+
+1. Parse the request into a versioned DTO/Command
+2. Normalize values the API considers equivalent: amount format, enum casing, default fields, timestamp precision
+3. Exclude transport-layer metadata
+4. Include path parameters and operation name
+5. Include headers that affect operation semantics (e.g., API version number)
+6. Exclude Authorization and the idempotency key itself
+7. Hash after normalized serialization
+
+One thing to be especially careful about: the request hash is a contract. If you change how the hash is computed (e.g., a new field is added after deployment), old retry requests will suddenly appear different from the original. This can cause you to reject legitimate retries, or accept new operations that shouldn't be accepted.
+
+## Unknown Downstream State: The Truly Hardest Part of Idempotency
+
+All the scenarios discussed above — concurrency, hash mismatches, 409 vs replay — share an implicit assumption: the server knows the final result of the operation. But in scenarios involving external systems, this assumption frequently doesn't hold.
+
+The classic scenario: you called the payment provider's API, the provider accepted the charge request, and then your process crashed — before writing the result to the database.
+
+At this point your local state says IN_PROGRESS, but the money has actually been deducted. When the retry arrives, you face three choices, each with consequences:
+
+1. **Call the provider again** — if the provider doesn't implement idempotency itself, you'll double-charge
+2. **Assume it didn't succeed, don't charge** — you might swallow a completed payment
+3. **Trigger reconciliation** — the safest but slowest option; the user might have to wait minutes or even hours to know the result
+
+There is no elegant local solution for this scenario. Dochia's recommendation is to introduce an `UNKNOWN_REQUIRES_RECOVERY` state, triggering a reconciliation flow or returning a pending status when the retry arrives. But reconciliation itself depends on the provider offering a query interface, and query results can also be delayed.
+
+<TechGraph src="/images/posts/幂等性没你想的那么简单-当第二个请求和第一个不同时/state-machine.svg" title="Idempotency Record State Machine" caption="Complete state machine: 6 states + behavior branches when retries arrive" />
+
+This is the complete state machine for idempotency. Compared to the "store response + replay" replay cache, the complexity differs by an order of magnitude.
+
+## Implications for Real-World Systems
+
+### Payment Systems
+
+Payments are the classic scenario for idempotency discussions, but scott_w's point on HN deserves attention: **a payment is not an atomic operation, and you shouldn't pretend it is.** The correct architecture decomposes a payment into multiple steps (create intent, authorize, capture, settle), each of which handles idempotency independently. End-to-end consistency is ensured by state machines and reconciliation, not by a single global idempotency key.
+
+Stripe's approach is an industry standard validated over a decade of production use: a 24-hour replay window; within the window, same key + same content returns the stored response, different content returns 409; after the window expires, the key can be reused. This design strikes an excellent balance between simplicity and safety.
+
+### Ad Billing Systems
+
+Ad systems have their own idempotency requirements, and the error budget is even tighter—overcharging an advertiser means real monetary losses. Typical scenarios:
+
+**Impression billing deduplication.** The same ad impression may be reported multiple times (network retransmission, client retries). Here the idempotency key is usually a combination of `(impression_id, timestamp)`, and the idempotency strategy is pure deduplication—a second report is simply discarded. This is the simplest case; a unique constraint is all you need.
+
+**Conversion attribution retries.** Conversion events (e.g., a user clicks an ad and then purchases a product) are postbacked from a third-party attribution platform and must be matched against ad delivery records before billing. The complexity here is twofold: the attribution platform may send duplicate events, and it may also send different attribution versions of the same conversion (last-click vs. multi-touch). The latter is essentially the "same key, different content" problem.
+
+**Idempotency constraints in bidding systems.** Bid requests in RTB (real-time bidding) systems have strict latency requirements—the same bid request must be responded to within 100ms. If the bid server's response is lost in transit, the SSP won't wait and retry; it simply uses another buyer's bid. Traditional idempotent retries aren't needed here, but you do need to ensure that the same bid request doesn't result in two charges across different processing paths.
+
+### Design Decision Checklist
+
+If you're designing an API that requires idempotency, here are the questions you need to answer explicitly:
+
+1. **What is the scope of the key?** Tenant, user, account, merchant, or global? An `abc-123` generated by a broken client should only collide with itself.
+2. **Is the operation name encoded in the key?** A key for `create_payment` shouldn't automatically collide with `create_refund`.
+3. **How do you handle same key, different content?** Silent replay, 409, or compound ID? Pick one and document it.
+4. **How do you handle concurrent retries?** Wait, 202, or 409? INSERT-first or check-then-insert?
+5. **Store the full response or a resource reference?** The former carries PII risk; the latter may return an inconsistent response if the resource has changed since the original replay.
+6. **What is the key expiration policy?** 24 hours? 7 days? Never? What happens after expiration?
+7. **How do you recover from the unknown state of external side effects?** Reconciliation? Compensating transactions? Manual intervention?
+
+The answers to these questions are not independent of each other. For example, if you choose "store full responses," you need to think about PII cleanup; if you choose "409 always rejects," you need to make sure clients have a way to query the final status of the operation. The real difficulty of idempotency isn't implementing any single case—it's that the cross-product of all these cases forms a design space, and you need to find a consistent set of strategies within that space.
+
+Back to the question in the title: idempotency really isn't as simple as you think. But it's not infinitely complex either—once you draw out the state machine and fill in the behavior for each scenario in a decision table, the complexity is finite and manageable. The real danger isn't not knowing what to do; it's thinking that a replay cache is all there is to it.
+
+---
+
+**References:**
+
+- [Idempotency is easy until the second request is different](https://blog.dochia.dev/blog/idempotency/) - Dochia (2026.5)
+- [APIs, robustness, and idempotency](https://stripe.com/blog/idempotency) - Stripe (2018.3)
+- [The Idempotency-Key HTTP header field](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-00) - IETF Draft (2021.11)
+- [Idempotence now prevents pain later](https://ericlathrop.com/2021/04/idempotence-now-prevents-pain-later/) - Eric Lathrop (2021.4)

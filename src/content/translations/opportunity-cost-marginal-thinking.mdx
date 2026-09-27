@@ -1,0 +1,222 @@
+---
+title: "Mankiw's Ten Principles of Economics: Reading Notes on Choice, Cooperation, and How Societies Function"
+date: 2026-09-12
+tags:
+  - 成长与思考
+  - 读书笔记
+category: "读书与思考"
+summary: "From scarcity and opportunity cost to comparative advantage, market institutions, productivity, and inflation. Connecting the ten principles to understand how they change our judgment—and which questions still need to be pursued."
+draft: false
+sourceFile: "opportunity-cost-marginal-thinking.mdx"
+sourceHash: "deea59b4fcc3f5498d82e10c77640a6f994feb59da94beee3e44d0e41b2ea854"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+Some of the ten principles of economics look almost like common sense at first glance. People face trade-offs; doing one thing means giving up another; people respond to incentives and penalties. We experience these things every day.
+
+But knowing a statement and being able to use it to analyze a specific problem are very different. How do you calculate the cost of going back to school? If one person can do everything faster than another, why is specialization still necessary? If markets can coordinate choices, why do we also need government? When the money supply increases, whose decisions ultimately turn that into a new number on the bakery's price tag?
+
+I want to connect these questions and understand them together. The ten principles start with individual decision-making, move to how people interact with one another, and finally discuss how the economy as a whole operates. The scope of observation changes, but a few things run through all of it: **resources are limited, people make choices, choices affect others, and outcomes don't necessarily align with original intentions.**
+
+These notes unfold along that thread. Concrete numerical examples are used to make the reasoning clear; the qualifiers in the principles—"usually," "sometimes," "in the short run"—are preserved alongside the conclusions, because they matter just as much.
+
+## From Managing a Household to Managing Scarce Resources
+
+Every day a household has to allocate tasks and resources: who picks up the kids, who cooks, whether to spend money on improving the house or paying for education, whether to use the weekend for rest or to catch up on a backlog of work. Different arrangements each have their benefits, but time and budget don't allow all wishes to be fulfilled simultaneously.
+
+Scale this up to a society, and it becomes: what to produce, who produces it, how to produce it, and how output is distributed. Economics studies how society manages scarce resources.
+
+"Scarcity" here doesn't just mean poverty, nor does it necessarily mean the absolute quantity of something is very small. It means that relative to all the uses we'd like to put them to, resources are insufficient to satisfy every need. A wealthier person still has only twenty-four hours in a day; a more technologically advanced society still has to decide where to deploy talent, land, and energy.
+
+Therefore, before discussing any choice, I first spell out the constraints: Is it money that's insufficient, time, information, or are several goals inherently in conflict? Without stating the constraints first, it's easy to mistake "what would be nice if conditions were unlimited" for a realistic plan.
+
+## I. How Individuals Make Decisions
+
+### 1. People Face Trade-offs: What You Get Depends on What You Give Up
+
+Suppose you have only four hours a day to study. Spending one more hour on math means one less hour for other subjects or for rest. Acknowledging this trade-off doesn't mean math is more important than rest—it simply makes explicit where the choice occurs.
+
+The societal-level "guns versus butter" carries the same meaning: given existing resources and technology, directing more resources toward national defense means some resources can no longer be used for civilian production. It's a simplified expression about the allocation of resources and cannot directly endorse any specific budget ratio.
+
+This principle is easily misused as "everything requires sacrifice, so no improvement is possible." If resources are idle or processes are inefficient, reorganization can very well improve multiple goals simultaneously; technological progress can also expand the range of available choices. What really needs to be compared is: **under currently feasible conditions, how much less B must you accept in order to get a bit more A.**
+
+Efficiency and equity should also be discussed at this level. Efficiency concerns how much benefit limited resources can generate; equity concerns how those benefits and costs are distributed. A specific policy might improve both, or it might require a trade-off. You can't just call for "balancing both" without explaining the mechanism through which the policy operates.
+
+### 2. The Cost of Something Is What You Give Up to Get It: Opportunity Cost Requires a Reference Point
+
+If you decide to spend a year studying, it's easy to start by summing up tuition, rent, and living expenses. But if you hadn't gone back to school, what could you have done with that year? This forgone path must also enter the calculation.
+
+Opportunity cost is the value of the best feasible alternative that was given up. It requires first establishing a reference point, rather than adding up every good thing you might have missed. [OpenStax: Opportunity Cost](https://openstax.org/books/principles-economics-3e/pages/2-1-how-individuals-make-choices-based-on-their-budget-constraint)
+
+**The amounts below are hypothetical teaching examples, in units of ten-thousand yuan.** For now we only look at one year of cash inflows and outflows, ignoring interest, scholarships, and part-time income.
+
+Working directly: after-tax income of 180,000 yuan, living expenses of 60,000 yuan, net cash increase of 120,000 yuan by year-end. Full-time study: tuition of 80,000 yuan, living expenses of 90,000 yuan, no salary, net cash decrease of 170,000 yuan by year-end. The difference between the two paths is **290,000 yuan**, which breaks down as:
+
+**80,000 yuan tuition + 30,000 yuan difference in living expenses + 180,000 yuan forgone income = 290,000 yuan.**
+
+<TechGraph src="/images/posts/opportunity-cost-marginal-thinking/study-opportunity-cost.svg" title="Cost Comparison: Studying vs. Working" caption="Self-drawn schematic. All amounts are hypothetical, comparing only one year of cash flows." />
+
+Only the difference in living expenses is counted because you'd have living expenses regardless. Adding the full living expenses and the full forgone salary together would double-count expenditures common to both paths. If working, starting a business, and traveling are mutually exclusive, you also can't add up the imagined benefits of all three and call that the cost of studying.
+
+The 290,000 yuan is still only the cash gap. The skills, career options, and enjoyment that studying brings, as well as the experience that working would accumulate, haven't been factored in. And if that job was hard to get in the first place, the 180,000 yuan can't be treated as income you would definitely have lost.
+
+So, as I understand it, opportunity cost doesn't demand that you spend all your time earning money. What it demands is: acknowledge what you're giving up, and then judge whether what you're getting in return is worth it. Rest and time with loved ones can be more important than a sum of income—but that should be a choice made after seeing the cost clearly.
+
+### 3. Rational People Think at the Margin: The Next Step Is Different from the Running Total
+
+Suppose an airline's average cost per seat is $300. Just before takeoff there's one empty seat, and someone offers $100. Should the airline sell it?
+
+Looking only at the fact that 100 is less than 300, you'd think this ticket must lose money. But if the flight is already confirmed to depart, the relevant question is what changes by carrying one more passenger. Continuing with the assumptions—this passenger adds only $20 in costs, the seat would otherwise be empty, and there's no higher-paying potential buyer or other impact on sales—then selling the ticket brings in $100 of revenue against $20 of incremental cost, improving the outcome by **$80**.
+
+<TechGraph src="/images/posts/opportunity-cost-marginal-thinking/marginal-seat.svg" title="Selling One More Seat: What Changes Financially" caption="Self-drawn schematic. All amounts and operating conditions are hypothetical; the $80 is the incremental benefit from this ticket." />
+
+Marginal analysis compares the change brought about by doing a little more or a little less. The $80 shows that this transaction improved the outcome; it does not show that the entire flight is already profitable. Deciding whether to launch a route requires comparing total relevant revenue and total relevant cost of operating versus not operating; deciding whether to sell one more seat on an already-scheduled flight involves a different scope of costs. [OpenStax: Marginal Analysis](https://openstax.org/books/principles-economics-3e/pages/2-1-how-individuals-make-choices-based-on-their-budget-constraint)
+
+In reality, you also need to account for the opportunities foregone. If a higher-paying buyer might come along later, the cost of selling to a lower-paying buyer isn't just one extra meal and service. If you always slash prices at the last minute, passengers may also shift when they buy tickets, affecting future revenue.
+
+The fact that student sports tickets are cheaper than regular tickets doesn't directly prove that student tickets are priced below average cost. Ticket prices are observable, but average cost requires additional information such as total costs, number of passengers, and how costs are allocated. Price differences may also relate to seating, purchase conditions, and the willingness to pay of different groups. A real-life example can raise the question, but you can't conjure a cost table that doesn't exist just from ticket prices.
+
+Marginal thinking is equally useful when applied back to personal life. Before enrolling, the comparison is between studying and not studying. Once a course has started, whether to study for one more hour tonight depends on what the next hour yields versus other uses of that time. Tuition already paid and non-refundable is a sunk cost—it can't be changed whether you continue or quit. Fees that are still refundable, however, remain relevant to the current decision. [OpenStax: Sunk Costs](https://openstax.org/books/principles-economics-3e/pages/2-1-how-individuals-make-choices-based-on-their-budget-constraint)
+
+Evaluating whether a past choice was right and deciding what to do now are separate tasks. Admitting that the original choice was wrong doesn't mean you must quit now; having made the right choice originally doesn't mean you never need to recalculate afterward.
+
+### 4. People Respond to Incentives: When Conditions Change, Choices May Change
+
+Incentives include rewards, but also penalties, constraints, and changes in opportunities. They influence choices by altering the benefits and costs people face.
+
+Continuing the hypothetical scenario about education: if there is a 50,000-yuan scholarship that requires no repayment and no service obligation, and all else remains equal, the cash gap between studying and working drops from 290,000 yuan to 240,000 yuan. If the scholarship requires two years of post-graduation service, you must factor in the future constraint as well.
+
+Conversely, a higher-paying job offer also raises the opportunity cost of studying. Tuition hasn't gone up by a single yuan, yet choosing to study may still become harder.
+
+For me, the most useful aspect of this principle is the reminder to look at conditions first when explaining behavior. When someone changes a decision, it isn't necessarily that their willpower weakened—their available options, costs, and expectations may have changed.
+
+When designing policies, you also need to consider how people will adapt to the rules. Suppose rewards are given solely based on study hours: this might encourage logging longer hours without equally encouraging comprehension of the material. What you're rewarding and what you actually want may not align. This is a behavioral hypothesis to be tested—you can't simply assert from imagination that a policy will definitely work or definitely fail.
+
+## II. How People Interact
+
+### 5. Trade Can Make Both Sides Better Off: Specialization Compares Opportunity Costs
+
+"Each person does what they're good at, then they trade" is easy to understand. The more worthwhile question is: if one person is faster at everything than another, why would they still need to cooperate?
+
+Here we must distinguish absolute advantage from comparative advantage. The former looks at who directly produces more; the latter looks at who gives up less to complete a task. The explanation for trade comes back, once again, to opportunity cost. [OpenStax: Absolute and Comparative Advantage](https://openstax.org/books/principles-economics-3e/pages/33-1-absolute-and-comparative-advantage)
+
+**A pedagogical example with divisible workloads.** Both A and B can write articles and create illustrations, with identical output quality, constant efficiency, and—for now—ignoring communication, exchange, and delivery costs. When each person devotes a full hour to one type of work, their output is as follows:
+
+| Output per hour | Writing | Illustration |
+| --- | --- | --- |
+| A | 2 articles | 4 illustrations |
+| B | 1 article | 3 illustrations |
+
+A is faster at both tasks. But for A to write one article takes half an hour, giving up 2 illustrations; for B to write one article takes a full hour, giving up 3 illustrations. A has the lower opportunity cost for writing, while B has the lower opportunity cost for illustration: A must give up half an article to make one illustration, whereas B only gives up one-third of an article.
+
+If both parties are willing to trade at **1 article for 2.5 illustrations**: A writes one article, giving up only 2 illustrations, yet gets 2.5 back; B hands over 2.5 illustrations in exchange for one article, which is a better deal than writing the article themselves and giving up 3 illustrations. This exchange benefits both sides.
+
+This example illustrates that being more capable at everything doesn't mean you should do everything yourself; the other party doesn't need to be faster in absolute terms to have value as a collaborator. What matters is the alternative uses of each person's time and whether the terms of trade are favorable.
+
+But "the possibility of mutual benefit exists" should not be shortened to "in reality everyone automatically benefits." Communication costs, quality differences, and the difficulty of switching tasks can all erode the gains. When international trade produces aggregate benefits, some industries and workers may still bear concentrated adjustment losses—how the gains are distributed is a separate question that needs answering. [OpenStax: The Tradeoffs of Trade Policy](https://openstax.org/books/principles-microeconomics-3e/pages/20-5-the-tradeoffs-of-trade-policy)
+
+### 6. Markets Are Usually a Good Way to Organize Economic Activity: Prices Link Dispersed Choices
+
+How much bread a city needs each day, which shops should produce it, and how much flour and labor to use—none of this requires every participant to first master city-wide information before acting.
+
+Suppose more people want to buy bread, making it easier to sell out at the current price. Shop owners might raise prices, extend production hours, or add equipment; consumers might accept the new price, buy less, or switch to other foods. Prices and sales conditions transmit local changes to different people, and each person adjusts their own choices accordingly.
+
+The "invisible hand" can be understood through this process: under appropriate institutions and competitive conditions, decentralized decisions can potentially produce coordination. It does not require that every participant be motivated by concern for all of society, nor does it guarantee that every transaction ultimately serves the public interest.
+
+I would specifically preserve the word "usually." Prices reflect choices people make given their particular income, entitlements, and trading conditions—they don't necessarily express everyone's needs completely. People with greater purchasing power can bid higher prices; that doesn't mean their needs are more important in a moral sense. Efficiently allocating resources and whether people consider the distribution fair are not the same thing.
+
+### 7. Governments Can Sometimes Improve Market Outcomes: Start with Rules and Uncounted Costs
+
+Market exchange relies on a set of foundational conditions. Whether you can keep what you produce, whether contracts can be enforced, and how disputes are resolved all affect people's willingness to invest resources and engage in transactions. Property rights and the enforceability of contracts reside in these everyday matters.
+
+Therefore, when discussing markets and government, you cannot imagine the market as a rule-free state of nature. The institutions needed to sustain exchange and the correction of certain market outcomes are two different types of roles.
+
+One situation requiring correction is externalities: people outside the transaction bear costs or receive benefits that are not fully accounted for in the trade. For example, a factory and its customers both profit from production, but the pollution costs fall on nearby residents. The firm's accounting costs may then be lower than the costs borne by society. [OpenStax: Externalities, Social Costs, and Property Rights](https://openstax.org/books/principles-economics-3e/pages/12-key-terms)
+
+In this case, the mere fact that the firm is willing to produce and customers are willing to buy does not prove that this level of production is most appropriate for society. The government can try to use rules or incentives to bring the relevant costs into decision-making. But we need to keep comparing: does the policy target the right problem, how high are the enforcement costs, and will it trigger new behavioral responses?
+
+Market power also affects outcomes—firms with pricing power behave differently from firms under full competition. Whether income distribution is fair further involves whom society wishes to look after and what costs it is willing to bear.
+
+"Markets have flaws" is not a sufficient reason for any particular intervention to be correct, and "government also makes mistakes" likewise cannot prove that doing nothing is best. Comparison must come down to feasible alternatives. The word "sometimes" here demands that we examine both the market's original problem and the costs of the policy itself.
+
+Property rights should also not be oversimplified into "any asset under regulation will be protected." How a specific right is established and what protection it receives depends on the relevant institutions. Economics discusses how enforceable rights influence behavior—it cannot guarantee specific legal conclusions.
+
+## III. How the Economy as a Whole Works
+
+### 8. Living Standards Depend on Productive Capacity: How Much Can Be Created in the Same Hour
+
+Moving from the individual to society, real goods and services must stand behind income figures. How many people can be housed, treated medically, or transported is ultimately constrained by productive capacity.
+
+Productivity focuses on how much output can be generated per unit of input. Labor productivity can be understood as the ratio of real output to labor hours: under comparable quality conditions, producing more output in the same hour is what constitutes an efficiency improvement. Simply extending working hours can increase total output, but it doesn't necessarily raise output per hour.
+
+Knowledge, skills, tools, and technology change what the same unit of labor can accomplish. They explain why increased investment in education and equipment may affect long-term living standards, rather than attributing all output differences to who works harder. [OpenStax: Labor Productivity and Economic Growth](https://openstax.org/books/principles-economics-3e/pages/20-2-labor-productivity-and-economic-growth)
+
+This also places the earlier trade-offs into a temporal context. Resources devoted today to learning, research, or equipment temporarily cannot be used for consumption, but they may expand future productive capacity. The cost occurs now; the benefits may arrive later, and they come with uncertainty. Whether one is willing to make this arrangement still requires comparing benefits, risks, and alternative uses.
+
+However, average productivity growth does not mean every individual's income necessarily grows in step. Actual living standards are also affected by distribution, public services, and the cost of living. Education may raise productivity, but that doesn't imply economic output is education's only purpose.
+
+For individuals, macroeconomically beneficial trends don't automatically become one's own growth trajectory. Understanding what capabilities society needs, and deciding how one wants to live, are related but distinct questions.
+
+### 9. Excessive Money Issuance Pushes Up Prices: "Excessive" Must Be Understood Relative to Output
+
+If there's more money, why would bread get more expensive? Money doesn't walk over to a price tag and change the number by itself—somewhere in between, someone must have changed their spending, production, or pricing decisions.
+
+Start with an extremely simplified assumption: an economy has only one homogeneous good, and all transactions over a period involve that good. If 1,000 yuan of spending purchases 100 units, the average price per unit when all transactions clear is 10 yuan. If total spending becomes 1,200 yuan but there are still only 100 units, the average price is 12 yuan. If units also increase to 120, the average price can remain at 10 yuan.
+
+**These numbers only illustrate the proportional relationship between spending and output; they do not prove that "issuing 20% more money immediately causes 20% inflation."** Whether the new money actually gets spent, whether lending increases, and whether supply can keep up all still need explanation. Between "more money" and "more actual spending," there is no automatic equal sign that can be skipped.
+
+Bringing the perspective back to a bakery, you can separate out two different pathways. People want to buy more bread, but the shop can't ramp up production in the short run, so the owner may raise prices—this starts from demand changes. If flour, energy, or labor costs rise first, and the owner then tries to pass those costs on to retail prices, the pathway starts from cost changes. Demand-pull and cost-push can occur simultaneously. [St. Louis Fed: Different Sources of Inflation](https://www.stlouisfed.org/publications/page-one-economics/2021/12/01/a-dollars-worth-inflation-is-real)
+
+<TechGraph src="/images/posts/opportunity-cost-marginal-thinking/inflation-paths.svg" title="The same bread price increase can have different starting points" caption="Self-drawn mechanism diagram. Both pathways are conditional and do not imply that price changes are inevitable, immediate, or proportional." />
+
+A single shop raising its prices is also insufficient to prove that inflation is occurring. Inflation refers to a sustained rise in the overall price level. Bread going from 4 yuan to 6 yuan while you're in line can raise questions about purchasing power, but you can't use that snapshot to judge the causes and pace across the entire economy.
+
+Therefore, when understanding this principle, I keep my eye on three variables simultaneously: money, spending, and real output. The long-run connection between monetary expansion and prices cannot be used as a shortcut to skip over the demand, supply, and expectation changes behind any specific price increase.
+
+### 10. Society Faces a Short-Run Trade-off Between Inflation and Unemployment: Don't Drop the "Short-Run"
+
+The previous principle left a question unanswered: if more spending may push prices up, why would anyone use policy to stimulate demand?
+
+Because the economy is not always producing at full capacity. Suppose firms have idle equipment, workers are looking for jobs, but orders are insufficient. When financing conditions improve and consumption or investment demand increases, firms may first expand output and hiring. As demand continues to strengthen and available resources become scarce, upward pressure on wages, costs, and prices may also increase.
+
+This is a conditional transmission pathway: changes in financing and spending conditions drive changes in orders, which in turn affect firms' production, hiring, and pricing decisions. The Federal Reserve's explanation of monetary policy also emphasizes that policy affects demand and employment through financial conditions, and its effects are neither direct nor immediate. [Federal Reserve: How Does Monetary Policy Affect Inflation and Employment](https://www.federalreserve.gov/faqs/money_12856.htm)
+
+If demand is instead suppressed, price pressures may ease, but orders and employment may also contract. The short-run trade-off lies right here: bringing inflation down faster may require enduring weaker economic activity.
+
+However, this is not a menu you can order from indefinitely. It cannot be understood as perpetually accepting a little more inflation in exchange for a fixed amount of employment. People adjust their wage demands and price expectations based on price changes, and the original relationship shifts as well. The Phillips curve, which describes the relationship between inflation and the labor market, is itself unstable. [Federal Reserve: The Unstable Phillips Curve](https://www.federalreserve.gov/newsevents/speech/waller20230331a.htm)
+
+Supply shocks can also cause rising prices and deteriorating employment to occur simultaneously. For example, if a critical input for production suddenly becomes scarce, firms' costs rise, but they may not be willing to expand production. Seeing inflation, you cannot automatically infer that employment is improving; seeing employment worsen, you cannot guarantee that prices will immediately fall.
+
+Principles nine and ten, viewed together, remind me to separate the long run from the short run. Short-run questions are often about whether existing people and equipment can be put to use; long-run living standards still depend on improving productive capacity. Using demand policy to address temporary idle capacity and creating sustained real output are different tasks.
+
+## Think Like an Economist, but Distinguish Facts from Values
+
+The ten principles provide a starting point for analysis. To apply them to reality, you also need to distinguish between two types of questions: how things actually work, and how we want them to work.
+
+"How many students will change their enrollment decisions because of a scholarship" can in principle be tested with data; "how much money should society spend subsidizing these students" also involves educational opportunity, fairness, fiscal burden, and alternative uses of funds. This is the distinction between positive analysis and normative judgment. Positive statements can also be wrong, but they are subject to empirical testing; the value choices embedded in normative judgments cannot be resolved merely by collecting a few more datasets. [OpenStax: Positive and Normative](https://openstax.org/books/principles-economics-3e/pages/2-3-confronting-objections-to-the-economic-approach)
+
+Economics can participate in policy evaluation. The issue is that you cannot hide preferences about goals inside calculations and then present them as the sole scientific answer. Even if two people agree on the same set of effect data, they may hold different opinions on a proposal because they prioritize different objectives.
+
+The role of models is similar. The earlier examples involving reading, airline tickets, and division of labor all deliberately omitted certain real-world factors so that a particular relationship could be seen clearly. Whether a model is useful depends on whether those omissions would change the conclusions we care about. If the airline ticket model misses potential high-paying buyers, or the division-of-labor model misses very high communication costs, it may yield unsuitable recommendations.
+
+I would understand "critical reading" as the willingness to state conditions completely and to accept counterexamples. First being able to articulate why a viewpoint might hold, then identifying what it has missed—this is more helpful than simply saying you agree or disagree.
+
+Observing daily life is a way of raising questions, but you can't treat one or two examples as proof that a theory has been confirmed. Seeing a store's sales increase after a price cut, you still need to ask whether it happened to coincide with a holiday, whether the product changed, and whether other stores were also growing. To judge the effect of the price cut itself, you need to find comparable situations as best you can. Data can support or challenge an explanation, but it cannot testify on its behalf through coincidence.
+
+## What I Want to Keep from These Ten Principles
+
+For personal choices, the most worth keeping is the object of comparison. When you say something has a high cost, ask relative to which alternative; when you say you've already invested too much, ask whether past investments can still be changed; when you say you must continue, list the benefits and costs of the next step anew.
+
+For relationships between people, I'll look one level deeper: the opportunities a person faces often arise from other people's choices. Cooperation can create gains, but gains are not automatically distributed equally; both parties being satisfied with a transaction doesn't mean bystanders haven't borne a cost.
+
+For social judgments, I'll write the time horizon and conditions next to the conclusion. Productivity discussions concern what can be created in the long run; inflation and employment are also affected by demand, supply, and expectations. Words like "usually," "sometimes," and "in the short run" limit where a judgment can be applied.
+
+These understandings ultimately circle back to learning itself. After reading a concept, you can first use it to ask a question about something in daily life, then see whether you're able to clearly state the conditions, comparisons, and evidence. Exercises can serve this purpose too: when your intuition says "isn't this obvious?"—a concrete problem often exposes the step you haven't actually worked through.
+
+Economics won't decide for me how important studying, income, rest, and companionship each are. What it can help me do is overlook fewer costs, mistake partial results for the whole picture less often, and less frequently present a conditional explanation as an answer that holds forever.
+
+---
+
+**Reference material**: *On Reading · 02 Mankiw Chapter 1: Ten Principles*. This article is a set of reading notes organized around the ten principles and related methods, retaining their main questions while supplementing with worked examples and concept checks. Explanations of opportunity cost, comparative advantage, and similar concepts follow the links in the text; all monetary amounts, efficiencies, and output figures are pedagogical assumptions. This article does not correspond to a page-by-page excerpt of any particular Chinese edition.

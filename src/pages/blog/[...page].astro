@@ -3,7 +3,9 @@ import PageLayout from '../../layouts/PageLayout.astro';
 import BlogCard from '../../components/BlogCard.astro';
 import { getCollection } from 'astro:content';
 import type { GetStaticPaths } from 'astro';
-import { BLOG_TAGS } from '../../data/blog-tags';
+import { BLOG_TAGS, TAG_LABELS } from '../../data/blog-tags';
+import LocalizedText from '../../components/LocalizedText.astro';
+import { getTranslations, translationFor } from '../../lib/translations';
 
 export const getStaticPaths = (async ({ paginate }) => {
   const allPosts = await getCollection('posts', ({ data }) => !data.draft);
@@ -18,15 +20,18 @@ const { page } = Astro.props;
 
 const allPosts = await getCollection('posts', ({ data }) => !data.draft);
 const allTags = BLOG_TAGS.filter((tag) => allPosts.some((p) => p.data.tags.includes(tag)));
+const translations = await getTranslations();
 
 const searchIndex = allPosts
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
   .map((p) => ({
     id: p.id,
     title: p.data.title,
+    titleEn: translationFor(p, translations)?.data.title || '',
     tags: p.data.tags,
     date: p.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
     summary: p.data.summary || '',
+    summaryEn: translationFor(p, translations)?.data.summary || '',
     cover: p.data.cover || '',
     isoDate: p.data.date.toISOString(),
     pinned: p.data.pinned || false,
@@ -36,15 +41,17 @@ const searchIndex = allPosts
   <div class="pt-32 md:pt-40 pb-20">
     <div class="mx-auto max-w-6xl px-6">
       <header class="archive-header">
-        <p class="eyebrow mb-4">The journal</p>
-        <h1 class="display-heading">Writing & thinking</h1>
-        <p class="mt-5 mb-8 text-sm text-[var(--color-muted)]">关于系统、智能，以及生活中的问题。</p>
+        <p class="eyebrow mb-4"><LocalizedText zh="文字记录" en="The journal" /></p>
+        <h1 class="display-heading"><LocalizedText zh="写作与思考" en="Writing & thinking" /></h1>
+        <p class="mt-5 mb-8 text-sm text-[var(--color-muted)]"><LocalizedText zh="关于系统、智能，以及生活中的问题。" en="On systems, intelligence, and the questions life brings." /></p>
         <div class="relative mb-6">
           <input
             id="blog-search"
             type="search"
-            aria-label="Search posts by title, tag or summary"
-            placeholder="Search posts by title or tag..."
+            aria-label="搜索文章标题、标签或摘要"
+            data-label-zh="搜索文章标题、标签或摘要" data-label-en="Search posts by title, tag or summary"
+            placeholder="搜索中英文标题、标签或摘要…"
+            data-placeholder-zh="搜索中英文标题、标签或摘要…" data-placeholder-en="Search English or Chinese titles, tags, summaries…"
             class="archive-search"
           />
         </div>
@@ -55,7 +62,7 @@ const searchIndex = allPosts
                 href={`/tags/${tag}/`}
                 class="topic-link"
               >
-                {tag}
+                <LocalizedText zh={tag} en={TAG_LABELS[tag]} />
               </a>
             ))}
           </div>
@@ -70,17 +77,17 @@ const searchIndex = allPosts
             ))}
           </div>
         ) : (
-          <p class="text-[var(--color-muted)] text-center py-20">No posts yet. Stay tuned!</p>
+          <p class="text-[var(--color-muted)] text-center py-20"><LocalizedText zh="还没有文章，敬请期待。" en="No posts yet. Stay tuned!" /></p>
         )}
         {page.lastPage > 1 && (
-          <nav class="flex justify-center items-center gap-4 mt-16" aria-label="Pagination">
+          <nav class="flex justify-center items-center gap-4 mt-16" aria-label="分页" data-label-zh="分页" data-label-en="Pagination">
             {page.url.prev ? (
               <a href={page.url.prev} class="px-4 py-2 border border-[var(--color-border)] text-sm hover:border-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors">
-                Prev
+                <LocalizedText zh="上一页" en="Prev" />
               </a>
             ) : (
               <span class="px-4 py-2 border border-[var(--color-border)] text-sm text-[var(--color-muted)] opacity-40">
-                Prev
+                <LocalizedText zh="上一页" en="Prev" />
               </span>
             )}
             <span class="text-sm text-[var(--color-muted)]">
@@ -88,11 +95,11 @@ const searchIndex = allPosts
             </span>
             {page.url.next ? (
               <a href={page.url.next} class="px-4 py-2 border border-[var(--color-border)] text-sm hover:border-[var(--color-accent-light)] hover:text-[var(--color-accent)] transition-colors">
-                Next
+                <LocalizedText zh="下一页" en="Next" />
               </a>
             ) : (
               <span class="px-4 py-2 border border-[var(--color-border)] text-sm text-[var(--color-muted)] opacity-40">
-                Next
+                <LocalizedText zh="下一页" en="Next" />
               </span>
             )}
           </nav>
@@ -102,13 +109,13 @@ const searchIndex = allPosts
       <div id="search-results" class="hidden">
         <p id="search-status" class="sr-only" role="status"></p>
         <div id="search-results-list" class="journal-list"></div>
-        <p id="search-no-results" class="hidden text-[var(--color-muted)] text-center py-20">No matching posts found.</p>
+        <p id="search-no-results" class="hidden text-[var(--color-muted)] text-center py-20"><LocalizedText zh="没有找到匹配的文章。" en="No matching posts found." /></p>
       </div>
     </div>
   </div>
 </PageLayout>
 
-<script define:vars={{ searchIndex }}>
+<script define:vars={{ searchIndex, tagLabels: TAG_LABELS }}>
   const input = document.getElementById('blog-search');
   const grid = document.getElementById('blog-grid');
   const results = document.getElementById('search-results');
@@ -125,12 +132,16 @@ const searchIndex = allPosts
   }
 
   function searchEntry(post) {
+    const english = document.documentElement.dataset.language === 'en';
+    const translated = english && Boolean(post.titleEn);
     const entry = element('article', 'journal-entry');
     const meta = element('div', 'journal-meta');
-    const time = element('time', 'journal-date', post.date);
+    const dateLabel = new Date(post.isoDate).toLocaleDateString(english ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+    const time = element('time', 'journal-date', dateLabel);
     time.dateTime = post.isoDate;
     meta.append(time);
-    if (post.pinned) meta.append(element('span', 'journal-pin', 'Pinned'));
+    if (post.pinned) meta.append(element('span', 'journal-pin', english ? 'Pinned' : '置顶'));
+    if (english && !translated) meta.append(element('span', 'journal-date', 'Chinese only'));
     const body = element('div', 'min-w-0');
     const href = `/blog/${encodeURIComponent(post.id)}/`;
     if (post.cover) {
@@ -146,15 +157,20 @@ const searchIndex = allPosts
       body.append(cover);
     }
     const title = element('h3', 'journal-title');
-    const link = element('a', '', post.title);
+    const link = element('a', '', translated ? post.titleEn : post.title);
+    link.lang = translated ? 'en' : 'zh-CN';
     link.href = href;
     title.append(link);
     body.append(title);
-    if (post.summary) body.append(element('p', 'journal-summary', post.summary));
+    if (post.summary) {
+      const summary = element('p', 'journal-summary', translated && post.summaryEn ? post.summaryEn : post.summary);
+      summary.lang = translated && post.summaryEn ? 'en' : 'zh-CN';
+      body.append(summary);
+    }
     if (post.tags.length) {
       const tags = element('div', 'journal-tags');
       post.tags.slice(0, 3).forEach((tag) => {
-        const link = element('a', '', tag);
+        const link = element('a', '', english ? tagLabels[tag] || tag : tag);
         link.href = `/tags/${encodeURIComponent(tag)}/`;
         tags.append(link);
       });
@@ -172,15 +188,17 @@ const searchIndex = allPosts
       if (!q) { resultsList.replaceChildren(); status.textContent = ''; return; }
       const matched = searchIndex.filter((post) =>
         post.title.toLowerCase().includes(q) ||
-        post.tags.some((tag) => tag.toLowerCase().includes(q)) ||
-        post.summary.toLowerCase().includes(q)
+        post.titleEn.toLowerCase().includes(q) ||
+        post.tags.some((tag) => tag.toLowerCase().includes(q) || (tagLabels[tag] || '').toLowerCase().includes(q)) ||
+        post.summary.toLowerCase().includes(q) || post.summaryEn.toLowerCase().includes(q)
       );
       resultsList.replaceChildren(...matched.map(searchEntry));
       noResults.classList.toggle('hidden', matched.length > 0);
-      status.textContent = `${matched.length} matching posts`;
+      status.textContent = document.documentElement.dataset.language === 'en' ? `${matched.length} matching ${matched.length === 1 ? 'post' : 'posts'}` : `找到 ${matched.length} 篇文章`;
     };
     input.addEventListener('input', update);
     window.addEventListener('pageshow', update);
+    document.addEventListener('languagechange', update);
     update();
   }
 </script>

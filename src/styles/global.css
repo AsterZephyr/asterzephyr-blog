@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* One URL, one visible language. Inactive text is excluded from accessibility and find-in-page. */
+html[data-language='zh'] [data-lang='en'],
+html[data-language='en'] [data-lang='zh'] { display: none !important; }
+html[data-language='en'] [data-has-translation] [data-article-content][data-content-language='zh'] { visibility: hidden; }
+.translation-notice { margin-block: 24px; padding: 14px 18px; border-left: 2px solid var(--color-accent-glow); background: var(--color-surface-alt); font-size: 13px; line-height: 1.8; color: var(--color-muted); }
+.translation-credit { margin-block: 0 24px; font-size: 12px; line-height: 1.8; color: var(--color-muted); }
+
 :root {
   --color-surface: #f7f4ee;
   --color-surface-alt: #eee9df;

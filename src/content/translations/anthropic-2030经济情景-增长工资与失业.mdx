@@ -1,0 +1,510 @@
+---
+title: "AI Grows the Economy—Why Wages Might Not Follow: Making Sense of Anthropic's Three 2030 Scenarios"
+date: 2026-09-19
+updated: 2026-09-20
+tags: ["AI 与机器学习", "技术报告解读"]
+category: "技术分享"
+summary: "AI lets work get done faster, yet companies may hire fewer people. Anthropic's three 2030 scenarios quantify the wage changes, capital gains, and job-switching difficulties behind economic growth."
+draft: false
+sourceFile: "anthropic-2030经济情景-增长工资与失业.mdx"
+sourceHash: "5945e972b4dbf067fe1fe7843132b5854f75042682cc8c157240dcba3680c6a3"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+Suppose that by 2030, a country's GDP is 32.4% higher than its baseline growth path thanks to AI, and average wages are 9.7% higher. Looking at just these two numbers, it's easy to read them as a story of broad-based prosperity.
+
+But in the same scenario, wages for cognitive occupations are 11.5% *below* the baseline path, employment in that group has fallen 21.5% from mid-2026, the overall unemployment rate has reached 11.9%, capital income is 81.4% higher than it would be without AI, and total labor income is only 0.5% higher.
+
+All of these numbers come from the working paper **Economic Scenarios for Transformative AI**, published by the Anthropic Institute in September 2026. They are results from the same model and the same extreme-change scenario—not cherry-picked from different forecasts. The question really worth asking, then, is not just "How much will AI grow GDP?" but: **Why can a technology that makes society produce more simultaneously make some workers worse off?** [Report, Table 3, p. 31](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=31)
+
+If AI makes a design drawing or a contract cheaper to produce, will firms order more of them, or cut headcount? Will the savings become higher wages, lower prices for customers, or income for capital owners? The growth and unemployment figures in the report come from working through exactly these questions.
+
+<Callout type="info" title="Scope and timing of the report">
+This is a 57-page conditional scenario analysis authored by Anton Korinek, Charles I. Jones, Szymon Sacher, Tess Cotter, and Peter McCrory, numbered Anthropic Institute Working Paper No. 2026-02. The model is calibrated to U.S. economic and labor-market data. The report does not assign probabilities to the three scenarios. "2030" in the text mainly refers to early 2030; the results should not be read as "full-year 2030 forecasts," nor should the three scenarios be treated as three quantiles of a forecast interval.
+</Callout>
+
+<TechGraph src="/images/posts/anthropic-2030经济情景-增长工资与失业/transmission-chain.svg" title="From a cost saving to personal income" caption="Author's diagram: after task costs fall, firm hiring, capital deployment, and income distribution all change." />
+
+## I. First, decompose "AI replaces a person" into "who completes a task"
+
+Imagine a design-and-build firm. It delivers a renovation project for a client: understanding requirements, budgeting, drafting drawings, preparing contracts, arranging procurement, then having on-site crews handle installation and construction. This example is a hypothetical scenario to explain the mechanism, not a case study from the report.
+
+AI might make budgets, design documents, or contract drafts much cheaper, but the project still requires on-site measurement, materials, and installation. The client is buying a completed project—they won't buy a hundred cheap draft contracts in place of actual construction work.
+
+A specific document-processing task can be completed by a person or by an AI system; as long as the output meets requirements, the firm compares the cost of the two approaches. The report writes this as **substitution between labor and capital within the same task instance**. "Capital" in the model is a factor-of-production concept that includes machine capital services; it should not be directly equated with the stock of any particular AI company.
+
+But the service the client needs is all these tasks—budgeting, design, procurement, construction—completed together. Making one step cheaper does not mean the firm can scale up that step infinitely to replace the others. The report uses a CES production structure with a cross-task elasticity of substitution set to `σ = 0.5`: different tasks are, on the whole, complements. This setting means tasks that AI has *not* dramatically improved can become the binding constraint on the entire production process. [Report, pp. 4–10](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=4)
+
+AI can substitute for human effort in a particular drawing, but it cannot substitute more drawings for on-site construction. Once drawings are produced faster, construction crews may actually become *scarcer*.
+
+The report also distinguishes between a task type and a task instance. "Review a contract" is a task type; "review this particular contract that arrived today" is an instance. In practice, adoption is rarely a binary switch: a firm might hand simple contracts to AI while keeping complex ones with humans, or deploy AI in only certain teams, certain client segments, or certain lines of business.
+
+### The model's two labor groups are not "people who think" vs. "people who don't"
+
+The report coarsely divides occupations into a cognitive group C and a non-cognitive group N. In the base period, the cognitive group accounts for 62.4% of employment and the other group for 37.6%. The two-group split exists to let inter-occupational reallocation enter the model; it is not describing the full content of each person's job.
+
+The cognitive group covers management, business and finance, computer, engineering, legal, and education occupations, as well as healthcare professionals, sales, and office and administrative support. You therefore cannot simply translate the model as "all office white-collar workers lose out, all healthcare and service workers benefit." It aggregates occupation codes; within-group differences that matter in the real world are flattened. [Report, pp. 18, 24–28](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=18)
+
+In the design-and-build firm, design, engineering, and documentation work fall into the cognitive group here; on-site construction falls into the other group. What the model calculates is economy-wide changes for the two groups, not a headcount quota for this particular firm.
+
+## II. From capability to substitution, five parameters stand in between
+
+How much AI *can* do, how much firms *actually use*, and how much humans *still need to do* are three different questions. The report parameterizes each separately.
+
+<div className="econ-table">
+
+| Parameter | What it asks | How the share is calculated |
+| --- | --- | --- |
+| `m`: capability coverage | Of original labor tasks, how many are now within AI's capability range? | Task share weighted by base-period labor expenditure |
+| `d`: actual adoption | Of task instances within AI's capability range, how many actually use AI? | Instances that have entered the capability range |
+| `a`: efficiency gain | On instances where AI is used, how much does unit cost fall? | This is a log gain—it cannot be read directly as a percentage |
+| `ψ`: automation share | Of instances where AI is adopted, how many shift to being completed by capital? | Adopted instances |
+| `ρ`: new-task ratio | For every task automated, how many new labor tasks emerge? | Automated task share |
+
+</div>
+
+Task shares are weighted by base-period expenditure—tasks that originally cost more labor carry a larger share, regardless of how many to-do items or employees are involved. Capability coverage, actual adoption, and automation are distinct stages; the ratios in the table are not interchangeable.
+
+### Walking 100 tasks through the "notable change" scenario
+
+Normalize the base-period labor tasks completed by humans to 100 units (by model expenditure weights). The notable-change scenario sets, for early 2030: `m = 30%`, `d = 40%`, `ψ = 75%`, `ρ = 25%`.
+
+Step one: AI has the capability to affect 30 of those tasks. Step two: only 40% of those 30 are actually adopted, so 12 tasks effectively use AI. Step three: of these 12, 9 are automated and 3 are augmented—the former shift to capital, the latter are still done by humans but more efficiently.
+
+Step four: automation simultaneously creates new labor tasks. The model assumes that for every 4 tasks automated, 1 new task appears, so 9 automated tasks yield 2.25 new labor tasks. Looking at just this set of task shifts, the net labor-task weight removed is `9 − 2.25 = 6.75`.
+
+<TechGraph src="/images/posts/anthropic-2030经济情景-增长工资与失业/task-funnel.svg" title="100 tasks: how many remain after adoption and automation" caption="Author's calculation diagram; parameters from Table 1, pp. 23–25. 100 is the normalized base-period labor expenditure weight; 6.75 is not a layoff rate, nor is it the model's final employment decline." />
+
+This step has not yet told us how many people need to be let go. Firm output may increase, prices may fall, demand for the remaining labor may change, and workers may shift to other tasks. The 6.75 describes the net shift in task composition; final headcounts still have to pass through the equilibrium and labor-market stages that follow.
+
+The design firm might also add model review, client communication, or new services once old work shrinks. But how much new work compensates depends on a separate estimate. The report uses `ρ` to represent this ratio.
+
+`ρ` is set exogenously by the researchers. The model does not go on to calculate how firms start new businesses, discover new demand, or create new jobs. New tasks are also assumed to be performed by the cognitive group and enter production according to the model's rules. Therefore, `ρ = 25%` means "we assume new tasks offset one quarter," not "research has proven that new occupations will offset one quarter." [Report, pp. 7–16, Table 1](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=7)
+
+### Why `a = 0.45` does not mean "45% more efficient"
+
+`a` is a log-form productivity gain. The speed multiple is `exp(a)`, and the unit-cost multiple is `exp(−a)`. So, in an all-else-equal single-task comparison:
+
+<div className="econ-table econ-table-compact">
+
+| Log gain a | Speed becomes roughly | Unit cost falls roughly |
+| --- | ---: | ---: |
+| 0.30 | 1.35× | 25.9% |
+| 0.45 | 1.57× | 36.2% |
+| 0.80 | 2.23× | 55.1% |
+
+</div>
+
+"57% faster" and "36% cheaper" can describe the same change. Work that used to take 100 minutes now takes about 64 minutes; output per unit of time is roughly 1.57× the original. Even more importantly, you cannot simply multiply this task-level gain by total GDP: only the tasks that have entered the capability range *and* been actually adopted enjoy it.
+
+### What the three scenarios actually assume
+
+<div className="econ-table">
+
+| Early-2030 inputs | Mild change | Notable change | Extreme change |
+| --- | ---: | ---: | ---: |
+| Capability coverage `m` | 20% | 30% | 50% |
+| Adoption within coverage `d` | 20% | 40% | 60% |
+| Effective usage share `m × d` | 4% | 12% | 30% |
+| Automation share of adopted instances `ψ` | 50% | 75% | 90% |
+| New tasks per automated task `ρ` | 50% | 25% | 0 |
+| Log efficiency gain `a` | 0.30 | 0.45 | 0.80 |
+| Cross-group search efficiency discount `μ` | 0.17 | 0.08 | 0.04 |
+
+</div>
+
+The three scenarios' inputs come from Report Table 1; "effective usage share" is an explanatory multiplication. The last row will be explained shortly—it determines how hard it is for a worker to switch to the other occupational group. [Report, pp. 23–25](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=23)
+
+The extreme-change scenario assumes not only faster technological progress and wider adoption, but also a higher automation share, fewer new tasks, and greater difficulty switching careers. The economic outcomes that follow therefore reflect the joint effect of all these conditions changing together.
+
+The 90% in the table applies only to tasks where AI is already in use. In the extreme scenario, the effective AI-usage task weight is `50% × 60% = 30%`, of which 90% is automated—i.e., 27% of original labor-task weight. Relative to the cognitive group's base-period employment share of 62.4%, that is about 43.3%—still not "90% of all cognitive work fully automated."
+
+## III. Why GDP Increases When Tasks Become Cheaper
+
+Now let AI save time on a certain type of documentation work at the design-build firm. If the same output consumes fewer resources, the freed-up labor and capital can do other things. Across the entire economy, this manifests as a productivity increase. But the aggregate gain is constrained by two factors: how important the affected tasks originally were, and how much cost those tasks actually save.
+
+The report uses the following first-order approximation to estimate productivity gains:
+
+<div className="econ-equation">Δln TFP ≈ original labor share × capability coverage × adoption rate × log efficiency gain</div>
+
+Here TFP is total factor productivity—you can think of it as "given a fixed set of production factors, how efficiently the economy converts those resources into final output." The report's base-period labor share is 60%. Plugging in the parameters for the notable-change scenario:
+
+<div className="econ-equation">0.60 × 0.30 × 0.40 × 0.45 = 0.0324</div>
+
+That is roughly 3.24 log points of first-order productivity gain. Even if a single task sees large efficiency improvements, the tasks that can be affected are limited after all; you still have to subtract the portion that isn't actually adopted, then weight it by original cost share to compute its contribution to the whole economy. [Report, pp. 10–12, Equation 9](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=10)
+
+This formula is neither a precise GDP increase nor a claim that "2030 GDP only rises 3.24%." It is a partial, first-order productivity approximation. Final GDP is also affected by increased capital inputs, knowledge accumulation, employment changes, and nonlinear price adjustments. In the report's full model, the notable-change scenario's GDP is 8.3% above the no-AI path—you cannot directly compare that number with the first-order TFP figure.
+
+What's more interesting is that the automation share `ψ` does not appear in this formula. Given coverage, adoption, and unit cost savings, whether a task is completed by "human plus AI" or by AI autonomously, the first-order productivity contribution can be the same.
+
+But this does not mean the two paths are the same for workers. In the first path, task income still flows primarily through labor payments; in the second, the production factor completing the task becomes capital. Total output increases by the same amount, yet workers may receive different amounts.
+
+### Why "Augmenting Humans" Also Doesn't Guarantee Needing More People
+
+Even if humans remain in the workflow, once efficiency improves, the company may no longer need as many labor-hours as before.
+
+Imagine the firm's work originally requires 1 hour per unit; now it takes only half an hour, and the cost reduction passes through as a 50% price cut. For total labor-hours not to decrease, order volume must double. A 20% or 40% increase in orders is not enough.
+
+In the report's CES structure, if we temporarily fix aggregate demand and overall price conditions, halving the task price with an elasticity of substitution of 0.5, task quantity becomes roughly `√2 = 1.414` times the original. With labor per unit halved, total labor usage becomes `0.5 × 1.414 ≈ 0.707`—about 29.3% less than before.
+
+<TechGraph src="/images/posts/anthropic-2030经济情景-增长工资与失业/augmentation-demand.svg" title="After efficiency gains, can orders grow fast enough?" caption="Self-drawn pedagogical example. Partial calculation under fixed aggregate demand, illustrating what σ = 0.5 means; 29.3% is not the report's employment forecast for any occupation." />
+
+A real company won't necessarily lay off 29.3% of its workforce—lower prices change other markets, income and aggregate demand shift, firms can enter new businesses, and the full model needs to account for all these feedbacks together. But even if humans continue to participate in every order, each order takes less time, so fewer people may still be needed.
+
+If, after a price drop for some type of service, orders can double or more, the employment outcome could be different. The report's `σ = 0.5` limits this kind of demand growth, and therefore affects employment results.
+
+## IV. Why the Productivity Dividend Doesn't All Flow into Wages
+
+After the design-build firm's costs decrease, the benefits can propagate in different directions: customers enjoy lower prices, the firm takes on more projects, demand for some workers increases, and more equipment and capital services may be needed. How much each party gets cannot be determined solely by "how many minutes the technology saved."
+
+The report starts with a benchmark where there is no unemployment and labor earns a common wage, then decomposes the income relationship:
+
+<div className="econ-equation">Labor income = labor income share × total output</div>
+
+<div className="econ-equation">Wage per worker = output per worker × labor income share</div>
+
+The second relationship comes from `wL = sL × Y`. It tells us that even if output per worker rises, as long as the share going to labor falls enough, wages need not increase.
+
+Why would the labor share decline? Automation transfers tasks previously performed by labor—whose income accrued to labor—to capital. Newly created labor tasks can offset some of this; meanwhile, complementarity between different tasks, plus changes in wages and capital service prices, alter each task type's weight in total expenditure. The labor share is not a fixed constant—it is itself a result jointly shaped by technology and markets. [Report, pp. 11–16, Equations 10–19](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=11)
+
+An extreme but instructive case: AI is only slightly cheaper than humans, yet cheap enough for firms to choose automation. The efficiency gain for the whole economy may be small, but the attribution of spending on tasks that previously went to workers changes. Technology can be "worth adopting" without being powerful enough to guarantee that displaced workers share a noticeable dividend.
+
+### Whether Capital Can Keep Up Quickly Is Part of the Wage Question
+
+When more tasks are performed by capital, firms need more capital services. If capital can expand rapidly at roughly the same price, the economy can easily absorb automation with new inputs. If supply grows slowly, capital service prices rise, and more of the technology's benefits show up as capital returns.
+
+The report expresses this with the capital supply elasticity `ε`:
+
+<div className="econ-equation">Percentage change in capital stock ≈ ε × percentage change in capital rental return</div>
+
+This is a partial elasticity relationship—it does not mean capital can be built instantly from a single price signal. The larger `ε` is, the more capital a given increase in returns can bring forth; the smaller `ε` is, the larger the return increase needed to elicit sufficient capital expansion. The report's baseline uses `ε = 3`, and tests 1, 6, and infinity.
+
+Automation requires equipment, facilities, and funding. If these inputs can't keep up, firms are constrained even if they want to produce more. The report aggregates them into a single type of capital for computation, without separately estimating how much impact chip, electricity, land, or data-center shortages would have.
+
+### A Counterexample That Can Flip the Conclusion
+
+Keeping the extreme-change scenario's technology and labor market settings, but only changing the capital supply elasticity, the results for early 2030 shift dramatically:
+
+<div className="econ-table">
+
+| Capital supply elasticity ε | GDP above no-AI path | Average wage above no-AI path | Net capital return |
+| --- | ---: | ---: | ---: |
+| 1: expansion difficult | 21.3% | −9.2% | 10.3% |
+| 3: baseline | 32.4% | +9.7% | 8.3% |
+| 6: expansion easier | 37.2% | +18.3% | 7.5% |
+| Infinity: fixed rental price supply | 43.3% | +30.1% | 6.5% |
+
+</div>
+
+<TechGraph src="/images/posts/anthropic-2030经济情景-增长工资与失业/capital-elasticity.svg" title="Capital supply can flip average wage growth from positive to negative" caption="Precisely redrawn from Report Table 5, p. 37. All other parameters held at extreme-change scenario settings; wages are relative to the no-AI path." />
+
+In the first row, GDP is still 21.3% higher, yet average wages are 9.2% lower. The same strength of AI, but because capital expansion is more difficult, the outcome for workers changes.
+
+Conversely, when capital supply is highly elastic, more new capital enters, capital service prices don't need to rise as much, and workers more easily share in the productivity gains. A shortage of capital constrains production and can also make capital more expensive, reducing the share that goes to workers. [Report, Table 5, p. 37](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=37)
+
+The table lists net capital returns after depreciation; the model's capital supply equation uses gross rental returns. A baseline net return of 6.5% plus 5% depreciation gives a gross return of 11.5%. You cannot simply take the relative change from 6.5% to 8.3% in net returns and mechanically multiply by `ε` to get the capital stock increase.
+
+These returns are also not stock market returns. Stock prices incorporate expectations of future cash flows, discounting, and risk, while the report calculates the current-period return on capital services in production. Reading it as "how much you'd earn buying AI stocks" has already departed from the model.
+
+## V. Why Fewer Job Openings Don't Immediately Equal the Same Amount of Unemployment
+
+A firm can decide to reduce certain types of positions, but the people who previously held those jobs may not be able to immediately do a different kind of work.
+
+A designer may be unwilling to accept a large pay cut from their current role, nor can they acquire the skills and credentials needed for on-site construction work overnight. Even expanding firms that want to hire must first post positions, screen candidates, train, and match. The report therefore adds a monthly labor market layer on top of the production model.
+
+How many old positions disappear each month, and how many people new positions absorb each month, determines how many people are temporarily unable to find work.
+
+### Step 1: Wage Adjustment Determines How Many People Firms Currently Want to Employ
+
+If demand for cognitive tasks decreases, the wage that would rebalance the labor market may need to fall. But real-world wages typically adjust slowly. The report uses parameter `ξ` to control the speed at which cognitive wages adjust toward the target wage.
+
+The baseline `ξ = 0.5` can be understood as: in the simple case where the target stops changing, half of the adjustment gap remains after one year. Since the model runs monthly, the corresponding monthly adjustment weight is approximately `1 − 0.5^(1/12) = 5.6%`. The closer `ξ` is to 1, the slower wage adjustment is. This describes actual relative wage adjustment in the model, not permanently freezing nominal wages.
+
+This affects firms' hiring. For the same task demand, if wages remain above the new equilibrium target, firms are willing to employ fewer people at the current wage. Thus, slightly less wage reduction and slightly less employment reduction may not be achievable simultaneously.
+
+### Step 2: First Stop Backfilling Departures, Then Decide Whether to Lay Off
+
+When a firm's current headcount exceeds target, it doesn't necessarily lay off the entire gap immediately. Natural attrition can absorb part of the reduction: after employees voluntarily leave, the firm simply doesn't backfill.
+
+A purely pedagogical example: a company has 100 people, the new target is 92, and 3 people have already left voluntarily this month. If other conditions remain unchanged, the additional reduction needed is 5 people, not recording all 8 as involuntary layoffs.
+
+The attrition rate in the model is also affected by how easy it is to find work elsewhere. When the external market deteriorates, people reduce voluntary job-switching, and the room for firms to slowly shrink headcount through "no backfill" also changes. This way, the hiring market and the layoff market are not two independent spreadsheets.
+
+### Step 3: Having Vacancies Does Not Mean Job Seekers Have Already Been Hired
+
+If another set of firms needs to expand, they will gradually post positions. The report uses a posting-speed parameter to control how much of the hiring gap firms close each month. The notable-change scenario uses 0.25; the extreme-change scenario uses 0.50: the other set of firms in the extreme scenario is not completely abstaining from hiring—their posting adjustment is actually faster.
+
+But a posting is only a demand signal, not a job already matched to an unemployed person. Job seekers need to have the right skills, accept the wage, and find an employer; employers also need to find the right person. The model uses a matching function to convert effective job seekers and vacancies into actual hires.
+
+This is hardly unfamiliar in reality: some places complain they can't find workers, while other people remain jobless for extended periods. "Labor shortages" and "unemployment" occur in different combinations of skills, locations, and occupations, and so the two can coexist.
+
+### Step 4: Cross-Group Transition Efficiency Determines How Fast the Unemployment Pool Drains
+
+Parameter `μ` is the efficiency discount for cross-group search. A job seeker originally belonging to the cognitive group has their effective search capability in the other occupational group's market discounted by this coefficient. It is not the monthly probability of finding a job, nor does it mean "only 4% of people can switch careers."
+
+The baseline normal-period discount is about 0.17, calibrated from occupational mobility data. The three scenarios set it at 0.17, 0.08, and 0.04 respectively, indicating that under more intense change, cross-group rematching becomes more difficult. These future discounts are scenario assumptions, not already-measured 2030 career-switching capabilities. [Report, pp. 18–22, 26–28](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=18)
+
+<TechGraph src="/images/posts/anthropic-2030经济情景-增长工资与失业/labor-transition.svg" title="Unemployment arises from the speed gap between inflows and outflows" caption="Self-drawn mechanism diagram, based on Report Section 2.3 and Appendix A. Old-position contraction, new-position posting, and successful matching occur at different stages." />
+
+Compressing complex equations into a single sentence, unemployment is a dynamically changing pool:
+
+<div className="econ-equation">Next month's unemployed = current unemployed + inflows from separations and layoffs − outflows from successful employment</div>
+
+Automation affects inflows; new tasks, hiring, and career transitions affect outflows. Even if enough new jobs genuinely exist in the long run, as long as old positions disappear fast and new positions absorb slowly, the transition period can still see very high unemployment rates.
+
+## VI. The Economy Grew—Whose Wages Go Up?
+
+In the moderate-change scenario, the task weight actually using AI is only 4%, the automation share is low, new-task compensation is relatively generous, and cross-group search maintains its normal-period efficiency. It delivers productivity improvements, but not enough to dramatically alter labor demand.
+
+The notable-change scenario raises the adoption share to 12%, increases per-task efficiency gains, pushes up the automation share, and reduces new-task compensation. Aggregate growth is already significant, but wage growth lags GDP, the labor share starts to decline, and the cognitive group experiences employment contraction and rising unemployment.
+
+The extreme-change scenario amplifies all these forces simultaneously: the effective-use share reaches 30%, 90% of AI-using instances are automated, no new-task compensation is provided, and cross-group search becomes harder. Output therefore rises rapidly, and the redistribution of income and employment becomes much more severe.
+
+<div className="econ-table">
+
+| Results as of early 2030 | No-AI path | Moderate change | Notable change | Extreme change |
+| --- | ---: | ---: | ---: | ---: |
+| GDP relative to no-AI path | 0 | +1.6% | +8.3% | +32.4% |
+| GDP growth rate over past 12 months | 2.0% | 2.4% | 5.4% | 15.4% |
+| Average wage relative to no-AI path | 0 | +0.7% | +2.1% | +9.7% |
+| Cognitive-group wage relative to no-AI path | 0 | +0.4% | −0.3% | −11.5% |
+| Other-group wage relative to no-AI path | 0 | +1.1% | +5.9% | +33.6% |
+| Labor income share | 60.0% | 59.4% | 56.1% | 45.2% |
+| Unemployment rate, all workers | 3.8% | 3.9% | 4.6% | 11.9% |
+
+</div>
+
+The figures in this table come from the report's Table 3; growth rates use the report's trailing-12-month log-growth convention. GDP and wage gains are measured relative to the no-AI path; the labor share and unemployment rate are the actual levels at that point in time. [Report, p. 31](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=31)
+
+### 32.4% Is How Much More There Is at That Point, Not How Fast It Grows Each Year
+
+The no-AI path is not economic stagnation: the model still includes knowledge accumulation and labor-force growth, with baseline GDP growing at about 2% per year. AI's gains are computed on top of this already-growing path, so you cannot attribute all growth to AI.
+
+The extreme scenario's GDP exceeds the no-AI path by 32.4%, meaning that at the same future point in time, output under the AI scenario is roughly 1.324 times the counterfactual. It does not mean 32.4% annual growth, nor does it mean output grew only 32.4% relative to mid-2026. The counterfactual itself is also growing.
+
+The separately reported 15.4% describes the trailing 12-month growth rate as of early 2030. It represents how fast the economy was growing in the most recent year; the 32.4% represents how much more output there is at that point compared with the no-AI path.
+
+<Figure src="/images/posts/anthropic-2030经济情景-增长工资与失业/original-gdp.png" alt="Original report GDP curves: as of early 2030 relative to the no-AI path, the moderate scenario is 1.6% higher, the notable scenario 8.3% higher, and the extreme scenario 32.4% higher." caption="Original report Figure 2, left panel, p. 32, cropped as-is. The vertical axis is the GDP gain relative to the no-AI path; the curves are model scenarios, not observed data." />
+
+The three scenarios differ little early on, then diverge rapidly. The report sets capability and adoption paths as logistic curves passing through a common near-term anchor and then connecting to different 2030 endpoints. Consequently, the "sudden fork at some year" partly reflects the path specification.
+
+A small impact today does not preclude rapid growth later. But exactly when acceleration occurs in the chart depends on the curve the researchers chose, not on having identified the true inflection year.
+
+### Average Wages Rise—Why Does the Cognitive Group Still Lose?
+
+In the extreme scenario, cognitive-group wages are 11.5% below the no-AI path while other-group wages are 33.6% above it. Once some cognitive tasks are handed to AI, firms need less of that kind of labor. Meanwhile, the expansion of output still requires the other group's participation, and switching careers takes time, so positions that are temporarily short-staffed see wages bid up.
+
+<Figure src="/images/posts/anthropic-2030经济情景-增长工资与失业/original-cognitive-wage.png" alt="Original report cognitive-group wage curves: in the extreme scenario, wages are 11.5% below the no-AI path by early 2030; notable scenario 0.3% below; moderate scenario 0.4% above." caption="Original report Figure 3, upper-right panel, p. 33, cropped as-is. Negative values are relative to the no-AI path, not equivalent to a year-over-year pay cut relative to today." />
+
+The average wage is computed only over people who are still employed. If some low-wage positions disappear or if the share of high-wage positions increases, the average can rise mechanically. So the +9.7% here does not mean that every person, including the unemployed, takes home 9.7% more in labor income.
+
+To know how much workers collectively receive, you also need to factor in the number of people employed.
+
+### Employed Workers' Average Wage Rose—Did All Workers Get More Money?
+
+The report's Table 3 also computes total income for each group:
+
+<div className="econ-table">
+
+| Change in total income relative to no-AI path | Moderate change | Notable change | Extreme change |
+| --- | ---: | ---: | ---: |
+| Total labor income | +0.6% | +1.4% | +0.5% |
+| Cognitive-group total wages | −0.3% | −4.6% | −31.0% |
+| Capital income | +3.1% | +18.9% | +81.4% |
+
+</div>
+
+In the extreme scenario, the cognitive group loses both jobs and wages relative to the counterfactual, so its total wage bill falls by roughly 30%. Other workers' earnings increase enough to keep total labor income roughly on par with the original path; but a large share of the new output shows up as capital income.
+
+The report discusses a compensatory arithmetic possibility: the aggregate gains in the extreme scenario are large enough on paper to offset cognitive workers' losses while still leaving others better off. But newly generated income does not automatically flow to the unemployed; it would require taxes, transfer payments, or other arrangements to redistribute it. The report does not calculate how any specific compensation scheme would be implemented or what it would cost. [Report, p. 35](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=35)
+
+### The Unemployment Rate Measures Whether People in Transition Land Their Next Job
+
+<Figure src="/images/posts/anthropic-2030经济情景-增长工资与失业/original-unemployment.png" alt="Original report unemployment rate curves for all workers: as of early 2030, moderate 3.9%, notable 4.6%, extreme 11.9%, no-AI path 3.8%." caption="Original report Figure 4, right panel, p. 34, cropped as-is. The vertical axis is the unemployment rate level, not the increase in the number of unemployed, nor the share of automatable tasks." />
+
+In the extreme scenario, the cognitive-group unemployment rate reaches 17.9% and the overall unemployment rate is 11.9%. This does not mean the model thinks the other 88.1% of jobs are completely unaffected: employed workers may have already switched tasks, seen their wages change, or shifted careers.
+
+Similarly, the 21.5% decline in cognitive-group employment is benchmarked to mid-2026, whereas the wage change is benchmarked to the no-AI path as of early 2030. These two rows use different comparison baselines.
+
+## VII. Protecting Wages and Protecting Jobs May Be Two Different Things
+
+If a design firm's incoming projects no longer need as many person-hours, the boss can lay off some staff or cut wages and keep more people on. For employees, neither option is good—just different kinds of loss.
+
+The report experiments with changing the speed of wage adjustment to see what the same AI shock produces. Everything below is still the extreme-change scenario; technology capability, adoption levels, and other settings are unchanged.
+
+<div className="econ-table">
+
+| Annual wage stickiness ξ in the extreme scenario | 0: fully flexible | 0.5: baseline | 0.75 | 0.9: very slow adjustment |
+| --- | ---: | ---: | ---: | ---: |
+| Cognitive-group wage relative to no-AI path | −42.2% | −11.5% | −2.9% | +2.8% |
+| Unemployment rate, all workers | 3.1% | 11.9% | 13.9% | 15.2% |
+| GDP relative to no-AI path | +36.6% | +32.4% | +30.5% | +29.2% |
+
+</div>
+
+<TechGraph src="/images/posts/anthropic-2030经济情景-增长工资与失业/wage-rigidity.svg" title="If wages fall less, more people may end up unemployed" caption="Redrawn from report Table 6, p. 38. Upper panel: cognitive-group wage change relative to the no-AI path. Lower panel: unemployment rate for all workers." />
+
+Start with the leftmost column. Wages can adjust immediately, so firms can keep hiring at lower wages—overall unemployment is only 3.1%. But cognitive-group wages are 42.2% below where they would be without AI. Most people still have jobs; that doesn't mean life is easy.
+
+The rightmost column is the opposite. Cognitive-group wages are 2.8% above the no-AI level, yet unemployment reaches 15.2%. Wages appear protected—provided you still have a job. Those who are laid off don't show up in the average-wage statistic.
+
+In reality, the same magnitude of a pay cut or job loss means different things for different households. Someone with savings might be able to spend six months job-hunting; someone carrying a mortgage may have to accept a lower-paying position next month. The report does not model these household-level circumstances one by one, so this table cannot yet answer which arrangement leaves workers better off. [Report, Table 6, p. 38](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=38)
+
+For the employees of that design firm, the question is concrete: how much will I earn if I stay? If I leave, how long until I find my next job? What pays the rent and living expenses in the meantime? "The market will eventually adjust" does not answer these questions.
+
+## VIII. If AI Also Advances Scientific Research, Could Growth Be Underestimated?
+
+Everything calculated so far concerns AI doing existing work faster. If it can also help invent new drugs, new materials, or even develop the next generation of AI, could economic growth far exceed the numbers in the table?
+
+The report accounts for part of this: once the economy is larger, more resources flow into R&D. It assumes R&D as a share of GDP evolves along a pre-specified trajectory, the same with or without AI. So in any given year, however much AI raises GDP, R&D spending increases by the corresponding proportion.
+
+A simple numerical illustration: without AI, the economy is size 100, 4% goes to R&D, so R&D spending is 4. If AI makes the economy 110 and 4% is still allocated, R&D spending rises to 4.4. The share hasn't changed, but the money and resources available for research have already increased. This is just an example to demonstrate the mechanics.
+
+<TechGraph src="/images/posts/anthropic-2030经济情景-增长工资与失业/innovation-channel.svg" title="As the economy grows, how many more resources does R&D get?" caption="Self-drawn figure, based on Section 2.2 and Appendix C. The report calculates the knowledge growth from higher R&D spending but does not calculate how that knowledge might accelerate next-generation AI development." />
+
+Spending more on R&D does not immediately yield proportionally more discoveries. Budget increases this year may take several years to become usable drugs, materials, or production methods. The model also assumes that as the stock of existing knowledge grows, new discoveries become harder to make. To maintain the same rate of knowledge growth, research investment must keep rising. [Report, pp. 16–17; Appendix C, pp. 49–51](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=16)
+
+Under this calculation, even in the extreme scenario, the accumulated stock of knowledge by early 2030 is only about 0.61% larger than without AI. The knowledge growth rate rises from roughly 1.67% to 2.02%, but the faster growth hasn't persisted long enough for the additional knowledge to amount to much yet.
+
+An easy confusion is between "growing faster" and "having grown several more percentage points." If the original annual growth rate is 1% and the growth rate increases by 5%, the new rate is 1.05%, not 6%. A little extra each year can accumulate to a lot over time; over just the few years through 2030, the full impact has not yet materialized.
+
+But this calculation does not address the full question raised at the start. The researchers first specify how capable AI will be by 2030, then compute its economic impact. Whether AI's assistance to research would make the next generation of AI stronger faster—that, the model does not go on to calculate.
+
+For example, if AI can help researchers find ways to improve models more quickly, and improved models can in turn further accelerate research, there could be round after round of acceleration. The capability paths in the report are not generated by such a process, so the 0.61% figure cannot be used to estimate how large that kind of acceleration might be.
+
+Consequently, people who are especially optimistic about "AI accelerating science" may believe this part understates growth. But even if research advances faster, new production methods still need equipment, capital, and people to implement. That design firm may have access to better design tools, but it still has to wait for materials to arrive and construction crews to show up before delivering the project to the client.
+
+## IX. Why "How Much Time Can I Save?" and "How Capable Is AI?" Yield Such Different Answers
+
+In the report's public survey, there is a pair of numbers that diverge sharply: cognitive-occupation respondents estimated a median of about 27% of their own work time could be done by AI; meanwhile, a separate set of questions about AI capabilities, after the researchers' conversion, yielded a median cognitive task coverage of about 71%.
+
+The two framings are not asking the same thing. A person can believe AI can write software and conduct research, yet still feel that most of their own work requires personally handling clients, colleagues, and specific complications. But with a gap this large, one can't help wondering: between the survey answers and the economic projections, exactly what conversions were performed? [Report, pp. 29–30, 46–48](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=29)
+
+### Answering "Can Do" on Six Items—How That Becomes 44% of Tasks
+
+The capability questions listed eight types of work: routine emails, bookkeeping, tax filing, contract drafting and negotiation, developing and maintaining software, completing publishable scientific research, independently running a profitable online business, and making a Nobel Prize–level discovery. Respondents judged by when AI could perform each at the level of a professional.
+
+But the economic model needs a single number representing how many labor tasks fall within AI's capability range. The researchers converted "how many of the eight items can be done" into a knowledge-work coverage ratio, then multiplied by the weight of cognitive labor in total labor tasks. For example, if a respondent believed six of the eight items would be achievable by 2030, the calculation was approximately:
+
+<div className="econ-equation">m ≈ (6 ÷ 8) × 0.95 × 0.62 ≈ 0.44</div>
+
+So once that person's answer entered the model, it became "approximately 44% of original labor task weight is within AI's capability range."
+
+The problem is that the eight items were not sampled according to how much time or wages the economy actually spends on them. Routine emails and Nobel Prize–level discoveries differ enormously in real-world volume and cost. The bridge from "six items can be done" to "44% of labor tasks can be done" relies on a conversion rule chosen by the researchers. A different set of items, or a different algorithm, could yield a different coverage ratio.
+
+The 27% vs. 71% gap we saw earlier is precisely a reminder: believing AI is very capable, and judging how much of one's own work can be handed off to it, are not the same answer. To know how many labor hours firms will actually cut, you need to look at real work.
+
+### AI Drafts, Human Reviews—How Much Counts as Replaced?
+
+The automation questions listed four arrangements. AI completes the task independently, scored as 1; mostly done by AI with human review, scored as 0.5; mostly done by humans with AI assistance, scored as 0; entirely done by humans, not counted in the portion of tasks already using AI.
+
+0.5 is simply the numerical value assigned to that survey option—it is not a measurement finding that "review work takes exactly half the original time." Reviewing a contract might take a few minutes to spot an issue, or it might require checking everything from scratch, saving almost nothing. Both situations fall under the same option, yet have very different staffing implications.
+
+The efficiency questions therefore asked separately: including review and corrections, how much of the original time does completing the work with AI require? Answering "half the time" was converted to `ln 2 ≈ 0.69`; "a quarter of the time" to `ln 4 ≈ 1.39`.
+
+However, "slower" and "same speed" were both recorded as zero gain. The researchers' rationale was that when AI doesn't help, people can choose not to use it. This makes sense for people who can freely choose their tools; if a company requires everyone to use a particular system, employees still have to spend time reviewing, filling out forms, and coordinating—and those losses can't necessarily be avoided by "not using it."
+
+### How Long to Switch Careers Is Also First Asked as Time, Then Converted to a Parameter
+
+The survey also asked: if someone loses their job because of AI and needs to switch occupations, how long would it take to find the next job? The number of months was converted into the cross-group search efficiency `μ` introduced earlier:
+
+<div className="econ-equation">μ = 0.17 × 3 ÷ months needed to find work, capped at 1</div>
+
+The longer the expected time, the lower the cross-group search efficiency in the model. "More than three years or never" was recorded as zero. But unemployment rates also depend on how many positions firms post, how wages adjust, and other conditions—this answer alone isn't enough to calculate them.
+
+### That 8.6% GDP Gain—Whose Judgment Is It?
+
+The survey was conducted by Morning Consult from August 11 to 23, 2026, with 10,980 distinct U.S. adult respondents, and results were weighted by demographic characteristics. Questions covered AI capability, adoption, efficiency, automation, and re-employment. Respondents did not directly fill in a GDP forecast number.
+
+The researchers converted each person's five answers into parameters, then ran the economic model separately for each. Of these, 3,259 people answered all five items, and the final distribution of economic outcomes comes from this subsample; statistics for individual questions can use the larger number of respondents who answered that particular item. [Report, Appendix B, pp. 45–49](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=45)
+
+<TechGraph src="/images/posts/anthropic-2030经济情景-增长工资与失业/survey-pipeline.svg" title="The survey did not directly ask how much GDP would grow" caption="Self-drawn diagram, based on Table 2, Table 4, and Appendix B. The researchers fed each of the 3,259 complete answer sets into the model separately, producing individual economic outcomes." />
+
+The resulting median GDP increase was 8.6%, with an interquartile range of roughly 3% to 19%; the median overall unemployment rate was 4.6%. These are all results as of early 2030, and the GDP increase is still benchmarked against the no-AI path at the same point in time. [Report, Table 4, p. 36](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=36)
+
+Some conditions were not asked of the public. How fast capital can expand, how many new tasks emerge after old tasks disappear, and how quickly firms post jobs and adjust wages—all uniformly used the significant-change scenario's settings. Therefore, 8.6% reflects both respondents' judgments about AI and the economic conditions specified by the researchers.
+
+The researchers also did not first assemble a single answer "with all five parameters at their medians" and then compute one result. The five medians may come from different people, and when parameters change together, the effects are not simply additive. Here the calculation was done person by person, then the median of the results was taken.
+
+Consequently, this survey can be used to compare public opinion with how closely it aligns to the three scenarios. It does not additionally prove that the model is accurate, nor does it tell us the probability of any extreme scenario occurring.
+
+## X. What Real-World Changes Could Make Results Differ from the Tables
+
+As we've already seen, merely changing how easy it is to expand capital can flip average wages from rising to falling. Several other things that weren't calculated in detail would also affect who gets to keep their income.
+
+### After Things Get Cheaper, Could Entirely New Business Emerge?
+
+Return to the design firm. If the clients remain the same clients and the projects remain the same projects, each design taking less time probably means the firm no longer needs as many designers. But if design fees drop enough that clients who previously couldn't afford a designer start placing orders, the staffing outcome could be different.
+
+The report uses `σ = 0.5` to indicate that tasks are somewhat complementary. Under this setting, the increased demand after a task becomes cheaper doesn't easily fully offset the reduction in labor per unit of task. Whether this holds in reality depends on how many new customers and new products actually materialize, and that likely varies by industry.
+
+Software is a similar example. The same set of requirements can be completed by fewer engineers, but some software that was previously too expensive to develop might now find willing buyers. The model uses a uniform CES structure to combine tasks and their instances, simplifying the relationships between different tasks; whether real demand can expand fast enough requires looking at the actual orders and labor hours added after prices drop.
+
+### Within the Same Occupation Group, Some People Might Become More Valuable While Others Find It Harder to Enter
+
+The report assigns each group a single wage, collapsing differences in seniority, region, specialty, and employer. But the senior staff and the recent hires at a design firm aren't necessarily affected in the same way. AI might reduce first-draft work, making the person responsible for review and accountability more important; or it might help newcomers complete projects independently sooner. These changes can't be distinguished from a single group-average wage.
+
+Career transitions have a similar issue. When a designer with years of experience switches to a different type of work, how much are their previous credentials still worth? Do they need to re-certify and start from a junior position? The model doesn't fully account for these losses. On the other hand, some people will find their next job before their current role disappears, or transition while still employed—they won't all pass through unemployment first. Real career transitions may be smoother than the model suggests, or harder, depending on the specific person and job.
+
+### Needing More Capital Doesn't Mean Every Piece of Equipment Can Be Built in Time
+
+The capital supply elasticity discussed earlier links how much returns increase to how much capital increases. In reality, there are financing, procurement, construction, and delivery steps in between, and situations where certain types of equipment can't be bought even with money. The report doesn't separately model these processes.
+
+The difference is practical: automation equipment being ready to use quickly versus requiring several years for delivery produces entirely different staffing arrangements. The same judgment about AI capability, combined with a different judgment about investment speed, yields different wage outcomes.
+
+### What If Robots Also Start Doing On-Site Work?
+
+This report focuses on calculating the automation of cognitive tasks through early 2030, without building an equally complete diffusion model for physical robots. The reason other occupation groups can earn higher wages in some scenarios is partly that their tasks aren't subject to the same degree of direct substitution.
+
+If robots can also rapidly enter construction, logistics, and other on-site work, the areas originally expected to absorb career switchers might themselves be reducing headcount. At that point, which jobs still need more people would need to be recalculated—you couldn't simply reuse the report's results for the other occupation group.
+
+Financial crises, aggregate demand declines, policy changes, and other impacts are also not fully incorporated in the report. The fact that GDP increases in all three scenarios shows how, under the assumed conditions, cost reductions lead to more output; it does not exhaust every possible economic change during the AI diffusion period. [Report, Discussion and Conclusion, pp. 38–40](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf#page=38)
+
+## XI. When the Company Earns More, How Much Do Employees Get?
+
+No matter how many model versions there are, change at the design firm still starts from specific work. After purchasing AI subscriptions, how many projects are actually using them? Drafts are faster, but has the time spent on review and rework increased? Are the saved hours being used to take on new orders, or does it mean the firm stops backfilling when someone leaves? These realities are far closer to what employees will actually encounter than a demo video.
+
+If you want to map the parameters above onto reality, these are the changes worth watching. They are observation questions organized according to the model—they cannot yet be used to accurately predict which scenario will occur.
+
+<div className="econ-table">
+
+| Condition in the model | What to look for in actual work |
+| --- | --- |
+| Capability coverage m | Whether AI can reliably complete real tasks, not just pass exams or demos |
+| Actual adoption d | Of the work that could be handed to AI, how much actually is—not just subscription purchases |
+| Efficiency gain a | Including review, rework, and coordination, how much time and cost the whole job actually saves |
+| Automation ψ and new tasks ρ | How much existing labor hours decrease, and how much new work emerges that someone is willing to pay for |
+| Career transition and matching μ | How long it takes displaced workers to find the next job, and whether skill or geographic mismatches block them |
+| Capital supply ε | Whether investment turns into usable equipment on time, and how the cost of renting that equipment changes |
+| Wage adjustment ξ | Whether firms are cutting pay, hiring fewer people, not backfilling vacancies, or laying off outright |
+
+</div>
+
+If a company really does complete more projects with fewer people, clients may enjoy lower prices, and the company and equipment providers may earn more revenue. Remaining employees may also get raises for handling more important work. But people who are laid off don't automatically receive an income just because society as a whole produces more.
+
+The report does calculate the possibility of compensation: in the extreme scenario, the new output is sufficient to make up for the income losses of cognitive workers. But this income initially ends up distributed across different people's hands. For those who are harmed to actually receive help, someone still needs to decide who pays, how it's distributed, and what happens separately during the job search period and after finding work.
+
+For people who lose their jobs, next month's rent and living expenses won't wait for the economy to finish its transition. Whether the extra money can reach them still requires someone to decide—and a way to make it happen.
+
+## Sources and Reading Notes
+
+This article is based on the full text and appendices of the September 2026 edition of **Economic Scenarios for Transformative AI**, with a blog publication date of September 19, 2026. Explanatory examples, the task funnel, and partial calculations are assembled by this article and have been distinguished from the scenario simulation results; original report figures are only cropped, Chinese mechanism diagrams are self-drawn, and sensitivity charts are redrawn from table data.
+
+- [Anthropic Institute project page and scenario interactive tool](https://www.anthropic.com/institute/econ-scenarios): report introduction, interactive exhibits, and related discussion.
+- [Full report PDF](https://www-cdn.anthropic.com/files/4zrzovbb/website/cf58f84d46a4a76bf5a5b039ac695fba6b80041c.pdf): production and distribution model pp. 6–17; labor market pp. 18–22; calibration and scenario inputs pp. 23–30; results and sensitivity pp. 31–40; appendices pp. 40–51.
+- Key results lookup: Table 1 for scenario parameters, Table 3 for three-scenario results, Table 4 for survey-derived results, Table 5 for capital supply sensitivity, Table 6 for wage stickiness sensitivity, Table B.1 for survey coding.
+
+<style>{`
+article img[src*="anthropic-2030经济情景-增长工资与失业/"] { max-width: 480px; margin-left: auto; margin-right: auto; }
+.econ-table { width: 100%; overflow-x: auto; margin: 1.7rem 0; padding-bottom: .35rem; -webkit-overflow-scrolling: touch; }
+.econ-table table { min-width: 680px; margin: 0; font-variant-numeric: tabular-nums; }
+.econ-table-compact table { min-width: 470px; }
+.econ-table th, .econ-table td { padding: .8rem 1rem; vertical-align: top; word-break: normal; }
+.econ-table th:first-child, .econ-table td:first-child { min-width: 190px; }
+.econ-table-compact th:first-child, .econ-table-compact td:first-child { min-width: 130px; }
+.econ-equation { margin: 1.5rem 0; padding: 1.1rem 1.3rem; border-left: 3px solid #177b76; background: rgba(23,123,118,.06); border-radius: 0 8px 8px 0; line-height: 1.85; font-size: 1.02em; color: var(--color-text); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+`}</style>

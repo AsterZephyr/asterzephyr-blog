@@ -1,4 +1,6 @@
 ---
+import LocalizedText from './LocalizedText.astro';
+import { TAG_LABELS } from '../data/blog-tags';
 interface Props {
   tags: string[];
 }
@@ -12,7 +14,7 @@ const { tags } = Astro.props;
         href={`/tags/${tag}/`}
         class="topic-link"
       >
-        {tag}
+        <LocalizedText zh={tag} en={TAG_LABELS[tag] || tag} />
       </a>
     ))}
   </div>

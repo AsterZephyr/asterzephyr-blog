@@ -1,19 +1,24 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import LocalizedText from './LocalizedText.astro';
+import { getTranslations, translationFor } from '../lib/translations';
+import { TAG_LABELS } from '../data/blog-tags';
 interface Props { post: CollectionEntry<'posts'>; }
 const { post } = Astro.props;
 const { title, date, summary, tags, cover, pinned } = post.data;
+const translation = translationFor(post, await getTranslations());
 const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 ---
 <article class="journal-entry">
   <div class="journal-meta">
     <time class="journal-date" datetime={date.toISOString()}>{formattedDate}</time>
-    {pinned && <span class="journal-pin">Pinned</span>}
+    {pinned && <span class="journal-pin"><LocalizedText zh="置顶" en="Pinned" /></span>}
+    {!translation && <span class="journal-date" data-lang="en" lang="en">Chinese only</span>}
   </div>
   <div class="min-w-0">
     {cover && <a href={`/blog/${post.id}/`} class="journal-cover" tabindex="-1" aria-hidden="true"><img src={cover} alt="" loading="lazy" /></a>}
-    <h3 class="journal-title"><a href={`/blog/${post.id}/`}>{title}</a></h3>
-    {summary && <p class="journal-summary">{summary}</p>}
-    {tags.length > 0 && <div class="journal-tags">{tags.slice(0, 3).map((tag) => <a href={`/tags/${tag}/`}>{tag}</a>)}</div>}
+    <h3 class="journal-title"><a href={`/blog/${post.id}/`}>{translation ? <LocalizedText zh={title} en={translation.data.title} /> : <span lang="zh-CN">{title}</span>}</a></h3>
+    {summary && <p class="journal-summary">{translation?.data.summary ? <LocalizedText zh={summary} en={translation.data.summary} /> : <span lang="zh-CN">{summary}</span>}</p>}
+    {tags.length > 0 && <div class="journal-tags">{tags.slice(0, 3).map((tag) => <a href={`/tags/${tag}/`}><LocalizedText zh={tag} en={TAG_LABELS[tag] || tag} /></a>)}</div>}
   </div>
 </article>

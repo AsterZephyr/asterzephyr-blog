@@ -37,4 +37,16 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { posts, projects };
+// Kept outside posts so translations never duplicate listings, pagination or RSS.
+const translations = defineCollection({
+  loader: glob({ pattern: '**/*.mdx', base: './src/content/translations' }),
+  schema: z.object({
+    title: z.string(),
+    summary: z.string().optional(),
+    sourceFile: z.string(),
+    sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { posts, projects, translations };

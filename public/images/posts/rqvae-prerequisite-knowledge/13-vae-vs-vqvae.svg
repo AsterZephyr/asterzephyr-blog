@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow13"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr13" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#374151"/></marker>
+  </defs>
+  <rect width="960" height="560" fill="#ffffff"/>
+
+  <text x="480" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">VAE 与 VQ-VAE 对比：从连续隐空间到离散码本</text>
+  <text x="480" y="52" text-anchor="middle" font-size="12" fill="#6b7280">理解 VAE 的连续 → VQ-VAE 的离散 → RQ-VAE 的多层离散</text>
+
+  <!-- VAE -->
+  <rect x="40" y="75" width="430" height="220" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow13)"/>
+  <text x="255" y="100" text-anchor="middle" font-size="14" font-weight="700" fill="#2563eb">VAE (Variational Autoencoder)</text>
+
+  <rect x="65" y="115" width="80" height="40" rx="4" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="105" y="140" text-anchor="middle" font-size="10" fill="#2563eb">输入 x</text>
+  <line x1="145" y1="135" x2="173" y2="135" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr13)"/>
+
+  <rect x="175" y="110" width="100" height="50" rx="4" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="225" y="130" text-anchor="middle" font-size="9" font-weight="600" fill="#2563eb">Encoder</text>
+  <text x="225" y="148" text-anchor="middle" font-size="8" fill="#374151">→ mu, sigma</text>
+  <line x1="275" y1="135" x2="303" y2="135" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr13)"/>
+
+  <rect x="305" y="110" width="80" height="50" rx="20" fill="#93c5fd" stroke="#2563eb" stroke-width="2"/>
+  <text x="345" y="132" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af">采样 z</text>
+  <text x="345" y="148" text-anchor="middle" font-size="8" fill="#374151">mu+sig*eps</text>
+  <line x1="385" y1="135" x2="413" y2="135" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr13)"/>
+
+  <rect x="415" y="115" width="40" height="40" rx="4" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="435" y="140" text-anchor="middle" font-size="9" fill="#2563eb">Dec</text>
+
+  <text x="65" y="185" font-size="10" fill="#374151">隐空间: 连续分布 (高斯)</text>
+  <text x="65" y="203" font-size="10" fill="#374151">Loss = 重建 + KL(q(z|x) || p(z))</text>
+  <text x="65" y="225" font-size="10" fill="#16a34a">优势: 连续插值, 平滑潜在空间</text>
+  <text x="65" y="243" font-size="10" fill="#dc2626">局限: 无法直接用离散生成模型</text>
+  <text x="65" y="261" font-size="10" fill="#dc2626">局限: posterior collapse (KL→0)</text>
+  <text x="65" y="281" font-size="10" fill="#6b7280">代表: 图像生成、药物分子生成</text>
+
+  <!-- VQ-VAE -->
+  <rect x="490" y="75" width="430" height="220" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow13)"/>
+  <text x="705" y="100" text-anchor="middle" font-size="14" font-weight="700" fill="#16a34a">VQ-VAE (Vector Quantized VAE)</text>
+
+  <rect x="515" y="115" width="80" height="40" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="555" y="140" text-anchor="middle" font-size="10" fill="#16a34a">输入 x</text>
+  <line x1="595" y1="135" x2="623" y2="135" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arr13)"/>
+
+  <rect x="625" y="110" width="80" height="50" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="665" y="130" text-anchor="middle" font-size="9" font-weight="600" fill="#16a34a">Encoder</text>
+  <text x="665" y="148" text-anchor="middle" font-size="8" fill="#374151">→ z_e</text>
+  <line x1="705" y1="135" x2="733" y2="135" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arr13)"/>
+
+  <rect x="735" y="110" width="80" height="50" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="775" y="130" text-anchor="middle" font-size="9" font-weight="600" fill="#92400e">Quantize</text>
+  <text x="775" y="148" text-anchor="middle" font-size="8" fill="#374151">argmin→z_q</text>
+  <line x1="815" y1="135" x2="843" y2="135" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arr13)"/>
+
+  <rect x="845" y="115" width="55" height="40" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="873" y="140" text-anchor="middle" font-size="9" fill="#16a34a">Dec</text>
+
+  <text x="515" y="185" font-size="10" fill="#374151">隐空间: 离散码本 (K个码字)</text>
+  <text x="515" y="203" font-size="10" fill="#374151">Loss = 重建 + VQ + commitment</text>
+  <text x="515" y="225" font-size="10" fill="#16a34a">优势: 离散token, 可用自回归模型</text>
+  <text x="515" y="243" font-size="10" fill="#16a34a">优势: 无 posterior collapse</text>
+  <text x="515" y="261" font-size="10" fill="#dc2626">挑战: 码本崩塌, STE 梯度偏差</text>
+  <text x="515" y="281" font-size="10" fill="#6b7280">代表: DALL-E, AudioLM, SID</text>
+
+  <!-- Key differences table -->
+  <rect x="40" y="310" width="880" height="230" rx="8" fill="#f9fafb" stroke="#d1d5db"/>
+  <text x="480" y="338" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">关键对比</text>
+
+  <!-- Table header -->
+  <rect x="70" y="350" width="150" height="30" rx="4" fill="#e5e7eb"/>
+  <text x="145" y="370" text-anchor="middle" font-size="10" font-weight="600" fill="#374151">维度</text>
+  <rect x="220" y="350" width="250" height="30" rx="4" fill="#dbeafe"/>
+  <text x="345" y="370" text-anchor="middle" font-size="10" font-weight="600" fill="#2563eb">VAE</text>
+  <rect x="470" y="350" width="250" height="30" rx="4" fill="#dcfce7"/>
+  <text x="595" y="370" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">VQ-VAE</text>
+  <rect x="720" y="350" width="180" height="30" rx="4" fill="#fef2f2"/>
+  <text x="810" y="370" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">RQ-VAE</text>
+
+  <!-- Rows -->
+  <text x="85" y="405" font-size="10" fill="#374151">隐空间类型</text>
+  <text x="235" y="405" font-size="10" fill="#374151">连续 (高斯分布)</text>
+  <text x="485" y="405" font-size="10" fill="#374151">离散 (K个码字)</text>
+  <text x="735" y="405" font-size="10" fill="#374151">离散 (K^L个组合)</text>
+
+  <text x="85" y="430" font-size="10" fill="#374151">容量</text>
+  <text x="235" y="430" font-size="10" fill="#374151">理论无限 (但实际受限)</text>
+  <text x="485" y="430" font-size="10" fill="#374151">K (通常 256-8192)</text>
+  <text x="735" y="430" font-size="10" fill="#374151">K^L (指数级)</text>
+
+  <text x="85" y="455" font-size="10" fill="#374151">梯度传递</text>
+  <text x="235" y="455" font-size="10" fill="#374151">重参数化技巧</text>
+  <text x="485" y="455" font-size="10" fill="#374151">STE (Straight-Through)</text>
+  <text x="735" y="455" font-size="10" fill="#374151">STE (逐层)</text>
+
+  <text x="85" y="480" font-size="10" fill="#374151">正则化</text>
+  <text x="235" y="480" font-size="10" fill="#374151">KL 散度 → 标准正态</text>
+  <text x="485" y="480" font-size="10" fill="#374151">Commitment loss</text>
+  <text x="735" y="480" font-size="10" fill="#374151">逐层 commit + Sinkhorn</text>
+
+  <text x="85" y="505" font-size="10" fill="#374151">主要问题</text>
+  <text x="235" y="505" font-size="10" fill="#374151">Posterior collapse</text>
+  <text x="485" y="505" font-size="10" fill="#374151">Codebook collapse</text>
+  <text x="735" y="505" font-size="10" fill="#374151">层间不均衡+碰撞</text>
+
+  <text x="85" y="530" font-size="10" fill="#374151">核心应用</text>
+  <text x="235" y="530" font-size="10" fill="#374151">图像生成/分子设计</text>
+  <text x="485" y="530" font-size="10" fill="#374151">音频/图像 tokenization</text>
+  <text x="735" y="530" font-size="10" fill="#374151">Semantic ID (推荐/广告)</text>
+</svg>

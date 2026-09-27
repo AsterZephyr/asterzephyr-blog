@@ -6,6 +6,7 @@ import Prose from '../components/Prose.astro';
 import TOC from '../components/TOC.astro';
 import TagList from '../components/TagList.astro';
 import PrevNext from '../components/PrevNext.astro';
+import LocalizedText from '../components/LocalizedText.astro';
 import type { CollectionEntry } from 'astro:content';
 
 interface Heading {
@@ -16,13 +17,15 @@ interface Heading {
 
 interface Props {
   post: CollectionEntry<'posts'>;
+  translation?: CollectionEntry<'translations'>;
   headings: Heading[];
   prev?: CollectionEntry<'posts'>;
   next?: CollectionEntry<'posts'>;
 }
 
-const { post, headings, prev, next } = Astro.props;
+const { post, translation, headings, prev, next } = Astro.props;
 const { title, date, updated, tags, cover, summary } = post.data;
+const hasFigures = Boolean(cover) || /<(Figure|TechGraph|img)\b|!\[/.test(post.body || '');
 const formattedDate = date.toLocaleDateString('en-US', {
   year: 'numeric',
   month: 'long',
@@ -36,18 +39,20 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
 ---
 <BaseLayout title={title} description={summary || title} image={cover}>
   <Header />
-  <article class="pt-32 md:pt-40 pb-16">
+  <article class="pt-32 md:pt-40 pb-16" data-has-translation={translation ? '' : undefined}
+    data-post-title-zh={title} data-post-title-en={translation?.data.title}
+    data-post-summary-zh={summary || title} data-post-summary-en={translation?.data.summary || translation?.data.title}>
     <div class="mx-auto max-w-6xl px-6">
       <div class="max-w-3xl mx-auto">
         <header class="mb-12 pb-10 border-b border-[var(--color-border)]">
-          <time class="text-sm uppercase tracking-wider text-[var(--color-muted)]">{formattedDate}</time>
+          <time datetime={date.toISOString()} class="text-sm uppercase tracking-wider text-[var(--color-muted)]">{formattedDate}</time>
           {formattedUpdated && (
             <span class="text-sm text-[var(--color-muted)] ml-3">
-              (Updated: {formattedUpdated})
+              (<LocalizedText zh="更新于" en="Updated" />: <time datetime={updated?.toISOString()}>{formattedUpdated}</time>)
             </span>
           )}
-          <h1 class="reading-title mt-4 mb-4">{title}</h1>
-          {summary && <p class="reading-summary">{summary}</p>}
+          <h1 class="reading-title mt-4 mb-4">{translation ? <LocalizedText zh={title} en={translation.data.title} /> : <span lang="zh-CN">{title}</span>}</h1>
+          {summary && <p class="reading-summary">{translation?.data.summary ? <LocalizedText zh={summary} en={translation.data.summary} /> : <span lang="zh-CN">{summary}</span>}</p>}
           {tags.length > 0 && (
             <div class="mt-4">
               <TagList tags={tags} />
@@ -58,11 +63,17 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
 
       <div class="max-w-3xl mx-auto">
         {cover && (
-            <img src={cover} alt={title} class="w-full mb-10 rounded-sm" />
+            <img src={cover} alt={title} data-alt-zh={title} data-alt-en={translation?.data.title || title} class="w-full mb-10 rounded-sm" />
           )}
-          <Prose>
-            <slot />
-          </Prose>
+          {translation ? (
+            <p class="translation-credit" data-lang="en" lang="en">English edition.{hasFigures && ' Figures retain their original language.'}</p>
+          ) : (
+            <aside class="translation-notice" data-lang="en" lang="en">This article is currently available in Chinese only. You can still browse the rest of the site in English.</aside>
+          )}
+          <div data-article-content data-content-language="zh" lang="zh-CN">
+            <Prose><slot /></Prose>
+          </div>
+          {translation && <template data-english-content><Prose><slot name="english" /></Prose></template>}
           <PrevNext prev={prev} next={next} />
         </div>
       </div>
@@ -72,11 +83,13 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
 
 <script>
 async function renderMermaidDiagrams() {
-  const preBlocks = document.querySelectorAll('pre[data-language="mermaid"]');
+  const preBlocks = document.querySelectorAll('pre[data-language="mermaid"]:not([data-rendering])');
   if (preBlocks.length === 0) return;
+  preBlocks.forEach((pre) => pre.setAttribute('data-rendering', 'true'));
 
+  try {
   const { default: mermaid } = await import(
-    'https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs'
+    'https://cdn.jsdelivr.net/npm/mermaid@11.14.0/dist/mermaid.esm.min.mjs'
   );
 
   mermaid.initialize({
@@ -125,6 +138,7 @@ async function renderMermaidDiagrams() {
   });
 
   for (const pre of preBlocks) {
+    if (!pre.isConnected) { pre.removeAttribute('data-rendering'); continue; }
     const graphDefinition = pre.textContent || '';
     const id = `mermaid-${crypto.randomUUID()}`;
 
@@ -135,13 +149,19 @@ async function renderMermaidDiagrams() {
       container.innerHTML = svg;
       pre.replaceWith(container);
     } catch (error) {
+      pre.removeAttribute('data-rendering');
       console.error('Mermaid rendering failed:', error);
     }
+  }
+  } catch (error) {
+    preBlocks.forEach((pre) => pre.removeAttribute('data-rendering'));
+    console.error('Mermaid could not be loaded:', error);
   }
 }
 
 renderMermaidDiagrams();
 document.addEventListener('astro:after-swap', renderMermaidDiagrams);
+document.addEventListener('languagechange', renderMermaidDiagrams);
 </script>
 
 <style is:global>

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow12"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr12" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#374151"/></marker>
+  </defs>
+  <rect width="960" height="540" fill="#ffffff"/>
+
+  <text x="480" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">神经网络的分层结构与反向传播</text>
+  <text x="480" y="52" text-anchor="middle" font-size="12" fill="#6b7280">从输入到输出的前向传播 + 从损失到参数的梯度回传</text>
+
+  <!-- Forward pass -->
+  <rect x="40" y="75" width="880" height="200" rx="8" fill="#f9fafb" stroke="#d1d5db"/>
+  <text x="480" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">前向传播 (Forward Pass)</text>
+
+  <!-- Input -->
+  <rect x="70" y="120" width="100" height="60" rx="6" fill="#e5e7eb" stroke="#6b7280"/>
+  <text x="120" y="148" text-anchor="middle" font-size="10" font-weight="600" fill="#374151">输入 x</text>
+  <text x="120" y="166" text-anchor="middle" font-size="9" fill="#6b7280">特征向量</text>
+
+  <line x1="170" y1="150" x2="198" y2="150" stroke="#374151" stroke-width="1.5" marker-end="url(#arr12)"/>
+
+  <!-- Layer 1 -->
+  <rect x="200" y="115" width="140" height="70" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="270" y="140" text-anchor="middle" font-size="10" font-weight="600" fill="#2563eb">Linear + ReLU</text>
+  <text x="270" y="158" text-anchor="middle" font-size="9" fill="#374151">z1 = W1*x + b1</text>
+  <text x="270" y="174" text-anchor="middle" font-size="9" fill="#374151">a1 = max(0, z1)</text>
+
+  <line x1="340" y1="150" x2="368" y2="150" stroke="#374151" stroke-width="1.5" marker-end="url(#arr12)"/>
+
+  <!-- Layer 2 -->
+  <rect x="370" y="115" width="140" height="70" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="440" y="140" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">Linear + ReLU</text>
+  <text x="440" y="158" text-anchor="middle" font-size="9" fill="#374151">z2 = W2*a1 + b2</text>
+  <text x="440" y="174" text-anchor="middle" font-size="9" fill="#374151">a2 = max(0, z2)</text>
+
+  <line x1="510" y1="150" x2="538" y2="150" stroke="#374151" stroke-width="1.5" marker-end="url(#arr12)"/>
+
+  <!-- Layer 3 -->
+  <rect x="540" y="115" width="140" height="70" rx="6" fill="#f3e8ff" stroke="#7c3aed"/>
+  <text x="610" y="140" text-anchor="middle" font-size="10" font-weight="600" fill="#7c3aed">Linear + Sigmoid</text>
+  <text x="610" y="158" text-anchor="middle" font-size="9" fill="#374151">z3 = W3*a2 + b3</text>
+  <text x="610" y="174" text-anchor="middle" font-size="9" fill="#374151">y_hat = sigmoid(z3)</text>
+
+  <line x1="680" y1="150" x2="708" y2="150" stroke="#374151" stroke-width="1.5" marker-end="url(#arr12)"/>
+
+  <!-- Loss -->
+  <rect x="710" y="120" width="140" height="60" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+  <text x="780" y="148" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">Loss</text>
+  <text x="780" y="166" text-anchor="middle" font-size="9" fill="#374151">CE(y, y_hat)</text>
+
+  <!-- Label -->
+  <text x="70" y="210" font-size="10" fill="#374151">每一层做两件事: (1) 线性变换 z=Wx+b (2) 非线性激活 a=f(z)</text>
+  <text x="70" y="228" font-size="10" fill="#374151">没有非线性激活 → 多层网络退化为单层线性模型 (因为线性的复合还是线性)</text>
+  <text x="70" y="248" font-size="10" fill="#6b7280">ReLU: max(0,x) — 简单高效, 解决梯度消失。 Sigmoid: 1/(1+e^-x) — 输出 [0,1] 概率。</text>
+
+  <!-- Backward pass -->
+  <rect x="40" y="290" width="880" height="230" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="480" y="315" text-anchor="middle" font-size="13" font-weight="700" fill="#dc2626">反向传播 (Backpropagation) — 链式法则</text>
+
+  <!-- Chain rule visualization -->
+  <rect x="710" y="335" width="140" height="50" rx="6" fill="#fecaca" stroke="#dc2626"/>
+  <text x="780" y="357" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">dL/dy_hat</text>
+  <text x="780" y="375" text-anchor="middle" font-size="9" fill="#374151">损失对输出的导数</text>
+
+  <line x1="710" y1="360" x2="682" y2="360" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arr12)"/>
+
+  <rect x="540" y="335" width="140" height="50" rx="6" fill="#fecaca" stroke="#dc2626"/>
+  <text x="610" y="357" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">dL/dW3</text>
+  <text x="610" y="375" text-anchor="middle" font-size="9" fill="#374151">= dL/dy * dy/dz3 * dz3/dW3</text>
+
+  <line x1="540" y1="360" x2="512" y2="360" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arr12)"/>
+
+  <rect x="370" y="335" width="140" height="50" rx="6" fill="#fecaca" stroke="#dc2626"/>
+  <text x="440" y="357" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">dL/dW2</text>
+  <text x="440" y="375" text-anchor="middle" font-size="9" fill="#374151">= ... * dz2/dW2</text>
+
+  <line x1="370" y1="360" x2="342" y2="360" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arr12)"/>
+
+  <rect x="200" y="335" width="140" height="50" rx="6" fill="#fecaca" stroke="#dc2626"/>
+  <text x="270" y="357" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">dL/dW1</text>
+  <text x="270" y="375" text-anchor="middle" font-size="9" fill="#374151">= ... * dz1/dW1</text>
+
+  <text x="70" y="415" font-size="11" fill="#374151">链式法则: dL/dW1 = (dL/dy) * (dy/da2) * (da2/dz2) * (dz2/da1) * (da1/dz1) * (dz1/dW1)</text>
+  <text x="70" y="440" font-size="11" fill="#374151">本质：高中数学复合函数求导 f(g(h(x))) 的导数 = f' * g' * h'</text>
+
+  <!-- Key insight for VQ-VAE -->
+  <rect x="70" y="460" width="820" height="45" rx="4" fill="#fef3c7" stroke="#d97706"/>
+  <text x="80" y="480" font-size="10" font-weight="600" fill="#92400e">与 VQ-VAE 的关系:</text>
+  <text x="80" y="498" font-size="10" fill="#374151">VQ 的 argmin 不可微 → 链式法则在此处断裂 → 梯度无法传回 Encoder → STE 假装量化层不存在，强制梯度"穿越"</text>
+</svg>

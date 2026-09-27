@@ -1,6 +1,7 @@
 ---
 import PostLayout from '../../layouts/PostLayout.astro';
 import { getCollection, render } from 'astro:content';
+import { getTranslations, translationFor } from '../../lib/translations';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => !data.draft);
@@ -18,7 +19,10 @@ export async function getStaticPaths() {
 
 const { post, prev, next } = Astro.props;
 const { Content, headings } = await render(post);
+const translation = translationFor(post, await getTranslations());
+const EnglishContent = translation ? (await render(translation)).Content : undefined;
 ---
-<PostLayout post={post} headings={headings} prev={prev} next={next}>
+<PostLayout post={post} translation={translation} headings={headings} prev={prev} next={next}>
   <Content />
+  {EnglishContent && <EnglishContent slot="english" />}
 </PostLayout>

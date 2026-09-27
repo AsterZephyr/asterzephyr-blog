@@ -1,0 +1,406 @@
+---
+title: "The Full Picture of Agent Eval: How to Evaluate, How to Design, How to Learn"
+date: 2026-05-22
+tags: [Agent 与编程]
+summary: "The evaluation paradigm is fracturing. After SWE-bench's retirement, how should Agent product teams measure real capability? This article dissects the full picture of Agent Eval across three dimensions: hands-on process, design methodology, and learning path."
+draft: false
+sourceFile: "agent-eval-全景-怎么评-怎么设计-怎么学.mdx"
+sourceHash: "8b38d93f389df8f5f03c0ac9f23dc757ce441cba41b08f1ecf50511074d40c2a"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+import Callout from '../../components/blog/Callout.astro'
+
+In April 2026, OpenAI published a blog post with a title as blunt as a divorce letter: *Why We No Longer Evaluate SWE-bench Verified*. That same month, METR's research dealt another heavy blow to what was once the gold standard—they had real open-source maintainers review 296 AI PRs that passed SWE-bench's automated tests, and the conclusion was: **roughly 50% would not be merged**.
+
+This isn't a minor tweak to a benchmark. This is a fracture in the evaluation paradigm.
+
+If you're building an Agent product, the question you face is no longer "how many points can my Agent score on SWE-bench," but a more fundamental one: **how on earth should we measure an Agent's real capability?**
+
+This article attempts to answer three questions: how to run evaluations, how to design evaluations, and how to systematically learn about all of this.
+
+## A Retired Yardstick
+
+Let's first look at what exactly went wrong with SWE-bench.
+
+SWE-bench's design is clean: extract problems from historical GitHub issues, have the Agent generate a fix patch, then run the original PR's test cases to verify correctness. SWE-bench Verified is its curated version—with test case reliability verified by humans. By early 2026, top models were already hitting 80%+ on Verified.
+
+But three problems made that number untrustworthy:
+
+**Problem One: Git history leakage.** In September 2025, the community discovered that models might have "memorized" some answers through Git history in their training data, rather than genuinely reasoning through the problems. This isn't the benchmark designers' fault, but it massively undermines the interpretability of the scores.
+
+**Problem Two: Automated tests ≠ real quality.** METR's research quantified this gap. Their core findings:
+
+- There was a **stable 24-percentage-point bias** between automated test pass rates and maintainer merge rates
+- Among rejected PRs, the biggest issue wasn't "wrong functionality" but code quality: not following repo conventions, introducing unnecessary complexity, breaking other code
+- Even the human-written original PRs had only a 68% merge rate from maintainers (this is the golden baseline)—indicating that human review itself is noisy
+
+**Problem Three: Ceiling effect.** When multiple models all reach 75–80%, SWE-bench loses its ability to differentiate frontier capabilities. OpenAI's own words: "It no longer measures frontier coding capabilities."
+
+All three problems point to the same conclusion: **passing tests ≠ writing production-grade code**. Evaluation needs to evolve.
+
+## The Evaluation Map: What Each Benchmark Tests
+
+<TechGraph src="/images/posts/agent-eval-全景-怎么评-怎么设计-怎么学/agent-eval-quadrant.svg" title="BENCHMARK POSITIONING" caption="Positioning quadrant of current mainstream Agent evaluation benchmarks (X-axis = granularity, Y-axis = judging method)" />
+
+The Agent evaluation landscape has now branched into multiple tracks, each measuring different capability dimensions. Understanding this map is a prerequisite for designing your own evaluation system.
+
+### SWE-bench: Single Issue Fix
+
+- **What it tests**: Given a GitHub issue description, can the Agent generate a correct patch
+- **Judging method**: Run the original PR's test cases
+- **Granularity**: Single bug fix or small feature, averaging 17 lines changed
+- **Limitations**: Only tests "fixed correctly," not "fixed well"; doesn't involve architecture, design, or integration
+
+Despite the issues mentioned above, SWE-bench remains the best introductory material for understanding Agent evaluation mechanics—its harness design is clean, data is public, and the toolchain is mature.
+
+### DevEval/DevBench: Full Software Development Lifecycle
+
+- **What it tests**: The complete pipeline from requirements to delivery—software design, environment setup, code implementation, acceptance testing, unit testing
+- **Judging method**: Independent evaluation metrics for each phase
+- **Granularity**: Project-level, involving multi-file collaboration
+- **Value**: Reveals severe shortcomings of models beyond "writing code"—failure rates in the design phase are far higher than in the implementation phase
+
+DevEval covers 4 languages and multiple domains, truly answering the question "can an LLM independently complete a software project."
+
+### CoderEval: Precise Classification of Context Dependencies
+
+- **What it tests**: How code generation capability varies with the depth of context dependencies
+- **Judging method**: Automated execution correctness verification
+- **Core contribution**: Proposed a six-level context dependency classification
+
+CoderEval's taxonomy is the most precise decomposition framework for code generation capability I've seen:
+
+| Level | Dependency Scope | Example |
+|-------|-----------------|---------|
+| Level 0 | Self-contained | Pure algorithmic function, no external dependencies |
+| Level 1 | Built-in/Standard Lib | Uses standard library but no project dependencies |
+| Level 2 | Third-party Library | API calls depending on external packages |
+| Level 3 | Current File | Depends on types/variables within the same file |
+| Level 4 | Current Project | Depends on definitions from other files in the project |
+| Level 5 | Cross-project | Depends on interactions across multiple projects |
+
+Research found: models perform far better at Level 0–1 than at Level 4–5. **Standalone function generation capability cannot represent pragmatic scenario capability.** This means if your Agent product primarily handles project-level code (which is virtually every real-world scenario), the confidence you get from HumanEval-style benchmarks is false.
+
+### WebArena: Web Environment Interaction
+
+- **What it tests**: An Agent's ability to complete tasks on real websites (forums, e-commerce, GitLab, maps)
+- **Judging method**: Functional correctness verification based on final state
+- **Granularity**: Complete user tasks with multiple steps and page navigations
+- **Value**: The only mainstream benchmark testing an Agent's ability to "operate a GUI" rather than "write code"
+
+WebArena deploys a complete web application stack where the Agent interacts with real websites through browser APIs. This is a must-see evaluation design for teams building Web Agents, RPA, or UI automation.
+
+### Chatbot Arena (LMSYS): Human Preference Alignment
+
+- **What it tests**: Which of two models' outputs is better (decided by human votes)
+- **Judging method**: ELO ranking system based on pairwise comparisons
+- **Granularity**: Single-turn/multi-turn conversations
+- **Value**: The only evaluation method that aligns with human preferences at large scale
+
+Arena's design philosophy is fundamentally different from other benchmarks: it doesn't presuppose a "correct answer" but instead lets crowdsourced users make A/B choices. This captures the "preference" dimension that automated evaluation cannot, but it also introduces problems of high cost and hard-to-eliminate biases.
+
+### ProgramBench (2026 New): Building Complete Programs from Scratch
+
+- **What it tests**: Given an executable and its documentation, re-implement it from scratch
+- **Judging method**: 248,000+ behavioral tests comparing input/output against the original program
+- **Granularity**: Entire projects (from jq to FFmpeg to a PHP compiler)
+- **Current best result**: GPT 5.5 (xhigh) = 0.5%
+
+ProgramBench is the "next-generation work" from the SWE-bench team, with a completely different design philosophy: not fixing bugs, but **architecting + implementing a complete system**. The Agent cannot go online, cannot decompile—it can only observe program behavior and then rebuild. This tests genuine system design capability.
+
+### SaaSBench (2026 New): Enterprise Full-Stack System Integration
+
+- **What it tests**: Whether an Agent can build complex enterprise SaaS systems (8 languages, 6 databases, 13 frameworks)
+- **Judging method**: Dependency-aware hybrid verification (5,370 verification nodes)
+- **Core finding**: **95%+ of failures occur in system configuration and integration phases, not in business logic implementation**
+
+<Callout type="warning" title="Implications for Agent product teams">
+SaaSBench's findings show that the current Agent bottleneck isn't "can't write code" but "can't get the connections between multiple components working." Models tend to be overconfident, declaring completion while the infrastructure isn't even properly configured yet.
+</Callout>
+
+## How to Run Evaluations: The Full Practical Workflow
+
+<TechGraph src="/images/posts/agent-eval-全景-怎么评-怎么设计-怎么学/agent-eval-workflow.svg" title="EVALUATION WORKFLOW" caption="A five-step process for Agent product teams to build an evaluation system from scratch" />
+
+With the evaluation map in hand, let's move on to practice. Below is the complete workflow for an Agent product team to build an evaluation system from zero.
+
+### Step 1: Define Evaluation Objectives
+
+Don't just jump straight into running SWE-bench. First answer these questions:
+
+1. **What scenario does your Agent serve?** Code fixes? Full-stack development? Document generation? Web operations?
+2. **Which capability dimensions do you care about?** Correctness, code quality, speed, cost, user satisfaction?
+3. **What's your decision granularity?** Comparing two models? Evaluating a single prompt change? Or tracking long-term trends?
+
+Different objectives lead to entirely different evaluation designs. If you just want to compare whether Claude or GPT is better for your scenario, a 50-case A/B test might suffice. If you want to build a continuous regression system, you need a completely different level of engineering investment.
+
+### Step 2: Choose or Build a Benchmark
+
+**Use an existing one**—when your scenario highly overlaps with an available benchmark:
+
+```python
+# Minimal example of running SWE-bench evaluation with BenchFlow
+# https://github.com/benchflow-ai/benchflow
+
+from benchflow import BenchClient
+
+client = BenchClient(api_key="your-key")
+
+# Define your Agent
+agent_config = {
+    "name": "my-coding-agent",
+    "endpoint": "http://localhost:8000/agent/run",
+    "timeout": 300,
+}
+
+# Run on the SWE-bench Verified subset
+results = client.run_benchmark(
+    benchmark="swe-bench-verified",
+    agent=agent_config,
+    subset="lite",  # Run lite first to verify the pipeline works
+    max_parallel=5,
+)
+
+print(f"Pass rate: {results.pass_rate:.1%}")
+print(f"Avg time: {results.avg_time:.0f}s")
+print(f"Avg cost: ${results.avg_cost:.2f}")
+```
+
+**Build your own**—when existing benchmarks don't cover your scenario:
+
+Core principle: sample from your production data. The real tasks your users send to the Agent are the best evaluation set.
+
+```python
+# Skeleton design for a custom evaluation set
+eval_case = {
+    "id": "case-001",
+    "input": {
+        "instruction": "User's original instruction",
+        "context": "Context information provided to the Agent",
+        "workspace": "Initial file state snapshot",
+    },
+    "expected": {
+        "files_changed": ["path/to/file.py"],
+        "tests_pass": ["test_feature_x.py"],
+        "criteria": [
+            "Does not introduce new lint errors",
+            "Does not modify unrelated files",
+            "Maintains backward compatibility",
+        ],
+    },
+    "metadata": {
+        "difficulty": "medium",
+        "context_dependency": 4,  # CoderEval six-level classification
+        "domain": "backend",
+    },
+}
+```
+
+### Step 3: Design Judging Criteria
+
+This is the most critical and error-prone step. Three judging approaches each have their applicable scenarios:
+
+| Approach | Applicable Scenario | Pros | Cons |
+|----------|-------------------|------|------|
+| Automated tests | Functional correctness verification | Fast, cheap, deterministic | Cannot capture quality dimensions (METR proved a 24pp bias) |
+| Human review | Code quality, architectural decisions | Closest to the true standard | Expensive, slow, noisy (golden baseline = 68%) |
+| LLM-as-Judge | Large-scale initial screening, subjective dimensions | Scalable, cost-controllable | Limited agreement with human judgment, susceptible to gaming |
+
+**Practical advice: use a hybrid approach.** Automated tests as a correctness gate, LLM-as-Judge for preliminary quality screening, human review for final judgment and calibration.
+
+```python
+# Pseudocode for three-layer judging
+
+def evaluate(agent_output, case):
+    # Layer 1: Automated tests (gate)
+    test_result = run_tests(agent_output, case["expected"]["tests_pass"])
+    if not test_result.passed:
+        return Score(correctness=0, quality=None, verdict="FAIL_TESTS")
+
+    # Layer 2: LLM-as-Judge (screening)
+    quality_score = llm_judge(
+        agent_output,
+        criteria=case["expected"]["criteria"],
+        model="claude-sonnet-4-6",
+    )
+
+    # Layer 3: Human review (sampled calibration)
+    if case in sampled_for_human_review:
+        human_score = submit_for_review(agent_output, case)
+        calibration_data.append((quality_score, human_score))
+
+    return Score(
+        correctness=test_result.score,
+        quality=quality_score,
+        verdict="PASS" if quality_score > 0.7 else "NEEDS_REVIEW",
+    )
+```
+
+### Step 4: Execution and Result Analysis
+
+After running the evaluation, don't just look at a single pass rate number. METR's research set a great example—they categorized failure reasons into four types (core functionality / breaks other code / code quality / other), which enables targeted improvement.
+
+Key analysis dimensions:
+
+- **Stratify by difficulty**: Is your Agent already at 100% on easy cases? If so, easy cases no longer provide any discriminative power for you
+- **Stratify by context dependency**: Use CoderEval's six-level classification to see at which level your Agent starts to significantly degrade
+- **Cluster failure modes**: Is it insufficient model capability, or a prompt design problem, or a bug in the tool-calling chain?
+- **Cost-performance curve**: How much does the same model improve with a higher token limit / more retries? Is it worth it?
+
+## How to Design Evaluations: A Methodological Framework
+
+<TechGraph src="/images/posts/agent-eval-全景-怎么评-怎么设计-怎么学/agent-eval-design-framework.svg" title="4-DIMENSION FRAMEWORK" caption="A four-dimensional analysis framework for Agent evaluation design" />
+
+If you need to design an evaluation system for your own Agent product, here is a four-dimensional analysis framework.
+
+### Dimension 1: Granularity Spectrum
+
+```
+Function-level → File-level → Module-level → Project-level → System-level
+HumanEval       CoderEval     SWE-bench      DevEval         SaaSBench/ProgramBench
+```
+
+Your evaluation granularity should match your product scenario. If your Agent helps users write individual functions, HumanEval-level is sufficient. If it helps users build entire projects, you need DevEval or SaaSBench-level evaluation.
+
+### Dimension 2: Context Dependency
+
+CoderEval's six-level classification is currently the most precise framework. Core insight: **most real-world code generation tasks fall at Level 3–5** (depending on file/project/cross-project context), but most benchmarks only test Level 0–2.
+
+When designing your own evaluation, explicitly label the context dependency level of each case. Only then can you discover issues like "my Agent is very strong in standalone scenarios, but falls apart the moment it needs to understand project context."
+
+### Dimension 3: Interaction Complexity
+
+```
+Single-turn (give instruction, get result) → Multi-turn (conversational iteration) → Autonomous (discover and solve problems)
+SWE-bench                                    Human review + iteration                  π-Bench
+```
+
+π-Bench (2026-05) introduced an important concept: **proactive assistance**—can the Agent identify implicit needs the user didn't explicitly state? This is critical for production-level Agents, but currently almost no benchmark measures this dimension.
+
+### Dimension 4: Judging Method Spectrum
+
+```
+Deterministic (test pass/fail) → Semi-automatic (LLM-as-Judge) → Manual (maintainer review / user voting)
+SWE-bench                        Automated code review            METR / Arena
+```
+
+METR's data provides a precise calibration: there is a 24 percentage point systematic bias between automated and human judgment. If you only use automated judgment, your Agent looks 24% better than it actually is.
+
+### Pitfall Avoidance Guide
+
+**1. Contamination (Data Leakage)**
+
+SWE-bench's Git history leak is a classic case. Prevention methods:
+- Use data with a post-training cutoff
+- Regularly update the evaluation set
+- ProgramBench's approach: require building from scratch—even if the source code is memorized, genuine understanding is still needed to rewrite it
+
+**2. Harness Overfitting**
+
+SaaSBench deliberately used a generic harness (mini-SWE-agent) without task-specific tuning. They found that "headline scores from a tuned harness on a curated handful of tasks can substantially overstate how capable agents really are."
+
+If your evaluation only runs on your own Agent framework, scores may be inflated. The antidote: run a baseline with a generic harness and compare it against your own framework's scores.
+
+**3. Metric Gaming**
+
+The moment you publish evaluation results or use them as internal KPIs, Goodhart's Law kicks in immediately. Prevention:
+- Keep a portion of the evaluation set private (hidden test set)
+- Periodically replace evaluation cases
+- Multi-dimensional scoring rather than a single number
+
+**4. Representativeness Bias**
+
+SWE-bench Verified's average change is only 17 lines. If your Agent primarily handles large-scale refactoring (500+ lines), SWE-bench scores have no reference value for you. Always check whether the benchmark's case distribution matches your scenario.
+
+## How to Learn: A Systematic Learning Path
+
+### Level 1: Run Through One Benchmark (1–2 Weeks)
+
+**Goal**: Understand the mechanical structure of evaluation—how the harness runs, how data is organized, how results are computed.
+
+**Recommended path**:
+
+1. Clone the [SWE-bench](https://github.com/princeton-nlp/SWE-bench) repo, read the README and harness code
+2. Use [BenchFlow](https://github.com/benchflow-ai/benchflow) or [mini-SWE-agent](https://github.com/swe-agent/mini-swe-agent/) to run 5–10 cases
+3. Manually inspect one passing case and one failing case to understand the judging logic
+
+**What you'll learn**:
+- How Dockerized evaluation environments provide isolation
+- How test cases are extracted from PR history
+- The precise mechanism of automated judging (patch apply → run tests → check exit code)
+
+### Level 2: Understand Evaluation Design Philosophy (2–4 Weeks)
+
+**Goal**: Understand the design trade-offs of different benchmarks—why they were designed this way, what was sacrificed, and what was gained.
+
+**Essential papers**:
+
+| Paper | Key Takeaway |
+|-------|-------------|
+| METR: Many SWE-bench PRs Not Merged | Methodology for calibrating automated vs. human judgment |
+| CoderEval (ICSE 2024) | Six-level context dependency classification |
+| DevEval (arXiv 2403.08604) | Phase decomposition for full-lifecycle evaluation |
+| ProgramBench (arXiv 2605.03546) | Anti-cheating design through building from scratch |
+| SaaSBench (arXiv 2605.17526) | Dependency-aware hybrid verification paradigm |
+
+**Focus on**:
+- The Limitations and Threats to Validity sections of each paper
+- How they handle contamination
+- The reasoning behind judging criteria design
+
+### Level 3: Build a Domain-Specific Benchmark (4–8 Weeks)
+
+**Goal**: Build an evaluation system for your product scenario that can run continuously and drive improvement.
+
+**Steps**:
+
+1. **Data collection**: Extract 50–100 real tasks from production logs (covering easy/medium/hard)
+2. **Annotation**: Label each case by context dependency level, domain, and difficulty
+3. **Judging design**: Refer to the three-layer judging method in this article; determine the ratios for automated gate + LLM judge + human sampling
+4. **Productionize**: CI integration, automatically run evaluations on every prompt/model change
+5. **Calibration loop**: Periodically compare LLM-as-Judge and human review results, adjust prompts
+
+**Recommended toolchain**:
+
+- Evaluation execution: [BenchFlow](https://github.com/benchflow-ai/benchflow) / custom Docker harness
+- LLM-as-Judge: Directly call Claude/GPT APIs, define scoring criteria with few-shot prompts
+- Human review: Simple web UI + random assignment + dual review
+- Result tracking: Grafana dashboard or simple SQLite + periodic reports
+
+### Continuous Learning Resources
+
+- **HuggingFace Daily Papers**: Follow papers with `bench` / `eval` / `agent` keywords
+- **METR blog**: Continuously produces high-quality Agent capability assessment research
+- **SWE-bench GitHub Issues**: Community discussions on evaluation methodology are often more grounded than papers
+- **Chatbot Arena Blog**: Cutting-edge practices in human preference evaluation
+
+## The Endgame of Evaluation: From Benchmark to Continuous Eval
+
+Static benchmarks are losing their relevance. SWE-bench's lifecycle is proof: release → score-chasing → saturation → problems discovered → retirement. ProgramBench currently has a 0% solve rate, but given the pace of Agent capability growth, it may face the same fate within two years.
+
+For Agent product teams, what's truly needed is not "scoring high on some public benchmark," but rather:
+
+**1. Build your own eval pipeline.** Use your real user tasks as your evaluation set, and run it every time the model/prompt changes. This predicts your user experience better than any public benchmark.
+
+**2. Multi-dimensional and non-public.** Follow METR's approach—distinguish between correctness, code quality, integration, and proactiveness. Maintain a hidden test set to prevent overfitting.
+
+**3. Use human review for calibration, not for daily operations.** Human review is too expensive to run every day, but doing a monthly calibration (comparing human review results against automated judge results) lets you continuously correct biases in your automated system.
+
+**4. Focus on failure modes, not just pass rates.** SaaSBench's finding (95% of failures occur at the integration stage) is far more actionable than any pass-rate number.
+
+Evaluation is not a one-time exam—it's a continuously running quality signal system. The best Agent teams are using eval to drive iteration—checking the eval dashboard every day, as naturally as checking product DAU.
+
+---
+
+**References**
+
+- [Many SWE-bench-Passing PRs Would Not Be Merged (METR, 2026-03)](https://metr.org/notes/2026-03-10-many-swe-bench-passing-prs-would-not-be-merged-into-main/)
+- [Why We No Longer Evaluate SWE-bench Verified (OpenAI, 2026-04)](https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)
+- [ProgramBench (SWE-bench team, 2026-05)](https://programbench.com/)
+- [SaaSBench (arXiv, 2026-05)](https://arxiv.org/abs/2605.17526)
+- [π-Bench (arXiv, 2026-05)](https://arxiv.org/abs/2605.14678)
+- [CoderEval (ICSE 2024)](https://arxiv.org/abs/2302.00288)
+- [DevEval (arXiv, 2024-03)](https://arxiv.org/abs/2403.08604)
+- [BenchFlow - Run AI Benchmarks as API](https://github.com/benchflow-ai/benchflow)
+- [SWE-bench Git History Leaks (GitHub Issue #465)](https://github.com/SWE-bench/SWE-bench/issues/465)

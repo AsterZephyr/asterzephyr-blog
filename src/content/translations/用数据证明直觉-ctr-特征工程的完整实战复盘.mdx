@@ -1,0 +1,219 @@
+---
+title: "Proving Intuition with Data: A Complete Hands-On Retrospective of CTR Feature Engineering"
+date: 2026-02-27
+category: "技术分享"
+tags: [广告与推荐]
+sourceFile: "用数据证明直觉-ctr-特征工程的完整实战复盘.mdx"
+sourceHash: "493f0da4147df71ae4e7c92e4f35f0532dfc65eb16ca998cfaf4eb34b5d96756"
+---
+
+
+
+I ran a complete set of feature engineering experiments on the Criteo ad click dataset. The results were somewhat surprising: when I evaluated each of the original 39 features individually using IV (Information Value), every single one was judged "useless"—insufficient predictive power. But after systematic feature construction, AUC improved by 3.42%, and the Top 9 most important features the model ultimately learned were all newly constructed ones.
+
+What I want to document in this article is a complete thought process: how to use data analysis tools to extract valuable signals step by step from a pile of seemingly "useless" raw data.
+
+## Starting Point: All Features Are "Useless"?
+
+First, some data background. Criteo is the most commonly used public CTR dataset in the advertising industry. It contains 13 numerical features (I1–I13) and 26 categorical features (C1–C26), all anonymized. I applied downsampling for an RTB scenario, resulting in a CTR of about 5% with 1 million samples.
+
+The first thing I did after getting the data was assess each feature's predictive power using IV/WoE. IV is a widely used feature screening metric in financial risk control, and the rules are simple:
+
+```
+IV < 0.02:  useless (not worth including in a model)
+0.02-0.1:   weak
+0.1-0.3:    medium
+0.3-0.5:    strong
+> 0.5:      suspicious (possible data leakage)
+```
+
+Here's what I got:
+
+| Rank | Feature | IV | Rating |
+| --- | --- | --- | --- |
+| 1 | I9 | 0.0165 | useless |
+| 2 | I5 | 0.0161 | useless |
+| 3 | C12 | 0.0157 | useless |
+| 4 | I1 | 0.0156 | useless |
+| 5 | I2 | 0.0140 | useless |
+
+A complete wipeout. Not a single feature had an IV above the 0.02 "weak" threshold.
+
+But this doesn't mean these features are truly useless. Training XGBoost on the same data yields an AUC of 0.5892—far above the 0.5 of random guessing. Tree models rely on feature combinations rather than individual features. IV measures a single feature's linear discriminative ability, but in reality, what carries predictive power is often the interaction between features.
+
+That said, IV still has value as a quick screening tool. I cross-validated the IV ranking against SHAP importance ranking and XGBoost gain ranking:
+
+| Feature | IV Rank | SHAP Rank | XGBoost Gain Rank |
+| --- | --- | --- | --- |
+| I9 | 1 | 1 | 3 |
+| I5 | 2 | 3 | 2 |
+| I1 | 4 | 2 | 1 |
+| I2 | 5 | 4 | 4 |
+
+The Top 4 across all three methods overlap completely, with only minor differences in internal ordering. IV's advantage is speed—millisecond-level completion versus seconds for SHAP—making it suitable for the first round of screening on large feature sets.
+
+## Letting the Data Tell You What Features to Construct
+
+The traditional approach is to manually construct cross features based on domain experience, like "time slot × device" or "advertiser × ad slot." This approach has two problems: first, it relies on domain expertise, making it hard for newcomers to replicate; second, it easily misses combinations that are truly valuable.
+
+I took a different approach: I used SHAP interaction values to directly quantify the interaction strength between features and see which combinations actually carry signal. After running interaction analysis on the XGBoost baseline model, I got these results:
+
+| Feature Pair | Mean Interaction |
+| --- | --- |
+| I5 × I9 | 0.005987 |
+| I1 × I9 | 0.005486 |
+| I2 × I5 | 0.005060 |
+| I2 × I9 | 0.004367 |
+| I1 × I5 | 0.004266 |
+| I1 × I2 | 0.004112 |
+
+A clear pattern emerged: the pairwise interaction values among the four features I1, I2, I5, and I9 were all significantly higher than other combinations. If this were real advertising data, they might correspond to business dimensions like "advertiser budget," "user activity level," "time-slot popularity," and "ad slot value"—you can't see the semantics in anonymized data, but the interaction patterns help us guess that meaningful relationships exist between them.
+
+This gave a clear direction for feature construction: prioritize building pairwise crosses within this quartet.
+
+## Constructing Features: Four Types of Methods, Each with Its Own Rationale
+
+Based on the SHAP interaction analysis, I constructed four types of new features, 20 in total.
+
+### Cross Features: Making Interactions Explicit
+
+I took the top 5 feature pairs by SHAP interaction rank and computed their products directly:
+
+| New Feature | Source | IV |
+| --- | --- | --- |
+| I5_x_I9 | I5 * I9 | 0.0238 |
+| I1_x_I9 | I1 * I9 | 0.0228 |
+| I1_x_I5 | I1 * I5 | 0.0224 |
+| I2_x_I9 | I2 * I9 | 0.0216 |
+| I2_x_I5 | I2 * I5 | 0.0207 |
+
+Notice the IV values—all cross features have IV > 0.02, while all original features had IV < 0.02. Each feature individually looks "useless," but combined they cross the "weak" threshold. This is exactly the core idea behind FM (Factorization Machine): what truly has predictive power is not individual features, but second-order interactions between features.
+
+```python
+# Cross feature construction guided by SHAP interaction
+top_interactions = [('I5', 'I9'), ('I1', 'I9'), ('I1', 'I5'),
+                    ('I2', 'I9'), ('I2', 'I5')]
+
+for f1, f2 in top_interactions:
+    df[f'{f1}_x_{f2}'] = df[f1] * df[f2]
+```
+
+### Time Features: sin/cos Completely Outperforms Binary Flags
+
+The experimental data includes hour (0–23). I used two encoding approaches:
+
+| New Feature | Encoding Method | IV |
+| --- | --- | --- |
+| hour_cos | cos(2π · hour/24) | **0.0262** |
+| hour_sin | sin(2π · hour/24) | 0.0129 |
+| is_peak | Peak hours binary flag | 0.0000 |
+| is_night | Nighttime binary flag | 0.0000 |
+
+The IV of sin/cos cyclical encoding is far higher than binary flags. `hour_cos` reached an IV of 0.0262, the highest among all new features. Meanwhile, `is_peak` and `is_night` had IV values of essentially zero.
+
+The reason is straightforward: sin/cos preserves the continuity and periodicity of time (23:00 and 0:00 are far apart numerically but close under cos encoding), while binary flags forcefully compress a continuous signal into 0/1, losing the vast majority of information.
+
+```python
+# Cyclical encoding: preserving the continuity of time
+df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / 24)
+df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / 24)
+```
+
+This conclusion is very practical in advertising scenarios. In production systems, hour is typically treated as a categorical feature and fed into an Embedding, which essentially also learns a continuous representation. But if you're using a tree model or a linear model, sin/cos encoding is the simplest and most effective approach.
+
+### Statistical Features and Binning Features
+
+Statistical features are row-level aggregations (mean, standard deviation, max, etc.) over the 13 numerical features. Their effect was mediocre, with IV mostly around 0.01. Binning features discretize numerical features into quantile buckets, helping tree models find more precise split points.
+
+These two types of features aren't as valuable as cross features and time features, but they win on stability—they provide some incremental information on virtually any dataset.
+
+## Screening and Validation: Closing the Feature Engineering Loop
+
+After constructing 20 new features, you don't just dump them all into the model and call it a day. I used a simple IV screening pipeline:
+
+1. Compute IV for each new feature
+2. Keep those with IV >= 0.01
+3. Filtered out: `is_peak`, `is_night`, `num_nonzero`, `num_max_ratio`, `num_min` — 5 features
+4. Retained 15 new features
+
+Then I ran an end-to-end comparison:
+
+| Experiment | # Features | AUC | LogLoss |
+| --- | --- | --- | --- |
+| Baseline (original features) | 23 | 0.5672 | 0.1923 |
+| Enhanced (original + new features) | 38 | **0.5866** | **0.1916** |
+| New features only | 15 | 0.5862 | 0.1916 |
+
+A few points worth noting:
+
+AUC improved by +0.0194 (+3.42%). In the CTR prediction domain, this magnitude is not trivial. In production systems, a 0.01 AUC lift is already worth running an AB test.
+
+Using only the 15 constructed features nearly matches the performance of all 38 features (0.5862 vs 0.5866). The new features have already captured most of the information in the original features, and in an even more compact form.
+
+But what surprised me the most was the feature importance ranking in the enhanced model:
+
+| Rank | Feature | XGBoost Gain | Source |
+| --- | --- | --- | --- |
+| 1 | hour_cos | 62.85 | [New] Time |
+| 2 | I5_x_I9 | 36.51 | [New] Cross |
+| 3 | I9_bin10 | 33.87 | [New] Binning |
+| 4 | I1_x_I9 | 30.07 | [New] Cross |
+| 5 | hour_sin | 26.31 | [New] Time |
+| ... | ... | ... | ... |
+| 10 | I1 | 17.27 | Original |
+
+The Top 9 are all newly constructed features. Original features don't appear until rank 10. The model is honest: explicitly constructed cross, binning, and time features provide more direct predictive signal than the raw features.
+
+## Back to the Real World: What Feature Engineering Looks Like in Production
+
+After finishing the experiments, I compared this workflow against the RTB production system I'm responsible for. The gap between textbook and production was much larger than I expected.
+
+### Manual Crosses vs FM Automatic Crosses
+
+In the experiment, I manually constructed product features like `I5 * I9`, which worked well with tree models. But in production systems, the FM layer is already doing this—and it does it exhaustively:
+
+```
+FM: 0.5 * [(Σ vi·xi)² - Σ(vi·xi)²]
+```
+
+FM computes second-order interactions across all feature pairs with O(kn) complexity, without requiring you to select which feature pairs are worth crossing. So in production systems that use FM, the value of manually constructed cross features is dramatically reduced.
+
+### Embedding vs Label Encoding
+
+One finding from the experiment that left a strong impression: feeding XGBoost the 26 categorical features (C1–C26) with Label Encoding yielded an AUC of only 0.5061—roughly the same as random guessing.
+
+The reason is that hashed category values are just unordered integers to tree models. "C3=42" vs "C3=99137"—the tree only knows 42 < 99137, but this ordinal relationship has no semantic meaning whatsoever.
+
+Production systems solve this with Embeddings: each category value is mapped to a learnable vector space, where semantically similar advertisers and creatives end up with similar vector representations. The core advantage of deep CTR models over tree models isn't that the network is deeper—it's that the representational capacity is stronger.
+
+| Method | This Experiment | Production System |
+| --- | --- | --- |
+| Cross features | Manual product (I5 * I9) | FM automatic full second-order crossing |
+| Time encoding | sin/cos | Hour as categorical Embedding |
+| Statistical features | Row-level sum/max/std | Historical CTR/impression/click statistics |
+| Binning | Quantile binning | Go-side BucketEncoder |
+| Feature selection | IV + SHAP | Domain expertise + online AB testing |
+
+### The Real Battlefield of Feature Engineering in Production
+
+After comparing, I realized that the focus of feature engineering in production is not on manual crossing at all. FM already covers most of that. The places where real effort is spent are entirely different things.
+
+Time window design for historical statistical features. The production system's `StatisticsProcessor` provides features like CTR over the past 7 days, impression count over the past 30 days, and time since last click. None of these exist in the Criteo dataset, but in real advertising systems, these are the most predictive signals.
+
+Training-Serving consistency. In production systems, feature processing is split across two sides: the Go-side `FeatureProcessor` handles real-time feature extraction during Serving, while the Python-side `feature_processor.py` handles batch processing during training. The processing logic for the same feature must be perfectly consistent across both sides—binning boundaries, missing value imputation, normalization parameters. Even the slightest discrepancy introduces Training-Serving Skew, which directly eats up whatever offline AUC improvement you gained. This problem isn't glamorous, but its destructive power is enormous.
+
+Online validation of new features. An offline AUC lift does not equal an online revenue lift. A new feature from proposal to launch might require two weeks of AB testing.
+
+## Looking Back
+
+Reflecting on the entire experiment, a few things left a particularly strong impression on me.
+
+IV/WoE is fast for initial feature screening. Millisecond-level completion, and results are highly consistent with SHAP and XGBoost gain. When you have many features, running IV first saves a lot of time.
+
+SHAP interaction is more reliable than gut feeling. In the experiment, the I1/I2/I5/I9 quartet it identified produced cross features whose IV all broke through the "useless" threshold. Without this analysis, I almost certainly wouldn't have guessed exactly these combinations.
+
+Don't use binary flags for time features. The IV of cos encoding is 0.0262; is_peak and is_night are 0.0000. The gap is too stark.
+
+Feature engineering has high value for tree models, low value for deep models. This experiment achieved +3.42% AUC on XGBoost, but switching to DeepFM (where the FM layer automatically handles crossing) would yield a much smaller increment. What model you use determines where your feature engineering effort should go.
+
+One last thing: more features is not always better. In the ablation experiment, a model trained on only the top 10 features by SHAP ranking actually achieved a higher AUC than the one using all 85 features. Redundant features are noise.

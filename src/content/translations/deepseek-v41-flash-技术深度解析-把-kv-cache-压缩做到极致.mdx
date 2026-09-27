@@ -1,0 +1,578 @@
+---
+title: "DeepSeek-V4.1-Flash Deep Dive: KV Cache Compression and the State Cost of Long Tasks"
+date: 2026-09-10
+tags: [技术报告解读, AI 与机器学习]
+category: "技术分享"
+sourceFile: "deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致.mdx"
+sourceHash: "767dd7c43f4972953ebff84457ab7dad128e0600e60e817e6cd727b928777a4b"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+> Original paper/report: DeepSeek-V4.1-Flash: Pushing the Limits of KV Cache Compression<br/>
+> Authors/Team: DeepSeek-AI<br/>
+> Released: Technical Report, September 2026<br/>
+> Source: [https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash)
+
+The global KV cache per token is only 890 bytes—roughly one-quarter of DeepSeek-V4-Flash and one-four-hundred-and-thirty-seventh of DeepSeek-V1. Using 1M = 1,000,000 tokens and 1 GB = 10⁹ bytes, the global KV drops from 389.12 GB for V1 to 0.89 GB for V4.1-Flash. This comparison covers only global KV and excludes model weights, SWA, and workspace; it does not imply that older models could actually serve 1M contexts. The number illustrates progress in state storage; how much of it translates into throughput and cost benefits depends on the specific workload.
+
+In September 2026, DeepSeek published this 51-page technical report. This article follows a single long-task request through the pipeline, examining in order how the initial input is computed, how state is saved, how the system picks up after a cache miss, and then discussing the trade-offs between training and deployment. All performance figures come from the authors' report and have not been independently reproduced; the "author's analysis" sections present engineering judgments and hypotheses awaiting verification.
+
+## Why This Report Matters
+
+Inputs for long-context agents accumulate gradually through tool calls. Consider a hypothetical coding session: system prompt 2K + repo context 100K + historical tool outputs 200K + current input 5K = 307K tokens. The client re-sending this history does not mean the server re-computes all of it: matched prefix KV can be reused, and only the unmatched input needs prefill. Cold caches, branching, and cache eviction amplify input computation; high hit rates shift the pressure toward the new suffix, state loading, and output generation. [vLLM's prefix caching documentation](https://docs.vllm.ai/en/latest/design/prefix_caching/) describes this reuse mechanism.
+
+We'll keep using this coding session throughout. The first input is assumed to have no cache; on the next round when the tool call returns, the server matches a prefix segment `P` from the previous turn, followed by the unmatched new input `S`. `P` doesn't necessarily cover everything from the previous turn—whether the prefix is consistent and whether the cache is still present both affect the match boundary.
+
+| Where the request is | Problem to solve | Corresponding design |
+|:---|:---|:---|
+| First time reading a long prompt | Does all input have to pass through all 40 layers? | CED shortens the main prefill path |
+| Saving and loading historical state | Which layers share KV, and which positions are read each time? | CSA2, hierarchical indexing, and FP4 |
+| Resuming after the task pauses | Global KV is still there, local SWA has expired—how to continue? | Encoder bounded replay, Decoder initialization |
+| Starting to generate a response | Which layers does the current token pass through, and how to reduce per-step cost? | Both halves of the backbone decode together, with efficient kernels and DSpark |
+
+This path also separates "compute less," "store less," and "recover more cheaply." They act on the same request but are not the same source of savings.
+
+Long-context deployment is simultaneously constrained by compute, memory capacity, and data movement. Prefill typically has substantial compute demands; decoding under certain batch sizes and hardware configurations is more bandwidth-bound, but there is no single bottleneck applicable to all models and workloads. In particular, three accounts need to be separated:
+
+1. **Runtime KV cache** (HBM): constrains how many in-flight request states a serving instance can retain
+2. **Persistent KV cache** (SSD / Host Memory): affects the scope of retainable prefixes, with benefits further depending on reuse patterns and eviction policies
+3. **Data transfer bandwidth** (PCIe / NVLink / RDMA): together with data volume, contention, and scheduling, affects KV loading latency
+
+From V1 to V4.1-Flash, each generation of DeepSeek has compressed the KV cache, and the compression techniques have been continuously evolving:
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/kv-cache-evolution.svg?v=20260910-review1" title="Cross-generation evolution of global KV" caption="Based on Figure 1b; horizontal axis uses a logarithmic scale. Only per-token global KV is compared; this does not represent total model memory." />
+
+| Model | Date | Global KV Cache (bytes/token) | Compression technique |
+|:-----|:-----|:---------------------------|:--------|
+| DeepSeek-V1 | 2023.11 | 389,120 | Standard MHA |
+| DeepSeek-V3.2 | 2025.12 | 48,068 | MLA (Multi-head Latent Attention) |
+| DeepSeek-V4-Flash | 2026.04 | 3,514 | CSA + HCA hybrid + FP8 |
+| **DeepSeek-V4.1-Flash** | **2026.09** | **890** | **Pure CSA2 + FP4 + CED** |
+
+890 B/token is the result under the architecture and quality constraints presented in this report. The cross-generation compression ratios cannot be directly used to extrapolate how much room for further compression remains.
+
+DeepSeek simultaneously announced price reductions in their [official update log](https://api-docs.deepseek.com/updates/). This is a commercial signal, but pricing is also influenced by utilization, product strategy, and other factors—it cannot be used to back out the cost contribution of any single optimization.
+
+## Architecture Overview: CED + CSA2 as the Core of a Two-Axis Optimization
+
+DeepSeek-V4.1-Flash is a multimodal MoE model with 552B backbone parameters plus 196B Engram parameters; activated parameters per token are approximately 8B for prefill and 16B for decode. Total parameters, activated FLOPs, and the weight residency budget at deployment time are three different accounting perspectives: different tokens may access different experts, and sparse activation does not mean you only need to store the currently activated experts. [MoE memory and compute requirements](https://huggingface.co/blog/moe) need to be estimated separately.
+
+Its core architectural innovations can be understood along two axes:
+
+- **Vertical axis (inter-layer)**: Causal Encoder-Decoder (CED) splits the 40-layer Transformer into a 20-layer encoder + 20-layer decoder, where the decoder's global KV is projected from the encoder. This nearly halves the prefill compute for long prompts.
+- **Horizontal axis (intra-layer)**: Compressed Sparse Attention 2 (CSA2) shares global KV and indexer K across layers, paired with a Hierarchical Sparse Indexer that limits the search scope for deeper-layer indexers; the first Full indexer still scans all visible positions.
+
+<Figure src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/figure3-overall-architecture.png" alt="DeepSeek-V4.1-Flash overall architecture diagram" />
+
+> Source: Original paper Figure 3, PDF page 7
+
+This architecture diagram is worth studying carefully:
+
+- **Encoder (left)**: The bottom two layers use pure SWA; the upper three groups of 6 layers each use CSA2 (compression ratio m=2), with the first layer in each group in Full Mode and the rest in Reuse Mode
+- **Decoder (right)**: Five groups of 4 layers each use CSA2 (compression ratio m=1); the first group is Full + Reuse, the remaining four are Reindex + Reuse
+- **Bridge**: The CED bridge—the decoder's global KV is projected from the hidden states of the encoder's last layer (layer 20)
+- **Auxiliary components**: Single-Pass mHC, Engram (two modules at layers 1 and 14), DSpark (speculative decoding), Hierarchical Sparse Indexer
+
+During prefill, the long prompt's main body only passes through the encoder; the decoder still handles projection-related processing and replays the tail window. During decode, both halves participate in computing the current token. Therefore the 8B/16B figures are the activation budgets for the two phases, and should not be understood as the decoder being entirely idle during prefill. Workloads with long inputs and relatively short outputs benefit most from this asymmetric design.
+
+## First Input: How CED Shortens the Compute Path for Long Prompts
+
+In a traditional decoder-only model, all input typically passes through every layer during prefill. N×L token-layers gives a rough count of positions to be processed, but it does not equal attention FLOPs: the operators at each layer, sparsity patterns, and sequence lengths all affect the actual workload. The following simplified count explains what CED skips.
+
+Back to our cold-cache request: all 307K tokens need to be read in, but they don't all need to traverse all 40 layers. For calls where input is much longer than output, pushing the long prompt through the entire backbone is a significant cost. CED separates the generation of the decoder's global KV from the decoder's own layer-by-layer forward pass, so that after the prompt's main body finishes in the encoder, the shared global state needed by the decoder is already established.
+
+CED extends the cross-layer KV reuse and prefill early-exit ideas from [YoCo](https://arxiv.org/abs/2405.05254), with adjustments to the structure and computational depth of KV generation. It therefore has a clear lineage with prior work. This article focuses on the specific data paths described in §2.2 of the report, and how they combine with CSA2 sharing and SWA replay.
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/ced-data-flow.svg?v=20260910-review1" title="CED: Different paths for Prefill vs. Decode" caption="The long prompt's main body passes through the Encoder; the Decoder initializes its SWA using the tail window. Both halves participate when generating new tokens. Based on §2.2, §3.2.2." />
+
+Below is a simplified expression of where the decoder's global KV comes from; the actual storage is further governed by CSA2's cross-layer sharing rules—not every layer saves an independent copy:
+
+```
+C_l = H_{L/2} * W_l^{KV}    // Global KV projected from the encoder's last layer
+Z_l = H_{L/2} * W_l^{Z}     // Compression weights also projected from the encoder
+```
+
+This means:
+- **Prefill**: The encoder processes the input and generates the representations needed for the decoder's global KV; the decoder no longer fully processes the entire prompt, but still replays the tail window to initialize its own SWA.
+- **Decode**: Both the encoder and decoder process new tokens; the decoder reads from the shared global KV and computes its own per-layer queries and SWA state.
+
+Using a simplified count with N=1,000,000, L=40, window=128: full processing would be 40 million token-layers; the CED path is `1,000,000×20 + 128×20 = 20,002,560`, roughly 20 million. This example illustrates that the long prompt's main body traverses approximately half the backbone fewer layers—it is not a precise FLOPs or latency measurement, and does not separately account for projection, sharing, indexing, communication, and other overhead.
+
+<Callout>
+The report states that the total prefill compute for long prompts is nearly halved. Token-layers are only a rough count to explain the source of this reduction; the two paths do not change the asymptotic order with respect to N and L, so this constant-factor optimization should not be described as a change in complexity class.
+</Callout>
+
+The decoder still has SWA KV generated from its own hidden states at each layer. This does not enter the prefix cache, so it needs to be initialized on every prefill; Bounded Replay limits this step to the most recent window. The encoder's SWA has its own separate short-term cache and miss recovery path, which will be discussed separately below.
+
+## Saving History: Which States CSA2 Shares Across Layers
+
+The encoder has already processed the long prompt; next it needs to leave behind historical representations that subsequent queries can read. For this coding session, CSA2 determines how those representations are compressed and which layers share them; the sparse index then determines which portion is read each time.
+
+The size of the KV cache can be compressed along three multiplicative dimensions:
+
+1. **Entry dimension** (KV size per head): GQA / MLA reduce this by sharing or compressing heads
+2. **Sequence dimension** (how many tokens' KV each layer stores): CSA reduces this via m:1 compression
+3. **Layer dimension** (how many layers need independent KV storage): reduced by cross-layer sharing
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/csa2-compression-dimensions.svg?v=20260910-review1" title="Three Compression Dimensions of Global KV" caption="Entry representation, number of sequence entries, and number of independent cache layers jointly determine capacity; sparse selection constrains the read range. Based on §2.3." />
+
+Previous approaches explored cache compression, cross-layer sharing, and sparse selection separately. The distinguishing combination of CSA2 is that it decouples shared main KV, shared indexer K, and whether to re-select positions. Compared to V4, it removes the HCA branch and adopts CSA2; the HCA here refers to performing attention over the full set of heavily compressed entries, not uncompressed dense MHA. This allows different layers to share representations while retaining the ability to re-select which positions to attend to.
+
+It is also important to distinguish "how much is stored" from "how much is read": sequence compression and cross-layer sharing reduce the retained representations; sparse selection determines which positions the current query reads. Not selecting a position does not mean immediately and permanently evicting it from the cache, but compressed representations also cannot be considered as having preserved all original detail.
+
+The compression ratio m means every m adjacent tokens form one compressed entry. The encoder uses m=2, the decoder uses m=1; the latter performs no sequence compression but still does cross-layer sharing and sparse selection. This is the configuration reported in the paper and is not sufficient on its own to prove that all encoders can tolerate the same compression or that all decoders need the same resolution.
+
+### Three Modes of CSA2
+
+<Figure src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/figure4-csa2-modes.png" alt="Comparison of the three CSA2 operating modes" />
+
+> Source: Original paper Figure 4, PDF page 10
+
+Each CSA2 layer is statically assigned to one of three modes, which differ in how they obtain the main KV, indexer K, and Top-K indices:
+
+**Full Mode** (full computation):
+- Computes its own main KV and indexer Q
+- Projects indexer K from the main KV
+- Runs the indexer to produce new Top-K indices (selects 512 positions)
+- Establishes new shared main KV / indexer K; other modes still compute their own query, SWA, FFN, and hidden states
+- Highest computational cost: requires running all three steps of KV generation, indexer scoring, and sparse attention
+
+**Reindex Mode** (re-indexing):
+- Reuses the main KV and indexer K from the most recent Full Mode layer (does not recompute KV)
+- But uses its own indexer Q to re-score and produce new Top-K indices
+- Cache is shared, but sparse selection can vary — different layers can attend to different parts of the global context
+- Medium computational cost: saves KV generation, only runs indexer scoring + sparse attention
+
+**Reuse Mode** (full reuse):
+- Reuses main KV and Top-K indices (from the most recent Full or Reindex layer)
+- Does not compute indexer Q, does no scoring, directly uses the existing sparse selection
+- Skips re-indexing; this layer's sparse attention, SWA, FFN, and other computations still exist
+- This is the mode for the vast majority of layers — 15 out of 20 decoder layers are Reuse Mode
+
+The specific layer assignments are as follows:
+
+**Encoder** (20 layers, CSA2 compression ratio m=2):
+- Layers 1-2: Pure SWA (local window attention only)
+- Layers 3-20: Three groups × 6 layers of CSA2, each configured as Full + 5×Reuse
+
+**Decoder** (20 layers, CSA2 compression ratio m=1):
+- First group (4 layers): Full + 3×Reuse
+- Next four groups (4 layers each): Reindex + 3×Reuse
+
+This means among the 20 decoder layers there is 1 Full layer, 4 Reindex layers, and 15 Reuse layers. As a query passes through these layers, some layers re-select historical positions while others carry forward the positions selected by the previous group; sharing the cache does not mean skipping the layer's attention computation. The specific kernel counts for Reuse layers will be discussed in the deployment section later.
+
+All three modes retain their own global Q and SWA KV across all layers. What is shared is the main KV and indexer K — these two account for the bulk of the global KV cache.
+
+### Comparison with V4's CSA + HCA Hybrid
+
+The HCA in [V4 report §2.3.2](https://arxiv.org/html/2606.19348v1) performs attention over the full set of entries after heavy sequence re-compression. V4.1-Flash removes this branch and uses CSA2 with cross-layer sharing to reduce global KV footprint; this should not be described as simply deleting uncompressed dense attention.
+
+CSA2 uses sparse attention directly during pretraining, with no dense warm-up. This indicates that the training recipe can accommodate the sparse pattern, but it does not prove that sparse selection incurs no information loss. The hierarchical candidate restriction described later is introduced only during post-training — the training stages of the two mechanisms need to be distinguished.
+
+Another simplification is removing the original CSA's overlapping compression and absolute positional encoding, and **projecting indexer K from the main KV** rather than running a separate compression path from hidden states. This also explains why both types of cache can be shared across layers together.
+
+## Hierarchical Sparse Indexer: Limiting the Search Scope for Deeper Layers
+
+Although CSA2's Reindex Mode saves the computation of main KV, the indexer still needs to score all causally visible KV positions. For extremely long contexts (e.g., 1 million tokens), this scoring cost is linear and constitutes a bottleneck.
+
+<Figure src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/figure5-hierarchical-indexer.png" alt="Hierarchical Sparse Indexer mechanism" />
+
+> Source: Original paper Figure 5, PDF page 11
+
+The solution of the Hierarchical Sparse Indexer is intuitive but highly effective:
+
+1. The decoder's first Full Mode layer performs Top-K selection over the entire sequence (selects 512 positions). This step is linear — it must scan all causally visible positions
+2. Simultaneously, it performs blockwise candidate selection: the full sequence is divided into blocks of 8 positions each, the maximum indexer score within each block serves as the block score, and the top-scoring up to 2,048 blocks are selected. The positions they cover form a **candidate pool** (up to 16,384 positions)
+3. All subsequent Reindex Mode layers perform Top-K selection only within this candidate pool, without needing to go back to the original N positions
+
+This reduces the search space for subsequent indexers from O(N) to `O(candidate pool size)`, and the candidate pool size is fixed (16,384), independent of context length. For a 1M-token context, this is a reduction from 1 million to 16 thousand — **approximately a 61× reduction in search space**.
+
+The assumption behind the candidate pool is that the initial layer's scoring retains sufficiently useful positions for deeper layers. This assumption may fail in certain retrieval tasks, so the ~61× candidate pool reduction is a change in search range, not an end-to-end speedup factor, nor a guarantee of quality preservation.
+
+The hierarchical candidate restriction is **introduced during post-training**; training and inference use the same restriction, allowing the model to adapt to the constrained search domain. It does not exist from day one of pretraining; its coverage and failure boundaries still require evaluation.
+
+## FP4 Main KV Cache: Fine-Grained Engineering Trade-offs
+
+V4.1-Flash changes the main KV from FP8 to FP4, with quantization-aware training (QAT) during post-training. Including scales, alignment, and other cache entries, the true storage must be calculated based on layout — one cannot assert that total footprint is exactly halved based on data bit-width alone.
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/fp4-format-comparison.svg?v=20260910-review1" title="Indexer vs. Main KV: Two FP4 Specifications" caption="Indexer Q/K uses MXFP4; main KV references NVFP4, using E2M1 with one E4M3 scale per 16 channels, omitting the second-level global scale." />
+
+Report §2.4.4 distinguishes two formats: the indexer's FP4 Q/K uses **MXFP4**; the main KV uses **E2M1 + one E4M3 scale per 16 channels**, referencing NVFP4 but omitting the second-level global scale. In the [NVIDIA format specification](https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/), standard MXFP4 uses 32-element blocks with an E8M0 scale; standard NVFP4 uses 16-element blocks with an E4M3 scale, plus a global FP32 scale.
+
+E2M1 contains 1 sign bit, 2 exponent bits, and 1 mantissa bit. For the main KV, each block is `16×4+8=72 bit`, meaning the average is 4.5 bits/channel including the block-level scale, before accounting for alignment. During inference, dequantization happens before attention, so this storage format does not require the hardware to natively execute matrix multiplication in the same format; this does not mean high-performance kernels exist on all platforms, nor that dequantization has zero overhead.
+
+Why can the second-level scale be omitted? This requires a quantitative analysis:
+
+- Under the condition observed in the report that the maximum magnitude of RMSNorm weights is approximately 1, the L2 norm upper bound of the 512-channel KV latent is approximately sqrt(512) ≈ 22.6
+- RoPE is an orthogonal transformation that preserves this norm — rotation does not change vector length
+- The maximum magnitude representable by E2M1 format with E4M3 per-block scale is 448 × 6 = 2688
+- The maximum magnitude of the KV cache actually observed during training is only about 10
+- 2688 vs. 10 — over 200× headroom
+
+These analyses and observations support omitting the second-level scale within this model's numerical range; they are not proof that overflow will never occur for any arbitrary model or distribution.
+
+FP4 is not free — it requires QAT (quantization-aware training), introduced during the post-training phase. The quantization strategy is to **quantize after RoPE** (not before). Why? Because the attention computation directly consumes post-RoPE KV. If quantization were done before RoPE, inference would need to first dequantize, then apply RoPE, then perform attention — an extra step. Experiments show that pre-RoPE quantization yields only marginal accuracy improvement, not worth the additional overhead.
+
+SWA KV remains at FP8. The long-sequence storage benefits of global KV and the precision trade-offs of the short-window SWA are different; moving something out of persistent storage also does not mean SWA has no memory and bandwidth costs at runtime.
+
+## Resuming the Call: Global KV Hits, but SWA Has Expired
+
+Now let this coding session pause for a while before resuming. **Suppose the global KV for prefix `P` still hits, but the Encoder SWA's short-term checkpoint has expired.** At this point, loading the global KV alone isn't enough to resume computation directly, because the local window state also participates in subsequent calculations. Whether you must re-run a large chunk of history just for this state is the key to whether the caching strategy can actually save space.
+
+Report §3.2.1 states that in V4, SWA accounts for close to half of persisted KV. V4 proposed Zero SWA Caching, but the overhead of exact recovery was too high, and production deployment still retained persisted SWA. V4.1-Flash combines short-term caching with bounded replay, making it more feasible to eliminate persisted SWA.
+
+Multi-layer SWA dependencies expand to earlier positions. `L×n_win` describes the replay token range needed for exact recovery, not the total token-layer computation. For CED's half of the backbone, the corresponding layer count is L/2. Bounded Replay truncates the range to the most recent `n_win=128` tokens, and these tokens **still pass through the relevant network layers**.
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/swa-bounded-replay.svg?v=20260910-review1" title="Bounded replay shortens the sequence range" caption="Exact recovery dependencies expand across layers toward earlier positions; Bounded Replay only replays the tail window but preserves the relevant network layer computation. Based on §3.2.2." />
+
+The strategies for Encoder and Decoder are respectively:
+
+| State | Caching Strategy | Recovery Path |
+|:---|:---|:---|
+| Global KV | Persisted to SSD; reused after prefix hit | Cache miss on the suffix generates new global KV |
+| Encoder SWA | Short-term checkpoint retained in host DRAM, minute-level TTL | On miss, replay the last 128 tokens of the cached prefix, then process the new suffix |
+| Decoder SWA | Does not enter prefix cache | Each prefill initializes the decoder by feeding the encoder output from the last 128 tokens of the prompt |
+
+Connecting the recovery strategies in the table back to the same request `P + S`, the logical sequence is as follows (describing data dependencies, not requiring deployment to execute serially):
+
+1. **Retrieve global KV for `P`.** The hit historical representations continue to be reused; the missed `S` still needs to be computed.
+2. **Recover Encoder, then process `S`.** Include up to 128 tokens from the tail of `P` in the replay, processed together with the new suffix; old tokens only rebuild SWA without recomputing or overwriting existing global KV; new tokens produce both global KV and SWA.
+3. **Initialize Decoder.** Take the encoder output from up to 128 tokens at the tail of the entire `P + S` and feed it into decoder layers to establish their SWA. If `S` is fewer than 128 tokens, this window also covers the tail of `P`; this boundary is not the same as the "old prefix tail" in the previous step.
+4. **Enter generation.** The current token passes through both encoder and decoder, reads the shared global KV, updates local state, and continues this coding session.
+
+If the Encoder SWA checkpoint still hits, step two can directly resume processing the new suffix from the checkpoint; step three still needs to be performed because Decoder SWA never enters the prefix cache. If even the global KV misses, the corresponding input still needs a full prefill, and this recovery shortcut cannot be applied. (§3.2.1-3.2.2, PDF pages 19-20)
+
+The DRAM pool for short-term checkpoints occupies approximately 10% of host DRAM—this is the deployment configuration from the report. Other services need to choose capacity based on active session count, hit rate, and recovery overhead.
+
+The truncated state is not equivalent to exact recovery. The report states that internal experiments observed virtually no degradation in response quality, and post-training simulates the same replay for the Decoder to adapt to deployment. You cannot extend this limited evaluation result to claim that all cache recovery points are lossless.
+
+### Author's Analysis: How Long to Keep Cache Depends on Reuse vs. Recovery Cost
+
+The expected benefit of retaining state can be qualitatively understood as "future hit probability × avoided recovery cost," compared against capacity usage and data movement cost. Global KV has long-tail reuse value; Encoder SWA primarily serves active sessions; Decoder SWA is initialized by short replay. Recovery becoming cheaper is what allows more aggressive state eviction.
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/cache-lifecycle.svg?v=20260910-review1" title="Three types of state, three lifecycles" caption="Global KV is retained long-term, Encoder SWA is retained short-term, Decoder SWA is initialized each time. Increasing capacity does not automatically translate into proportional hit rate improvements." />
+
+Compressing global KV to about 1/4, then removing the previously nearly half of persisted SWA, the report's same-load persisted footprint drops to approximately 1/8 of V4-Flash. This decomposition explains where the storage savings come from, but you cannot directly derive an 8× reduction in total serving cost.
+
+## Continuing Generation: Where mHC, Engram, and DSpark Each Save
+
+Once state is prepared, the request enters the output phase. CED no longer lets the current token exit early—both encoder and decoder participate in computation; CSA2 continues to control sharing and reading of historical state. Along this path, mHC reduces activation read/write traffic, Engram provides prefetchable conditional memory, and DSpark attempts to accept multiple candidate tokens with a single verification pass. The first two also participate in prefill and are not exclusive to the generation phase.
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/component-overview.svg?v=20260910-review1" title="Three efficiency components each reduce different overhead" caption="mHC reduces activation read/write traffic; Engram provides conditional memory; DSpark schedules draft verification. Based on §2.4.1-2.4.3." />
+
+### Single-Pass mHC and Mega-mHC
+
+mHC stands for **Manifold-Constrained Hyper-Connections**. It maintains multiple residual streams between adjacent Transformer blocks and constrains the connection mapping. The performance metric here is activation memory traffic—the read/write traffic for activations: the traditional implementation is `(4n+4)d`, which is not the resident activation GPU memory capacity.
+
+V4.1-Flash introduces **Single-Pass mHC**: the core trick is changing the coefficient dependency for input mixing from the current block to the previous block. In other words, the mixing coefficients used by the current block are already computed by the previous block, which breaks the compute → coefficient → mix data dependency chain, allowing all three steps to be fused into one. The cost is that mixing coefficients lag by one step, but experiments show this one-step lag causes virtually no measurable performance loss in deep networks.
+
+At deployment, Mega-mHC fuses residual updates, coefficient computation, and input mixing into a single kernel, reducing the `(3n+2)d` read/write traffic of the intermediate two-pass scheme to `(2n+2)d`. This is the traffic lower bound under the report's given operator count and cannot be taken as a guarantee of halving whole-network GPU memory or latency.
+
+### Engram: 196B of Conditional Memory
+
+Engram is a conditional memory module based on N-grams. You can first think of it as a large lookup system whose addresses are determined by token IDs, but the complete module also includes tokenizer compression, multi-head hashing, context gating, and multi-branch ensembling—it cannot be simplified to looking up embeddings and adding them directly.
+
+Deterministic addressing allows knowing in advance which entries need to be read, which is favorable for prefetching and compute overlap. Actual latency is still affected by storage location, bandwidth, contention, and scheduling—constant latency or perfect hiding of data movement cannot be guaranteed.
+
+Key parameters:
+- 196B parameters uniformly distributed across two modules
+- N-gram orders `{2, 3, 4}`; each order has 8 hash heads, for a combined embedding dimension of 2048
+- Each head indexes approximately 16M entries; table sizes are chosen as coprime primes
+- Placed at layer 1 and layer 14 (zero-indexed), balancing memory usage across pipeline stages
+
+At inference time, Engram uses deterministic addressing and can prefetch from host memory via RDMA; the first module's prefetch overlaps with the first Transformer block's computation.
+
+### DSpark: Speculative Decoding
+
+DSpark is a speculative decoding module based on semi-autoregressive drafting + confidence-scheduled verification. The basic idea of speculative decoding is: use a small model (drafter) to quickly generate multiple candidate tokens, then verify them with the large model. If candidates are correct, multiple steps of large-model generation are skipped; if incorrect, fall back to the large model generating on its own. Throughput improvement depends on the drafter's accuracy and verification overhead.
+
+DSpark's drafter consists of three Transformer blocks with a sliding window of 128 tokens. A single forward pass generates base logits for 5 draft positions simultaneously—this is what "semi-autoregressive" means: 5 positions are generated in parallel rather than one by one. A lightweight Markov head models dependencies between draft tokens; a separate confidence head predicts the conditional acceptance probability at each position, which is then used to estimate the survival probability of candidate prefixes.
+
+The key design that distinguishes DSpark from standard speculative decoding is **confidence-scheduled verification**: instead of using a fixed-length draft-verify cycle, it dynamically selects the verification length based on the prefix survival probability predicted by the confidence head. The scheduler combines the estimated system throughput curve to choose the optimal verification length for each request, with the goal of maximizing system-level token throughput rather than the acceptance rate of any individual request.
+
+Unlike V3's MTP (Multi-Token Prediction), DSpark is not jointly trained during backbone pre-training. Its training has two phases: first, after backbone pre-training completes, the backbone is frozen and the DSpark module is trained independently; then during post-training it is trained simultaneously with the backbone, but DSpark's objective gradients are not backpropagated to the backbone. This design lets DSpark follow the model's evolving policy (model behavior changes during RL), while supporting both online serving and RL/OPD rollout acceleration. Actual benefits need to be measured separately for draft acceptance rate, verification overhead, and throughput under different loads.
+
+## Inference Infrastructure: Tailored for CED + CSA2
+
+Although V4.1-Flash's architecture is conceptually complex, its inference kernel flow is extremely streamlined. This is not accidental—it is the result of co-optimization between architecture design and the inference system.
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/inference-architecture.svg?v=20260910-review1" title="The E in EPD is vision encoding" caption="Deployment stages and CED model layering are two separate boundaries. Stages can be independently scaled; hardware selection and end-to-end benefits still require actual measurement. Based on §3.2." />
+
+### EPD Three-Stage Decoupling
+
+The **Encoder-Prefill-Decode (EPD)** in Report §3.2 refers to "vision encoding → prompt prefill → token decode." The Encoder here is the **vision encoder**, not the first 20 layers of CED's language backbone.
+
+- **E: Vision Encoding.** Processes images into visual features; pure-text requests skip this image processing step.
+- **P: Prefill.** Runs CED encoder's input processing, global KV projection, and decoder SWA short replay.
+- **D: Decode.** Encoder and decoder forward pass token-by-token; main attention reads selected KV and per-layer SWA; the first Full indexer's full-range scan must be accounted for separately.
+
+The three stages can be independently scaled, thereby reducing resource interference between different loads. However, decoupling also introduces state transfer and scheduling costs—it cannot guarantee complete elimination of queuing or prove that a particular heterogeneous GPU configuration is cheapest. Specific hardware choices must be measured according to each stage's compute, bandwidth, memory, and communication requirements.
+
+### Kernel Minimalism
+
+The number of inference kernels for CSA2 Reuse Mode layers (which constitute the majority) is extremely small:
+
+| Phase | Kernel Count |
+|:-----|:---------|
+| Prefill (Reuse Mode layers) | 15 |
+| Decode (Reuse Mode layers) | 11 |
+
+The report lists co-optimizations including FlashMLA, Mega-Gate, Mega-mHC, DeepGEMM, TileKernels, and DeepSelect. These implementations should be understood per layer mode: for example, Reuse skips re-indexing, so you cannot count all indexing kernels into every Reuse layer.
+
+Reducing kernel count generally helps reduce launch and intermediate read/write overhead, but count alone cannot determine that overhead is negligible or that the GPU has reached theoretical utilization. Verification requires a profiler, batch size, hardware, and end-to-end latency measurements together.
+
+Figure 2 is more worth paying attention to for its trend across context lengths: from 4K to 1M, V4.1-Flash's per-token decode metric visually increases by about 25%; V1 goes from roughly 150 to over 3000 GFLOPs, approximately a 20× magnitude increase. In the figure, BF16/FP8/FP4 operations are weighted by 1/0.5/0.25, so these are **precision-weighted FLOPs**, not directly measured latency or cost.
+
+<Figure src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/figure2-decode-flops.png" alt="Precision-weighted per-token decode FLOPs across model generations" caption="Source: original paper Figure 2, PDF page 5. Curve readings are approximate; BF16/FP8/FP4 weights are 1/0.5/0.25." />
+
+In the short-context range, V4.1-Flash's curve is actually slightly higher than V4-Flash; the advantage only manifests at long contexts. Most layers have constrained selection ranges, and deeper indexers have fixed candidate pools, but the initial scan still grows with length. It reduces the marginal compute growth at long contexts but does not mean the per-token cost at 4K and 1M is identical.
+
+### Persistence and Runtime Overhead Should Be Counted Separately
+
+In the report, global KV uses complete prefixes as the granularity, managed with LRU on the SSD side, targeting a retention period of 72 hours or more; Encoder SWA retains prompt/output tail checkpoints in host DRAM with minute-level TTL. Decoder SWA does not enter the prefix cache. Retention times are specific service configurations—hit rate also depends on traffic and eviction, and cannot be derived from TTL alone.
+
+| Metric | Reported Result | What Cannot Be Directly Inferred |
+|:---|:---|:---|
+| Global KV / token | 3514 B → 890 B, ~3.95× | Whole-model memory shrinks 3.95× |
+| Same-load persisted KV footprint | ~1/8 of V4-Flash | Hit rate improves 8× |
+| CED long prompt prefill compute | Close to halved compared to full pass through both backbone halves | End-to-end latency halved for arbitrary requests |
+| Reuse layer decode kernels | 11 | Launch overhead vanishes |
+
+### Capacity Example: Counting Only Budget Explicitly Allocated to Global KV
+
+Assume the **entire serving instance**, after subtracting weights, SWA, and workspace, still has 40 GB allocatable to global KV. Each independent session contains 1,000,000 tokens, not considering cross-session sharing or additional allocation overhead:
+
+| Model | Global KV per session | Theoretical capacity at 40 GB | Full session upper bound |
+|:---|---:|---:|---:|
+| V4-Flash | 3.514 GB | 11.38 | 11 |
+| V4.1-Flash | 0.890 GB | 44.94 | 44 |
+
+The ratio comes from `3514/890≈3.95`. If the budget were 40 GiB instead, the theoretical capacities would be approximately 12.22 and 48.26—the two units must not be mixed. This example does not prove that a single H100 can fit the model, nor does it provide actual concurrent throughput; expert sharding, offloading, and transfer all require separate design.
+
+### Author's Analysis: The Optimization Target Should Be Cost per Accepted Task
+
+Agent tasks go through multiple model calls, tool operations, and failure retries. Per-call KV or tokens/s cannot answer "how much does it cost to get something done." A more useful metric is: the sum of model, tool, retry, and acceptance costs across a batch of attempts, divided by the number of tasks that pass acceptance, while also reporting success rate and P50/P95 completion latency. If no tasks pass acceptance, a finite per-successful-task cost cannot be given.
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/task-cost.svg?v=20260910-review1" title="From cache metrics to task cost" caption="Author's analysis: uncached input, state loading, output, tools, and retries all enter the task bill, then combined with acceptance results for comparison." />
+
+A minimal measurement approach can fix the task set and scaffold, then compare cold cache, warm cache, and low/high/max effort. Record uncached input volume, output volume, billing, success rate, and latency. If you can control a self-hosted deployment, further isolate the recovery scenario where "global KV hits but Encoder SWA has expired"; when using an API black box where this state is unobservable, you should not claim to have measured it.
+
+Budget saved by architecture improvements may be consumed by longer reasoning or more parallel branches. Only by comparing under the same task quality and latency requirements can you know whether capacity gains translate into actual economic gains.
+
+## Training Infrastructure
+
+The architectural innovations of V4.1-Flash pose unique challenges for training infrastructure.
+
+### Distributed Training Support for CSA2
+
+CSA2's cross-layer KV sharing creates special problems in pipeline parallelism: layers that share attention components may be assigned to different pipeline stages, and the traditional stage-local execution model does not apply.
+
+DeepSeek addresses this with three mechanisms:
+
+1. **Shadow indexers**: A lightweight indexer replica (shadow) is placed in each pipeline stage that participates in sharing. Although indexer K logically belongs to one Full Mode layer (the owner), physically every pipeline stage that needs to use these shared parameters holds an executable replica. The owner is responsible for optimization and checkpointing, and shadow parameters are kept consistent through gradient aggregation and parameter synchronization. This way the pipeline scheduler does not need to treat shared layers as special units—each stage sees a local, complete computation graph.
+2. **Pipeline payload extensions**: When source and consumer are in different pipeline stages, shared KV, indexer K, Top-K, and other states are encoded into existing point-to-point communication paths, maintaining consistency with context parallel partitioning. Reusing communication paths does not constitute proof that the extra communication is entirely hidden by bubbles.
+3. **Micro-batch-level shared-state management**: The runtime tracks each micro-batch's shared state along with its forward, recompute, and backward consumers, releasing it after the last use. Different micro-batches can execute in parallel, but they do not share each other's sample KV because of this; this is lifecycle management, not cross-micro-batch reuse of sample state.
+
+### Multimodal Training Optimization
+
+V4.1-Flash is trained on 45T multimodal data with sequence lengths up to 1M tokens. This creates severe I/O and memory pressure.
+
+**Balanced image sharding**: A single ultra-long image-dense sequence can exhaust a node's I/O and CPU resources. The solution is to load-balance each sequence's images across CP ranks with sharding, reading each image only once. The key decision condition is a simple inequality:
+
+```
+N × ρ / B_IO < N × C / B_GPU  ⟺  ρ < (B_IO / B_GPU) × C
+```
+
+where N is the number of tokens, ρ is the raw bytes per token, C is the compute per token, B_IO is filesystem throughput (bytes/s), and B_GPU in this formula represents GPU compute throughput (FLOPs/s), not memory bandwidth. Because N cancels out, the decision depends only on the ratio of per-token I/O volume to per-token compute. For vision-module configurations with large ρ (high resolution, large patches), storage throughput becomes the bottleneck; for production-scale models, the workload is typically compute-bound.
+
+**Communication-computation overlap for ViT**: The contrastive learning phase of the vision encoder requires all-gather across data-parallel ranks. DeepSeek exploits a symmetry: text features only need the gradients of gathered visual features and vice versa, scheduling all-gather to overlap with computation. Specifically, the schedule is:
+
+```
+Forward(V) → (Forward(T) ‖ AllGather(V)) → ∇_Text
+           → (Backward(T) ‖ AllGather(T)) → ∇_Vision → Backward(V)
+```
+
+where `‖` denotes overlapped execution. Visual features are gathered during the text forward pass, and text features are gathered during the text backward pass. The report describes a scheduling approach that hides communication under its configuration; other configurations still require verification of the degree of overlap.
+
+**End-to-end parallelism**: The vision encoder is decoupled from the LLM's parameter tree. Each training step is divided into three phases—vision encoder forward, LLM forward/backward, and vision encoder backward—so that vision processing does not interfere with the LLM's text-only parallelism strategy.
+
+## Post-Training: Data and Environment Engineering Under a Mature Recipe
+
+Report §5 states that this round of post-training follows the mature recipe of SFT, RL, and on-policy distillation (OPD), with substantive changes concentrated in the data pipeline. This statement describes the project's choice; it does not provide a controlled experiment comparing "equal resources invested in algorithm research vs. data engineering," and one cannot conclude that algorithmic innovation is unimportant or that data investment universally yields higher returns.
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/post-training-pipeline.svg?v=20260910-review1" title="Post-Training Recipe and Data Engineering" caption="SFT → RL → OPD; tasks, environments, and verifiers jointly support training. A mature recipe does not mean algorithm research has no value." />
+
+The transferable takeaway for engineering teams is: first verify whether the tasks, environments, and verification feedback are reliable, identify the current bottleneck clearly, then decide where to allocate the next training budget.
+
+### Large-Scale Agent Task Synthesis
+
+DeepSeek formalizes each training task as a triple: (problem, environment, verification system), evaluating quality along two dimensions—difficulty (ensuring the task is non-trivial and cannot be completed by simple pattern matching) and correctness (ensuring there are no critical flaws among the three components, such as inconsistency between the problem description and the verification expectations). Using difficulty and correctness as reward signals, they iteratively train the model's task construction and quality inspection capabilities. They also monitor the full lifecycle of RL tasks: whenever a task is used in a new RL run, the resulting trajectories are re-audited, providing continuous feedback on task quality.
+
+**General Agent environment construction**: They collect real workflow feedback from internal employees and external collaborators using DeepSeek models. The focus is on two types of data: negative feedback (cases where the model failed) and model failure cases (outputs that did not meet user expectations). Based on these real interactions, they build mock versions of real tools and systems to approximately reproduce the interaction conditions at the time of failure. They then reconstruct failure scenarios, letting RL do targeted training on these approximate reproductions of real failures.
+
+**Coding Agent environment construction**: This part has the highest degree of automation. Tasks are sourced from two origins: internal coding sessions (high-complexity real tasks) and public GitHub repositories (projects meeting a star-count threshold). Environment construction is entirely handled by a multi-agent pipeline:
+1. A **feasibility agent** determines whether the project can be built and run inside a container, and whether it can be automatically verified
+2. A **design agent** selects an appropriate commit as the starting point, designs multiple implementation directions, and constructs fail-to-pass and pass-to-pass evaluation points for each direction
+3. An independent **quality-inspection agent** reviews environment correctness, consistency between task descriptions and evaluation points, and "hackability" (whether the agent can pass tests through shortcuts without truly solving the problem)
+4. If inspection fails, a **repair agent** fixes the discovered issues, adjusts the difficulty of evaluation points, and removes tests that are too easy or too hard
+5. Finally, multiple independent solving agents attempt to complete the task, and their trajectories together with quality-inspection results feed into the final assessment of task quality
+
+### DSec: Million-Scale Sandbox Platform
+
+As the number of agent training environments grew rapidly from V3 to V4.1, DeepSeek built **DeepSeek Elastic Compute (DSec)**, a production-grade sandbox platform.
+
+DSec's design choices are highly pragmatic:
+
+- **Relaxed global-consistency scheduling**: DSec shards compute nodes by scale unit and uses multiple independent placement engine replicas that make approximate allocations based on recent resource measurements. Each compute node ultimately performs local admission control, rejecting new placements when thresholds are exceeded. This is a system choice that uses local resource constraints to support eventual consistency, not a performance judgment on Kubernetes for all scenarios.
+- **NUMA-aware isolation**: Worker VMs are bound to a single NUMA domain, and container CPU and memory allocations are confined to VM-local resources to control memory pressure, kernel lock contention, and fault blast radius. The report states that under comparable workloads, single-node container density before measurable end-to-end degradation improved from approximately 1,000 to over 2,500.
+- **Latency-Sensitive scheduling**: Under high-density deployment, background tasks can interfere with agents being evaluated. DSec introduces an LS (Latency-Sensitive) execution class, using `SCHED_IDLE` for non-LS tasks to lower their scheduling priority, and employing core scheduling to ensure that only tasks of the same priority class share hyperthreads, eliminating interference from sibling hyperthreads.
+- **eBPF network policies**: This is the last line of defense, used to contain agent reward hacking behavior
+
+<Callout>
+The report describes reward hacking and isolation issues exposed during RL, including XFS/AppArmor-related access bypasses, answer leakage from package mirrors, and corruption of system binaries. DSec employs per-sandbox AppArmor profiles and fine-grained eBPF network policies as defenses. If an agent crashes the environment, the system records it as a **failed trajectory** and sends a repercussion to the RL framework, incorporating such destructive behavior into the training feedback.
+</Callout>
+
+### Controllable Reasoning Effort
+
+V4.1-Flash introduces a scalar effort level b (range 1–100) as an explicit conditioning signal during the RL phase, controlling the model's reasoning depth.
+
+The core mechanism is an **exponential token penalty** tied to the effort level:
+
+```
+r_len = -min(C_max, k(b) * l / L_norm)
+k(b) = k_0 * exp(-(b - b_min) / tau)
+```
+
+Higher effort means a smaller token penalty coefficient k(b) (exponential decay), so the penalty for the same length is smaller, allowing the model to choose longer reasoning chains. Conversely, low effort imposes heavy penalties on long outputs, forcing the model to be concise.
+
+The engineering value of this design is: **a single checkpoint can adapt to different cost-quality requirements by changing the b value**. There is no need to maintain multiple model copies or train separately for different tiers—the same model switches behavior modes at inference time via a single number in the prompt. The API exposes three tiers: low (b=50), high (b=75), max (b=100).
+
+Figure 9 shows the complete curve from effort 25 to 100, and the results are instructive:
+- Average Pass@1 across 8 reasoning benchmarks improves from 67.1% (effort=25) to 76.3% (effort=100), a 9.2 percentage point gain
+- DeepSWE v1.1 goes from 66.0% to 74.2%, Terminal-Bench v2.1 from 82.4% to 90.6%
+- Most gains are concentrated in the effort 60–80 range; this interval recovers most of the maximum setting's accuracy while using less than half the token budget
+- Effort 100 vs. 80 yields diminishing marginal returns (1.6–1.8x trajectory lengthening for 2–3 percentage points), making the maximum tier suitable for the hardest tasks
+- Interestingly, the behavior learned through effort control transfers smoothly from single-response reasoning tasks to long-horizon agentic tasks. In agent scenarios, the effort level controls the exploration and verification depth of the entire trajectory, not merely the length of a single-step response
+
+This provides a cost-quality control knob, but does not guarantee that any particular tier is suitable for all tasks of the same type, nor that max will always succeed. Applications should select the lowest appropriate tier that meets acceptance criteria and latency requirements on their own task set, and record the additional cost and success rate gains from raising the effort level.
+
+<Figure src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/figure9-reasoning-effort.png" alt="Impact of reasoning effort on performance and output length" />
+
+> Source: Original paper Figure 9, PDF page 35
+
+### Asynchronous Post-Training Infrastructure
+
+The long-tail problem of RL rollouts is the primary bottleneck for training efficiency—a few extremely long rollouts delay the completion of the entire batch, leaving GPUs idle and waiting. V4.1-Flash's post-training infrastructure supports asynchronous sample generation: rollout and training share physical devices and execute in a time-sharing manner. This means no separate rollout cluster and training cluster are needed. During the training phase, GPUs run gradient updates; during the rollout phase, the same GPUs run model inference to generate trajectories.
+
+Several interesting engineering details:
+- **Sample-level dispatch**: After experimenting with batch-level and prompt-level dispatch, they ultimately chose sample-level—whenever the number of newly completed samples reaches the GRPO group size, the next prompt is dispatched. Batch-level granularity was too coarse, causing severe fluctuations in training metrics; prompt-level granularity was prone to getting stuck on long-tail samples. The report chose sample-level for its workload; this should not be taken as the optimal granularity for all training systems.
+- **Token-level interruption**: Rollouts can be paused at any token boundary, with KV cache and expert routing state persisted to storage. When a new checkpoint is ready, generation resumes from the breakpoint without needing to re-prefill the already-generated prefix. This is especially important for long-horizon agent scenarios—if a 100K-token coding agent rollout had to restart from scratch due to a checkpoint update, the wasted compute would be enormous.
+- **Concatenated routing-replay**: For samples that span checkpoints (the first half generated with checkpoint A, the second half with checkpoint B), the expert routing decisions from each segment are concatenated rather than recomputing the old segment's routing with the new checkpoint. This preserves MoE routing consistency.
+- **Over 40 teacher models for OPD**: The on-policy distillation phase uses over 40 heterogeneous teacher models. Teachers may have completely different architectures from the student; full-vocabulary OPD only requires output logits alignment, not internal structure matching. The infrastructure supports dynamically switching teacher configurations during training, including using different teachers per dataset and applying different concurrency limits to different teachers to balance cost.
+
+### The Cost of Asynchrony: Length Bias and Policy Staleness
+
+Asynchronous generation lets training proceed without waiting for all long-tail samples, but the completion order changes the sampling distribution. Short samples return earlier, so early training batches are biased toward shorter outputs; trajectories spanning checkpoints also contain segments generated by older policies. Saving KV and replaying routing solves the resumption and routing record problems but does not automatically eliminate these statistical biases.
+
+Report §5.2.2 provides corresponding controls: per-dataset concurrency limits are set, and some early-returning short samples are dropped to adjust the length distribution; scheduling constraints bound the degree of off-policy-ness, and loss masking is applied to excessively stale tokens.
+
+<TechGraph src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/async-training-tradeoffs.svg?v=20260910-review1" title="Asynchronous Training: Efficiency Gains Accompanied by New Biases" caption="Short samples arriving first and trajectories spanning checkpoints introduce distribution bias and policy staleness respectively; sampling control and loss masking are needed. Per §5.2.2." />
+
+**Author's analysis:** Once waiting is reduced, correctness pressure shifts to "whether the training data still represents the target distribution." Evaluating an asynchronous scheme should not only look at GPU utilization but also monitor sample length, task composition, policy staleness, and the corresponding quality changes.
+
+### Author's Analysis: Making Training Adapt to Deployment-Time Approximations
+
+Three trade-offs in this report can be viewed together: FP4 QAT adapts to numerical error, the layer-level candidate restriction in post-training adapts to reduced search domains, and Decoder SWA replay adapts to state truncation. Maintaining consistent constraints between training and deployment is an important condition for making these efficiency optimizations viable, but it is not a guarantee that all boundaries are lossless.
+
+A worthwhile stress test to add would be to place key information at block boundaries, at positions the candidate pool is likely to miss, and near cache recovery points, then compare results between cold starts and different recovery positions. Report §6 already lists long-context sparse retrieval and SWA recovery boundaries as future work; what is proposed here is a verification approach, not an experiment completed in this paper.
+
+## Evaluation Results and Analysis
+
+### Base Model Comparison
+
+V4.1-Flash has a 552B backbone plus a 196B Engram; V4-Pro has a backbone of approximately 1.6T with 49B active parameters. Comparing only total backbone parameters, 552/1600 ≈ 34.5%; comparing only active parameters, prefill's 8/49 ≈ 16.3% and decode's 16/49 ≈ 32.7%, roughly 1/6 and 1/3 respectively. These are parameter-based figures and cannot substitute for FLOPs, resident memory, or actual measured cost comparisons.
+
+Detailed comparison between V4.1-Flash-Base and V4-Pro-Base:
+
+- World Knowledge: C-Eval 92.1 (close to V4-Pro's 93.1), MMLU-Pro 74.1 (vs 73.5, V4.1 edges ahead), SimpleQA-Verified 42.3 (vs 55.2, a notable gap)
+- Language & Reasoning: BBH 86.1 (vs 87.5), DROP 87.9 (vs 88.7), HellaSwag 87.2 (vs 88.0) — scores are close, but without repeated trials and confidence intervals, we cannot determine whether the differences are noise
+- Code & Math: BigCodeBench 60.6 (**exceeding** V4-Pro's 59.2), HumanEval 79.4 (**exceeding** V4-Pro's 76.8), GSM8K **93.0** (**exceeding** V4-Pro's 92.6), MATH 61.1 (vs 64.5)
+- Long Context: LongBench-V2 45.2 (vs 51.5, a notable gap; sparse retrieval is a factor to be tested, but this set of results alone cannot establish causation)
+- Multimodal: MMMU-Pro 56.5, CVBench 77.9, DocVQA **95.6** (the report does not provide corresponding multimodal comparison items for V4-Pro)
+
+On the three internal BPB evaluation sets reported (Internal Docs, Internal Code Repos, Academic Materials), V4.1-Flash-Base's metrics outperform those listed for both V4-Flash-Base and V4-Pro-Base; Academic Materials dropped from 0.4677 to 0.4305, where lower is better. This supports improved modeling capability on these corpora, but internal datasets cannot be independently audited by this article, nor can we claim on this basis that data contamination or benchmark hacking has been ruled out.
+
+### Final Model After Post-Training
+
+Below are the evaluation results as listed in the report. Comparisons are constrained by task subsets, reasoning budgets, and scaffold configurations; missing entries do not participate in win/loss judgments; a single leaderboard does not equal all use cases.
+
+**Reasoning**:
+- **GPQA Diamond: 90.9** (exceeding V4-Flash's 89.9, close to Opus-5's 93.4 and K3's 92.9)
+- **HLE: 36.8 (39.1†)** (where † is the text-only subset; exceeding V4-Flash's 37.8†)
+- **Codeforces 3471** (exceeding V4-Flash's 3289 and V4-Pro's 3348)
+- **MathArena Apex: 65.6** (exceeding V4-Flash's 58.6, close to K3's 65.3)
+
+**Agentic** — this is V4.1-Flash's most impressive domain:
+- **Terminal-Bench 2.1: 90.6%** (exceeding Opus-5's 89.1 and GLM-5.3's 88.2)
+- **DeepSWE v1.1: 74.2%** (exceeding Opus-5's 74.0 and GPT-5.6 Sol's 73.0)
+- **CyberGym: 88.1** (higher than all comparison models listed in the report, including Opus-5's 84.5)
+- **SEC-Bench Pro: 62.8** (cybersecurity-specific; GPT-5.6 Sol and Opus-5 are missing entries and cannot be compared)
+- **Automation-Bench: 54.8%** (exceeding V4-Flash's 37.7 and Opus-5's 43.2)
+- **Agents' Last Exam: 31.8%** (vs V4-Flash's 25.2)
+
+Table 4 uses the same checkpoint tested across eight configurations of six scaffold types, demonstrating cross-framework transfer capability, though scores are still noticeably influenced by the framework. On DeepSWE v1.1, Claude Code scores 69.8, Codex 65.6, Pi 66.2, and mini-SWE 74.2; on Terminal-Bench v2.1, the respective scores are 88.0, 84.1, 90.3, with DeepSeek Harness (Minimal) at 90.6. The results support cross-harness transfer while also showing that deployment still requires selection and evaluation; how much heterogeneous training contributes requires further controlled experiments.
+
+<Figure src="/images/posts/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致/figure10-multi-agent.png" alt="Multi-Agent test-time performance scaling" />
+
+> Source: Original paper Figure 10, PDF page 36
+
+Multi-agent preliminary experiments show encouraging results. DeepSeek uses DeepSeek Harness's Agent Team mode, where a lead agent can create named persistent teammates via `spawn_teammate`, each teammate working in independent fresh/fork mode, sharing the same code repository, and communicating asynchronously via `send_message`.
+
+On a 172-task high-confidence subset of ProgramBench, the best multi-agent configuration's Almost@1 increased from 13.59% at 1 hour to 30.04% at 8 hours, while the best single-agent baseline went from 12.79% to 20.39%. On the FrontierSWE v2 no-GPU subset at 20 hours, the respective figures were 32.90% and 28.20%. These are preliminary results on filtered tasks, specific cutoff times, and best configurations; fixed wall-clock time does not imply fixed GPU-hours or cost, nor can the gap be extrapolated to continue widening.
+
+During training, Agent Team combines task quality, collaboration bonus, and latency penalty. The system represents execution events and collaboration dependencies as a DAG, estimates path latency using model-estimated prefill/decode times and measured tool execution times, then penalizes the critical path. The objective is to reward effective parallelism while reducing training reward dependence on serving queue fluctuations; it is not a substitute for end-to-end actual latency or total cost measurement.
+
+### Author's Analysis: Multi-Agent Requires Separate Comparison of Time Budget and Cost Budget
+
+Parallelism can shorten the critical path for some decomposable tasks, but it increases branch exploration, aggregation, and communication, and may also produce duplicate work and shared repository conflicts. Therefore two sets of evaluations are needed: comparing success rates under a fixed deadline, and comparing success rates again under a fixed token or cost budget. The first set answers "can it finish sooner," the second answers "is it more cost-effective." The current paper's experiments cannot substitute for the second set of evidence.
+
+For non-decomposable serial tasks, spawning more agents does not necessarily shorten the critical path; for independently verifiable subtasks, delegation may be useful. Whether budget saved on the model side should be invested in more branches should be determined by task structure and acceptance outcomes.
+
+## Engineering Implications and Limitations
+
+This report designs architecture, training, and deployment under a unified constraint: reduce the global state that must be stored, limit the search range at deeper levels, and lower the recovery cost of local state. For deployment, this expands the capacity envelope for long-context serving, but actual gains still require joint measurement of weight layout, bandwidth, batch size, cache hit rates, and SLAs.
+
+Hardware compatibility also needs to be understood in layers: dequantizing main KV before attention is a format-level design choice; whether frameworks support it, whether kernels are efficient, and whether whole-machine throughput meets targets are subsequent questions. Existing cross-platform practices with V4 cannot directly prove that V4.1-Flash has been validated on the same platforms. Effort provides behavioral control but does not guarantee constant cost or quality.
+
+Report §6 mentions insufficiently characterized sparse retrieval and SWA recovery boundaries, and acknowledges that the most challenging multimodal tasks still lag behind leading closed-source systems. This article's conclusions are divided into three evidence tiers:
+
+| Tier | Examples in this article | How to use |
+|:---|:---|:---|
+| Reported results | 890 B/token, ~1/8 persistent footprint, listed benchmarks | Note statistical basis and evaluation setup; not reproduced by this article |
+| Author's derivations | Capacity calculation example with 40 GB global KV fixed | Assumptions stated explicitly; only the corresponding capacity is derived |
+| Judgments pending verification | Cost per successful task, multi-agent gains at equal cost, recovery boundary quality | Provide measurement plans; do not write as achieved results |
+
+## Summary and Personal Perspective
+
+**First, one of the key problems for long-context agents is state cost.** How global KV is compressed, how long active state is retained, and how expired state is recovered collectively affect capacity and latency. 890 B/token demonstrates the result of one specific design; it does not prove the engineering limit has been reached. What is more worth tracking is how it changes the range of serviceable tasks and workloads.
+
+**Second, deployment approximations need training adaptation and boundary testing to support them.** Quantization, candidate restriction, and short-window recovery each introduce different errors. Average benchmark results support continued use and exploration of these methods, but cannot substitute for verification of retrieval misses, cache recovery points, and compounding errors.
+
+**Third, efficiency improvements should ultimately be traced back to task acceptance.** Data and environment engineering can provide improvement headroom under mature training recipes, while asynchronous scheduling requires controlling length bias and policy staleness. Regardless of whether the optimization targets KV, rollouts, or multi-agent collaboration, success rate, completion time, and cost should all be compared simultaneously to determine whether saved compute has translated into actual value.
+
+---
+
+## References and Image Sources
+
+- [DeepSeek-V4.1-Flash Official Technical Report](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/resolve/main/DeepSeek_V41_Tech_Report.pdf): §2 Architecture, §3 Deployment, §5 Post-Training and Evaluation, §6 Limitations. The local PDF on which this article is based is consistent with the official document.
+- [DeepSeek Official Release Notes](https://api-docs.deepseek.com/updates/): September 10, 2026 release and pricing information.
+- [DeepSeek-V4 Report](https://arxiv.org/html/2606.19348v1): Predecessor designs for CSA/HCA and mHC.
+- [You Only Cache Once](https://arxiv.org/abs/2405.05254): Prior work on cross-layer KV reuse and prefill early exit.
+- [NVIDIA: NVFP4 Format Description](https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/): MXFP4/NVFP4 block and scaling format.
+- [Hugging Face: Mixture of Experts Explained](https://huggingface.co/blog/moe): The distinction between active compute and expert weight memory.
+- [vLLM: Automatic Prefix Caching](https://docs.vllm.ai/en/latest/design/prefix_caching/): Prefix reuse and avoiding redundant prefill.
+- Figures 2, 3, 4, 5, 9, and 10 are from the original paper; self-drawn diagrams are based on corresponding sections explaining mechanisms, and author analysis figures are separately labeled. Illustrations do not substitute for the complete implementation and evaluation conditions in the original text.

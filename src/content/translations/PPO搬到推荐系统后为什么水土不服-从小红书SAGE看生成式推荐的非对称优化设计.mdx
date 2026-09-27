@@ -1,0 +1,172 @@
+---
+title: "Why PPO Doesn't Travel Well to Recommender Systems — Asymmetric Optimization Design in Xiaohongshu's SAGE for Generative Recommendation"
+date: 2026-05-10
+tags: [技术报告解读, 广告与推荐]
+category: "技术分享"
+sourceFile: "PPO搬到推荐系统后为什么水土不服-从小红书SAGE看生成式推荐的非对称优化设计.mdx"
+sourceHash: "6cddf287e9ffc176ee5d9208d689cf656c975a1c0067ef1962d00b875aafd937"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+The three-stage training pipeline for generative recommendation — SFT to establish basic generation capability, Value-Aware FT to inject commercial value signals, RL to explore high-value paths beyond historical logs — is already a cross-team industrial consensus. Three papers — GPR, GR4AD, and UniVA — independently converged on this structure. But if you look carefully at the maturity of each stage, the gap is stark: SFT draws on a decade of supervised learning in recommender systems, Value FT is essentially a variant of weighted sampling, and only the RL stage is still in the exploratory phase.
+
+Why is RL the hardest? Because the environment that RL faces in recommender systems is completely different from NLP, yet everyone has been copying NLP's optimizers wholesale. PPO works great in ChatGPT's RLHF; GRPO works great in DeepSeek-R1's math reasoning — then engineers drop it unchanged into a recommender system and find the results far below expectations.
+
+The Xiaohongshu team's [SAGE](https://arxiv.org/abs/2601.21452) (Sequence-level Adaptive Gradient Evolution) identifies a root cause that has been overlooked: **PPO's symmetric clipping assumption fundamentally conflicts with the data distribution of recommender systems.** Symmetric clipping means that positive updates and negative updates are constrained within boundaries of the same size. This is reasonable in NLP — the importance of generating a good answer and avoiding a bad answer is roughly symmetric. But in recommender systems, the information value of positive and negative feedback is highly asymmetric.
+
+SAGE's solution: break the symmetry. Give positive updates — especially successful recommendations of cold-start items — super-linear incentives, while dynamically adjusting the penalty strength of negative updates based on the diversity of the recommendation list — homogeneous failures are severely punished, exploratory failures are tolerated. On three Amazon datasets, cold-start recall improved by 43–63%, and recommendation diversity improved by 5.9–10.4%.
+
+This article dissects SAGE's technical approach, analyzes how it differs from and resembles the RL stages of existing industrial systems (GPR, GR4AD), and examines its biggest unresolved issue — the absence of online A/B test results.
+
+## Why Symmetric Clipping Fails in Recommendation
+
+### A Review of PPO's Core Mechanism
+
+PPO's objective function contains a clip operation that constrains the policy update ratio r = π_new / π_old to the range [1−ε, 1+ε]. Intuitively, this is a trust-region constraint: don't move too far in any single update, to avoid policy collapse.
+
+The key assumption is that the upper and lower bounds of ε are symmetric. This means:
+
+- Positive updates (reinforcing good generation results) can increase probability by at most a factor of ε
+- Negative updates (suppressing poor generation results) can decrease probability by at most a factor of ε
+
+In NLP's RLHF, this symmetry roughly holds. A good answer and a bad answer contribute roughly equally to the training signal. But recommender system data distributions have two characteristics absent in NLP that cause the symmetry assumption to fundamentally break down.
+
+### Asymmetries Unique to Recommendation
+
+**Positive feedback is sparse and non-uniform in value.** In recommender systems, positive feedback for the vast majority of items is extremely sparse — cold-start items may have only single-digit positive interactions. The information value of a successful recommendation of a niche item is far higher than that of a popular item. But symmetric clipping gives both the same gradient upper bound of 1+ε. This means that even when a cold-start item occasionally receives positive feedback, the policy update is truncated to the same magnitude as for popular items — it can never break out of its initial low-probability state.
+
+**Negative feedback is highly homogeneous.** A large proportion of negative feedback in recommender systems comes from homogeneous recommendations — users see a bunch of nearly identical products and give no positive feedback on any of them. But symmetric clipping applies the same penalty strength to all negative feedback. It cannot distinguish between two fundamentally different types of failure: the model tried recommending a new category but the user wasn't interested (exploratory failure), versus the model lazily pushed ten similar products that the user ignored entirely (homogeneous failure). The former should be tolerated or even encouraged; the latter should be severely punished. Symmetric penalty incorrectly suppresses exploratory behavior and exacerbates the filter bubble.
+
+<TechGraph src="/images/posts/PPO搬到推荐系统后为什么水土不服-从小红书SAGE看生成式推荐的非对称优化设计/symmetric-vs-asymmetric.svg" title="CLIPPING COMPARISON" caption="Symmetric clipping cannot distinguish between two failure modes; SAGE's asymmetric design handles them separately" />
+
+### Comparison with RL Approaches in Existing Ad GR Systems
+
+In previous articles I analyzed the RL approaches from three ad GR papers: GPR's HEPO for hierarchical credit assignment, GR4AD's RSPO for list-level objective alignment, and UniVA's MCTS-PPO for improved exploration coverage. All three build on top of clipping — modifying reward signal computation or exploration strategies — but none of them question the symmetry of clipping itself.
+
+SAGE's angle of attack is more fundamental: it argues the problem lies in PPO's core mechanism — not that the reward signal isn't good enough, but that the shape of the gradient constraint is wrong. This is a more radical claim, but the ablation experiments support it — simply changing the clipping from symmetric to asymmetric alone boosted cold-start recall by 49–63%.
+
+## SAGE's Three Technical Modules
+
+### Module 1: Sequence-Level Probability Ratios
+
+Traditional PPO computes the importance sampling ratio r_t at the token level. But in recommender systems, the reward is assigned to the entire recommendation list (slate), not to individual tokens. Using token-level ratios directly with slate-level rewards introduces enormous variance.
+
+SAGE uses a geometric mean to aggregate token-level ratios to the sequence level:
+
+r_slate = (r_1 × r_2 × ... × r_T) ^ (1/T)
+
+The advantages of geometric mean over arithmetic mean: robustness to outliers (an extreme ratio for a single token won't dominate the aggregate), preservation of the multiplicative structure of the probability chain rule, and natural elimination of sequence length discrepancies — whether the token sequence corresponding to a recommendation list is 50 or 200 tokens long, the scale of r_slate is comparable.
+
+This design isn't complex, but it's practical. GPR's HEPO also faces the same token-level vs. slate-level granularity mismatch, but chose a different path (process rewards rather than sequence-level ratios). The two approaches are theoretically orthogonal and could be combined.
+
+### Module 2: Multi-Objective Signal Decoupling
+
+Recommender systems typically have multiple optimization objectives — click-through rate, completion rate, comment rate, conversion rate — with objective weights set by the business side. The most straightforward approach is to take a weighted sum followed by group normalization. SAGE points out that this leads to "reward collapse": when rewards from different behavioral patterns are normalized to the same scale, discriminability vanishes.
+
+SAGE's approach is "decouple then aggregate": perform group normalization independently for each objective (preserving each one's distributional characteristics), then compute a weighted sum using business weights, and finally apply a single batch normalization. This way, the advantageous signal of each objective maintains its independence during the normalization stage and won't be diluted by the distributional characteristics of other objectives.
+
+This problem is especially severe in ads systems—eCPM = pCTR × pCVR × Bid involves at least three objectives, and with user experience metrics there could be five or six. GPR handles multi-objective optimization in the Value-Aware FT stage using behavior-type weighting, but has no explicit multi-objective decoupling mechanism in the RL stage. SAGE's decouple-then-aggregate approach is more systematic.
+
+### Module Three: Asymmetric Adaptive Boundaries—The Core Innovation
+
+This is the most critical part of SAGE, split into two cases.
+
+<TechGraph src="/images/posts/PPO搬到推荐系统后为什么水土不服-从小红书SAGE看生成式推荐的非对称优化设计/sage-flow.svg" title="SAGE Optimization Flow" caption="Slate-level reward → Signal decoupling → Positive boost / entropy-aware penalty → Policy update" />
+
+**Case A: Positive cold-start boosting.** When A_SAGE > 0 (the recommendation slate receives positive feedback), SAGE introduces a boost factor that extends the clipping upper bound from 1+epsilon to 1+epsilon+boost. The effect: if the model successfully recommends a cold-start item (resulting in a higher r_slate), the policy update won't be truncated at 1+epsilon but can continue up to 1+epsilon+boost. This gives cold-start items the momentum to break out of their initially low-probability state—in the paper's words, "super-linear incentive."
+
+The ablation experiment directly quantifies this effect: removing the boost factor causes cold-start recall to plummet by 50%. This is not a marginal improvement—it's an on/off switch for a core capability.
+
+**Case B: Entropy-aware diversity penalty.** When A_SAGE < 0 (the recommendation slate receives negative feedback), SAGE doesn't use a fixed lower bound of 1-epsilon for penalization. Instead, it first computes the information entropy H(S) of the recommendation slate. If H(S) is low (items in the slate are highly homogeneous), it means the model is stuck in a "filter bubble," repeatedly recommending similar content—in this case, the negative boundary is dynamically expanded, imposing a stronger penalty. If H(S) is high (the slate has good diversity), it means this was an "honest exploration failure"—the model tried diverse recommendations but the user didn't bite—in which case only a mild penalty is applied.
+
+The elegance of this design lies in giving the optimizer the ability to distinguish *why* it failed, rather than indiscriminately penalizing all failures.
+
+## Native Text vs. Semantic ID: A More Radical Choice
+
+Another important stance in the SAGE paper is abandoning Semantic IDs entirely, using items' native text descriptions (titles, tags, etc.) directly as the generation target. This is the complete opposite of the direction taken by GPR, GR4AD, and UniVA—all three optimize within the Semantic ID framework.
+
+SAGE's rationale: Semantic IDs have three catastrophic problems at industrial scale—collision conflicts (multiple items encoded to the same ID), vocabulary maintenance costs (unmanageable when hundreds of millions of new items are added daily), and semantic fracture (the quantization process destroys semantic information that LLMs can understand). Using native text directly leverages the semantic knowledge acquired during LLM pre-training.
+
+But this choice has obvious tradeoffs:
+
+| Dimension | Semantic ID (GPR/GR4AD) | Native Text (SAGE) |
+|:-----|:------------------------|:----------------|
+| Generation efficiency | 3–5 tokens to identify one item | Tens to hundreds of tokens |
+| Semantic utilization | Weak (semantic loss after quantization) | Strong (directly uses LLM pre-trained knowledge) |
+| Collision problem | Exists (GR4AD: 85.44%) | Does not exist |
+| Vocabulary maintenance | Requires continuous updates | No additional maintenance |
+| Online latency | Low (3-step beam search) | High (long sequence generation) |
+| Production validation | Yes (GPR GMV +5%, GR4AD revenue +4.2%) | No online A/B |
+
+GPR and GR4AD chose Semantic IDs not because they were unaware of native text's advantages, but because the serving cost of long text generation is unacceptable under an ads system's 100ms latency budget. The SAGE paper does not discuss serving latency—a typical blind spot of offline evaluation papers.
+
+The two approaches are not necessarily mutually exclusive. SAGE's asymmetric optimizer design and the choice of action space are orthogonal—the paper itself verified this: plugging the SAGE optimizer into OneRec's Semantic ID framework (OneRec-SAGE) still achieved significant improvements in cold-start and diversity. This demonstrates that SAGE's core contribution is the optimizer itself, not the abandonment of Semantic IDs.
+
+## Experimental Results: Highlights and Gaps
+
+### Cold-Start and Diversity Improvement Margins
+
+SAGE's core metrics across three Amazon datasets:
+
+| Comparison Dimension | SAGE vs. GBPO |
+|:---------|:-------------|
+| Cold-start recall | +49% (Beauty) / +63% (Sports) / +43% (Toys) |
+| Recommendation diversity (Entropy@10) | +5.9% / +10.4% / +7.4% |
+| Top-K accuracy (Recall@5) | Outperforms all baselines across the board |
+
+Cold-start improvements of +49–63% are extremely rare in the recommendation systems literature. The ablation experiments are also clean—removing the boost factor cuts cold-start in half, removing the entropy-aware penalty drops diversity by 22%, and removing signal decoupling degrades all metrics. All three modules are indispensable.
+
+On the industrial-scale RecIF-Bench (120 million real interactions), SAGE also maintained its advantage. Particularly in instruction-conditioned subtasks, the native text approach's advantage was amplified—supporting the claim that Semantic IDs block LLM semantic knowledge.
+
+### The Biggest Gap: No Online A/B
+
+When comparing SAGE against existing industrial papers, one critical gap is strikingly obvious:
+
+| Paper | Online A/B Results | Deployment Scale |
+|:-----|:-------------|:---------|
+| GPR (WeChat Channels) | Cumulative GMV +5% | Full rollout to hundreds of millions of users |
+| GR4AD (Kuaishou) | Ad revenue +4.2% | Full rollout to hundreds of millions of users |
+| UniVA (Tencent Ads) | GMV +1.5% | Full rollout to hundreds of millions of users |
+| OneTrans (ByteDance) | Per-user GMV +5.68% | Full deployment |
+| **SAGE (Xiaohongshu)** | **None** | **Offline evaluation** |
+
+There is an enormous gulf between offline metrics and online metrics. Offline evaluation uses fixed historical logs—the model's recommendations don't affect subsequent user behavior. But an online system is a dynamic closed loop—what you recommend today influences tomorrow's user behavior, which in turn affects the day after tomorrow's training data. Will SAGE's boost factor cause over-impression of cold-start items online? Are the entropy-aware penalty's hyperparameters stable under traffic fluctuations? Only online experiments can answer these questions.
+
+This is not to negate SAGE's value—the problem it raises (PPO's symmetric clipping failing in recommendation systems) is real, and the solution it offers (asymmetric adaptive bounds) received clean validation in ablation experiments. But between "interesting academic idea" and "industrially validated production solution," there are critical steps—serving latency, system stability, long-term effect evaluation—that haven't been completed yet.
+
+## Takeaways for Practitioners
+
+### Recommendation RL cannot be copied from NLP—this judgment is already well-established
+
+Looking at SAGE alongside the RL approaches in GPR/GR4AD, a cross-paper consensus becomes very clear: the RL stage of recommendation systems requires fundamental redesign for recommendation scenarios—this is not a matter of tuning hyperparameters.
+
+GPR's HEPO modifies the reward signal (hierarchical process reward), GR4AD's RSPO modifies the optimization objective (list-level NDCG), UniVA's MCTS-PPO modifies the exploration strategy (tree search), and SAGE modifies the shape of gradient constraints (asymmetric clipping). Four papers arrive at the same conclusion from four different angles: vanilla PPO is not sufficient for recommendation systems.
+
+| RL Approach | What It Modifies | Recommendation-Specific Problem It Solves |
+|:--------|:----------|:------------------|
+| HEPO (GPR) | Reward signal | Hierarchical credit assignment |
+| RSPO (GR4AD) | Optimization objective | List-level ranking alignment |
+| MCTS-PPO (UniVA) | Exploration strategy | Low-probability branch coverage |
+| SAGE (Xiaohongshu) | Gradient constraint shape | Cold-start suppression + diversity collapse |
+
+The four are theoretically orthogonal and can be combined. If you're building the RL stage of a generative recommendation system, the most pragmatic starting point is HEPO (lowest implementation cost: a sparse count table), then assess whether cold-start and diversity are bottlenecks in your system—if they are, SAGE's asymmetric clipping is worth trying.
+
+### The choice between Text vs Semantic ID depends on serving budget
+
+SAGE's abandonment of Semantic IDs shows clear advantages in academic evaluation, but in industrial deployment it depends on your latency budget. If your system requires results within 100ms (a typical requirement for advertising systems), the serving cost of long text generation may be unacceptable. If your scenario is less latency-sensitive (e.g., preloading in feed-stream recommendations), the native text approach deserves serious evaluation—it eliminates Semantic ID collision problems and maintenance costs while unlocking the LLM's semantic understanding capabilities.
+
+That said, SAGE's most valuable contribution lies not in the Text vs SID choice, but in the asymmetric optimizer itself. The paper verified that the SAGE optimizer can be plugged into a Semantic ID framework (OneRec-SAGE) with similarly significant results. The optimizer and the action space are two independent dimensions.
+
+Returning to the original question: why is the RL stage the least mature part of generative recommendation? Because recommendation systems and NLP have fundamental differences in data distribution—the sparsity and non-uniformity of positive feedback, the homogeneity of negative feedback, the reward confusion of multi-objective optimization—yet the community has been using optimizers designed for NLP to do recommendation. SAGE may not be the final answer, but it points in the right problem direction. What's needed next is online validation: the long-term effects of asymmetric clipping in real traffic, and the robustness of the boost factor and entropy-aware penalty hyperparameters across different scenarios.
+
+---
+
+**References:**
+
+- [SAGE: Sequence-level Adaptive Gradient Evolution for Generative Recommendation](https://arxiv.org/abs/2601.21452) - Xiaohongshu (2026.1)
+- [GPR: Towards a Generative Pre-trained One-Model Paradigm for Large-Scale Advertising Recommendation](https://arxiv.org/pdf/2511.10138) - WeChat Channels (2025.11)
+- [GR4AD: Generative Recommendation for Large-Scale Advertising](https://arxiv.org/pdf/2602.22732) - Kuaishou (2026.2)
+- [UniVA: Unified Value Alignment for Generative Recommendation in Industrial Advertising](https://arxiv.org/pdf/2605.05803) - Tencent Ads (2026.5)
+- [OneRec: End-to-End Generative Recommendation](https://arxiv.org/html/2506.13695v4) - Kuaishou (2025)

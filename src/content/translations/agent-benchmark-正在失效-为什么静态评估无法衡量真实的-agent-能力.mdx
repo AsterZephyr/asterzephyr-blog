@@ -1,0 +1,121 @@
+---
+title: "Agent Benchmarks Are Breaking Down: Why Static Evaluation Can't Measure Real Agent Capability"
+date: 2026-05-05
+tags: [技术报告解读, Agent 与编程]
+category: "技术分析"
+summary: "Claw-Eval-Live reveals three failure modes of static Agent evaluation and proposes a demand-driven live benchmark design — quarterly task-distribution refreshes while maintaining within-version reproducibility."
+sourceFile: "agent-benchmark-正在失效-为什么静态评估无法衡量真实的-agent-能力.mdx"
+sourceHash: "34c514047829962738ff588a857f469e957842757ab77402b744d9df206bac8d"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+Claw-Eval-Live evaluated 13 frontier models on 105 workflow tasks. The best model achieved a 66.7% pass rate; no model broke 70%. That number itself isn't surprising — what's surprising is that models with similar pass rates exhibited completely different failure patterns across task dimensions, and leaderboard rank differences didn't reflect actual capability differences.
+
+This exposes a deeper problem: the tools we use to evaluate Agents may themselves be outdated. Today's mainstream Agent benchmarks — whether SWE-bench, WebArena, or AgentBench — share a common trait: they are frozen the moment they're published. The task set doesn't change, the evaluation environment doesn't change, the scoring criteria don't change. But real-world workflows continuously evolve, tool stacks get updated, and enterprise bottlenecks shift. A benchmark can maintain perfect reproducibility while drifting ever further from the tasks users actually need Agents to automate.
+
+This article analyzes three failure modes of Agent benchmarks, dissects the "live benchmark" design philosophy proposed by Claw-Eval-Live, and explores what this means for engineers currently building Agent systems.
+
+## Three Failure Modes of Static Benchmarks
+
+<TechGraph src="/images/posts/agent-benchmark-正在失效-为什么静态评估无法衡量真实的-agent-能力/three-failure-modes.svg" title="Three Failure Modes of Static Benchmarks" caption="Task distribution drift, evaluation surface narrowing, and output-only gaming — three forces continuously eroding benchmark validity" />
+
+Agent benchmark failure doesn't happen suddenly — it's the result of three forces eroding validity over time.
+
+**Mode One: Task Distribution Drift**
+
+The task composition at the time a benchmark is published reflects what the authors considered important capability dimensions at that moment. But in reality, which workflows most need automation changes over time. In Q4 2024, the biggest enterprise pain point might have been cross-system data reconciliation; by Q3 2025, it might have shifted to multi-step approval chain automation. The benchmark's task set is frozen at the publication timestamp and cannot capture this demand-side drift.
+
+Claw-Eval-Live's data speaks directly to this: they used ClawHub Top-500 popular skills as a proxy for "demand signals" and found that signals sampled at different time points produce different task distribution weights. A workflow family considered core a quarter ago might become less critical due to new tools appearing or business process changes.
+
+**Mode Two: Evaluation Surface Narrowing**
+
+Existing benchmarks typically cover only a single execution surface. Web benchmarks focus on browser interaction, code benchmarks focus on repository operations, desktop benchmarks focus on GUI operations. But high-value real-world workflows often span multiple surfaces — querying a CRM system, modifying local files, sending approval requests, verifying fix results.
+
+Claw-Eval-Live divided its 105 tasks into two execution surfaces: Service-backed workflows (87) and Workspace repair (18). Results showed that service-backed workflows were far more difficult than local workspace repair. The best models performed reasonably on workspace repair but consistently failed on HR, administrative, and multi-system business workflows. A benchmark that tests only a single execution surface will systematically overestimate an Agent's real capability.
+
+**Mode Three: Output-Only Gaming**
+
+Most benchmarks only check the final output. An Agent generates a report that looks correct, and the grader gives it a pass. But there's a fundamental difference between "sounds right" and "actually did it." An Agent might produce a fluent document but actually queried the wrong records, modified the wrong files, or made recommendations based on incorrect data.
+
+Claw-Eval-Live introduced action-grounded hybrid grading: it records execution traces, audit logs, service state changes, and workspace artifacts. Deterministic checks are used only when evidence is sufficient; LLM scoring is introduced only for semantic dimensions. This design means an Agent can't game the grader by "generating correct-looking text" — it must prove it actually completed the work.
+
+## Claw-Eval-Live's Design: Benchmarks Can Be Alive
+
+Claw-Eval-Live's core innovation is splitting benchmark construction into two layers: a signal layer that changes over time and a fixed release snapshot.
+
+The signal layer obtains current workflow patterns users care most about from external demand sources (ClawHub Top-500 popular skills). These signals go through clustering, weighting, seed expansion, and candidate filtering, ultimately passing through Mixed Integer Linear Programming (MILP) to select the publicly released subset.
+
+The key point: once a version is released, its tasks, fixtures, and graders are locked down, guaranteeing reproducible model comparisons. What changes is the signal snapshot used when building the next version. This lets the benchmark absorb workflow ecosystem changes through quarterly refreshes without modifying already-published evaluation sets.
+
+The entire construction pipeline has five stages:
+
+<TechGraph src="/images/posts/agent-benchmark-正在失效-为什么静态评估无法衡量真实的-agent-能力/benchmark-construction-pipeline.svg" title="Claw-Eval-Live Construction Pipeline" caption="Five-stage pipeline: Signal Collection → Pattern Clustering → Family Weighting → Seed Expansion → MILP Selection, outputting a fixed version snapshot" />
+
+1. **Signal Collection**: Obtain a timestamped snapshot from ClawHub Top-500
+2. **Pattern Clustering**: Aggregate fragmented skill names into workflow patterns
+3. **Family Weighting**: Compute the target distribution based on signal weights
+4. **Seed Expansion & Implementation**: Expand weighted patterns into executable task candidates
+5. **Discrimination-Aware Release Selection**: Use MILP to select a public subset balancing coverage and discrimination
+
+The MILP objective function is worth noting. It maximizes: the degree to which selected tasks preserve the ranking among pilot models. If all models pass or all fail a task, it has no discriminative value — it gets excluded. The final 105 selected tasks must simultaneously satisfy three constraints: family coverage, release size, and leaderboard resolution.
+
+## What the Data Reveals
+
+The evaluation results across 13 frontier models have several notable findings:
+
+**The pass-rate ceiling is low**. The best model hit 66.7%; no model exceeded 70%. Given that these are the current strongest frontier models (Claude, GPT, Gemini families), this indicates that reliable workflow automation is far from solved.
+
+**Leaderboard rank does not equal capability difference**. Models with similar pass rates may fail on completely different task families. Two models both at 60% pass rate, but one excels at data processing tasks while failing catastrophically on HR workflows, and the other is exactly the opposite. The one-dimensional leaderboard ranking loses this structured information.
+
+**Failure is structured**. Different models don't fail randomly on different tasks — failure patterns cluster by task family and execution surface. HR, administrative, and multi-system business workflows are persistent bottlenecks across all models; local workspace repair is relatively easier but far from saturated.
+
+**Discrimination concentrates in the middle band**. Among evaluation tasks, the ones that truly differentiate model quality are concentrated in the medium difficulty range — tasks that are too easy get passed by all models, tasks that are too hard get failed by all models. This means that if a benchmark's difficulty distribution is poorly designed, a seemingly comprehensive evaluation actually has only a small fraction of tasks providing effective signal.
+
+## Implications for Agent Engineering Practice
+
+These findings have three practical implications for engineers building Agent systems:
+
+**Don't rely on a single benchmark for technology selection**. If you're choosing an Agent framework or model for a specific business scenario, the model ranked #1 on SWE-bench might perform mediocrely on your HR approval automation scenario. You need to build your own evaluation set on target scenarios, or at least use cross-results from multiple benchmarks for decision-making.
+
+**Evaluate the process, not just the result**. If your Agent system breaks in production, you can't locate the fault by simply checking "whether the output looks right." You need to record complete execution traces — tool call sequences, intermediate states, data sources. Claw-Eval-Live's action-grounded grading approach is worth borrowing: use deterministic checks to verify that critical operations were actually executed.
+
+**Design for continuous evaluation set evolution**. If you're maintaining an internal Agent evaluation suite, consider introducing a "signal layer + snapshot layer" separation similar to Claw-Eval-Live. Use actual demand patterns from online users to guide evaluation set update directions while maintaining stability of already-released versions. Review once per quarter: does the task distribution covered by the current evaluation set still reflect users' real needs?
+
+## The Broader Trend: From One-Time Publication to Continuous Calibration
+
+<TechGraph src="/images/posts/agent-benchmark-正在失效-为什么静态评估无法衡量真实的-agent-能力/static-vs-live-lifecycle.svg" title="Static vs Live Benchmark Lifecycle" caption="Static benchmarks degrade linearly and irreversibly; live benchmarks achieve cyclical evolution and continuous calibration through quarterly refreshes" />
+
+Claw-Eval-Live is not an isolated case. LiveCodeBench combats data contamination by continuously sampling new problems from programming contests. EvoClaw constructs time-aware evaluations by mining repository evolution history. WebArena-Verified performed large-scale re-verification after discovering that original evaluation conclusions were unreliable due to task quality issues.
+
+These efforts collectively point in one direction: benchmarks are no longer one-time academic contributions but infrastructure requiring continuous maintenance. Just as software needs continuous deployment, evaluation needs continuous calibration.
+
+But this creates an engineering tension: reproducibility demands fixity, while relevance demands updates. Claw-Eval-Live's "timestamped snapshot" design is one response to this tension — each version is completely fixed internally (guaranteeing reproducibility), but task distributions are allowed to evolve between versions (guaranteeing relevance). This is analogous to version management in software releases: v1.0 is stable, but v2.0 can include new features.
+
+## Unsolved Problems
+
+Several open questions in the Agent benchmark space deserve attention:
+
+**The cost dimension is missing**. All current benchmarks only measure "can it be done," not "how much does it cost to do it." A task completed with 100 tool calls and one completed with 5 tool calls show no difference in pass rate — but differ by 20x in production cost.
+
+**The safety-reliability tradeoff**. Agents pursuing high pass rates may adopt risky strategies — for example, executing directly under uncertainty instead of requesting clarification. Current benchmarks don't penalize "doing it wrong," only "not doing it." An Agent that accidentally deletes a database in production and a cautious Agent that refuses to execute score differently — and the latter scores lower.
+
+**Multi-turn interaction evaluation**. Most benchmarks test single-instruction execution. But real-world workflows often require multiple rounds of clarification, intermediate confirmation, and exception handling. The evaluation methodology for this dimension is still immature.
+
+---
+
+The failure of Agent benchmarks isn't a problem with any single evaluation set — it's that the entire evaluation paradigm is facing pressure for a paradigm shift. Static publication, single-surface, output-oriented evaluation was designed for the previous generation of AI systems — when models' primary task was answering questions, not completing work. When an Agent's goal shifts from "saying the right thing" to "doing the right thing," the evaluation system must also evolve from "checking answers" to "auditing behavior."
+
+Claw-Eval-Live's design philosophy — demand-driven task construction, execution-evidence-anchored scoring, timestamped versioned releases — provides a viable direction. But whether it truly solves the problem depends on whether the community is willing to bear the cost of continuously maintaining evaluation infrastructure. After all, writing a paper and publishing a benchmark is a one-time academic output, while maintaining a live evaluation system is a long-term engineering commitment.
+
+---
+
+**Reference Links**
+
+- [Claw-Eval-Live: A Live Agent Benchmark for Evolving Real-World Workflows](https://arxiv.org/abs/2604.28139)
+- [Claw-Eval-Live Project Page](https://claw-eval-live.github.io/)
+- [LiveCodeBench](https://arxiv.org/abs/2403.07974)
+- [SWE-bench](https://arxiv.org/abs/2310.06770)
+- [TheAgentCompany](https://arxiv.org/abs/2412.14161)
+- [WebArena](https://arxiv.org/abs/2307.13854)

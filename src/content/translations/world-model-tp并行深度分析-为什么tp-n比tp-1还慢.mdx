@@ -1,0 +1,466 @@
+---
+title: "Deep Analysis of World Model TP Parallelism: Why TP=N Is Slower Than TP=1"
+date: 2026-06-07
+tags: [系统与工程]
+summary: "From the SGLang Omni architecture to parallelism strategy choices for DiT/World Models—understanding when TP yields negative returns, and the correct multi-GPU approach: Sequence Parallelism. With empirical analysis from major companies' technical reports on why they don't use TP for DiT."
+draft: false
+sourceFile: "world-model-tp并行深度分析-为什么tp-n比tp-1还慢.mdx"
+sourceHash: "c24a360b7c2f35af24bfe83493ff36237bbc64cb9c9be900524ba95cebf809a3"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+> From the SGLang Omni architecture to parallelism strategy choices for DiT/World Models—understanding when TP yields negative returns, and the correct multi-GPU approach.
+
+---
+
+## 1. Problem Background
+
+### 1.1 The Phenomenon
+
+After integrating the World Model into SGLang Omni, enabling TP=N for inference revealed:
+
+- TP=N latency was **higher than** TP=1
+- This completely contradicts the intuition from LLM inference (LLM prefill typically sees significant speedup with TP)
+
+### 1.2 Core Conclusion (Up Front)
+
+```
+Prerequisite for TP speedup:
+  per-step compute_time >> all-reduce_time
+
+The World Model situation:
+  per-step compute_time ~ all-reduce_time (or even smaller)
+  -> TP communication becomes a net burden
+  -> TP=N is slower than TP=1
+```
+
+### 1.3 Components Involved
+
+```
+SGLang Omni Architecture:
++----------------------------------------------------+
+| LLM Backbone (large model, 70B+)                    |  <- TP effective
++----------------------------------------------------+
+| Vision Encoder (ViT, hundreds of M to a few B)      |  <- TP ineffective or unsupported
++----------------------------------------------------+
+| Audio Encoder (Whisper etc., hundreds of M)          |  <- TP ineffective or unsupported
++----------------------------------------------------+
+| World Model (DiT, 2-5B)                             |  <- TP negative returns, use SP
++----------------------------------------------------+
+| Refiner (optional, second-stage refinement)          |  <- depends on model size
++----------------------------------------------------+
+```
+
+---
+
+## 2. The Essential Difference Between LLM TP and DiT/WM TP
+
+### 2.1 TP Fundamentals
+
+Tensor Parallelism splits each layer's weight matrix by column/row across N GPUs. Each GPU computes 1/N of the work, then all-reduce merges the results.
+
+```
+Per-layer overhead:
+  compute = original_compute / N
+  communication = 2 x all-reduce (forward + backward of each linear)
+
+Speedup condition:
+  compute_saved > communication_added
+  i.e.: original_compute x (1 - 1/N) > all_reduce_latency x num_allreduce_per_layer
+```
+
+### 2.2 Why TP Works for LLMs
+
+Take a 70B LLM, prefill 4K tokens as an example:
+
+```
+Single-GPU time: ~533ms
+TP=4:
+  compute: 533ms / 4 = 133ms
+  all-reduce: 80 layers x 2 x ~0.1ms = 16ms
+  total: ~149ms
+  speedup: 533 / 149 ~ 3.6x  -- effective
+```
+
+### 2.3 Why TP Doesn't Work for World Models (DiT)
+
+Take SANA-WM (2.6B, 720p video) as an example:
+
+```
+Single-GPU time: ~16ms per step
+TP=4:
+  compute: 16ms / 4 = 4ms
+  all-reduce: 20 blocks x 2 x ~0.3ms = 12ms
+  total: ~16ms -> no speedup!
+  Actually may be slower (kernel launch overhead, non-contiguous memory, etc.)
+```
+
+### 2.4 Key Differences Compared
+
+| Dimension | LLM (70B prefill) | World Model (2.6B DiT) |
+|-|-|-|
+| Model params | 70B | 2-5B |
+| Hidden dim | 8192 | 2240 |
+| Per-step FLOPs | 528 TFLOPs | 15.5 TFLOPs |
+| TP=4 compute | 133ms | 4ms |
+| TP=4 all-reduce | 16ms | 12ms |
+| **compute / comm** | **8.3x** | **0.33x** |
+| **Is TP effective?** | **Yes (3.6x)** | **Negative returns** |
+
+---
+
+## 3. World Model Autoregressive Compute Analysis
+
+### 3.1 LLM Autoregressive vs WM Autoregressive
+
+```
+LLM Autoregressive:
+  Unit: 1 token per step
+  Prefill: processes N tokens at once (compute-intensive, TP effective)
+  Decode: generates tokens one by one (memory-bound, TP also ineffective)
+
+World Model Autoregressive (Causal Video):
+  Unit: 1 chunk (a few frames) per step
+  Per chunk: N denoising steps (each step is a full DiT forward pass)
+
+Key difference:
+  LLM decode: 1 token, extremely small compute -> memory-bound
+  WM step: thousands of latent tokens, moderate compute -> but model is small, not enough to amortize TP communication
+```
+
+### 3.2 Compute per Denoising Step
+
+| Model | Blocks | Seq (latents) | Hidden | FLOPs/step | H100 time |
+|-|-|-|-|-|-|
+| SANA-WM (2.6B) | 20 | 6,440 | 2,240 | 15.5T | ~16ms |
+| Wan-5B | 40 | 3,600 | 3,072 | 43.3T | ~44ms |
+| LLM-70B prefill 4K | 80 | 4,096 | 8,192 | 528T | ~533ms |
+
+### 3.3 Key Insight
+
+```
+WM (2.6B): 15.5 TFLOPs/step
+LLM prefill (70B): 528 TFLOPs
+Ratio: 528 / 15.5 = 34x
+
+LLM prefill per-step compute is 34x that of a WM step
+WM simply doesn't have enough compute to "feed" TP's communication overhead
+```
+
+**TP's granularity is at the per-step forward level, not the entire pipeline. If each step is too small, it's a net loss.**
+
+---
+
+## 4. The Break-Even Point for TP Gains/Losses
+
+<Figure src="/images/posts/world-model-tp并行深度分析-为什么tp-n比tp-1还慢/world-model-01.png" alt="TP Cost-Benefit Analysis: LLM vs World Model Per-Step Compute Comparison" />
+
+### 4.1 Hidden Overheads
+
+In practice, all-reduce is much slower than theoretical:
+
+1. **Kernel Launch Overhead**: proportionally larger for small kernels
+2. **Memory Fragmentation**: after TP splitting, weights are non-contiguous, degrading memory access patterns
+3. **NCCL Initialization Overhead**: each collective has a fixed cost
+4. **Pipeline Bubble**: sync barriers between different components
+
+### 4.2 Critical Model Size
+
+Rule of thumb (H100 NVLink):
+
+```
+Minimum model scale for positive TP returns:
+  TP=2: model > ~10B, and per-step tokens > 1000
+  TP=4: model > ~30B, and per-step tokens > 2000
+  TP=8: model > ~65B
+
+World Models are typically 2-5B -> TP almost never yields positive returns
+```
+
+---
+
+## 5. The Correct Multi-GPU Approach in SGLang: SP, Not TP
+
+### 5.1 Sequence Parallelism (SP) Principles
+
+SP splits along the **sequence/spatial dimension** rather than splitting model weights:
+
+```
+TP (split weights):
+  Each GPU: all tokens x partial weights -> all-reduce to merge
+
+SP (split sequence):
+  Each GPU: partial tokens x all weights -> all-to-all exchange
+
+Key difference:
+  TP: full data, sharded compute -> suited for compute-intensive workloads
+  SP: sharded data, full compute -> suited for long sequences / memory-constrained scenarios
+```
+
+### 5.2 Why SP Is More Suitable for World Models
+
+Characteristics of World Models:
+1. Long sequences (spatial × temporal latents): 3,000–50,000 tokens
+2. Small model parameters: 2-5B (weights fit on a single GPU)
+3. Memory bottleneck is in activations and KV cache, not in weights
+
+### 5.3 SP Implementation in SGLang
+
+```bash
+# Ulysses SP
+sglang serve --model-path ... --num-gpus 4 --ulysses-degree 4
+
+# Ring SP
+sglang serve --model-path ... --num-gpus 4 --ring-degree 4
+
+# Hybrid
+sglang serve --model-path ... --num-gpus 4 --ulysses-degree 2 --ring-degree 2
+```
+
+### 5.4 SP Benchmark Results (from PR #20998)
+
+Wan2.2-TI2V-5B, 2×RTX4090 (48G):
+
+| Stage | SP=2 (ring) | Baseline | Speedup |
+|-|-|-|-|
+| TextEncoding | 1.40s | 2.23s | 1.59x |
+| Denoising | 52.6s | 71.7s | **1.36x** |
+| Decoding (VAE) | 7.67s | 13.4s | 1.75x |
+| **Total** | **63.7s** | **90.6s** | **1.42x** |
+
+Peak GPU memory: 20.07 vs 27.40 GB — saving 7.3 GB.
+
+---
+
+## 6. Per-Component Parallelism Strategy Under the Omni Architecture
+
+<Figure src="/images/posts/world-model-tp并行深度分析-为什么tp-n比tp-1还慢/world-model-02.png" alt="Omni Architecture: Per-Component Parallelism Strategy" />
+
+### 6.1 Recommended Parallelism Strategy by Component
+
+| Component | Recommended Strategy | Reason |
+|-|-|-|
+| LLM Backbone (70B) | TP=4/8 | Required — doesn't fit on one GPU |
+| Vision Encoder (300M–4B) | No parallelism / DP | Single GPU is enough |
+| Audio Encoder (300M–1.5B) | No parallelism | One-shot encode |
+| World Model Stage 1 (DiT, 2-5B) | SP (Ulysses/Ring) | TP yields negative returns |
+| Refiner Stage 2 (5-10B) | SP | Even more tokens |
+
+### 6.2 Cross-Attention Optimization (PR #19419)
+
+In the World Model, cross-attention KV comes from the text/image encoder and is replicated across all SP ranks. Performing all-to-all on replicated KV is pure waste:
+
+```
+Optimized (skip_sp=True for cross-attention):
+  text KV: 512 tokens, use directly
+  Local attention: Q_local x KV_full -> correct and efficient
+  No communication needed
+
+Measured speedup: 7-15% per denoising step (B200)
+```
+
+---
+
+## 7. Why Major Companies' Technical Reports Don't Use TP for DiT/WM
+
+<Callout type="info">
+**Core reason**: After TP slices the GEMMs smaller, Tensor Core occupancy drops dramatically. Small models (2-5B) already have modest matmuls; splitting them by 1/N further leaves insufficient waves to fill the SMs, causing kernels to degrade to memory-bound.
+</Callout>
+
+| Paper / Project | Model Scale | Parallelism Strategy |
+|-|-|-|
+| **SANA-WM** (NVIDIA) | 2.6B | Temporal SP (Ulysses) |
+| **Movie Gen** (Meta) | 30B video DiT | Context Parallelism (SP) |
+| **Open-Sora** (HPC-AI Tech) | 1.1B / 3B | SP (Ulysses + Ring) |
+| **CogVideoX** (Zhipu AI) | 5B | SP (sequence splitting) |
+| **Wan Video** (Alibaba) | 5B / 14B | Ring SP + Ulysses |
+| **Hunyuan Video** (Tencent) | 13B | SP (USP) |
+| **FLUX.1** (Black Forest Labs) | 12B | SP |
+
+A typical statement from Meta's Movie Gen:
+
+> "We use context parallelism to distribute the long video sequences across GPUs, rather than tensor parallelism which would reduce per-GPU GEMM sizes below the efficiency threshold of modern accelerators."
+
+---
+
+## 8. Decision Tree
+
+```
+Does your model need multi-GPU?
++-- Weights don't fit on a single card -> Parallelism is mandatory
+|   +-- LLM (>40B) -> TP
+|   +-- DiT (>10B?) -> SP or PP
++-- Weights fit on a single card but you want speedup -> Check compute density
+|   +-- Single-step FLOPs > 100T -> TP may be effective
+|   +-- Single-step FLOPs 10-100T -> SP is better
+|   +-- Single-step FLOPs < 10T -> Don't parallelize, use DP
++-- Want to scale batch / memory -> DP or SP
+```
+
+<Callout type="info">
+**Rule of thumb**: TP can only yield positive returns when the model's hidden_dim/TP_size > 2048 AND single-step tokens > 2000. The vast majority of DiT/WM models do not meet this condition.
+</Callout>
+
+---
+
+## 9. NVLink vs PCIe: Communication Bandwidth Determines the TP Ceiling
+
+### 9.1 Interconnect Bandwidth Comparison
+
+The core overhead of TP is AllReduce. AllReduce latency depends directly on inter-GPU interconnect bandwidth:
+
+| Interconnect Type | Unidirectional Bandwidth | AllReduce Effective Bandwidth | Typical Platform |
+|-|-|-|-|
+| NVLink 4.0 (H100) | 450 GB/s (unidirectional) | ~400 GB/s | DGX H100 |
+| NVLink 3.0 (A100) | 300 GB/s | ~260 GB/s | DGX A100 |
+| PCIe Gen5 x16 | 64 GB/s | ~50 GB/s | Consumer/cloud PCIe |
+| PCIe Gen4 x16 | 32 GB/s | ~25 GB/s | RTX 4090 |
+
+**Key takeaway**: NVLink is 16x faster than PCIe Gen4. On PCIe platforms, communication overhead is 16x that of NVLink, and the breakeven threshold for TP to yield positive returns rises dramatically.
+
+### 9.2 Real-World TP Benchmarks on RTX 4090
+
+The RTX 4090 has only PCIe Gen4 interconnect (no NVLink). Measured on a 7B LLM:
+
+```
+TP=2 on 2x4090 (PCIe Gen4):
+  Single-card compute: 15ms
+  AllReduce (PCIe): 80 layers * 2 * 0.8ms = 128ms
+  Total: 143ms (slower than single card!)
+
+Same model on DGX (NVLink):
+  Single-card compute: 15ms
+  AllReduce (NVLink): 80 layers * 2 * 0.05ms = 8ms
+  Total: 15.5ms (effective speedup)
+```
+
+**Conclusion**: On PCIe platforms, even for LLMs—the scenario where TP has the strongest advantage—a 7B model cannot benefit from TP. For World Models (2–5B), it goes without saying.
+
+---
+
+## 10. Ring AllReduce Communication Volume Derivation
+
+### 10.1 Formula
+
+Ring AllReduce is the most commonly used collective communication algorithm in NCCL. For N GPUs, each holding data of size D:
+
+```
+Communication volume = 2 * (N-1) / N * D
+Latency = 2 * (N-1) * alpha + 2 * (N-1) / N * D / bandwidth
+```
+
+Where:
+- alpha = single message startup latency (~5us for NVLink)
+- bandwidth = link bandwidth
+- 2 = two phases: reduce-scatter + all-gather
+
+### 10.2 Concrete Calculation for World Model
+
+Taking SANA-WM (2.6B, hidden_dim=2240, TP=4) as an example:
+
+Data volume per AllReduce per layer:
+```
+D = batch_size * seq_len * hidden_dim * sizeof(bf16)
+  = 1 * 6440 * 2240 * 2
+  = 28.9 MB
+
+Ring AllReduce communication volume = 2 * (4-1)/4 * 28.9 = 43.3 MB
+NVLink latency = 43.3 MB / 400 GB/s = 0.11 ms
+Actual latency (including kernel launch + sync): ~0.3 ms
+```
+
+20 DiT blocks, each with 2 AllReduces:
+```
+Total communication time = 20 * 2 * 0.3 = 12 ms
+```
+
+Compare this to a compute time of only 4ms. **Communication / compute = 3x — TP is a net loss.**
+
+---
+
+## 11. Practical Profiling Methods
+
+### 11.1 Analysis with NSight Systems
+
+The standard method to determine whether TP is effective:
+
+```bash
+nsys profile --trace=cuda,nvtx --output=report \
+  python run_model.py --tp-size=1
+
+nsys profile --trace=cuda,nvtx --output=report_tp4 \
+  python run_model.py --tp-size=4
+```
+
+Compare in the NSight Systems UI:
+1. **Kernel Duration**: Each layer's kernel under TP=4 should be ~1/4 of TP=1
+2. **NCCL Calls**: TP=4 will show a large number of ncclAllReduce kernels
+3. **Idle Gaps**: Idle gaps between TP kernels (sync barriers)
+
+### 11.2 Key Metric: SM Occupancy
+
+<TechGraph src="/images/posts/world-model-tp并行深度分析-为什么tp-n比tp-1还慢/world-model-tp-breakeven.svg" title="TP Breakeven Analysis" caption="Model size vs TP benefit: only large models can cover the communication overhead" />
+
+NSight Compute (NCU) lets you inspect the SM occupancy of each kernel:
+
+```bash
+ncu --set full --target-processes all \
+  python run_model.py --tp-size=4
+```
+
+Core metrics:
+- **Achieved Occupancy**: After TP partitioning, GEMMs become smaller, and occupancy drops from 90% to 30–40%
+- **Memory Throughput**: Smaller GEMMs have worse memory access patterns
+- **Compute Throughput**: Ratio of actual TFLOPS to peak TFLOPS
+
+When Achieved Occupancy < 50%, TP partitioning has made the GEMMs too small for Tensor Cores to be fully utilized.
+
+---
+
+## 12. SP vs TP: Theoretical Roofline Comparison
+
+### 12.1 Understanding from the Roofline Perspective
+
+<TechGraph src="/images/posts/world-model-tp并行深度分析-为什么tp-n比tp-1还慢/world-model-omni-arch.svg" title="SP vs TP Roofline Comparison" caption="SP keeps per-layer compute scale unchanged; TP shrinks each layer's GEMM" />
+
+| Dimension | TP | SP |
+|-|-|-|
+| Per-layer GEMM size | Shrinks by N× | Unchanged |
+| Arithmetic Intensity | Decreases (GEMM gets smaller) | Unchanged |
+| Communication type | AllReduce (latency-bound) | AllToAll (bandwidth-bound) |
+| Communication frequency | 2× per layer | 1× during attention |
+| SM Occupancy | Decreases | Unchanged |
+
+### 12.2 Numerical Comparison
+
+Taking Wan-5B, seq_len=3600, hidden_dim=3072, H100 NVLink as an example:
+
+**TP=4 scenario**:
+```
+Per-layer GEMM: [3600, 3072] x [3072, 768] -> [3600, 768]
+FLOPs: 2 * 3600 * 3072 * 768 = 17.0 GFLOPS
+Time: 17.0G / 989T = 0.017 ms (too small — kernel launch overhead alone is 0.01ms)
+Communication: 0.3 ms
+Ratio: 0.017 / 0.3 = 0.057 -- compute is only 5.7% of communication
+```
+
+**SP=4 scenario**:
+```
+Per-layer GEMM: [900, 3072] x [3072, 12288] -> [900, 12288] (seq split 4 ways, weights not split)
+FLOPs: 2 * 900 * 3072 * 12288 = 68.2 GFLOPS
+Time: 68.2G / 989T = 0.069 ms
+Communication (AllToAll for attention): ~0.05 ms (once, not per layer)
+Ratio: 0.069 / 0.05 = 1.38 -- compute exceeds communication
+```
+
+**SP's compute-to-communication ratio is 24x that of TP** — this is the mathematical essence of SP's advantage for World Models.
+
+---
+
+## Related Articles
+
+- [GPU Compute for Video Generation Inference: Starting from an Arithmetic Problem](/blog/视频生成推理的gpu算力-从一道算术题说起) — Why video generation requires so much compute
+- [AI Inference Learning Roadmap 2026 Panorama](/blog/ai-inference-学习-roadmap-2026全景图) — A comprehensive learning roadmap for inference engineering

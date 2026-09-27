@@ -1,17 +1,19 @@
 ---
 import { SITE } from '../data/site';
+import LocalizedText from './LocalizedText.astro';
+
 ---
 <section id="home" class="hero" aria-label="Introduction">
   <div id="hero-bg" class="hero-art" aria-hidden="true"></div>
   <div class="hero-shade" aria-hidden="true"></div>
   <div class="hero-content">
-    <p class="hero-greeting hero-enter">Welcome to my world</p>
+    <p class="hero-greeting hero-enter"><LocalizedText zh="欢迎来到我的世界" en="Welcome to my world" /></p>
     <h1 class="hero-enter">{SITE.name}</h1>
-    <p class="hero-tagline hero-enter">{SITE.tagline}</p>
-    <p class="hero-interests hero-enter">{SITE.subtitles.map((s) => s.replace(/\.$/, '')).join(' / ')}</p>
+    <p class="hero-tagline hero-enter"><LocalizedText zh="广告算法工程师。系统构建者。AI 探索者。" en={SITE.tagline} /></p>
+    <p class="hero-interests hero-enter"><LocalizedText zh="程序化广告与实时竞价 / AI 基础设施 / Agent 系统与大模型 / 开源" en={SITE.subtitles.map((s) => s.replace(/\.$/, '')).join(' / ')} /></p>
   </div>
   <div class="hero-foot">
-    <a href="#recent-posts" class="hero-explore">Explore the writing <span aria-hidden="true">↓</span></a>
+    <a href="#recent-posts" class="hero-explore"><LocalizedText zh="阅读文章" en="Explore the writing" /> <span aria-hidden="true">↓</span></a>
     <p>Per aspera ad astra.</p>
   </div>
 </section>

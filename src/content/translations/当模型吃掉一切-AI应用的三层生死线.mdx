@@ -1,0 +1,119 @@
+---
+title: "When Models Eat Everything: Three Layers That Determine Whether an AI App Survives"
+date: 2026-05-20
+tags: [成长与思考]
+category: "技术分享"
+sourceFile: "当模型吃掉一切-AI应用的三层生死线.mdx"
+sourceHash: "f4ff06d4de3b14418d75e4ec408286cb9946acae24f18567b16ac45e34331290"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+# When Models Eat Everything: Three Layers That Determine Whether an AI App Survives
+
+Model capabilities are advancing so quickly that we have reached a tipping point. Much of what used to be packaged as “product value” was really a temporary patch for capabilities the model did not yet have. Sooner or later, native capabilities absorb those patches. Once that happens, what is left for the application layer?
+
+The question has become especially urgent this year. At Google I/O 2026, Gemini offered a 2M-token context window. Anthropic released Claude Code to take over development workflows from the command line. OpenAI made image generation a native capability. Each model upgrade eats into the core value of another group of application-layer products.
+
+I want to try to answer this: **If models keep getting stronger, what can people building AI applications still do?**
+
+## One Step Away: Which Products Are Bound to Be Absorbed?
+
+My criterion is simple:
+
+> Do not build a product that a model provider can swallow by taking just one more step.
+
+Three examples:
+
+**Cursor vs. Claude Code.** Cursor has done an excellent job with AI coding. But when Anthropic released Claude Code, it entered developers' workflows directly through the command line. An intermediary product cannot compete with an upstream provider on token costs and depth of system integration. Cursor has to keep moving up the stack—into the IDE, collaboration, and enterprise offerings—to stay ahead.
+
+**AI design tools vs. GPT Image / Claude Design.** The same problem applies. As OpenAI and Anthropic integrate image generation natively, the space available to intermediary AI design tools keeps narrowing. The upstream capability simply grows into existence.
+
+**Browser AI extensions.** These are essentially an intermediary layer for collecting and understanding context: fetching web content and organizing information for a model. Once models natively support long context and multimodality, that intermediary layer has little reason to exist.
+
+<TechGraph src="/images/posts/当模型吃掉一切-AI应用的三层生死线/one-step-rule.svg" title="THE ONE-STEP RULE" caption="Do not build a product that a model provider can absorb by taking just one more step." />
+
+The common pattern is clear: the product's core value rests on a gap in the model's current capabilities. RAG is valuable because context windows are short. AI coding middleware is valuable because models still need prompts to compensate for their limitations. Browser extensions are valuable because models cannot yet access the web directly.
+
+Once the gap is closed, the value falls to zero.
+
+## A Three-Layer Model: Where Is the Danger, and Where Is the Safety?
+
+The work AI applications have done over the past two years falls into three layers, classified by the risk of being absorbed:
+
+<TechGraph src="/images/posts/当模型吃掉一切-AI应用的三层生死线/three-layers.svg" title="THREE LAYERS OF AI APPLICATIONS" caption="The closer to the bottom, the greater the risk; the closer to the top, the safer the position." />
+
+### Layer One: Capability Patches—Already Being Absorbed
+
+Prompt engineering, context assembly, RAG, and tool-call orchestration.
+
+This layer is being absorbed most thoroughly. Gemini 2.5 Flash offers a 2M-token context window, turning many RAG use cases into “just drop the files in.” Companies that once raised money on “smarter retrieval augmentation” now face an awkward fact: the model itself has solved the problem they were solving.
+
+Think back: by 2025, the file system had replaced RAG, and a single subagent tool had replaced multi-agent systems. Half of what counted as “understanding AI” in 2024 was already obsolete in 2025. The pace is still accelerating.
+
+### Layer Two: Packaged Workflows—Partly Being Absorbed
+
+Multi-step agent scheduling, memory for long-running tasks, and cross-application state synchronization.
+
+This is somewhat safer than the first layer because workflows involve understanding business logic; a model breakthrough on one isolated capability cannot solve that. But platforms are folding general-purpose workflow capabilities into operating systems and productivity suites. The room left for vertical products lies in specialized scenarios that demand deep domain understanding: legal document review, medical image analysis, and financial compliance checks, for example.
+
+### Layer Three: Domain Context and Relationships—Beyond the Model's Reach
+
+User identity, data assets, trusted relationships, collaboration networks, and compliance boundaries.
+
+This layer is not a technology problem. However powerful a model becomes, it cannot replace “the customer relationships this business has built over ten years,” “the user behavior data accumulated on this platform,” or “the compliance approval process in this industry.” Models cannot readily absorb these things in the short term. Perhaps they never will.
+
+## “Understanding AI” Is Not a Moat
+
+Here is a judgment I am increasingly confident about:
+
+Who moves faster: someone entering an unfamiliar domain armed with AI knowledge, or someone already in that domain who installs Claude Code?
+
+The domain insider moves faster.
+
+The logic is straightforward:
+
+- AI capabilities are widely available. Claude Code can run on everyone's computer, and the barrier to using it is approaching zero.
+- Domain know-how is privately held. You cannot quickly acquire the tacit knowledge an industry has accumulated over ten years.
+- When AI becomes a general-purpose capability, competitive advantage returns to whoever understands the business context better.
+
+“Understanding AI” is useful as a ticket to entry: you need to know what models can do. It does not work as a moat, because that advantage is quickly eroded. Using AI knowledge alone to move into somebody else's domain is not sustainable.
+
+Over the past two years, “AI native” has been one of the hottest labels. Mastering prompt engineering, understanding LLM capability boundaries, and designing agent workflows were treated as scarce skills. But once those capabilities are packaged into products—Claude Code, Cursor, Copilot—and everyone can use them, the differentiation disappears.
+
+## Two Dimensions for Judgment
+
+When assessing whether an AI product can survive, I look at two dimensions:
+
+**Dimension one: How far is it from a model's native capabilities?**
+
+If the product “fills a capability gap for the model”—RAG, prompt optimization, context management—its lifespan depends on how soon the model can fill that gap itself. At the current pace of a new generation every six months, the answer is usually 6-18 months.
+
+If the product “builds domain-specific value on top of model capabilities”—user relationships, data flywheels, compliance certification—model advances cannot directly reach that value.
+
+**Dimension two: Does it have network effects or data barriers?**
+
+Purely technical AI products—better prompts, faster inference, more accurate RAG—have almost no network effects, and users can switch at zero cost. Products built around networks of user relationships—collaboration platforms, social networks, marketplaces—are inherently more resistant to replacement because the switching cost is social, not technical.
+
+<TechGraph src="/images/posts/当模型吃掉一切-AI应用的三层生死线/defensibility-matrix.svg" title="PRODUCT DEFENSIBILITY MATRIX" caption="Far from native model capabilities + network effects = the safest quadrant." />
+
+## What This Means for Us
+
+**For founders building AI applications:** Test your product against the one-step rule. If OpenAI, Anthropic, or Google released a particular feature tomorrow, would your product still have value? If the answer is no, move your bet to the third layer.
+
+**For people doing AI-related work at large companies:** The half-life of “understanding AI” is shrinking faster. The RAG you learned in 2024 became outdated in 2025; the agent orchestration you learned in 2025 may be absorbed by platforms in 2026. What is worth accumulating is knowledge of “which domain to apply AI in,” not just “how to use AI.” Domain knowledge does not depreciate.
+
+**For people considering their next move:** The question is not “Can this be built?” but “Am I uniquely positioned to build it?” If it requires domain knowledge from years spent in an industry, and that knowledge will not be submerged by model advances, it may be a good direction. If anyone who can use Claude Code could do it, there is no moat.
+
+---
+
+Models are getting stronger, and that trend is irreversible. But stronger models do not mean the application layer has no value. They mean that value must rest on things models cannot reach. User relationships, data assets, industry compliance, and an understanding of real-world contexts accumulate far more slowly than models can be trained. That is precisely why they are harder to replace.
+
+Find your position before models eat everything.
+
+---
+
+**References:**
+
+- [Which capabilities will models absorb quickly, and which kinds of value can still only be delivered by application products?](https://www.zhihu.com/question/2040134866310619800/answer/2040389581170862043) — Zhihu (2026.5)
+- Google I/O 2026 — Gemini 2.5 Flash 2M token context window

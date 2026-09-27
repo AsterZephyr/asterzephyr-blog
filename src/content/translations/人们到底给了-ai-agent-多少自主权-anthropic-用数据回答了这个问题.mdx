@@ -1,0 +1,227 @@
+---
+title: "How Much Autonomy Are People Actually Giving AI Agents? Anthropic Answered with Data"
+date: 2026-02-27
+category: "技术分享"
+tags: [技术报告解读, Agent 与编程]
+sourceFile: "人们到底给了-ai-agent-多少自主权-anthropic-用数据回答了这个问题.mdx"
+sourceHash: "e07f8b55e00d7e2d23f89ea9d39bcc86136cb4ebde02d8180578f8478d8ed148"
+---
+
+import Figure from '../../components/blog/Figure.astro'
+
+
+Agent safety has been a hot topic for a year or two now, but all prior discussions shared a common problem: a lack of real data. People were either reasoning through hypothetical scenarios or running benchmarks in evaluation environments. How users actually use agents in the real world, how much permission they grant, what problems have occurred—nobody could say for sure.
+
+On February 18, 2026, Anthropic published a research report (authored by Miles McCain, Thomas Millar, Saffron Huang, and others) that for the first time used production data to answer these questions. They analyzed millions of agent interactions across Claude Code and the public API, conducting a large-scale empirical study using their own privacy analysis tool [Clio](https://www.anthropic.com/research/clio).
+
+This article is my interpretation after reading the full study. I won't be translating the original page by page—instead, I'll highlight the findings and data points I think are most worth discussing, along with some of my own thoughts. If you're building Agent-related products or are interested in Agent safety, this study is worth reading in full. I've included the original link at the end.
+
+---
+
+## How Do You Quantify Something as Fuzzy as "Autonomy"
+
+The first step of the research was to establish a measurement framework. The word "Agent" has been used far too loosely—everything from a chatbot that can call APIs to a programming assistant that independently completes 5-hour tasks gets called an Agent. So they started with a pragmatic definition:
+
+> Agent = an AI system equipped with tools, capable of taking actions (running code, calling external APIs, sending messages to other agents)
+> 
+
+This definition is compatible with the classic Russell & Norvig (1995) definition and also with Simon Willison's more direct formulation: "runs tools in a loop to achieve a goal." The advantage is that it's operationalizable—by observing tool calls, you can quantitatively analyze agent behavior. No need to guess what the model is "thinking" internally; just look at what tools it actually called, what parameters it passed, and what results it produced.
+
+### Dual Data Sources: Complementary Breadth and Depth
+
+The data came from two sources, each with its own strengths and blind spots:
+
+<Figure src="/images/posts/人们到底给了-ai-agent-多少自主权-anthropic-用数据回答了这个问题/image.png" alt="image.png" />
+
+The Public API covers a broad range of industries and can tell you what agents are doing across various sectors, but it only shows scattered tool calls and can't reconstruct a complete workflow. Claude Code is the opposite—the scenarios are almost entirely software engineering, but you can see the entire chain from the user issuing instructions to the agent completing the task—including how many times a human intervened and at what point.
+
+Put the two together and you barely get a complete picture.
+
+### Scoring Method: Using AI to Evaluate AI
+
+For each tool call on the API, they used Claude itself to score along two dimensions:
+
+| Dimension | Score Range | Low Score Meaning | High Score Meaning |
+| --- | --- | --- | --- |
+| Risk | 1-10 | Errors have no consequences | Could cause significant harm |
+| Autonomy | 1-10 | Strictly follows human instructions | Independent decision-making, minimal human involvement |
+
+There's an unavoidable issue here—having Claude score its own behavior means self-assessment bias certainly exists. To put it in perspective, imagine asking an employee to evaluate their own work's risk level—how objective can the result be? Anthropic acknowledges this in the paper and says they performed cross-validation on internal data, but due to privacy constraints, they couldn't have humans review the raw data. Credit to them for being candid, but this limitation needs to be kept in mind throughout. All subsequent analyses based on Risk/Autonomy scores carry this layer of uncertainty.
+
+---
+
+## Core Finding #1: Power Users Are Running Increasingly Long Autonomous Tasks
+
+The 99.9th percentile turn duration (the length of time Claude works continuously without being interrupted by a human) grew from 25 minutes to 45 minutes over four months:
+
+<Figure src="/images/posts/人们到底给了-ai-agent-多少自主权-anthropic-用数据回答了这个问题/image 1.png" alt="image.png" />
+
+But the median barely moved, staying between 40–55 seconds. Everything below the 99th percentile was also very stable.
+
+What does this distribution tell us? It's not that everyone is letting Agents loose—rather, a small group of power users keeps doubling down. They're giving Agents increasingly long task chains and letting them run for longer stretches. A large number of new users are still using Agents for short, single-question-and-answer tasks, holding the median in place.
+
+This is somewhat like the early cloud computing adoption curve. Around 2010, most enterprises were still using the cloud as "remote virtual machines," while only a few pioneers were running fully managed distributed services. Agent usage is in a similar state—most people are still using them superficially, while power users are already exploring deep collaboration.
+
+There's another detail I find more interesting than the numbers themselves: the growth curve spans multiple model version release dates. If users were simply emboldened because the model got stronger, you'd expect jumps in growth coinciding with new model releases. But the actual trend is smooth, looking more like a gradual accumulation of trust combined with incremental workflow adaptation. Users are learning how to collaborate with Agents, and improvements in Agent capability are just one factor among many.
+
+### Deployment Overhang: The Gulf Between Capability and Authorization
+
+This is the concept from the study I most want to highlight.
+
+[METR](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/)'s evaluations show that Claude Opus 4.5 can complete tasks that would take a human 5 hours with a 50% success rate. But in actual usage, even the 99.9th percentile continuous working duration is only about 42 minutes.
+
+There is a massive gap between what the model is capable of and what people actually allow it to do. Anthropic calls this the Deployment Overhang.
+
+This gap has two sides. On one hand, it's a safety buffer—the model has the ability to do more dangerous things but hasn't been authorized to, which is a good thing. On the other hand, it represents untapped productive capacity—if this gap could be safely released, the value Agents could create far exceeds today's levels.
+
+A concrete example: a Claude Code user might only let the Agent fix bugs in a single file, but the model actually has the capability to independently complete refactoring tasks spanning multiple files. The user doesn't let go not because the model can't do it, but because they're unsure whether the model will mess things up and how costly a rollback would be. This is why the release speed of the Deployment Overhang doesn't depend on improvements in model capability, but on the maturation of surrounding infrastructure—once monitoring, auditing, and rollback capabilities are in place, trust naturally follows.
+
+---
+
+## Core Finding #2: From "Driving Instructor" to "Team Manager"
+
+As usage experience increases, users' supervisory behavior exhibits a seemingly contradictory change: the auto-approve rate rose from 20% to 40%+, while the interruption rate also climbed from 5% to 9%.
+
+Delegation and interruption rising simultaneously? Seems contradictory, but it's not at all.
+
+<Figure src="/images/posts/人们到底给了-ai-agent-多少自主权-anthropic-用数据回答了这个问题/image 2.png" alt="image.png" />
+
+The novice strategy is **pre-approval**—every operation requires confirmation before proceeding, like a driving instructor sitting in the passenger seat ready to hit the brake at any moment. Under this mode, the Agent can barely take a few steps before stopping to wait for a nod, so there are inherently fewer opportunities for interruption.
+
+Experienced users switch to **supervisory monitoring**—let the Agent run freely first, and only intervene when something goes wrong. It's more like a team manager doing code review: not watching you write every line of code, but checking in at key checkpoints and pulling things back if the direction is off. Since the Agent is now running on its own, the frequency of mid-course corrections naturally goes up.
+
+|  | Novice Strategy | Expert Strategy |
+| --- | --- | --- |
+| Mode | Pre-approval | Supervisory monitoring |
+| Characteristics | Every operation requires confirmation | Run freely, intervene only on issues |
+| Analogy | Driving instructor with the auxiliary brake | Team manager doing code review |
+| Auto-approve | ~20% | ~40%+ |
+| Interruption rate | ~5% | ~9% |
+| Interruption demand | Low (because every step is already reviewed) | High (need to course-correct at key points) |
+
+The supervision strategy changed—trust didn't decrease.
+
+This finding has direct practical value for people building Agent products: don't force the same approval workflow on all users. Novices need handrails; experts need dashboards. A good Agent product should support both supervision modes simultaneously and provide a smooth transition path from the former to the latter.
+
+An analogy to IDE design might make this easier to understand. VS Code doesn't hide terminal functionality because you're a novice, nor does it remove syntax highlighting because you're an expert. It provides different levels of assistance within the same interface, and users take what they need. The supervision mechanism for Agent products should follow the same logic—keep the safety net on by default, but let experienced users conveniently adjust the level of control.
+
+---
+
+## Core Finding Three: Agents Hit Pause More Often Than Humans Do
+
+This is the most surprising set of data I found in the entire study.
+
+In complex tasks, the frequency at which Claude proactively pauses to request confirmation is **more than 2x** the rate at which humans interrupt it:
+
+<Figure src="/images/posts/人们到底给了-ai-agent-多少自主权-anthropic-用数据回答了这个问题/image 3.png" alt="image.png" />
+
+The gap becomes more pronounced as task complexity increases. Under Minimal complexity, the two lines are still fairly close; by High complexity, they diverge to 25% vs 11%.
+
+Even more interesting is the distribution of reasons for pausing/interrupting.
+
+**Top 5 reasons Claude proactively pauses:**
+
+| Reason | Share |
+| --- | --- |
+| Presenting multiple options for the user to choose from | 35% |
+| Gathering diagnostic information or test results | 21% |
+| Clarifying ambiguous or incomplete requirements | 13% |
+| Requesting missing credentials/tokens/permissions | 12% |
+| Requesting approval before taking action | 11% |
+
+**Top 5 reasons humans interrupt Claude:**
+
+| Reason | Share |
+| --- | --- |
+| Providing missing technical context or correcting errors | 32% |
+| Claude running too slowly/stuck/over-executing | 17% |
+| Already received enough help, can continue independently | 7% |
+| Wanting to execute the next step themselves (testing/deploying/committing) | 7% |
+| Changing requirements mid-task | 5% |
+
+The reasons for stopping are completely different on each side. Claude pauses mainly because **it's uncertain itself**—there are multiple reasonable options and it doesn't know which to pick, it lacks enough information to make a judgment, or it considers an operation risky and wants to ask first. Humans interrupt Claude mainly because **Claude went in the wrong direction or did something the human didn't want**.
+
+These two types of pauses are fundamentally different in nature. Claude's proactive pauses are "I know that I don't know"—this is a form of metacognitive capability. Human interruptions are "you got it wrong but you didn't realize it yourself"—this is the model's true blind spot. An ideal Agent should do more of the former and trigger less of the latter. Based on the data, Claude doesn't do badly in this regard, but the fact that 32% of human interruptions come from "correcting errors" shows there's still significant room for improvement.
+
+In other words, at least in Claude Code's implementation, the model's uncertainty calibration is effective. It knows when to stop and ask a human. This runs counter to many people's intuitive perception of Agents—a frequently heard concern is that Agents will barrel ahead and cause irreversible consequences. The data shows that, at least currently, the problem with Agents isn't that they don't stop, but that they sometimes stop too much (cases where users found it too slow and just wanted it to get on with things accounted for 7%).
+
+Training a model to recognize its own uncertainty and proactively pause is an **endogenous safety mechanism**. It complements external permission systems and human approval workflows—one provides a safety net from inside the model, the other from the external framework.
+
+---
+
+## The Full Picture of Risk Distribution
+
+### The Risk–Autonomy Four-Quadrant View
+
+The study performed a risk vs. autonomy four-quadrant analysis of agent actions on the API:
+
+<Figure src="/images/posts/人们到底给了-ai-agent-多少自主权-anthropic-用数据回答了这个问题/image 4.png" alt="image.png" />
+
+Most actions cluster in the lower-left corner—low risk, low to medium autonomy. The upper-right corner (high risk + high autonomy) is almost empty, but not completely. You can see a point like "API Backdoor" landing in the danger zone, though Anthropic notes these are often safety evaluations or red team tests, not necessarily real malicious operations. The problem is, you can't tell the difference from the data alone.
+
+A few key numbers:
+
+- **80%** of tool calls have some form of safety measure (permission controls, sandboxing, confirmation flows, etc.)
+- **73%** involve human participation
+- Only **0.8%** of operations are irreversible (e.g., sending an email to a customer)
+
+0.8% sounds tiny. But multiply it by millions of calls, and the absolute number isn't small at all.
+
+### Industry Distribution: Software Engineering Dominates, but High-Risk Industries Are Emerging
+
+<Figure src="/images/posts/人们到底给了-ai-agent-多少自主权-anthropic-用数据回答了这个问题/image 5.png" alt="image.png" />
+
+Software engineering accounts for half the landscape, and the reason is intuitive: code is the easiest output to verify (just run it and you know if it's right), software engineers are the first group to adopt and build agent tools, and when something goes wrong you can always git revert.
+
+But finance (5%), healthcare (2%), and cybersecurity (2%)—these high-risk domains—are already showing up. They're small in volume for now, but the consequences of errors are far more severe than a coding mistake. A wrong trading order, a leaked medical record, an out-of-control security scan—none of these can be fixed with a git revert.
+
+There's an asymmetry worth noting here: the reason software engineering became the first battleground for Agents is largely because the cost of trial-and-error is low and the feedback loop is fast. But when Agents expand into domains like finance and healthcare, the cost of mistakes grows exponentially while the feedback loop slows down—a misconfigured campaign might run for hours before the problem surfaces, and the consequences of an inappropriate medication recommendation might not manifest for days or even weeks. This means the Agent supervision lessons distilled from software engineering cannot simply be transplanted to other industries. Each industry needs to design different safety boundaries based on its own cost of failure and feedback cycle.
+
+---
+
+## Who the Research Gave What Advice To
+
+The research concluded with recommendations for four groups. I've put the original recommendations alongside my own interpretation:
+
+| Audience | Recommendation | My Understanding |
+| --- | --- | --- |
+| Model developers | Invest in post-deployment monitoring infrastructure | The biggest infrastructure bottleneck right now is the lack of cross-API-request session correlation. If you can't even piece together what a single agent did, what's the point of talking about safety monitoring? |
+| Model developers | Train models to recognize their own uncertainty | Claude's proactive pause behavior has already proven this path is viable |
+| Product developers | Design products that support user oversight | Provide observability and intervention mechanisms, not mandatory approval flows. Observability > approval flows |
+| Policymakers | Don't rush to mandate specific interaction patterns | Mandatory step-by-step approvals create friction but don't necessarily deliver safety gains. The data suggests that the post-hoc monitoring patterns experienced users naturally evolve into may be more efficient |
+
+---
+
+## Limitations—and Why the Research Is Still Valuable
+
+The limitations section of this paper is remarkably long—almost as detailed as the findings section itself. Here are the major ones:
+
+- Data from Anthropic only. Agent usage patterns on GPT or Gemini could be entirely different
+- AI grading itself—self-evaluation bias cannot be eliminated
+- Claude Code data is almost entirely from software engineering scenarios, with weak representativeness for other industries
+- No way to distinguish genuinely high-risk operations from safety evaluations / red-teaming exercises
+- API data was sampled by tool call, so high-frequency operations are overrepresented
+
+Research that doesn't shy away from its own problems is the kind worth referencing. Regardless of these limitations, one thing is certain: this is the first time a model provider has produced production data to quantify Agent autonomy. Every prior discussion about agent safety was spinning in evaluation environments or hypothetical scenarios—this one finally has its feet on real-world ground.
+
+Of course, one company's data can only represent one company's ecosystem. Claude Code's user base, Claude's model behavior characteristics, and Anthropic's safety training strategies all shape the contours of this data. If Google or OpenAI conducted the same study, the results could look quite different. But at least Anthropic has taken the first step and given subsequent research a baseline to benchmark against. I look forward to seeing other model providers publish similar reports—only then, through cross-comparison, can we see a more complete picture.
+
+---
+
+## What I Took Away from This Research
+
+A few points I kept coming back to after reading.
+
+Supervision strategies should evolve with user maturity. Product design should support both pre-approval and post-hoc monitoring simultaneously—don't force everyone down the same path. This sounds like common sense, but very few Agent products actually pull it off today. Most tools either default to full lockdown, or offer an `--auto-approve` flag that opens everything up in one shot. The gradient in between is almost entirely blank.
+
+Agent self-pausing is worth continued investment. The data has already proven it works, and user acceptance is higher than I expected. Training models to recognize their own uncertainty and proactively stop complements external permission systems and human approval—walking on two legs beats relying on one. I'd even argue that "when should an Agent not continue" is a more valuable research direction than "what can an Agent do."
+
+Risk tiering should be dynamic, not static. A senior dev auto-approving in a repo they know well is reasonable; the same person in an unfamiliar production environment should be prompted for confirmation. Different users, different tasks, different time windows—the risk threshold shouldn't be a single number. This is actually similar thinking to context-aware ranking in recommendation systems—the same content carries entirely different risk levels in different contexts.
+
+Finally, there's Deployment Overhang. The gap between model capability and actual authorization doesn't close on its own. Infrastructure—monitoring, auditing, rollback—needs to be in place first before trust can be gradually released. The sense of pacing in that middle ground is probably the thing that matters most when building Agent products going forward. Move too fast and you'll have safety incidents; move too slow and competitors will pass you by. And there's no standard answer for that pacing—you can only walk, watch the data, and adjust as you go. Which is probably why Anthropic considers this kind of measurement research worth doing in the first place.
+
+---
+
+Original paper: [Measuring AI Agent Autonomy - Anthropic Research](https://anthropic.com/research/measuring-agent-autonomy)
+Technical Appendix PDF: [Technical Appendix](https://cdn.sanity.io/files/4zrzovbb/website/55e4d2de6eb39b3a9259c3f74843f86b1a12e265.pdf)
+Related reading: [METR - Measuring AI Ability to Complete Long Tasks](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/) | [Anthropic's Framework for Safe Agents](https://www.anthropic.com/news/our-framework-for-developing-safe-and-trustworthy-agents)

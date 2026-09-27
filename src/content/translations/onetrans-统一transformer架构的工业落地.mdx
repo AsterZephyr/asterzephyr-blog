@@ -1,0 +1,148 @@
+---
+title: "OneTrans: Bringing Unified Feature Interaction and Sequence Modeling into Production"
+date: 2026-05-17
+tags: [技术报告解读, 广告与推荐]
+category: "技术分享"
+sourceFile: "onetrans-统一transformer架构的工业落地.mdx"
+sourceHash: "6f5278f3657a703957378b0ff039e9ffaf20df71ca57b1cd95dd99008a026c3b"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+Recommendation model architectures have followed a divide-and-conquer approach over the past decade: DCN/DeepFM for feature interaction, DIN/DIEN/SIM for sequence modeling, and MMOE/PLE for multitask learning. Each subproblem gets a dedicated module; assemble them and you have a Frankenmodel with hundreds of lines of configuration.
+
+In late 2025, ByteDance published OneTrans at WWW 2026. Its central proposal is strikingly simple: **stop separating feature interaction from sequence modeling—use one Transformer to do both.** More radically, the 330M-parameter OneTrans_L has lower inference latency in ByteDance's e-commerce setting than a 10M-parameter DCNv2+DIN model.
+
+This is no laboratory demo. It was deployed in ByteDance's Feeds and Mall settings, delivering +7.74% in click-through rate and +5.69% in GMV. This article examines its architecture, engineering optimizations, and underlying design philosophy.
+
+## Structural Problems with the Traditional Paradigm
+
+<TechGraph src="/images/posts/onetrans-统一transformer架构的工业落地/traditional-architecture.svg" title="TRADITIONAL RECOMMENDATION MODEL ARCHITECTURE" caption="Separate sequence modeling and feature interaction, followed by concatenation: information bottlenecks and inefficient parameter use" />
+
+What is wrong with this architecture?
+
+**1. Information bottleneck.** The sequence-modeling module produces a fixed-dimensional user representation and feeds it into the feature-interaction module. Fine-grained information about evolving interests learned on the sequence side is compressed into a single vector at the concatenation interface.
+
+**2. Low parameter efficiency.** The two modules have separate parameter spaces. The sequence module's attention is unaware of the current candidate ad's feature combinations, while the feature-interaction module is unaware of the user's behavior sequence over the past three days. They are two independent brains that only communicate at the final step.
+
+**3. Engineering complexity.** Two modules mean two inference-optimization paths. DIN needs dynamic target-attention computation; DCN needs efficient kernels for low-rank matrices. Operational costs and the surface area for bugs grow linearly.
+
+## OneTrans's Core Design
+
+OneTrans's solution is to **encode all inputs into a unified token sequence and process it with a standard causal Transformer.** Sequence and non-sequence features are no longer separate categories—they are simply different tokens in the same sequence.
+
+### Unified Tokenizer
+
+<TechGraph src="/images/posts/onetrans-统一transformer架构的工业落地/unified-tokenizer.svg" title="UNIFIED TOKENIZER" caption="Behavior sequences → S-tokens (shared parameters); non-sequence features → NS-tokens (independent parameters); interleaved by timestamp" />
+
+Two key design decisions:
+
+1. **Timestamp-aware fusion**: interleave multiple behavior sequences chronologically instead of grouping them by behavior type. Experiments show that this better captures cross-behavior temporal patterns such as browsing → adding to cart → purchasing.
+
+2. **Auto-Split Tokenizer**: instead of manually grouping non-sequence features, concatenate them all, pass them through an MLP, and divide the output evenly into N tokens. This reduces kernel-launch overhead: one MLP call instead of many small MLP calls.
+
+### Mixed Parameterization
+
+This is OneTrans's most elegant design. Within the same Transformer block:
+
+- **S-tokens (sequence tokens)** share one set of Q/K/V and FFN parameters. The rationale: behavior-sequence tokens are inherently homogeneous—they all represent a user doing something—so shared parameters let the model learn general patterns of behavioral evolution.
+- **NS-tokens (non-sequence tokens)** each have independent parameters. The rationale: features such as age, city, and ad category have very different meanings; separate parameters let the model learn a specialized transformation for each feature type.
+
+```
+Transformer Block:
+  S-tokens:  Q = W_q^shared × x,  K = W_k^shared × x,  V = W_v^shared × x
+  NS-token₁: Q = W_q^1 × x,     K = W_k^1 × x,     V = W_v^1 × x
+  NS-token₂: Q = W_q^2 × x,     K = W_k^2 × x,     V = W_v^2 × x
+  ...
+```
+
+### Causal Attention Mask
+
+```
+         S₁  S₂  S₃  NS₁ NS₂ NS₃
+S₁  [    ✓   ✗   ✗   ✗   ✗   ✗  ]
+S₂  [    ✓   ✓   ✗   ✗   ✗   ✗  ]
+S₃  [    ✓   ✓   ✓   ✗   ✗   ✗  ]
+NS₁ [    ✓   ✓   ✓   ✓   ✗   ✗  ]
+NS₂ [    ✓   ✓   ✓   ✓   ✓   ✗  ]
+NS₃ [    ✓   ✓   ✓   ✓   ✓   ✓  ]
+```
+
+- S-tokens can see only preceding S-tokens, preserving temporal causality through autoregression.
+- NS-tokens can see all S-tokens plus preceding NS-tokens; feature interaction needs a global view.
+- **Key benefit**: the causal mask naturally supports KV caching—tokens already computed need not be computed again.
+
+### Pyramid Stack
+
+As the network gets deeper, progressively reduce the number of S-token queries:
+
+```
+Layer 1: 1500 S-queries (full sequence)
+Layer 2: 1000 S-queries (drop the oldest)
+Layer 3:  500 S-queries
+...
+Layer N:   16 S-queries (retain only recent behavior)
+```
+
+Keys and values continue to cover the full sequence, so information is retained while computation drops from O(L²) to nearly O(L). This is the key reason OneTrans can maintain 13.2ms latency with 330M parameters.
+
+## System Optimizations for Production
+
+### Cross-Request KV Caching
+
+In advertising, a request scores multiple candidate ads simultaneously. Only the ad features differ across candidates; user behavior is shared.
+
+The traditional approach: compute a complete forward pass independently for each candidate → O(C) computations.
+
+OneTrans's approach:
+1. Compute the KV cache for user-side S-tokens once.
+2. For each candidate, compute only the incremental attention of its NS-tokens.
+
+Complexity falls from O(C × L) to O(L + C × d). In ByteDance's setting, with C=50 candidates and L=1500 tokens, this delivers roughly a 30x inference speedup.
+
+### Cross-Request Incremental Updates
+
+Reuse the cache across requests: when a user adds only a few behaviors between two requests, compute KV only for those new tokens and reuse the remaining cached values. This allows real-time updates of user interests at almost no additional cost.
+
+## Interpreting the Experimental Results
+
+| Comparison | CTR AUC Gain | CVR AUC Gain | Notes |
+|------|-------------|-------------|------|
+| vs DCNv2+DIN (10M) | +1.53% | +1.14% | 330M parameters, yet lower latency |
+| vs RankMixer+Trans (109M) | +0.96% | +0.62% | Better results with fewer parameters |
+
+Online A/B test in ByteDance's e-commerce Feeds:
+- Click-through rate: +7.74%.
+- Order rate: +4.35%.
+- GMV: +5.69%.
+- Latency actually decreased by 3.91%.
+
+**Why latency decreased**: the combined effect of Pyramid Stack and KV caching. Although the model has 33 times as many parameters, actual FLOPs increase only a little over threefold (8.62 vs 2.51 TFLOPs), and caching skips most of the computation.
+
+## Scaling Law Observations
+
+OneTrans exhibits clear log-linear scaling:
+
+- Each 10x increase in FLOPs yields about a 0.5% AUC improvement.
+- Sequence length > model depth > model width, ranked by return on investment.
+- Its slope is steeper than RankMixer's, indicating greater scaling efficiency from the unified architecture.
+
+The implication: if you have more compute budget, extending sequence length offers the greatest return. This makes an interesting comparison with the Chinchilla scaling law in LLMs—in recommendation, the data side (longer behavior sequences) is more valuable than the model side (deeper networks).
+
+## Limitations and Open Questions
+
+1. **NS-token serving efficiency**: separate parameters for each NS-token prevent batching and may become a bottleneck at extremely high QPS.
+2. **Simple merging of multiple sequences**: timestamp-aware fusion is concise but discards prior knowledge about behavior types. The HyFormer paper suggests that modeling sequences independently before fusion may work better.
+3. **The full-attention upper bound**: causal masking performs close to full attention in experiments, but theoretically loses the NS→S information flow. Does that still hold at extreme scale?
+
+## Implications for Practitioners
+
+1. **Do not divide the model into modules too early.** A unified architecture offers better parameter and scaling efficiency than an assembly of separate modules.
+2. **KV caching is a free lunch for recommendation systems.** Causal attention plus caching is a seriously underestimated optimization.
+3. **Sequence length is the best investment.** Instead of adding model depth, incorporate more behavior types and longer history windows.
+4. **Auto-Split > manual feature grouping.** Let the model learn tokenization itself, reducing the introduction of human priors.
+
+---
+
+*This article draws on the [OneTrans paper](https://arxiv.org/abs/2510.26104) (WWW 2026) and public technical presentations on ByteDance's e-commerce advertising system.*

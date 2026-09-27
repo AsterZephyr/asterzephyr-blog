@@ -1,0 +1,171 @@
+---
+title: "The Mixer Revolution in Recommendation Systems: From One Paper to Full Deployment at Four Tech Giants"
+date: 2026-05-11
+tags: [技术报告解读, 广告与推荐]
+category: "技术分享"
+sourceFile: "推荐系统的Mixer革命-从一篇论文到四家大厂全量上线.mdx"
+sourceHash: "9e3c276a99b5de1f7d9bded20b352681a4c8fd4ba6737c985e2da7cec16b6229"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+# The Mixer Revolution in Recommendation Systems: From One Paper to Full Deployment at Four Tech Giants
+
+In July 2025, ByteDance published a paper called RankMixer. The core idea was simple: ranking models in recommendation systems don't need self-attention—replace it with a parameter-free token mixing operation, and you get better results at higher speed.
+
+Twelve months later, token mixing has become the standard architecture for ranking models at major Chinese internet companies. ByteDance scaled it to 15B parameters (TokenMixer-Large), Tencent's WeChat discovered representation collapse on top of it and proposed RankUp, and Meituan built MTmixAtt based on a similar philosophy. Parameter counts span three orders of magnitude (100M to 15B), covering four core scenarios—recommendations, ads, e-commerce, and live streaming—all fully deployed in production.
+
+This isn't a success story about one model. It's the first architecture overhaul in recommendation systems driven by scaling laws—self-attention borrowed from NLP has been replaced by token mixing native to recommendation systems. This article dissects the technical logic behind this overhaul, the different pitfalls each company hit during scaling, and what this trend means for practitioners.
+
+## RankMixer: Why Self-Attention Doesn't Fit Recommendation Systems
+
+Understanding the starting point of the Mixer revolution requires seeing a structural problem that went overlooked for years.
+
+Self-attention works in NLP because language tokens share a unified semantic space—"cat" and "dog" live in the same embedding space, and their dot product has clear semantic meaning. Tokens in recommendation systems are completely different: a single request contains tokens like "user_age=25," "item_category=beauty," "device=iPhone," and "context=evening," each coming from entirely different feature spaces. Computing self-attention (dot-product similarity) between them is semantically meaningless.
+
+Yet over the past few years, buoyed by Transformer's success in NLP and CV, recommendation systems adopted self-attention architectures uncritically—AutoInt, InterFormer, DHEN all followed this approach. These models did outperform traditional FM, but at the cost of self-attention's O(T²) complexity and low hardware utilization.
+
+RankMixer's core insight is: **Feature interactions in recommendation systems don't need to compute similarity between tokens—they just need information to flow between tokens.** This simplifies the problem from "learning attention weights between tokens" to "mixing token information together."
+
+<TechGraph src="/images/posts/推荐系统的Mixer革命-从一篇论文到四家大厂全量上线/attention-vs-mixer.svg" title="Feature Interaction Comparison" caption="Self-Attention (O(T^2), MFU 4.5%) vs RankMixer Token Mixing (O(T), MFU 45%)" />
+
+The RankMixer Block consists of two core components:
+
+**Multi-head Token Mixing.** Split each token's D-dimensional features evenly into H heads, then concatenate sub-vectors from the same head across tokens. This operation has zero learnable parameters—it's purely algebraic dimension permutation. The effect is that each head sees information from all tokens in its corresponding subspace, achieving cross-token information mixing. Complexity is O(T), not self-attention's O(T²).
+
+**Per-token FFN.** This is the second key difference between RankMixer and the standard Transformer. A standard Transformer's FFN shares parameters across all tokens. But tokens in recommendation systems come from different feature spaces—"age" and "category" have completely different statistical distributions, and gradient magnitudes differ enormously between high-frequency and long-tail features. Per-token FFN assigns independent FFN parameters to each token position, giving different feature spaces their own transformation capacity.
+
+The combined effect of these two designs is: information flows between tokens via token mixing, and is independently processed within each feature space via per-token FFN. Compared to self-attention + shared FFN in a standard Transformer, this architecture better matches the fundamental nature of heterogeneous tokens in recommendation systems.
+
+But the real reason RankMixer was adopted so quickly wasn't the performance gain—it was that **MFU (Model FLOPs Utilization) jumped from 4.5% to 45%**.
+
+Previous ranking models in recommendation systems—various hand-designed feature crossing modules (DCN, DeepFM, DHEN)—were relics of the CPU era, riddled with memory-bound sparse operations that left GPU compute idle most of the time. RankMixer replaced these operations with dense matmul, letting GPUs actually do what they're good at. In Douyin's production deployment, RankMixer-1B had nearly identical inference latency to the previous 16M-parameter baseline (14.3ms vs 14.5ms), but with 70× more parameters.
+
+This means: **You can scale the model 70× for free.** In industrial settings where serving cost is the biggest constraint for recommendation systems, this property is more persuasive than any AUC improvement.
+
+## From 1B to 15B: What Broke at Scale
+
+RankMixer worked well at 1B parameters, but when ByteDance tried to scale further to 7B and 15B, they hit three problems the original architecture couldn't handle. TokenMixer-Large (2026.2) was a systematic fix for all three.
+
+### Residual Path Fracture
+
+RankMixer's token mixing operation mixes T tokens into H tokens (residual connections work when H = T). But in deeper configurations, the tokens before and after mixing have already diverged semantically—post-mixing tokens carry cross-feature-space mixed information, while original tokens carry single-feature-space information. Direct addition has little impact in shallow models, but in deep models this semantic misalignment accumulates layer by layer, causing signal degradation.
+
+TokenMixer-Large's fix is **mixing-and-reverting**: two layers of token mixing forming a symmetric structure—the first layer mixes (T → H), the second layer reverts (H → T). This ensures semantic consistency at both ends of the residual connection, preventing signal path fracture at any depth.
+
+### Deep Gradient Vanishing
+
+The original RankMixer was deployed online with only 2 layers. When the layer count increased to 8 or 16, lower layers received almost no gradient updates—the classic problem of Post-Norm without skip-layer connections.
+
+TokenMixer-Large introduced three mechanisms to stabilize deep training: Pre-Norm (replacing LayerNorm with RMSNorm), interleaved residual connections (skip connections across blocks), and auxiliary losses (joint supervision of logits from lower and upper layers, giving lower layers a direct gradient signal from the loss).
+
+### MoE Paradigm Shift
+
+RankMixer's Sparse-MoE used a "Dense Train, Sparse Infer" strategy—all experts activated during training, only a subset selected during inference. This meant training cost wasn't reduced by sparsification, and the transfer from dense training to sparse inference incurred accuracy loss.
+
+TokenMixer-Large proposed a new paradigm of "scale up first, then sparsify": first design a dense model to ensure optimal performance, then split SwiGLU kernels into multiple sub-experts with per-token routing for sparse activation. The key trick is Gate Value Scaling—multiplying by a constant (1/sparsity_ratio) before the router function to keep gradients consistent with the dense model. This achieves near-zero accuracy loss at 1:2 sparsity ratio while reducing both training and inference costs.
+
+### Production Results
+
+TokenMixer-Large was fully deployed across three core scenarios at ByteDance:
+
+| Scenario | Baseline | Upgrade | Core Metrics |
+|:-----|:-----|:-----|:---------|
+| E-commerce | RankMixer-1B | TokenMixer-7B | Orders +1.66%, GMV +2.98% |
+| Ads | RankMixer-150M | TokenMixer-4B | ADSS +2.0% |
+| Live Streaming | RankMixer-500M | TokenMixer-2B | Revenue +1.4% |
+
+What these numbers mean: the Mixer architecture still shows sustained scaling gains at 15B parameters, with no sign of diminishing returns. The scaling law for recommendation systems holds on the Mixer architecture.
+
+## Tencent Discovered a Deeper Problem: Representation Collapse
+
+If ByteDance's story is "how big can Mixer scale," Tencent WeChat's story is "what happens to the representation space when you scale big."
+
+RankUp (2026.4) started from a counter-intuitive observation: on a MetaFormer architecture based on RankMixer, scaling parameters from 10M to 100M, **the effective rank of token representations didn't grow with parameter count—instead it exhibited damped oscillation**—in some layers even dropping below that of the smaller model.
+
+<TechGraph src="/images/posts/推荐系统的Mixer革命-从一篇论文到四家大厂全量上线/representation-collapse.svg" title="REPRESENTATION COLLAPSE" caption="Tencent's finding: more parameters ≠ more representational capacity; what needs expanding is the input space" />
+
+Effective rank measures how many dimensions a representation matrix actually utilizes, using the Shannon entropy of the singular value distribution. If 90% of the information in a 1024-dimensional representation space is concentrated in the top 50 singular values, its effective rank is far below 1024—the remaining dimensions are wasted.
+
+The Tencent team analyzed three root causes of representation collapse:
+
+**Token mixing's rank expansion is bounded.** A parameter-free algebraic transformation can only redistribute existing information, not create new representation dimensions. No matter how many layers of token mixing you stack, the rank upper bound of the representation space is determined by the input.
+
+**Per-token FFN is rank-compressive in the channel dimension.** The FFN's down-projection (mapping from high to low dimensions and back) inherently discards information in some directions. This compression effect accumulates through deep layers.
+
+**Gradient interference from multi-task learning.** Recommendation systems typically predict click-through rate, conversion rate, completion rate, and other objectives simultaneously. Gradients from different tasks pull against each other in the shared representation space, and the dominant task compresses the representation space toward its preferred few directions.
+
+RankUp's core judgment is: **The problem isn't insufficient computation (you don't need more parameters or deeper layers), but insufficient diversity in the input space.** Based on this judgment, they proposed five mechanisms, all targeting diversity at the input or token-space level:
+
+1. **Randomized Permutation Splitting** — Randomly shuffle feature groupings to break collinearity between tokens caused by semantic grouping
+2. **Multi-embedding** — Map the same feature through K independent embedding tables, encoding from different geometric perspectives
+3. **Global Token Integration** — Introduce a global token that aggregates all feature information, supplementing local tokens' missing global context
+4. **Cross Pretrained Embedding** — Inject interaction signals from pretrained user/item embeddings into the representation space
+5. **Task-specific Token Decoupling** — Introduce independent learnable tokens for each task, reducing gradient interference between tasks
+
+The common thread of these five mechanisms is: leave the Mixer architecture itself untouched, but make the inputs entering the Mixer richer and more diverse. This is completely orthogonal to TokenMixer-Large's approach of fixing residual and gradient problems—the latter solves "can information flow through deep layers," while the former solves "is the flowing information itself rich enough."
+
+Production results validated this judgment. RankUp was fully deployed across three core advertising scenarios in Tencent WeChat:
+
+| Scenario | GMV Lift | Cold-start GMV for New Ads |
+|:-----|:---------|:-------------|
+| WeChat Channels | +3.41% | +5.83% |
+| WeChat Official Accounts | +4.81% | +9.67% |
+| WeChat Moments | +2.21% | +2.84% |
+
+The cold-start scenarios for new ads are particularly noteworthy—Channels +5.83%, Official Accounts +9.67%. Cold start is the most feature-sparse scenario in recommendation systems, and multi-embedding and cross pretrained embedding deliver the largest gains here because they compensate for information scarcity from data sparsity through multiple angles.
+
+## Industry Deployment Panorama: Four Companies, Four Routes
+
+Now let's zoom out and look at what happened across the industry in 12 months.
+
+<TechGraph src="/images/posts/推荐系统的Mixer革命-从一篇论文到四家大厂全量上线/industry-timeline.svg" title="Industry Deployment Timeline" caption="Within 12 months, four major companies deployed Mixer architectures in production via different routes" />
+
+**ByteDance's route: Pushing deep.** Starting from RankMixer (1B), they scaled vertically to TokenMixer-Large (7B–15B) on one hand, and unified horizontally to OneTrans (feature interaction + sequence modeling) on the other, then to HyFormer (further optimizing the sequence modeling component of the unified architecture). ByteDance's strategy was the most aggressive—they advanced simultaneously along three axes: parameter count, architectural unification, and serving efficiency.
+
+**Tencent WeChat's route: Deep diagnosis.** Rather than rushing to scale parameter count, they conducted in-depth analysis of the Mixer architecture's representational capacity bottlenecks at the 100M scale. RankUp's discovery of the representation collapse problem is an insight valuable to the entire Mixer family—it means simply adding parameters isn't enough; input space diversity is another independent scaling dimension.
+
+**Meituan's route: Scenario adaptation.** The key innovation of MTmixAtt (2025.10) is AutoToken—automatically clustering heterogeneous features into semantically consistent token groups, replacing the traditional approach of manually defining feature groupings. It also replaced RankMixer's parameter-free mixing with a learnable mixing matrix, and introduced scenario-aware sparse experts to handle Meituan's multi-scenario needs (homepage, food delivery, hotel & travel). Online results: homepage payment PV +3.62%, GTV +2.54%.
+
+**An interesting contrast: ByteDance vs. Tencent's different priorities.** ByteDance scaled from 1B to 7B by late 2025 and reached 15B in early 2026—speed first, push parameter count up, fix problems as they arise. During the same period, Tencent stayed at the 100M scale, investing heavy effort into representation-level analysis, and only made architectural improvements after discovering the collapse problem. Both strategies delivered significant online gains, but the knowledge they produced differs: ByteDance contributed scaling engineering know-how (how to train a 15B recommendation model, how to do token parallel, how to go sparse), while Tencent contributed theoretical insights at the architectural level (why adding parameters doesn't equal adding representational capacity, and why input diversity and computational depth are two independent scaling dimensions).
+
+**Common patterns across companies:** Despite different specific routes across the four companies, three trends are consistent:
+
+1. **All replaced self-attention with token mixing for feature interaction.** Whether it's RankMixer's parameter-free mixing, MTmixAtt's learnable mixing matrix, or HyFormer's efficient token mixing, the core operation is not computing attention weights.
+2. **All adopted per-token or per-group independent parameters.** None of them still use NLP-style shared FFN across all tokens. The idea that heterogeneous tokens in recommendation systems need independent parameters has become industry consensus.
+3. **All are doing MoE sparsification.** From RankMixer's ReLU-MoE to TokenMixer-Large's Sparse Per-token MoE to MTmixAtt's scenario-aware sparse experts, MoE is the standard approach for controlling serving costs in large recommendation models.
+
+## Why Mixer Beat Attention
+
+Let's return to a more fundamental question: why did token mixing replace self-attention in recommendation systems? It's not just because it works better (that might be temporary), but because there are three structural reasons.
+
+**Reason one: Hardware utilization.** Self-attention's O(T²) complexity isn't a big problem in NLP (sequence lengths are typically a few thousand), but the token count in recommendation systems (hundreds of feature fields + thousands of behavioral sequence steps) makes attention matrix computation and storage a bottleneck. More importantly, recommendation features are highly sparse (massive numbers of ID features), and the combination of sparse lookup + dense attention forces GPUs to constantly switch between memory-bound and compute-bound states, resulting in extremely low MFU. Token mixing unifies all operations into dense matmul, keeping GPUs in a compute-bound state. RankMixer's MFU jump from 4.5% to 45% wasn't the result of engineering optimization—it was the architecture-level elimination of memory-bound operations.
+
+**Reason two: Heterogeneous token space.** NLP's self-attention assumes all tokens live in the same semantic space. Recommendation system tokens come from completely different feature spaces—computing the inner product between "age" and "category" has no semantic meaning. Token mixing doesn't assume tokens have comparable semantics—it just lets information flow, and delegates the actual semantic processing to per-token FFNs operating in their respective feature spaces. This better matches the data nature of recommendation systems.
+
+**Reason three: Scaling properties.** The evolution from RankMixer to TokenMixer-Large proved that the token mixing architecture still delivers sustained scaling gains at the 15B parameter level. More importantly, the massive MFU improvement means that under the same hardware budget, a Mixer architecture can deploy a much larger model than an attention architecture. Under recommendation systems' hard constraint of "latency budget < 15ms," this property determines who can scale to the next order of magnitude first.
+
+These three reasons together mean that Mixer replacing Attention isn't a temporary technical choice—it's recommendation systems discovering their own native architectural paradigm. Over the past decade, recommendation systems have been chasing behind NLP and CV architectural innovations—Embeddings following word2vec, sequence modeling following RNN/Transformer, attention mechanisms following BERT. Mixer may be the first time recommendation systems have taken a path that NLP never walked.
+
+## Implications for Practitioners
+
+**If you're still using attention for feature interaction:** The speed of industry adoption of Mixer architectures suggests that attention-based feature interaction modules (AutoInt, InterFormer, DHEN) may no longer be the optimal choice. The core decision point isn't "how much more AUC does Mixer get than Attention," but rather "Mixer's MFU advantage lets you deploy how much larger a model under the same serving budget." Given that scaling laws hold, the architecture that can deploy larger models will always win in the end.
+
+**If you're doing Mixer but haven't scaled yet:** The three pitfalls TokenMixer-Large encountered (residual alignment, deep-layer gradients, MoE paradigm) are unavoidable. Residual alignment in particular—the fact that mixing changes token semantics isn't obvious at 2 layers, but becomes a hard blocker at 8+ layers. If you're planning to scale from 100M to 1B, mixing-and-reverting is almost mandatory.
+
+**If you're already scaling:** Tencent's representation collapse discovery deserves serious attention. Increasing parameter count doesn't equal increasing representational capacity—effective rank may actually decrease in deeper layers. RankUp's idea of "expanding input space rather than computation space" may be the key direction for the next phase of Mixer architectures. Running effective rank analysis on your model (using SVD + Shannon entropy) is low cost but high in insight value.
+
+**If you're working on ads systems:** RankUp's massive gains on new ad cold start (Official Account +9.67%) show that multi-embedding and cross pretrained embedding have significant value for sparse scenarios. Ads systems inherently face more severe cold-start problems (new advertisers, new creatives), and the ROI of investing in embedding-level diversity may be higher than adding depth at the model level.
+
+The Mixer revolution in recommendation systems is still accelerating. 12 months ago this was a paper; 12 months later it's the production standard at four major companies. The next round of competition isn't about "whether to use Mixer"—that's no longer a question—but about who can scale the Mixer architecture to the 100B level while keeping serving costs under control. On this front, ByteDance has gone the furthest so far, but Tencent's depth in representational capacity analysis and Meituan's flexibility in scenario adaptation could both become key differentiating factors in the next round of scaling.
+
+---
+
+**References:**
+
+- [RankMixer: Scaling Up Ranking Models in Industrial Recommenders](https://arxiv.org/abs/2507.15551) - ByteDance (2025.7)
+- [TokenMixer-Large: Scaling Up Large Ranking Models in Industrial Recommenders](https://arxiv.org/abs/2602.06563) - ByteDance (2026.2)
+- [RankUp: Towards High-rank Representations for Large Scale Advertising Recommender Systems](https://arxiv.org/abs/2604.17878) - Tencent WeChat (2026.4)
+- [MTmixAtt: Integrating Mixture-of-Experts with Multi-Mix Attention for Large-Scale Recommendation](https://arxiv.org/abs/2510.15286) - Meituan (2025.10)
+- [HyFormer: Revisiting the Roles of Sequence Modeling and Feature Interaction in CTR Prediction](https://arxiv.org/abs/2601.12681) - (2026.1)
+- [OneTrans: One Transformer for Unified Feature Interaction and Sequence Modeling in Ranking](https://arxiv.org/abs/2510.26104) - ByteDance (2025.10)

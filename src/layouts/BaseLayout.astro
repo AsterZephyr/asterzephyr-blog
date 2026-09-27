@@ -13,11 +13,24 @@ const pageTitle = title ? `${title} — ${SITE.name}` : SITE.title;
 const pageDescription = description || SITE.description;
 ---
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN" data-language="zh">
   <head>
+    <script is:inline>
+      (() => {
+        let saved;
+        try { saved = localStorage.getItem('asterzephyr-language'); } catch {}
+        const language = saved === 'zh' || saved === 'en' ? saved :
+          ((navigator.languages?.[0] || navigator.language || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en');
+        document.documentElement.dataset.language = language;
+        document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+      })();
+    </script>
     <BaseHead title={pageTitle} description={pageDescription} image={image} />
   </head>
   <body class="min-h-screen bg-[var(--color-surface)]">
     <slot />
   </body>
 </html>
+<script>
+  import '../scripts/language';
+</script>

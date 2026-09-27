@@ -1,0 +1,189 @@
+---
+title: "The Engineering Landscape of Generative Recommendation for Ads: Distilling System Design Insights from Three Industrial Papers"
+date: 2026-05-10
+tags: [技术报告解读, 广告与推荐]
+category: "技术分享"
+sourceFile: "广告生成式推荐的工程全景-从三篇工业论文提炼系统设计观.mdx"
+sourceHash: "03b023dfc5f4de4748a6e9fa93f3e644d0657864e54146a97d1d9ad15c49c049"
+---
+
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+
+Recommendation system engineers know this pipeline by heart: retrieval fishes a few hundred candidates out of tens of millions, pre-ranking cuts them down to a few dozen, and ranking scores by eCPM to produce the final output. This pipeline has been running for over a decade, and every stage has mature engineering behind it—yet one structural problem has never been solved: **ads dropped during the retrieval stage can never be recovered, no matter how powerful the downstream ranking is.**
+
+Between 2024 and 2026, Generative Recommendation (GR) went from academic concept to industrial practice. Three industrial papers from Tencent and Kuaishou—WeChat Channels' [GPR](https://arxiv.org/pdf/2511.10138) (cumulative GMV lift of 5%+), Tencent Ads' [UniVA](https://arxiv.org/pdf/2605.05803) (GMV lift of 1.5%), and Kuaishou's [GR4AD](https://arxiv.org/pdf/2602.22732) (ad revenue lift of 4.2%)—have all been fully deployed in real ad systems serving hundreds of millions of users. Three independently built systems ultimately converged on highly similar design patterns. This kind of cross-team convergence is more convincing than any single paper.
+
+This article starts with a primer on the current state, then unpacks the technical choices and underlying logic of the three papers through four core design questions.
+
+## Primer: The Paradigm Shift from Content Recommendation to Ad Recommendation
+
+### Structural Defects of the Traditional Pipeline
+
+<TechGraph src="/images/posts/广告生成式推荐的工程全景-从三篇工业论文提炼系统设计观/traditional-pipeline.svg" title="Structural Defects of the Traditional Ad Recommendation Pipeline" caption="High-value ads discarded during retrieval cannot be recovered later; optimization objectives across stages are misaligned" />
+
+Kuaishou's OneRec team conducted a straightforward resource audit: in the traditional pipeline, over 50% of serving resources go to communication and storage rather than high-precision computation. The training and inference MFU of ranking models are only 4.6% and 11.2% respectively—far below the 40% common in the LLM community. The pipeline architecture doesn't just lose information; it wastes compute.
+
+### The Core Idea Behind Generative Recommendation
+
+GR reformulates recommendation as a sequence generation problem. Instead of "scoring candidates from a set and picking the best," it "directly generates what items the user is most likely to be interested in."
+
+The concrete approach: assign each item a sequence of discrete semantic codes (Semantic ID, SID), train an autoregressive model to predict this sequence layer by layer given the user history. After three prediction steps, a specific item is uniquely identified. A single model completes end-to-end what previously required three separate stages.
+
+This idea originated from Google's DSI (Differentiable Search Index, 2022) and the subsequent [TIGER (2023)](https://arxiv.org/abs/2305.14014), and was validated in content recommendation settings. Kuaishou's OneRec went to full deployment on short-video recommendation, handling 25% of total QPS, with App Stay Time improvements of 0.54%/1.24% (main app / lite version), at only 10.6% of the traditional pipeline's OPEX.
+
+### From Content to Ad Recommendation: Where the Gap Lies
+
+Content recommendation has a relatively singular objective: predict whether the user likes an item. But ad systems have a core constraint that content recommendation doesn't: **commercial value**. Advertisers are bidding, the platform needs to consider eCPM (= pCTR × pCVR × Bid), and user experience must also be taken into account. Simply "generating content the user likes" is far from enough—the system also needs to generate ads with high commercial value.
+
+This is the core challenge of ad GR: **how to infuse commercial value signals into every stage of the generative recommendation pipeline—from encoding, to model architecture, to training, to serving.**
+
+The three industrial papers each solved this problem via different paths, but ultimately converged on highly similar design patterns. The following analysis is organized around four core questions.
+
+## Encoding: Semantic Quantization + Deterministic Mapping as a Hybrid Scheme
+
+The first step in GR is assigning each ad a SID. The standard approach compresses the ad's multimodal information into a vector, then discretizes it layer by layer using Residual Quantization (RQ). RQ works like a hierarchical address: the first layer gives the region (North China), the second gives the city (Beijing), the third gives the street (Chaoyang Road). Each ad ends up with a sequence of discrete symbols, e.g., `[42, 7, 391]`.
+
+### The Collision Problem with Pure Semantic Encoding
+
+The problem is that semantically similar ads get quantized to the same path, but their commercial attributes can be wildly different. The same video creative, when served by different advertisers, can have bids differing by a factor of ten. GR4AD provides a telling number: the SID collision rate under pure semantic quantization is as high as **85.44%**—on average, 6 out of every 7 ads "collide," and the model simply cannot distinguish them.
+
+### The Common Solution Across All Three Papers: Replace the Last Layer with Deterministic Mapping
+
+All three papers independently reached the same conclusion: keep semantic quantization for the earlier layers (so the model can generalize), but abandon learnable quantization at the last layer and instead use deterministic mapping to encode business attributes.
+
+| Paper | Last-Layer Encoding Method | Business Dimensions Encoded | Collision Rate Change |
+|:-----|:-----------------|:--------------|:-----------|
+| GR4AD | Hash mapping | Conversion type + advertiser account ID | 85.44% → **18.26%** |
+| UniVA | Bucketed mapping | Optimization objective × ROI target × industry + bid equi-frequency bucketing | Significantly reduced |
+| GPR | Similar deterministic encoding | Business attribute combinations | Specific numbers not disclosed |
+
+The two approaches encode different dimensions (GR4AD encodes identity markers, UniVA encodes value intervals), but the principle is the same: **ads that are semantically identical but differ in business attributes must be distinguished via deterministic encoding.** These two dimensions can also be encoded simultaneously—they are not mutually exclusive.
+
+### The Quality of Base Embeddings Is Severely Underestimated
+
+Before fine-tuning the quantization scheme, there's a more fundamental issue that often gets overlooked: the quality ceiling of vector quantization depends on how good the vectors being quantized are in the first place.
+
+GR4AD uses Qwen3-VL-7B as the base model, with instruction-tuning templates specifically written for six types of ads, and adds co-occurrence learning: if two ads frequently co-occur in many users' histories, their embeddings are pulled closer together. This step alone boosted photo-to-photo recall from 0.541 to **0.896**. The magnitude of this improvement tells us: fine-tuning the quantization scheme yields far less benefit than improving the quality of the base embeddings. Get the "understanding" of ads right first, then quantize.
+
+## Model Architecture: Heterogeneous Tokens Must Be Taken Seriously
+
+### Token-Aware FFN/LN: The Highest-ROI Modification
+
+When an ad request arrives, the model needs to understand at least four types of information: user profile (static structured features), organic content behavior (content semantics), ad interaction history (commercial behavior), and request context (environmental metadata). The feature distributions of these four token types vary enormously.
+
+Feeding all four types into the same set of FFN and LayerNorm parameters is like measuring four completely different things with the same ruler. GPR equipped each token type with independent FFN and LayerNorm parameters (Token-Aware FFN/LN), and in ablation experiments this contributed **+15.8% HitR@100**—the largest single-component gain in that paper.
+
+The fix costs almost nothing: just changing shared parameters to grouped parameters, with no changes to the network structure. There's virtually no engineering reason not to do it.
+
+### Single Decoder vs. Dual Decoder: No Universal Conclusion
+
+GPR splits the model into two decoders: a backbone decoder (HSD) for user history understanding, outputting a "user intent embedding"; and a lightweight decoder (PTD) that autoregressively generates the SID conditioned on the intent embedding. The reasoning is sound in theory—comprehension tasks are better suited to bidirectional attention, while generation tasks require a causal mask.
+
+But GR4AD and UniVA both use a single decoder and achieve equally strong results in real systems. GR4AD achieves &lt;100ms latency and 500+ QPS/L20. So the claim that "dual decoders are always better than a single decoder" has no cross-system evidence to support it. When the serving latency budget is tight, a single decoder + Token-Aware FFN/LN is the more pragmatic starting point.
+
+### Thinking Tokens: Giving the Model a "Think Before You Speak" Buffer
+
+Before SID generation, GPR has the model first generate several Thinking Tokens—these don't correspond to any ad, but provide a buffer in the hidden space for "figuring out what the user wants first." This design contributed **+14.6% HitR**.
+
+Intuitively, it addresses a real problem: user intent is often ambiguous and polysemous. The history might contain interactions with phones, earphones, and chargers simultaneously. When the current request arrives, the model needs to first determine which category the user is most likely interested in right now before starting to generate the SID. Without Thinking Tokens, the model doesn't have enough "thinking space" to make that determination.
+
+Currently only GPR has validated this, so cross-system evidence is lacking. But +14.6% is enough to justify trying it in your own system.
+
+### An Often-Overlooked Principle: Explicitly Cut Gradients That Shouldn't Influence Each Other
+
+GPR's value estimation head (HTE) uses stopgrad—gradients do not backpropagate into the backbone decoder. This isn't just an implementation detail. In systems with multi-objective shared parameters, every loss influences all shared parameters through backpropagation. If value estimation and the generation objective have different preferences for the same representations, their gradients will tug against each other in the shared parameters—this is a classic source of "negative transfer" in multi-task learning. You need to explicitly decide which gradient flows should be cut based on the nature of the objectives.
+
+## Training: Three-Stage SFT → Value FT → RL
+
+All three papers converged on a similar three-stage training structure. This isn't coincidental—each stage solves a specific problem left over by the previous one.
+
+<TechGraph src="/images/posts/广告生成式推荐的工程全景-从三篇工业论文提炼系统设计观/training-stages.svg" title="Three-Stage Training Structure" caption="SFT establishes basic generation capability → Value FT injects commercial value → RL explores high-value paths beyond historical logs" />
+
+### Stage 1: SFT — Establishing Basic Generation Capability
+
+Supervised learning from historical logs to learn user behavior. GPR's MTP (Multi-Token Prediction) is the most important optimization at this stage: it uses 4 independent prediction heads that simultaneously predict 4 different interest paths on top of the same backbone state, forcing the backbone to learn more comprehensive representations. This contributed **+17.9% HitR**—the largest single-component gain across all three papers, and the implementation cost is just adding 3 extra prediction heads on top of the backbone.
+
+### Stage 2: Value-Aware FT — Injecting Commercial Value Signals
+
+Stage 1 treats all historical samples equally—clicking an ad with a bid of 1 yuan and clicking an ad with a bid of 100 yuan produce the same gradient magnitude. VAFT does something straightforward: multiply the loss by a weight coefficient that jointly considers the behavior type and eCPM magnitude.
+
+This step **must come after Stage 1**. If strong value weighting is introduced before basic generation capability has stabilized, the sparsity of high-eCPM samples (which are a small fraction) causes excessive gradient variance, leading to training divergence.
+
+### Stage 3: RL — Exploring High-Value Paths Beyond Historical Logs
+
+The fundamental limitation of the first two stages: the model can only learn from historical logs, and historical logs record decisions made by past systems. High-value ads that were missed by past systems are completely invisible to supervised learning.
+
+RL addresses this through offline simulators: let the model generate candidate paths not present in the logs, and evaluate eCPM using production pCTR/pCVR models as the reward signal. But RL in GR has a unique difficulty: **hierarchical credit assignment**.
+
+A SID has L layers, and the terminal reward is only known at the last layer. The model generated `[phone category, brand A, ad X]` but the user didn't click—which layer is at fault? Pure terminal reward uniformly penalizes all three layers of decisions, but in reality, selecting "phone category" may have been entirely correct (the user was indeed looking at phones); it was just "brand A" that was wrong. Uniform penalization incorrectly reduces the probability of "recommending the phone category."
+
+GPR's HEPO solution is lightweight: it counts how many times each SID token appeared in historically successful paths and uses this frequency to compute per-layer "process rewards." Switching from DPO to HEPO raised the highest value score among candidates from 0.6659 to **0.7619**, a 14.4% improvement. Implementation requires only a sparse counting table.
+
+### Differences and Complementarity of RL Algorithms Across the Three Papers
+
+| Algorithm | Paper | Problem Solved | Core Mechanism |
+|:-----|:-----|:----------|:---------|
+| HEPO | GPR | Hierarchical credit assignment | Per-layer process reward (success frequency delta) |
+| RSPO | GR4AD | List-level objective alignment | Differentiable upper bound on NDCG + stale reference model detection |
+| MCTS-PPO | UniVA | Exploration coverage | Monte Carlo Tree Search exploring low-probability branches |
+
+The three are orthogonal and could theoretically be combined, though training stability of the combination would need empirical validation. If you can only prioritize one for implementation, HEPO offers the best cost-effectiveness: it addresses the most fundamental problem at the lowest implementation cost.
+
+## Serving: Value-Guided Beam Search Within a 100ms Budget
+
+After training, the model needs to generate dozens of candidate ads per request within 100ms. This latency budget is far more stringent than LLM inference.
+
+### Personalized Trie: Eliminating Invalid Beam Paths
+
+Ad systems have numerous delivery constraints (budget exhaustion, age targeting, review status…). If beam search expands across the full SID space, UniVA's numbers show: out of 300 paths with beam width=300, only 48 (**16%**) lead to actually deliverable, valid ads. 84% of computation is wasted.
+
+The personalized Trie approach: when a request arrives, prune the prefix tree using the current user's constraints to retain only valid candidates, and expand beam search only over valid nodes. Effective retrieval directly expands by **6×**, with zero additional computational overhead.
+
+### Value-Fused Scoring: Beam Search Can't Rely on Generation Probability Alone
+
+If beam search only looks at generation probability, ad paths with moderate semantic scores but high eCPM get pruned at the very first layer. The correct approach is to blend generation probability and value estimation with weighted fusion at every beam expansion step. GPR and UniVA independently implemented the same design, and both have ablation experiments proving its effectiveness.
+
+This is the same design philosophy as "deterministic mapping at the last layer" in the SID encoding stage, applied at a different location: **the earlier value signals are injected, the more errors can be corrected.**
+
+### LazyAR: Exploiting Asymmetric Inter-Layer Dependencies in Transformers
+
+GR4AD discovered a key optimization opportunity in beam search: the first 2/3 of the decoder layers have very weak dependence on "what the previous token was"—these layers are primarily doing user history understanding and don't rely on the generated token's information. Therefore, their computation can be done upfront and shared across all beams; only the final 1/3 of layers truly need serial dependence on the previous token.
+
+QPS doubled, with a revenue loss of only **-0.15%**. No model architecture changes, no additional parameters—just changing the execution order.
+
+<TechGraph src="/images/posts/广告生成式推荐的工程全景-从三篇工业论文提炼系统设计观/lazy-ar.svg" title="LazyAR Optimization Strategy" caption="The first 2/3 of layers are shared across all beams; only the final 1/3 serially depend on the previous token, doubling QPS" />
+
+Other engineering optimizations worth implementing: incremental beam schedule (narrow beam at the first layer, widening at later layers), beam-shared KV cache (compute KV for common prefixes only once), and dynamic beam width for peak/off-peak periods. Combined, these enable GR4AD to achieve &lt;100ms latency and 500+ QPS/L20.
+
+## Cross-Paper Distillation: Three Design Principles
+
+Consolidating the analysis of the four questions, three principles that run throughout become clearly visible:
+
+**Principle 1: Value signals must permeate from the tokenization stage onward; you cannot patch them on at the end.** SID uses deterministic mapping in its final layer to encode business attributes, making the token space itself carry commercial discriminability; beam search directly fuses value scores rather than generating first and then bolting on a ranking module; RL training uses value-weighted process rewards rather than only giving terminal rewards at the end. The logic is consistent across all three points: the later a value signal is injected, the fewer errors it can correct.
+
+**Principle 2: Heterogeneous inputs must be explicitly addressed at the architecture level; you cannot blend them with uniform parameters.** Token-Aware FFN/LN contributed the single largest per-component gain among all components (+15.8%), demonstrating that this problem is a real performance bottleneck. The fix is low-cost—there is no reason not to do it. This principle is not limited to ad GR—any system that needs to process mixed token types (multimodal LLMs, cross-domain recommendation) should examine whether it suffers from the same parameter interference issue.
+
+**Principle 3: RL exploration is the necessary path from SFT to production-grade quality, but simulator quality is the core risk.** The RL training in all three papers relies on offline simulators, and none discuss in depth the divergence between the simulator and the real bidding environment. An ad's eCPM is affected by real-time bidding; historical average eCPM may systematically underestimate the true value during highly competitive time slots. This sim-to-real gap is the open problem most worth deep investigation in the current ad GR direction.
+
+## How Far Is This Approach from Large-Scale Deployment
+
+The online numbers from the three papers—GPR cumulative GMV +5%, GR4AD revenue +4.2%, UniVA GMV +1.5%—are already very significant increments by advertising system standards. But several engineering realities are worth noting:
+
+**The maintenance cost of SIDs.** The ad inventory is dynamic—large volumes of ads go online and offline daily, creatives get updated, and bids change. SID assignment and updating require a continuously running pipeline, and the latency of that pipeline (how long it takes from an ad going live to being recommendable) and its stability (whether updating SIDs affects the behavior of already-trained models) are critical operational challenges in actual deployment. All three papers say little about this.
+
+**Integration strategy with existing ranking systems.** The deployments in all three papers do not fully replace the traditional pipeline; instead they run in parallel with the traditional system (GR handles a portion of traffic). Full replacement requires the GR model to be no worse than the traditional system on every case—a condition not yet met. A more pragmatic strategy: GR serves as an additional retrieval source, and its output enters a final blended ranking together with the output of the traditional ranking pipeline.
+
+**The possibility of scaling, as seen from OneRec's experience.** OneRec discovered a scaling law for recommendation systems in content recommendation, observing continued performance improvement within certain boundaries after increasing model FLOPs by 10×. Can ad GR replicate this scaling curve? None of the three papers conduct scaling experiments—their model sizes are relatively conservative (constrained by serving latency budgets). If LazyAR-type optimizations can further reduce serving costs, larger models + more RL training may be the next source of incremental gains.
+
+Coming back to the question posed at the very beginning: migrating advertising recommendation systems from cascaded pipelines to end-to-end generation is not a question of "whether to do it" but of "how to do it." The design patterns that converge across teams in these three industrial papers—hybrid encoding schemes, Token-Aware parameter separation, three-stage SFT/ValueFT/RL training, value-fused beam search—represent the most credible practical roadmap available today.
+
+---
+
+**References:**
+
+- [GPR: Towards a Generative Pre-trained One-Model Paradigm for Large-Scale Advertising Recommendation](https://arxiv.org/pdf/2511.10138) - WeChat Channels (2025.11)
+- [UniVA: Unified Value Alignment for Generative Recommendation in Industrial Advertising](https://arxiv.org/pdf/2605.05803) - Tencent Ads (2026.5)
+- [GR4AD: Generative Recommendation for Large-Scale Advertising](https://arxiv.org/pdf/2602.22732) - Kuaishou (2026.2)
+- [OneRec: End-to-End Generative Recommendation](https://arxiv.org/html/2506.13695v4) - Kuaishou Content Recommendation (2025.9)
+- [TIGER: Towards Generating Semantic IDs with Transformer](https://arxiv.org/abs/2305.14014) - Google (2023.5)

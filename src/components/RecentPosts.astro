@@ -1,6 +1,8 @@
 ---
 import { getCollection } from 'astro:content';
 import BlogCard from './BlogCard.astro';
+import LocalizedText from './LocalizedText.astro';
+
 
 const allPosts = await getCollection('posts', ({ data }) => !data.draft);
 const recentPosts = allPosts
@@ -11,8 +13,8 @@ const recentPosts = allPosts
   <section id="recent-posts" class="section-wrap viewport-section border-t border-[var(--color-border)]">
     <div class="mx-auto max-w-6xl px-6">
       <div class="section-heading">
-        <div><p class="eyebrow mb-3">Notes on systems, intelligence & life</p><h2 class="section-title">Latest writing</h2></div>
-        <a href="/blog" class="text-link">All writing</a>
+        <div><p class="eyebrow mb-3"><LocalizedText zh="关于系统、智能与生活的记录" en="Notes on systems, intelligence & life" /></p><h2 class="section-title"><LocalizedText zh="最近的文章" en="Latest writing" /></h2></div>
+        <a href="/blog" class="text-link"><LocalizedText zh="全部文章" en="All writing" /></a>
       </div>
       <div class="journal-list">{recentPosts.map((post) => <BlogCard post={post} />)}</div>
     </div>

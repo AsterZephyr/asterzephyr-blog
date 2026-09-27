@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" font-family="'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <filter id="shadow10"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.08"/></filter>
+    <marker id="arr10" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#374151"/></marker>
+  </defs>
+  <rect width="960" height="620" fill="#ffffff"/>
+
+  <text x="480" y="32" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">生成式推荐的完整 Pipeline</text>
+  <text x="480" y="52" text-anchor="middle" font-size="12" fill="#6b7280">从 DSI (2022) → TIGER (2023) → OneRec (2024) → OneSearch (2025) 的技术演进</text>
+
+  <!-- Step 1: SID Assignment -->
+  <rect x="40" y="80" width="880" height="130" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow10)"/>
+  <text x="60" y="105" font-size="13" font-weight="700" fill="#2563eb">Stage 1: Semantic ID 分配 (Offline)</text>
+
+  <rect x="70" y="120" width="160" height="70" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="150" y="145" text-anchor="middle" font-size="10" font-weight="600" fill="#2563eb">Item 特征</text>
+  <text x="150" y="165" text-anchor="middle" font-size="9" fill="#374151">图像/文本/视频</text>
+  <text x="150" y="180" text-anchor="middle" font-size="9" fill="#374151">行为统计/属性</text>
+
+  <line x1="230" y1="155" x2="268" y2="155" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr10)"/>
+
+  <rect x="270" y="120" width="160" height="70" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="350" y="145" text-anchor="middle" font-size="10" font-weight="600" fill="#2563eb">Encoder</text>
+  <text x="350" y="165" text-anchor="middle" font-size="9" fill="#374151">多模态大模型</text>
+  <text x="350" y="180" text-anchor="middle" font-size="9" fill="#374151">→ 连续 embedding</text>
+
+  <line x1="430" y1="155" x2="468" y2="155" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr10)"/>
+
+  <rect x="470" y="120" width="160" height="70" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="550" y="145" text-anchor="middle" font-size="10" font-weight="600" fill="#2563eb">RQ-VAE</text>
+  <text x="550" y="165" text-anchor="middle" font-size="9" fill="#374151">连续 → 离散量化</text>
+  <text x="550" y="180" text-anchor="middle" font-size="9" fill="#374151">→ SID [k1,k2,...,kL]</text>
+
+  <line x1="630" y1="155" x2="668" y2="155" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr10)"/>
+
+  <rect x="670" y="120" width="220" height="70" rx="6" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="780" y="145" text-anchor="middle" font-size="10" font-weight="600" fill="#2563eb">SID Table</text>
+  <text x="780" y="165" text-anchor="middle" font-size="9" fill="#374151">item_A → [3, 7, 2, 5]</text>
+  <text x="780" y="180" text-anchor="middle" font-size="9" fill="#374151">item_B → [3, 7, 8, 1]</text>
+
+  <!-- Step 2: Training -->
+  <rect x="40" y="225" width="880" height="130" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow10)"/>
+  <text x="60" y="250" font-size="13" font-weight="700" fill="#16a34a">Stage 2: 自回归模型训练 (Offline)</text>
+
+  <rect x="70" y="265" width="200" height="70" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="170" y="290" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">训练数据</text>
+  <text x="170" y="310" text-anchor="middle" font-size="9" fill="#374151">用户行为序列 (SID 化)</text>
+  <text x="170" y="325" text-anchor="middle" font-size="9" fill="#374151">[SID_A, SID_B, ...] → SID_C</text>
+
+  <line x1="270" y1="300" x2="308" y2="300" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arr10)"/>
+
+  <rect x="310" y="265" width="280" height="70" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="450" y="290" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">Transformer Decoder</text>
+  <text x="450" y="310" text-anchor="middle" font-size="9" fill="#374151">输入: 历史 SID 序列</text>
+  <text x="450" y="325" text-anchor="middle" font-size="9" fill="#374151">输出: P(next_code | history, prev_codes)</text>
+
+  <line x1="590" y1="300" x2="628" y2="300" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arr10)"/>
+
+  <rect x="630" y="265" width="260" height="70" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="760" y="290" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">训练目标</text>
+  <text x="760" y="310" text-anchor="middle" font-size="9" fill="#374151">交叉熵: 逐层预测下一个码字索引</text>
+  <text x="760" y="325" text-anchor="middle" font-size="9" fill="#374151">与 GPT 预测 next token 完全类似</text>
+
+  <!-- Step 3: Inference -->
+  <rect x="40" y="370" width="880" height="130" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow10)"/>
+  <text x="60" y="395" font-size="13" font-weight="700" fill="#7c3aed">Stage 3: 生成式召回 (Online)</text>
+
+  <rect x="70" y="410" width="180" height="70" rx="6" fill="#f3e8ff" stroke="#7c3aed"/>
+  <text x="160" y="435" text-anchor="middle" font-size="10" font-weight="600" fill="#7c3aed">实时用户请求</text>
+  <text x="160" y="455" text-anchor="middle" font-size="9" fill="#374151">最近 N 次交互的 SID</text>
+  <text x="160" y="470" text-anchor="middle" font-size="9" fill="#374151">[SID_1, SID_2, ..., SID_N]</text>
+
+  <line x1="250" y1="445" x2="288" y2="445" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arr10)"/>
+
+  <rect x="290" y="410" width="220" height="70" rx="6" fill="#f3e8ff" stroke="#7c3aed"/>
+  <text x="400" y="435" text-anchor="middle" font-size="10" font-weight="600" fill="#7c3aed">Beam Search 生成</text>
+  <text x="400" y="455" text-anchor="middle" font-size="9" fill="#374151">逐层生成: k1→k2→k3→k4</text>
+  <text x="400" y="470" text-anchor="middle" font-size="9" fill="#374151">beam_width=50-200</text>
+
+  <line x1="510" y1="445" x2="548" y2="445" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arr10)"/>
+
+  <rect x="550" y="410" width="160" height="70" rx="6" fill="#f3e8ff" stroke="#7c3aed"/>
+  <text x="630" y="435" text-anchor="middle" font-size="10" font-weight="600" fill="#7c3aed">SID → Item</text>
+  <text x="630" y="455" text-anchor="middle" font-size="9" fill="#374151">查 SID 反向索引</text>
+  <text x="630" y="470" text-anchor="middle" font-size="9" fill="#374151">得到候选 item 集合</text>
+
+  <line x1="710" y1="445" x2="748" y2="445" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arr10)"/>
+
+  <rect x="750" y="410" width="150" height="70" rx="6" fill="#f3e8ff" stroke="#7c3aed"/>
+  <text x="825" y="435" text-anchor="middle" font-size="10" font-weight="600" fill="#7c3aed">→ Ranking</text>
+  <text x="825" y="455" text-anchor="middle" font-size="9" fill="#374151">送入精排模型</text>
+  <text x="825" y="470" text-anchor="middle" font-size="9" fill="#374151">CTR/CVR 打分</text>
+
+  <!-- Timeline -->
+  <rect x="40" y="520" width="880" height="80" rx="8" fill="#fef3c7" stroke="#d97706"/>
+  <text x="480" y="545" text-anchor="middle" font-size="12" font-weight="700" fill="#92400e">技术演进时间线</text>
+  <text x="100" y="572" font-size="10" fill="#374151">2022 Google DSI</text>
+  <text x="260" y="572" font-size="10" fill="#374151">2023 TIGER (NeurIPS)</text>
+  <text x="440" y="572" font-size="10" fill="#374151">2024 OneRec (快手)</text>
+  <text x="620" y="572" font-size="10" fill="#374151">2025 OneSearch</text>
+  <text x="780" y="572" font-size="10" fill="#374151">2025 Spotify SID</text>
+  <text x="100" y="590" font-size="9" fill="#6b7280">docid=数字串</text>
+  <text x="260" y="590" font-size="9" fill="#6b7280">SID+Transformer</text>
+  <text x="440" y="590" font-size="9" fill="#6b7280">工业全链路部署</text>
+  <text x="620" y="590" font-size="9" fill="#6b7280">搜索+推荐统一</text>
+  <text x="780" y="590" font-size="9" fill="#6b7280">音乐/播客领域</text>
+</svg>

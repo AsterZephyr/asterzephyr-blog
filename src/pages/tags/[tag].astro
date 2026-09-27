@@ -1,6 +1,8 @@
 ---
 import PageLayout from '../../layouts/PageLayout.astro';
 import BlogCard from '../../components/BlogCard.astro';
+import LocalizedText from '../../components/LocalizedText.astro';
+import { TAG_LABELS } from '../../data/blog-tags';
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -24,11 +26,11 @@ const { tag, posts } = Astro.props;
   <div class="pt-32 md:pt-40 pb-20">
     <div class="mx-auto max-w-6xl px-6">
       <header class="mb-14">
-        <h1 class="display-heading">#{tag}</h1>
+        <h1 class="display-heading"><LocalizedText zh={`#${tag}`} en={`#${TAG_LABELS[tag] || tag}`} /></h1>
         <div class="w-12 h-0.5 bg-[var(--color-accent-light)] mt-4 mb-4"></div>
-        <p class="text-[var(--color-muted)]">{posts.length} post{posts.length !== 1 ? 's' : ''}</p>
+        <p class="text-[var(--color-muted)]"><LocalizedText zh={`${posts.length} 篇文章`} en={`${posts.length} post${posts.length !== 1 ? 's' : ''}`} /></p>
         <a href="/tags" class="text-sm text-[var(--color-accent)] hover:text-[var(--color-accent-light)] mt-2 inline-block transition-colors">
-          &larr; All tags
+          &larr; <LocalizedText zh="全部标签" en="All tags" />
         </a>
       </header>
       <div class="journal-list">

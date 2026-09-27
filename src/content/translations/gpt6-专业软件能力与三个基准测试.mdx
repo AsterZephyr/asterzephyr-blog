@@ -1,0 +1,313 @@
+---
+title: "Why Is GPT-6 Better at Professional Software? Understanding the Capability Shift Through Three Benchmarks"
+date: 2026-09-13
+tags: ["Agent 与编程", "技术报告解读"]
+category: "技术分享"
+summary: "Following the journey of an engineering drawing becoming a qualified 3D part, we dissect localization, dimension conversion, tool selection, state maintenance, and professional acceptance to understand GPT-6's improvements across three benchmarks."
+draft: false
+sourceFile: "gpt6-专业软件能力与三个基准测试.mdx"
+sourceHash: "6969c8a7c17a440ebd07f804d6f6ce20f763fab07b80a3560b04fc665c45089c"
+---
+
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+When evaluating a model, there's a kind of improvement that's hard to describe as "smarter answers": it's more reliable at finding buttons in complex interfaces, takes fewer wrong turns when operating professional software, and produces outputs closer to directly usable deliverables.
+
+This article starts from exactly such an empirical observation: GPT-6's vision, professional software, and computer operation capabilities seem stronger. Can this feeling be explained by the three benchmarks OpenAI displayed side by side—Agents' Last Exam, ScreenSpot-Pro, and OSWorld 2.0?
+
+My judgment is: **they do provide complementary clues, but to see those clues clearly, you have to follow a task from input all the way to delivery.** Looking at three bar charts showing point increases in isolation makes it easy to conflate "seeing," "doing," and "doing it right" into the same thing.
+
+Let's walk through one concrete task: give an agent an engineering drawing and a reference image, have it reconstruct a support part in FreeCAD, and submit a STEP model. This is the real Task 103 from OSWorld 2.0. It's specific enough and happens to involve all the capabilities users notice: reading drawings, finding controls, operating software, writing code, and checking results.
+
+ScreenSpot-Pro helps us understand the UI localization within this process; OSWorld 2.0 lets us observe the entire operational pipeline; ALE shifts the focus further toward how professional deliverables are accepted. Later sections will also use ALE's manufacturing and animation cases to test whether this narrative generalizes. **These are independent experiments from different papers—they are not the same part completing a relay across three benchmarks.**
+
+The current model here is **GPT-6 Astra**, with **GPT-5.6 Sol** as the primary comparison. Scores are taken from OpenAI's release page; task and benchmark definitions come from the original papers and official project materials, retrieved as of September 13, 2026. Older-model trajectories from the original papers are used to dissect tasks and cannot be treated as Astra's run logs.
+
+## Laying the task on the table: from a drawing to a part
+
+Task 103 begins with no existing model in FreeCAD. The desktop has `drawing.pdf` and `ref.jpg`. The user only describes what needs to be delivered—without telling the agent which workbench to use, which solid to create first, or how to combine Boolean operations. [Source: OSWorld 2.0, Appendix H.1.2](https://arxiv.org/html/2606.29537v2)
+
+<Figure src="/images/posts/gpt6-专业软件能力与三个基准测试/freecad-drawing.png" alt="Engineering drawing from OSWorld 2.0 Task 103, containing projection views, dimension annotations, and technical requirements" caption="Source: OSWorld 2.0, Figure 27, PDF page 48; step 58 viewing the engineering drawing, faithfully cropped." />
+
+The lines on the engineering drawing don't automatically become objects in the software. The agent must first determine: which outline is the base plate, which circle represents a hole, which dimension line constrains which feature; multiple projection views describe different sides of the same part and cannot be drawn as several unrelated shapes. The technical requirements in the drawing also need to carry forward into subsequent modeling, rather than being read once and considered done.
+
+Only then is it qualified to decide on operations: how to establish the base plate, how to arrange the holes, how to connect the main cylinder to the support wall, and where cuts are needed. Further downstream, the model must be inspected, modified, and exported. Even if everything earlier was roughly correct, the exported file might not be the latest version, or it might be a part with a similar silhouette but incorrect critical dimensions.
+
+This workflow can be decomposed into six transformations: **requirements become constraints, constraints become operations, operations change software state, state forms geometry, geometry undergoes inspection, and inspection passes before becoming a deliverable.** Each transformation has its own potential for information loss.
+
+<TechGraph src="/images/posts/gpt6-专业软件能力与三个基准测试/three-measurements.svg" title="One task, three measurement perspectives" caption="Diagram: from input requirements to an acceptable deliverable (drawn by the author, synthesizing three papers). The scopes of the three benchmarks overlap; this pipeline is the article's explanatory framework, not the model's internal architecture or a joint experiment." />
+
+Now when we place the three numbers alongside this, the reading becomes clearer.
+
+<div className="benchmark-table">
+
+| Benchmark & reported basis | Sol | Astra | Delta | Primary observation target |
+|---|---:|---:|---:|---|
+| ScreenSpot-Pro, no tools | 76.9% | 92.7% | 15.8 pp | Whether the instruction lands on the correct control's position |
+| OSWorld 2.0, offline subset, partial score | 65.7% | 72.6% | 6.9 pp | How many scoring requirements the final state satisfies |
+| Agents' Last Exam | 53.6% | 59.3% | 5.7 pp | Publisher-graded scores on professional tasks |
+
+</div>
+
+[OpenAI's release page](https://openai.com/index/gpt-6-astra/) notes that the best score across reasoning tiers is taken, and research environments versus products may also differ in system prompts, tools, etc. The table shows changes in best scores; same-budget performance on the cost curve requires separate reading. What follows explains where exactly these scores intersect with this task.
+
+## First segment: understanding requirements and landing them in the right place
+
+Back to the blank FreeCAD. Suppose the agent has already decided to open a certain operation panel—what it encounters next is a small but very practical problem: where is that entry point right now?
+
+Knowing that the software has a certain feature, knowing when that feature should be used, and knowing its coordinates in the current interface are three different judgments. The first two can be entirely correct while the third still fails. Especially in professional software, the same screen may simultaneously display an object tree, a properties panel, workbenches, a console, and a drawing area; adjacent icons may differ by a single line yet trigger completely different operations.
+
+### How a single ScreenSpot-Pro question actually runs
+
+ScreenSpot-Pro isolates this step: given a complete screenshot and a natural language instruction, the model must output a target position. Evaluators pre-annotate interactable regions with expert-labeled bounding boxes; a predicted point falling inside the box counts as correct. If the model outputs a box, its center point is taken. Once localization is complete the question ends—there is no subsequent clicking or checking of the operation's result. [Source: ScreenSpot-Pro, §3, §5](https://arxiv.org/html/2504.07981v1)
+
+The paper collected 1,581 instructions with corresponding screenshots from 23 applications and three categories of OS-level general scenarios. Preserving the full high-resolution desktop matters a great deal here: if the correct panel is cropped out in advance, the model has already gotten the answer to "where to look" for free; if a few candidate buttons are provided, it no longer needs to generate a precise location on its own. ScreenSpot-Pro aims to keep both of these difficulties in the test.
+
+Below is the Blender example from the original paper: the task is to change an object's coordinate mode. It doesn't ask the model to produce a 3D artwork—only to accurately map a single instruction to a specific control in the interface.
+
+<Figure src="/images/posts/gpt6-专业软件能力与三个基准测试/screenspot-blender.png" alt="ScreenSpot-Pro Blender coordinate-mode localization example; the paper uses a local zoom to show the tiny target" caption="Source: ScreenSpot-Pro, Figure 5 Blender sub-figure, PDF page 15; faithful crop, zoom box and annotations are from the original paper." />
+
+When reading this image, you can first locate the broad region, then find the local entry point. For a human, the toolbar's position, neighboring controls, and the current editing state all narrow the search. For a model, if it maps the instruction to the wrong panel at the outset, no amount of subsequent coordinate precision will help; if it finds the right panel but lands on an adjacent button, it still scores zero.
+
+This is also why "being able to describe the screenshot" cannot substitute for GUI grounding. Grounding here can be understood as: anchoring the object of an operation expressed in language to an executable location in the here and now. Describing a scene allows generalization; executing an action demands a precise hit.
+
+### Targets occupy only 0.07% of the screen—how small is that?
+
+The average target in the paper occupies **0.07%** of the total screenshot area. To build intuition, here is a standalone size conversion: assume a 3840×2160 screen; 0.07% of the area is about 5,806 pixels. If the target is roughly square, its side length is only about 76 pixels. Now scale the entire image proportionally to 1280×720, and that target shrinks to only about 25 pixels wide.
+
+This is just a pedagogical example constructed from the paper's ratio—real targets are not necessarily square, and Astra's image preprocessing has not been described in this context. But it highlights a concrete tension: the model needs global context to pick the right panel, yet also needs enough local detail to distinguish small icons. Keeping only the whole image risks losing detail; blindly zooming into the wrong region loses the chance of finding the target at all.
+
+The original paper specifically experimented with this trade-off. ScreenSeekeR first has a stronger planning model infer the region where the target is likely to appear, leveraging neighboring controls to aid the search, then progressively narrows the scope and hands it off to a localization model, followed by a verification step. It also enlarges overly small candidate boxes to reduce the risk of cropping out the target. This older method raised OS-Atlas-7B from 18.9% to 48.1% without additional training. [Source: ScreenSpot-Pro, §4.2, §5.3](https://arxiv.org/html/2504.07981v1)
+
+This experiment is worth keeping not because we want to place old models on the current leaderboard, but because it decomposes the bottleneck: **interface knowledge can help select the search region, local visual processing handles precise targeting, and how these two cooperate changes localization outcomes.** Astra's 92.7% is labeled `no tools`; this does not mean we can conclude it internally runs ScreenSeekeR.
+
+### The most direct connection between 92.7% and the feel of actual use
+
+Going from 76.9% to 92.7% is a 15.8 percentage-point improvement. Converted to error rate, that is 23.1% dropping to 7.3%—a relative decrease of about **68.4%**. This refers only to errors within this set of localization problems, not a drop in all visual errors across the board.
+
+Now place this back into a modeling workflow: a single misclick might merely produce no response, or it might select the wrong object, switch the workbench, or pop up a different dialog. The latter changes the screen the agent sees next, forcing it to first recognize the misoperation and then navigate back to the original state. Improved localization can therefore save an entire recovery sequence, not just one fewer wrong coordinate.
+
+But even if the model clicks correctly every time, it can still build a cylinder with the wrong diameter. ScreenSpot-Pro provides direct evidence for "better at finding things in professional interfaces"; for "understanding engineering drawings and completing correct modeling," we need to continue further.
+
+## Part Two: From Dimensions to Geometry—Where Professional Understanding Comes into Play
+
+An engineering drawing is not a set of numbers waiting to be copied into input fields. You must first establish the relationship between each number and the object it constrains before correct geometry can be generated.
+
+In OSWorld's FreeCAD trajectory, step 58 reads the engineering drawing and step 94 examines the top-view projection, involving mounting holes, small holes, counterbores, and center holes—all of which must become parameters in subsequent scripts. The paper's analysis explicitly notes that failures are not just about misreading numbers, but about the inability to stably maintain the correspondence of "feature → dimension → geometric primitive → verification." [Source: OSWorld 2.0, §4.4, Appendix H.1.2](https://arxiv.org/html/2606.29537v2)
+
+### A number can be copied correctly and the geometry can still be wrong
+
+Using a **simplified pedagogical example that does not belong to Task 103**, let's unpack that statement. Suppose a drawing calls for a hollow cylinder with an outer diameter of 40 mm, a wall thickness of 4 mm, and a height of 30 mm, and we plan to generate it by "subtracting an inner cylinder from an outer cylinder."
+
+Step one: recognize that `40 mm` denotes diameter and convert to an outer radius of 20 mm. Step two: subtract the wall thickness from the radius to get an inner radius of 16 mm. Step three: create two cylinders on the same axis and perform a Boolean subtraction. The inner diameter should be 32 mm, because the wall thickness occupies both sides.
+
+Several distinct errors can already arise here: passing the diameter 40 directly to a radius parameter makes the model twice as large; computing the inner diameter as 40−4=36 yields a wall thickness of 2; misaligning the axes of the two cylinders produces an eccentric hole from the Boolean difference. Every one of these errors can produce displayable, saveable, legally valid geometry—and none requires a single misclick.
+
+<TechGraph src="/images/posts/gpt6-专业软件能力与三个基准测试/constraint-to-geometry.svg" title="How a single dimensional requirement flows through drawing reading, modeling, and verification" caption="Diagram: a hollow cylinder with outer diameter 40 mm, wall thickness 4 mm, height 30 mm (a pedagogical example drawn by the author, not Task 103 drawing parameters). The same set of constraints is used both for generation and for checking the result." />
+
+This shows that professional visual understanding involves at least two steps: reading a symbol, then determining its meaning within the task. Pure OCR that reads "40" does not answer whether it is a radius, a diameter, a hole spacing, or a total length. Even with correct semantics, the geometry API's parameter format may differ, requiring yet another conversion.
+
+What's harder still is correspondence across multiple views. A circle in the top view and a rectangular outline in the front view may come from the same cylinder; overlapping edges in one view may belong to features at different front-to-back positions in 3D space. If every local region looks reasonable but their shared identity as the same object is not maintained, the model will err on the overall relationships.
+
+### What a good intermediate state should preserve
+
+Continuing with the pedagogical cylinder, a useful intermediate record needs to link at least several things together: the drawing's original requirement is an outer diameter of 40; the code input uses radius, so 20 is entered; the currently generated object is the outer cylinder; the final check must return to the outer diameter of 40, rather than merely verifying that the script ran without errors.
+
+The key point is that **the verification target comes from the original requirement, not from the already-generated code.** If the code erroneously writes the radius as 40 from the start, and then the check asks "is the object's radius equal to 40 as in the code?"—this check will pass, yet it cannot catch the fact that the task was done incorrectly.
+
+This also explains why stronger professional software ability doesn't necessarily manifest as learning more keyboard shortcuts. It might manifest as maintaining consistent relationships among text, images, parameters, objects, and inspection results. For spreadsheets, this relationship is between business meaning and cell formulas; for video, it's between reference footage and the timeline; for CAD, it's between dimensions and geometry. The software changes, but the requirement that information transfer must not be distorted does not.
+
+## Part Three: Choosing GUI or Code Determines How Constraints Become Operations
+
+After reading the part drawing, the agent still faces a choice that the user hasn't specified: operate step by step using the modeling tools in the interface, or write a script to generate geometry?
+
+Step 76 of Task 103 chose the FreeCAD Python console. The paper then records script execution, model observation, further script modification, and export. Using code doesn't mean bypassing the task: what needs to be delivered is a correct model, and programmatic modeling is one of the paths the software allows.
+
+Each path carries its own burden. Along the GUI route, you must manage the current selection, workbenches, dialog boxes, and object dependencies; with scripting, you can express repetitive structures and numerical parameters more compactly, but you need to know the API, object naming, and geometric operations, and you also need to handle script failures. After choosing code, the visual work doesn't disappear: input still comes from the engineering drawing, and output still needs to be compared against the reference.
+
+If you understand "stronger CUA" as meaning only using the mouse to accomplish more and more things, you'll miss the most valuable part here. An agent that works flexibly might use vision to read the target, code to construct precise structures, and the software to open the final deliverable for inspection. What truly needs to be evaluated is whether this combination faithfully implements the user's requirements.
+
+### Modifying Underlying Files Faster Can Also Mean Making Mistakes Faster
+
+The legacy model trajectories from OSWorld 2.0 provide a useful counterexample. Task 035 involves processing procurement information and updating a workbook; the paper records that one trajectory directly modified the workbook XML but overwrote rows that should have been protected, instead of appending approved purchases as required. Another type of trajectory stayed closer to the GUI, preserving the workbook structure, but still potentially missed approval information that appeared later. [Source: OSWorld 2.0, §4.4, Appendix H.2.2](https://arxiv.org/html/2606.29537v2)
+
+These two types of failure illustrate that tool speed and method correctness must be examined together. Directly modifying files can be very efficient, but you need to know which structures must be preserved; manual operations can avoid certain low-level corruptions, but don't automatically guarantee that all business rules have been read. The choice of tool alone cannot determine the quality of the outcome.
+
+Mapping back to our part, a script can generate all hole positions at once, and it can also generate all hole positions incorrectly at once. If the model's interpretation of the drawing hasn't improved and only code execution is faster, then incorrect results will also appear faster. Therefore, the scores from OSWorld and ALE reflect the **joint performance of choosing methods, invoking tools, and understanding domain requirements**—they cannot be entirely attributed to interface targeting.
+
+ALE's original failure analysis also supports this distinction: in the specific set of classifiable failures for Claude Code paired with Opus 4.7, Approach and Understanding accounted for the majority, while pure GUI interaction failures accounted for 4%. This is an observation under legacy models and a specific denominator, not the failure composition of Astra; it suggests that many professional tasks are already stuck at "wrong approach or misunderstood requirements" rather than "can't click the button." [Source: ALE, Appendix D.3](https://arxiv.org/html/2606.05405v2)
+
+## Part Four: Why 202 Steps Still Resulted in Only 0.35 Points
+
+Now let's follow the real trajectory of Task 103 to the end. The table below is arranged by step number, keeping only the key nodes shown in the paper; actions not publicly displayed in between are not filled in.
+
+<div className="benchmark-table">
+
+| Step | Action or State Reported in the Paper | What Remains Unsolved at This Point |
+|---|---|---|
+| 1 | Facing an empty FreeCAD session | Modeling approach not yet decided |
+| 58 | Reviewing the engineering drawing and technical requirements | Need to translate 2D information into 3D structure |
+| 76 | Choosing the Python console for modeling | Need correct parameters and API expressions |
+| 94 | Extracting hole positions and dimension information from the top view | Must maintain consistency with previously established geometric relationships |
+| 126 | First version of the model is now recognizable | Support wall and cylinder proportions still need adjustment |
+| 173 | After two script rewrites, checking again | Proportions modified, but geometric correctness still needs confirmation |
+| 200 | Exported STEP, confirmed file exists and viewed the front view | Key geometry still doesn't satisfy the hidden reference |
+
+</div>
+
+The entire trajectory is 202 steps. After step 126, it didn't simply declare completion; the model did undergo modifications. By step 173, the cylinder outer diameter and support wall curves had been adjusted. The final model had some holes and overall bounding dimensions roughly correct, but the main cylinder diameter and U-shaped slot still deviated from the reference, resulting in only a partial score of 0.35. [Source: OSWorld 2.0, Appendix H.1.2, PDF pages 47–50](https://arxiv.org/html/2606.29537v2)
+
+<Figure src="/images/posts/gpt6-专业软件能力与三个基准测试/freecad-result.png" alt="Front view of the support part model exported from FreeCAD; the file exists but key geometry still does not match the reference" caption="Source: OSWorld 2.0, Figure 32, PDF page 50; step 200 viewing the final model, faithfully cropped. This is from the paper's legacy model trajectory and cannot be used to claim Astra succeeded or failed on this task." />
+
+What's most worth studying here isn't "it failed," but rather that **it had already performed many actions typically taken as proof of capability**: reading drawings, writing programs, generating 3D objects, comparing against the reference, discovering proportion issues, modifying, and exporting. The problem was that the transfer between these actions didn't consistently converge toward the correct constraints.
+
+### Observing, Diagnosing, Fixing, and Verifying Are Four Separate Things
+
+"Looking at the result again" only proves a new observation was obtained. "Discovering the cylinder is too thick" means the observation has been converted into a diagnosis. Next, you still need to identify which parameter caused the deviation, modify the corresponding object, and confirm that other structures that were already correct haven't been broken in the process. Finally, you need to recheck the new result against the original requirements before you can say this fix was effective.
+
+If after observing, the only response is "needs to look more like the reference," it hasn't yet formed an executable modification. If the modification relies only on visual proportions, it might improve the overall appearance without converging on exact dimensions. If what's exported is still the pre-modification object, the screen may look fixed, but the deliverable is still the old version.
+
+The latter two are possible errors derived from reasoning about the work process, not gap-filling for the undisclosed steps of Task 103. They help explain why a thorough check should simultaneously connect input requirements, the current object, the modification action, and the actually submitted file—rather than simply adding a "check it" prompt.
+
+### Long Tasks Are Not Simply Short Tasks Repeated Many Times
+
+OSWorld 2.0's full set includes 108 long workflows, with an average of 27.25 scoring checkpoints per task. It scores based on final environment state and deliverables, allows different valid paths, and doesn't mandate reproducing a specific sequence of clicks. [Source: OSWorld 2.0, §2.1.3](https://arxiv.org/html/2606.29537v2)
+
+This allows it to distinguish between two types of behavior: performing many actions, versus continuously advancing toward the complete goal. Even though Task 103 primarily revolves around a single professional software application, it still goes through different phases—reading drawings, choosing representations, writing code, comparing results, and fixing. Each subsequent phase needs to inherit accurate conclusions from the previous one, and the more steps there are, the easier it is for early information to be lost later on.
+
+Some tasks even change the correct answer itself. In Task 035, new TeamChat messages override earlier rules, and subsequent corrections alter budget and vendor constraints. A judgment that was initially correct may later become stale. The agent must update its working state and fix content already written based on outdated rules. [Source: OSWorld 2.0, §4.4](https://arxiv.org/html/2606.29537v2)
+
+Another kind of "staleness" happens faster: the promotional popup in Task 052 keeps moving. The model correctly identifies the close button on a screenshot, but by the time it finishes thinking, the button is no longer at those coordinates. What's missing isn't understanding of a static screenshot, but timeliness between observation and execution.
+
+Placing these two short examples alongside the FreeCAD case gives a more complete picture of "state": there is persistent state like part dimensions and object relationships, newly arrived requirements, and UI positions that shift over time. Better static vision is only part of the story.
+
+### What 72.6% Actually Means
+
+OSWorld's partial score reflects the degree to which checkpoint requirements are satisfied; a complete pass requires a partial score of 1.00. Suppose two tasks, each with four equally weighted checks, and the model gets three right on each. The average partial score is 75%, yet the complete pass rate is 0%.
+
+<TechGraph src="/images/posts/gpt6-专业软件能力与三个基准测试/partial-vs-complete.svg" title="Average Partial Score vs. Complete Pass Rate" caption="Illustration: two tasks each satisfy three out of four checks (drawn by the blogger, based on OSWorld 2.0 metric definitions). The four equally weighted checks are a pedagogical assumption, not actual tasks or model results." />
+
+Partial scores still have value: they distinguish "barely any progress" from "most of the work done correctly" rather than showing both as failures. But from the user's perspective, the one item not done right may be exactly the cylinder diameter, a formula that must be preserved, or an approval condition—it determines whether you can directly accept the output.
+
+OpenAI's Astra 72.6% is **the offline subset partial score on v2026.08.08**. The official project page's offline subset contains 82 tasks that run without internet access; offline does not mean static screenshots, nor does it mean no interaction with real software. [Source: OSWorld official leaderboard](https://osworld-v2.xlang.ai/)
+
+At the time of this query, the leaderboard did not yet show an Astra row. Sol's highest offline partial score was 64.1%, while OpenAI's release page reported 65.7%. The reason for the discrepancy has not been confirmed, so this article uses the release page's internal comparison and preserves this inconsistency. We can say the publisher reported a higher task partial score; we cannot write 72.6% as "seven out of ten tasks fully delivered."
+
+## Part Five: After Exporting the File, Professional Acceptance Actually Begins
+
+By this point, the support part has been saved as a STEP file. For a task that only checks "does the file exist," it might already count as successful; for someone who needs this part for further design or machining, file existence is merely the entry point.
+
+ALE organizes a large amount of professional work into exactly this kind of acceptance question. A single task has explicit instructions, input assets, an environment with installed software, output requirements, and a reference hidden from the executor. The agent can mix GUI, shell, file operations, and APIs. Evaluation reads the deliverable at the end, rather than scoring based solely on the agent's completion claim. [Source: ALE, §2–4](https://arxiv.org/html/2606.05405v2)
+
+It covers 55 sub-domains. The significance of this breadth is that requirements vary enormously: geometry tasks check spatial structure, simulation tasks check numerical values, animation tasks check timing and motion, spreadsheet tasks check fields and formulas. Professional capability must ultimately come down to the correctness of specific objects.
+
+### Scoring Geometric Deliverables: How to Avoid "Looks Close Enough"
+
+One of ALE's manufacturing tasks uses `gate-and-score`: check hard conditions first, then compute quality. The PowerMill machining task in the paper requires passing collision and gouge checks first; if this gate fails, no score is given regardless of geometric similarity. After passing, the result is compared to a reference STL by surface distance. [Source: ALE, Appendix C.3.2–C.3.3](https://arxiv.org/html/2606.05405v2)
+
+The logic here can be understood in connection with the FreeCAD part, but they are not the same task and do not share this scoring scheme. It illustrates that professional acceptance may simultaneously include "conditions that must not be violated" and "quality that can be gradually improved." The former determines whether the result is eligible for acceptance at all; the latter measures how close it is to the target.
+
+The geometric scoring example given in the paper is: the proportion of surface samples within a 0.3 mm distance threshold carries 70% weight, and the proportion within a 2.0 mm threshold carries 30% weight. If we posit a pedagogical result where the two proportions are 0.64 and 0.94 respectively, then the score after passing the hard gate is:
+
+**0.70 × 0.64 + 0.30 × 0.94 = 0.73.**
+
+The two proportions here are pedagogical assumptions; the weights and thresholds come from the paper. This formula explains why fine-grained fit and rough contour can be assessed simultaneously: surfaces that are very close fall into both threshold counts, while surfaces with slightly larger deviations can only enter the wider threshold count. If the collision gate fails, this 0.73 does not qualify as a final score.
+
+<TechGraph src="/images/posts/gpt6-专业软件能力与三个基准测试/artifact-acceptance.svg" title="Professional Acceptance: Pass Required Conditions First, Then Compare Quality" caption="Illustration: deliverable completeness, hard conditions, and quality scoring (drawn by the blogger, based on ALE §3.3, Appendix C.3). This is a conceptual diagram; gates, scoring functions, and weights differ across tasks." />
+
+This is more rigorous than "looks about right," and better explains why nearly correct deliverables are still unusable. One model might have learned to generate the overall shape but still cannot make all necessary conditions hold simultaneously; another might manage to fill in those last few critical details on most tasks. The same increment in average score may correspond to very different improvements in practical utility—distinguishing them requires per-task results.
+
+### Simulation Case: A Filled-Out JSON Does Not Mean the Solve Completed
+
+ALE's Moldex3D task continues examining this issue along a different kind of professional object. The input includes a project with existing meshes and materials, a process configuration `process_spec.json`, and a template specifying result fields. The task requires running fill, pack, cool, and warp analyses, then submitting the saved project and a `results.json` containing solver results such as pressure, clamp force, time, volume, and weight. [Source: ALE, Appendix B.3.1, Task Card 1](https://arxiv.org/html/2606.05405v2)
+
+Scoring first rejects missing, corrupted, or entirely empty result files, then compares numerical values against a hidden solver reference, with key fields using a 1% relative tolerance. The requirement is not "write a correctly formatted JSON" but "put the actual solved values from this configuration into the JSON."
+
+The Opus 4.7 trajectory shown in the paper did navigate to the correct setup interface and submitted a result file, but scored only 0.4762. The task card notes that some values came from estimates and were not reliably extracted from the completed solver output.
+
+This adds a very important dimension to the acceptance chain: **the provenance of results.** Complete fields can pass format checks, and numbers that look reasonable can fool a cursory reading, but they may still not correspond to this input, this process, and this solve. The correct sequence of actions should include confirming that the result file has been produced, reading or exporting the solver data, and then filling it into the deliverable.
+
+If in actual use Astra less often fills gaps left by tool execution with "reasonable estimates" and more often waits for real results and reads them back, the difference in user experience would be very noticeable. ALE's overall improvement is compatible with this kind of change, but the current aggregate score cannot prove that Astra progressed on this specific Moldex3D task in precisely this way.
+
+### Animation Case Study: One Good Frame Doesn't Mean the Whole Piece Is Correct
+
+Another ALE task requires rigging a static character with bones in Blender, reproducing the body movements from a reference video, using a specified set of 19 bone names, and submitting both an editable `final.blend` and a playable `preview.mp4`. Scoring evaluates video matching, consistency when replayed from the project file, bone coverage, and targeted visual checks. [Source: ALE, Appendix B.3.1, Task Card 4](https://arxiv.org/html/2606.05405v2)
+
+The submission described in the paper included both file types and did contain animation, but roughly 13.6 seconds of reference motion was compressed into an approximately 4-second preview, with reduced motion amplitude to minimize mesh deformation. The final score was 0.4285.
+
+A single rendered frame can hardly expose this kind of problem. It can show that the character exists, that materials look normal, and that the pose seems plausible—but it cannot tell you about motion duration, full range of poses, or whether the project file can replay the same video. In professional visual tasks, "looking right" sometimes requires observation along the time axis, not just inspecting a single static frame.
+
+This also supplements the visual capabilities the user mentioned: UI localization is visual, spatial relationships in engineering drawings are visual, and temporal relationships in reference animations are also visual. The three benchmarks happen to touch different parts of this spectrum, but ScreenSpot-Pro's 92.7% directly answers only the first kind.
+
+### Why 59.3% Can't Be Translated into "Can Do 60% of Professional Work"
+
+ALE's original paper reports both fine-grained average scores and full pass rates, with different difficulty subsets. There is also aggregation structure across workflows, instances, and domains. The reported 960 workflows and 1,490 instances include samples still undergoing quality control, so they cannot be directly taken as the number of problems in Astra's evaluation this time. [Source: ALE, §2, §4, Appendix C](https://arxiv.org/html/2606.05405v2)
+
+This article retains the 59.3% from the release page as a professional task score, because we currently do not have a complete description of Astra's exact split, sample count, number of repetitions, and score aggregation method for this evaluation. It supports "performance improved on this set of professional tasks," but it does not support multiplying 59.3% by real-world occupational populations or total working hours.
+
+The scoring methodology itself also doesn't rely on code for all tasks. ALE prioritizes executable checks; for visual and creative tasks that are difficult to fully formalize, it also uses model judges with fixed questions and rubrics. Therefore, when judging credibility, you need to look at what a given problem actually checked, rather than just hearing the words "automated scoring."
+
+## Section Six: Putting the Three Improvements Back on This Line of Work
+
+Now we can return to the original question: why might these three benchmarks explain the feeling that "GPT-6 is suddenly much better at using professional software" more than a single general Q&A score?
+
+Because they place the model at different failure sites. ScreenSpot-Pro checks whether instructions accurately land on the interface; OSWorld checks how much of the task requirements survive after a sequence of operations; ALE checks whether the deliverables can withstand more specific professional acceptance criteria.
+
+Let's walk through the support part one more time: improved localization may make consoles and parameter entry points easier to find; improved drawing comprehension and method selection are what allow diameters, hole spacings, and Boolean relationships to enter the correct parameters; improved state maintenance is what allows these relationships to survive over hundreds of steps without being lost; improved checking and repair is what can push a "recognizable support part" further toward a "specification-compliant model."
+
+The latter three capabilities are not individually separated into distinct scores on the release page—OSWorld and ALE give task performance that reflects them in mixture. Therefore, this is a pathway for explaining the user experience, not a confirmed capability attribution table.
+
+### Why Small Errors Can Lead to Major Rework
+
+In single-item localization, getting one wrong is just a 0; in a workflow, getting one wrong can change the downstream environment. If you click the wrong object and then set parameters, those parameters—no matter how accurate—act on the wrong object. If you misread a diameter and then write a script, a large amount of subsequent code may be organized around that error. If you forget the latest approval and then complete an entire spreadsheet, you'll need to find it and recalculate all affected content before delivery.
+
+So certain local improvements reduce work on downstream branches. They don't necessarily manifest as the agent being better at explaining its plan—they may instead manifest as shorter processes, fewer undos, and less human intervention. This is an inference drawn from task dependency relationships.
+
+However, you cannot take ScreenSpot-Pro's 92.7% as an independent success probability for each step, multiply them in sequence, and predict OSWorld pass rates. Real operations are not independent: some errors amplify, some can be recovered from, and some steps don't involve the GUI at all. Using a single localization average to cover an entire workflow would actually erase the very distinctions we just teased apart.
+
+### Progress May Also Be Concentrated in "The Last Bit That Wasn't Right"
+
+The FreeCAD case study reveals another possibility: the model can already complete most of the conspicuous actions, and what's truly missing is converging the results to precise requirements. The same is true for ALE's animation and simulation tasks—the files are there, the structure looks right, but in the end it falls short on timing, motion amplitude, or numerical sources.
+
+If the new model's improvements happen to target exactly these aspects, users will feel a shift from "I need to redo this" to "I can accept this after a brief check." The magnitude of that felt difference may not correspond to the percentage-point increase in average scores. But whether such a distributional shift has actually occurred must be verified by examining deliverables from old and new models on the same problems, full pass rates, and the amount of manual correction needed; the current headline scores haven't proven it yet.
+
+This is more specific than generically praising "stronger agentic capabilities": we care about whether it more accurately preserves requirements, more reasonably selects methods, and more effectively lets checking change outcomes.
+
+## Reading the Cost Curve One More Time: More Accurate, Faster, and Cheaper Are Not the Same Conclusion
+
+The x-axis in the user's screenshot is API Cost—this information cannot be overlooked. In ScreenSpot-Pro, Astra's point is higher but also further to the right; at least among the configurations shown in the chart, higher single-query localization accuracy comes with higher API cost. You cannot uniformly summarize all three charts as an across-the-board price reduction.
+
+Workflow cost in OSWorld has a different meaning: a cheap single localization call does not mean completing an entire task is cheap. If more screenshots, retries, rollbacks, and final fixes are needed, calls keep accumulating. Conversely, a slightly more expensive single call might reduce total task cost by cutting rework. To determine which scenario occurs, you should compare the full task under the same acceptance criteria, rather than directly splicing the x-axes of two different tests together.
+
+Time also needs to be disaggregated. OpenAI's reported OSWorld comparison comes from **latency simulations**, approximately 40 minutes/task for Astra and 75 minutes/task for Sol. This is an efficiency signal, but not a measured wall-clock time on a user's desktop. Waiting for application responses, solver runs, file exports, network services, and human intervention can all affect actual end-to-end time. [Source: OpenAI release page, Computer use](https://openai.com/index/gpt-6-astra/)
+
+For the part we discussed earlier, the most meaningful comparison should be: given the same drawing, the same tools, and the same budget, whether the final submitted STEP files pass muster, how much time and money was spent in the process, and how many times human correction was needed. Comparing only "how fast a model is first generated" would miss the finishing work that costs people the most.
+
+## How I Would Understand This Capability Change
+
+The intuition you raised has a very good entry point: all three tests take the model away from pure text answers, requiring it to interact with interfaces, change environments, or deliver professional artifacts. They are indeed closer to the experience of using professional software than a generalized "how much did intelligence increase."
+
+Among them, **the evidence for improved high-resolution UI localization is the most direct**; the long-workflow and professional-task scores provide complementary evidence closer to actual delivery. Following the process from engineering drawing to STEP file, we can already clearly identify where this kind of progress may be occurring: localization, representation conversion, method selection, state maintenance, and acceptance repair.
+
+As for "better aesthetics," a different kind of verification is still needed. Being able to reproduce animation from a reference, accurately read engineering drawings, and find typesetting controls is not the same as being able to choose better composition, color schemes, and rhythm under open-ended requirements. Faithful reproduction under constraints and open-ended design judgment are related, but they cannot substitute for each other.
+
+Currently, publicly available materials are not sufficient to attribute all three improvements to any single training method, nor to prove that every real-world experience can be explained by them. It's more appropriate to treat benchmarks as observation windows: they let us see more accurate grounding and higher task scores, but we still need per-task trajectories to understand what's actually happening in between.
+
+If I were to continue with personal hands-on testing, I would keep the same input, operation logs, and final artifacts, write down acceptance criteria first, and then compare models. Take that support bracket part as an example—whether it looks right at first glance is only the beginning; next you need to check key dimensions, geometric relationships, exported files, and the number of revisions. Following this line of inquiry, you can move beyond "it felt stronger this time" to something more concrete: **at which step of information transformation did it make fewer mistakes, and which segment of work did that actually save.**
+
+## References and Image Sources
+
+1. [OpenAI: GPT-6 Astra: A new generation of intelligence](https://openai.com/index/gpt-6-astra/). Current model scores and evaluation footnotes, retrieved 2026-09-13.
+2. [ScreenSpot-Pro: GUI Grounding for Professional High-Resolution Computer Use](https://arxiv.org/abs/2504.07981v1). arXiv v1, 2025-04-04; the Blender figure in the main text is from Figure 5, PDF page 15.
+3. [OSWorld 2.0: Benchmarking Computer Use Agents on Long-Horizon Real-World Tasks](https://arxiv.org/abs/2606.29537v2). arXiv v2, 2026-07-13; the FreeCAD case is in Appendix H.1.2, original figures from Figures 27 and 32; state and tool-path analysis in §4.4.
+4. [OSWorld 2.0 Official Leaderboard](https://osworld-v2.xlang.ai/) and [Official Implementation](https://github.com/xlang-ai/OSWorld-V2). Offline subset and version verified on 2026-09-13; the paper's experimental version and the version used for the Astra release are handled separately.
+5. [Agents' Last Exam](https://arxiv.org/abs/2606.05405v2). arXiv v2, 2026-06-11; task cards in Appendix B.3.1, scoring in Appendix C.3, failure analysis of older models in Appendix D.3.
+
+All figures from the original papers are faithful crops; explanatory diagrams are drawn by the author of this blog. Tutorial calculations, older model cases, and current release scores are each labeled separately in the main text. The three papers are independent sources, not supplementary materials from a single evaluation.
+
+<style>{`
+  .benchmark-table { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .benchmark-table table { min-width: 690px; }
+  .benchmark-table th, .benchmark-table td { word-break: normal; }
+`}</style>

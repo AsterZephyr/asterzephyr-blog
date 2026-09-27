@@ -1,0 +1,474 @@
+---
+title: "vLLM KV Cache Block Manager Deep Dive"
+date: 2026-06-07
+tags: [系统与工程]
+summary: "From PagedAttention fundamentals to KV Cache capacity calculations in multi-GPU deployments—fully understand why single-GPU metrics show 52K yet the system can handle 200K+ context. Covers Block Manager architecture, TP/CP parallelism strategies, and MLA architecture specifics."
+draft: false
+sourceFile: "vllm-kv-cache-block-manager-深度教程.mdx"
+sourceHash: "06390bacd4c5a86e0dfb05aaf13c306bf28132665d136a3ee009ea469125268b"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+<Callout type="info">
+From PagedAttention fundamentals to KV Cache capacity calculations in multi-GPU deployments—fully understand why single-GPU metrics show 52K yet the system can handle 200K+ context.
+</Callout>
+
+## 1. Background: Why We Need KV Cache
+
+### 1.1 Characteristics of Transformer Inference
+
+In autoregressive generation, the model produces only one new token per step but needs to attend to all historical tokens. If Q, K, and V were recomputed from scratch every time, the computational cost would be O(n^2).
+
+<Callout type="info">
+**Core idea of KV Cache**: Cache the already-computed Key/Value vectors at each Attention layer. Subsequent tokens only need to compute their own Q and then perform attention against the cached K/V.
+</Callout>
+
+```
+Without KV Cache (recompute every step):
+  Step 1: compute K1, V1                 -> Attention(Q1, [K1], [V1])
+  Step 2: compute K1, K2, V1, V2         -> Attention(Q2, [K1,K2], [V1,V2])
+  Step 3: compute K1, K2, K3, V1, V2, V3 -> Attention(Q3, [K1..K3], [V1..V3])
+
+With KV Cache (incremental computation):
+  Step 1: compute K1, V1, cache them     -> Attention(Q1, [K1], [V1])
+  Step 2: compute K2, V2, append cache   -> Attention(Q2, [K1,K2], [V1,V2])
+  Step 3: compute K3, V3, append cache   -> Attention(Q3, [K1..K3], [V1..V3])
+  -> Only one new KV pair computed per step
+```
+
+### 1.2 Memory Footprint of KV Cache
+
+For a typical 70B model (80 layers, GQA 8 heads, head_dim=128, FP16):
+
+| Parameter | Value |
+|-|-|
+| Per-token KV size | 80 x 2 x 8 x 128 x 2 = 327,680 bytes ~ 320 KB |
+| Total for 200K tokens | 320 KB x 200,000 = **64 GB** |
+
+<Callout type="warning">
+A single 80 GB GPU cannot fit both the model weights and 200K worth of KV Cache—this is why long-context inference requires multiple GPUs.
+</Callout>
+
+---
+
+## 2. PagedAttention Core Principles
+
+Traditional implementations pre-allocate a **contiguous block of GPU memory** for each request, sized for the maximum possible sequence length.
+
+### 2.1 Problems with Traditional KV Cache
+
+1. **Internal fragmentation**: Actual sequences are often much shorter than the pre-allocated length, wasting large amounts of memory
+2. **External fragmentation**: Requests of different lengths leave irregular holes after being freed
+3. **Over-reservation**: Memory must be reserved for the maximum possible length
+
+Memory utilization is typically only 20–40%.
+
+### 2.2 PagedAttention's Solution
+
+Borrowing the **virtual memory paging** concept from operating systems:
+
+- KV Cache is divided into fixed-size **Blocks** (default: 16 tokens/block)
+- A **Block Table** maps logical to physical blocks (analogous to a page table)
+- On-demand allocation: new Blocks are allocated only as the sequence grows
+- Copy-on-Write support: multiple requests can share Blocks with the same prefix
+
+### 2.3 Internal Structure of a Block
+
+<Figure src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-01.png" alt="PagedAttention: KV Cache Block allocation mechanism" />
+
+```
+Block Shape: [block_size, num_kv_heads, head_dim]
+
+Example (block_size=16, 8 kv_heads, head_dim=128, FP16):
+  Key Block:   [16, 8, 128] x 2 bytes = 32 KB
+  Value Block: [16, 8, 128] x 2 bytes = 32 KB
+  Total per block per layer: 64 KB
+  Total per block all layers (80 layers): 5 MB
+```
+
+---
+
+## 3. Block Manager Architecture
+
+The Block Manager is the core component of vLLM's scheduler, responsible for managing the physical memory allocation of KV Cache.
+
+### 3.1 Component Overview
+
+| Component | Responsibility |
+|-|-|
+| Block Allocator (GPU) | Manages physical Block allocation and deallocation in GPU memory |
+| Block Allocator (CPU) | CPU memory pool used as temporary KV storage during swaps |
+| Block Table | Maintains the logical-to-physical Block mapping for each sequence |
+| Evictor | Evicts/swaps KV Cache based on LRU policy |
+
+### 3.2 Interaction Between Scheduler and Block Manager
+
+1. A new request arrives — the Scheduler asks the Block Manager: "Are there enough free blocks?"
+2. The Block Manager returns the number of allocatable blocks
+3. The Scheduler decides whether to accept the new request or preempt an existing one
+4. On acceptance, blocks are allocated; on preemption, blocks are freed or swapped to CPU
+5. After each new token is generated, the current block is checked for fullness — if full, a new block is allocated
+
+---
+
+## 4. Formula for Per-GPU Block Count
+
+When vLLM starts up, it determines the memory available for KV Cache through profiling:
+
+### 4.1 Memory Budget Calculation
+
+```
+total_gpu_memory = 80 GB (H100)
+model_weights_memory = model_size (after quantization)
+activation_memory = determined via dummy forward pass profiling
+overhead = CUDA context + framework buffers
+
+available_kv_memory = total_gpu_memory x gpu_memory_utilization - model_weights - activation - overhead
+```
+
+<Callout type="info">
+**gpu_memory_utilization** defaults to 0.9, meaning at most 90% of GPU memory is used. For long-context scenarios, this can be raised to 0.95.
+</Callout>
+
+### 4.2 Block Size Calculation
+
+```
+block_size_bytes = block_size x num_layers x 2(K+V) x num_kv_heads_per_rank x head_dim x dtype_bytes
+
+num_gpu_blocks = available_kv_memory / block_size_bytes
+```
+
+### 4.3 Worked Example
+
+```
+Model weights: ~140 GB FP16 / 8 GPUs = 17.5 GB per GPU
+Activations: ~2 GB
+CUDA overhead: ~1.5 GB
+
+available_kv_memory = 80 x 0.9 - 17.5 - 2 - 1.5 = 51 GB
+
+Per block (GQA 8 heads, TP=8 -> 1 head/rank):
+= 16 x 80 x 2 x 1 x 128 x 2 = 655,360 bytes ~ 640 KB
+
+num_blocks = 51 GB / 640 KB ~ 81,920 blocks
+Tokens that can be held = 81,920 x 16 ~ 1.3M tokens
+```
+
+---
+
+## 5. Multi-GPU Parallelism Strategies and Their Relationship to KV Cache
+
+### 5.1 Tensor Parallelism (TP)
+
+**Standard MHA/GQA**: KV heads can be sharded across TP ranks, with each rank storing only num_kv_heads / tp_size heads. Blocks become smaller but store ALL tokens.
+
+**MLA (DeepSeek)**: KV is compressed into a latent vector with no independent head dimension. TP cannot reduce the KV cache size.
+
+### 5.2 Data Parallelism (DP)
+
+Multiple full model replicas, each independently processing different requests. Each replica has its own KV Cache — **this does not increase the context capacity of any single request**, it only improves total throughput.
+
+### 5.3 Context Parallelism (CP)
+
+<Figure src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-02.png" alt="Comparison of TP vs DP Attention vs Context Parallelism" />
+
+The sequence of a single request is split along the token dimension across multiple GPUs. **This is the most direct way to scale long contexts:**
+
+```
+CP = 4:
+  Rank 0: tokens [0, N/4)       -> stored locally
+  Rank 1: tokens [N/4, N/2)     -> stored locally
+  Rank 2: tokens [N/2, 3N/4)    -> stored locally
+  Rank 3: tokens [3N/4, N)      -> stored locally
+
+Each rank stores only 1/4 of the tokens -> effective capacity x4
+```
+
+---
+
+## 6. Special Considerations Under the MLA Architecture
+
+Multi-head Latent Attention, introduced in DeepSeek-V2/V3, has one core change: **KV compression**.
+
+### 6.1 What Is MLA
+
+```
+Standard MHA:
+  K = W_k x h    shape: [seq_len, num_heads, head_dim]
+  V = W_v x h    shape: [seq_len, num_heads, head_dim]
+  KV Cache per token: 2 x num_heads x head_dim x dtype_bytes
+
+MLA:
+  c_kv = W_dkv x h              shape: [seq_len, d_c] (d_c << num_heads x head_dim)
+  K = W_uk x c_kv (lazily restored during inference)
+  V = W_uv x c_kv (lazily restored during inference)
+  KV Cache per token: d_c x dtype_bytes (only the compressed latent is stored)
+```
+
+### 6.2 Why MLA Cannot Be Sharded by TP
+
+<Callout type="warning">
+**Key point**: c_kv is an indivisible latent vector. Splitting c_kv in half and recovering K/V from it produces meaningless results. Therefore, even TP=8 cannot reduce KV cache usage.
+</Callout>
+
+### 6.3 Deployment Strategies Under MLA
+
+<Figure src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-03.png" alt="MHA/GQA vs MLA: KV Cache Structure Comparison" />
+
+| Strategy | Impact on MLA KV Cache |
+|-|-|
+| TP | Only shards attention computation weights and FFN; KV Cache is stored in full on every GPU |
+| DP Attention | Each rank independently handles different requests; MoE layers use EP |
+| Context Parallelism | The only way to reduce per-GPU KV storage — shards along the sequence dimension |
+
+---
+
+## 7. DP vs DP Attention vs Context Parallelism
+
+<Figure src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-04.png" alt="DP Attention + Expert Parallelism Architecture" />
+
+| Dimension | DP | DP Attention | Context Parallelism |
+|-|-|-|-|
+| Split target | Request-level, multiple full replicas | Attention layer split by request | Single request sequence split by token |
+| KV Cache | Each replica independently stores its own requests | Each rank stores the requests it processes | Each rank stores a portion of the sequence |
+| Single request limit | No increase | No increase | Linear increase (×CP size) |
+| Throughput | Linear increase | Linear increase | No direct increase |
+| Per-layer communication | None | 2× all-to-all (MoE layers) | 2× all-to-all (Attention layers) |
+
+<Callout type="warning">
+**Key distinction**: DP Attention processes multiple requests independently without splitting a single request's sequence. To run a single 200K request, you must use Context Parallelism.
+</Callout>
+
+---
+
+## 8. Communication Pattern During the Decode Phase
+
+<Figure src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-05.png" alt="Context Parallelism: Decode phase communication pattern" />
+
+Under Context Parallelism, new tokens need to attend to all historical KV (distributed across different ranks). The strategy is **Q goes to find KV, not KV comes to Q**:
+
+| Operation | Data volume | H100 NVLink latency |
+|-|-|-|
+| Broadcast Q (1 token) | ~32 KB | < 1 μs |
+| All-Reduce Output | ~32 KB | < 1 μs |
+| Moving KV instead (comparison) | ~200 MB | Not practical |
+
+Communication flow:
+1. **Broadcast Q**: The new token's Q vector is broadcast to all ranks holding KV
+2. **Local Partial Attention**: Each rank computes partial_out + log-sum-exp using local KV
+3. **All-Reduce Merge**: Merge each rank's partial results using Online Softmax
+
+<Callout type="info">
+**Conclusion**: Communication overhead (< 2 μs/layer) is far less than KV Cache memory access overhead (~7 μs/layer). With NVLink at 900 GB/s, CP communication is not the bottleneck.
+</Callout>
+
+---
+
+## 9. Practical Case Study: H100 80G × 8 Deployment Analysis
+
+```
+Environment: H100 80G x 8
+Metric: GPU KV Blocks ~ 3258, block_size = 16
+Calculation: 3258 x 16 = 52,128 tokens
+In practice: Can handle 200K+ context normally
+```
+
+Configuration with TP=2, DCP × PCP = 4 (total Context Parallelism degree of 4):
+
+```
+Per-GPU KV capacity: 3258 x 16 = 52K tokens (as shown in metrics)
+System total capacity: 52K x 4 (CP=4) = 208K tokens
+
+MoE Expert weights dominate:
+  Model 671B params, still lots of experts per GPU after EP distribution
+  Remaining memory for KV ~ 3.5 GB
+  Block size (MLA): 16 x 61 x 1152 bytes ~ 1.07 MB
+  num_blocks = 3.5 GB / 1.07 MB ~ 3,258 <- matches perfectly
+```
+
+---
+
+## 10. Diagnostics and Tuning Guide
+
+### Diagnostic Commands
+
+```bash
+# Prometheus metrics
+curl http://localhost:8000/metrics | grep -i block
+
+# Key metrics:
+# vllm:num_gpu_blocks_total
+# vllm:num_gpu_blocks_free
+# vllm:gpu_cache_usage_perc
+```
+
+### Long-Context Deployment Decision Tree
+
+1. Confirm whether the model uses MLA architecture
+2. MLA model — use DP Attention + Context Parallelism (DCP × PCP)
+3. Standard GQA model — TP can split KV heads; add Context Parallelism if insufficient
+4. Adjust gpu_memory_utilization (0.9–0.95) to squeeze out more KV space
+
+### Key Formula Summary
+
+```
+KV Cache per token (standard GQA):
+  = num_layers x 2 x num_kv_heads x head_dim x dtype_bytes
+
+KV Cache per token (MLA):
+  = num_layers x (d_c + d_rope) x dtype_bytes
+
+Num GPU blocks:
+  = available_kv_memory / (block_size x kv_per_token)
+
+Total capacity (with CP):
+  = num_blocks x block_size x context_parallel_size
+```
+
+---
+
+## 11. Prefix Caching and Copy-on-Write
+
+### 11.1 How Prefix Caching Works
+
+In multi-turn conversations, the KV Cache for the System Prompt and conversation history is completely identical. Recomputing it for every request is a tremendous waste.
+
+<TechGraph src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-block-allocation.svg" title="Prefix Caching: Block Sharing and CoW" caption="Multiple requests share KV Blocks with the same prefix; Copy-on-Write is triggered when they diverge" />
+
+```
+Request A: [System Prompt | User msg 1 | Assistant reply 1 | User msg 2]
+Request B: [System Prompt | User msg 1 | Assistant reply 1 | User msg 3]
+                       ^-- Common Prefix --^
+
+Prefix Caching:
+  Block 0-5: System Prompt KV (shared, ref_count=2)
+  Block 6-8: User msg 1 KV (shared, ref_count=2)
+  Block 9-11: Assistant reply 1 KV (shared, ref_count=2)
+  Block 12+: Independently allocated for each
+```
+
+### 11.2 Copy-on-Write Mechanism
+
+When two requests share the same Block but one of them needs to modify it (append new tokens):
+
+1. Check the Block's `ref_count`
+2. If `ref_count > 1`: copy the Block to a new physical location and update the Block Table
+3. If `ref_count == 1`: modify in-place directly
+
+```
+Before CoW:
+  Req A Block Table: [0, 1, 2, 3, 4]  (block 4 ref_count=2)
+  Req B Block Table: [0, 1, 2, 3, 4]  (sharing block 4)
+
+Req A appends token -> triggers CoW on block 4:
+  New block 5 = copy(block 4)
+  Req A Block Table: [0, 1, 2, 3, 5]  (block 5 ref_count=1)
+  Req B Block Table: [0, 1, 2, 3, 4]  (block 4 ref_count=1)
+```
+
+### 11.3 Practical Benefits of Prefix Caching
+
+| Scenario | Without Prefix Cache | With Prefix Cache | Savings |
+|-|-|-|-|
+| Multi-turn dialogue (2K system prompt) | Compute 2K tokens every time | Compute once, reuse afterward | Prefill latency -60% |
+| Few-shot (8K examples) | Compute 8K tokens every time | Compute once, shared across all requests | Prefill latency -85% |
+| RAG (4K context) | Independent per request | Identical doc chunks shared | GPU memory -40% |
+
+---
+
+## 12. Block Scheduling: Preemption Strategies
+
+### 12.1 Why Preemption Is Needed
+
+When all GPU Blocks have been allocated and a new request arrives, the Scheduler must make a choice:
+
+1. **Reject**: Return 503, let the client retry
+2. **Preempt**: Terminate or pause a running request to free its Blocks
+
+vLLM chooses option 2, implemented through two preemption strategies:
+
+### 12.2 Recompute vs Swap
+
+<TechGraph src="/images/posts/vllm-kv-cache-block-manager-深度教程/vllm-tp-cp-comparison.svg" title="Preemption Strategy Comparison: Recompute vs Swap" caption="Recompute saves bandwidth but has higher latency; Swap is bandwidth-intensive but recovers faster" />
+
+| Strategy | Mechanism | Latency | Bandwidth Usage | Applicable Scenarios |
+|-|-|-|-|-|
+| Recompute | Free Blocks, re-prefill | ~100ms/K tokens | No extra bandwidth | Short sequences, tight GPU memory |
+| Swap | Move to CPU memory, move back when needed | ~50ms/GB (PCIe) | PCIe bandwidth | Long sequences, abundant CPU memory |
+
+### 12.3 Preemption Priority
+
+vLLM selects preemption targets according to the following priority:
+
+```
+1. Latest-arrived request (reverse FCFS order)
+2. Request with the fewest generated tokens (minimal waste)
+3. Requests with longest prefix sharing are preferentially preserved (higher cache value)
+```
+
+### 12.4 Swap Pool Configuration
+
+```python
+# Control CPU swap space size
+engine_args = EngineArgs(
+    swap_space=4,  # GB, default 4GB
+    # Equivalent to: cpu_blocks = 4GB / block_size_bytes
+)
+```
+
+---
+
+## 13. Production Tuning Case Studies
+
+### 13.1 Scenario: DeepSeek-V3 671B MoE, 8xH100
+
+```bash
+vllm serve deepseek-ai/DeepSeek-V3 \
+  --tensor-parallel-size 8 \
+  --gpu-memory-utilization 0.92 \
+  --max-model-len 32768 \
+  --block-size 16 \
+  --enable-prefix-caching \
+  --swap-space 8
+```
+
+The rationale behind key parameter choices:
+
+| Parameter | Value | Reason |
+|-|-|-|
+| `gpu-memory-utilization` | 0.92 | MoE Experts consume significant GPU memory, leave headroom to prevent OOM |
+| `max-model-len` | 32768 | Cap maximum context length to prevent a single request from filling KV |
+| `block-size` | 16 | Default value, balances fragmentation and management overhead |
+| `enable-prefix-caching` | true | Must-enable for multi-turn dialogue scenarios |
+| `swap-space` | 8 GB | CPU memory is abundant, leave extra buffer |
+
+### 13.2 Tuning Objectives and Metrics
+
+```bash
+# Core monitoring metrics
+curl localhost:8000/metrics | grep -E "gpu_cache_usage|num_requests|time_to_first_token"
+
+# Healthy ranges:
+# gpu_cache_usage_perc: 60-85% (too low = waste, too high = frequent preemption)
+# e2e_request_latency_p99: < 10s
+# time_to_first_token_p99: < 2s
+```
+
+### 13.3 Common Tuning Decisions
+
+| Symptom | Diagnosis | Tuning |
+|-|-|-|
+| Cache usage > 90% + frequent preemption | Concurrency too high or sequences too long | Lower max-model-len or add GPUs |
+| Cache usage < 50% + high latency | Prefill too slow | Enable chunked prefill, tune max-num-batched-tokens |
+| TTFT high + ITL normal | Queuing at prefill stage | Enable prefix caching, or prefill/decode disaggregation |
+| Large ITL jitter | Decode batch size fluctuations | Limit max-num-seqs, smooth scheduling |
+
+---
+
+## Related Articles
+
+- [GPU Inference Deployment Study Guide: From Memory Calculation to Performance Optimization](/blog/gpu推理部署学习指南-从显存计算到性能优化) -- A more foundational framework for memory and performance analysis
+- [AI Inference Learning Roadmap 2026 Panorama](/blog/ai-inference-学习-roadmap-2026全景图) -- A comprehensive learning roadmap for inference engineering

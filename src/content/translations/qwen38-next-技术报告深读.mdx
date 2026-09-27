@@ -1,0 +1,440 @@
+---
+title: "Qwen3.8-Next Deep Read: Low-Cost Model Architecture—Why You Can't Just Look at Loss"
+date: 2026-09-09
+tags: [技术报告解读, AI 与机器学习]
+category: "技术分享"
+summary: "Following the controlled experiments on GDN, sparse attention, gated residuals, and lookup-table memory, understand the tradeoffs Qwen3.8-Next makes among capability, efficiency, and training stability."
+draft: false
+sourceFile: "qwen38-next-技术报告深读.mdx"
+sourceHash: "6e3b9a0355bbc31cb94cf89b53caaeedf6f3271a3bed805f3c1dcf8b7f63d83d"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+> Original report: *On the Design of Qwen3.8-Next Architecture: Evaluation, Efficiency, and Training Stability*  
+> Authors: Qwen Team; this article uses the 28-page PDF available on the official GitHub, with a cover date of 2026-08-26.  
+> [Official report](https://github.com/QwenLM/Qwen3.8-Flash-Next/blob/main/tech_report.pdf) · [arXiv 2608.30320](https://arxiv.org/abs/2608.30320) (v1 submitted 2026-08-31)  
+> Page numbers below refer to the above PDF. The subject is **Qwen3.8-Flash-Next**.
+
+Suppose you're screening next-generation model architectures. Candidate A has a noticeably lower training loss; Candidate B's loss improves only slightly, but it performs better on actual tasks; Candidate C shows almost no difference from the baseline during pretraining, yet starts to degrade after post-training. If you only watch training curves, you might pick A, overlook B, and treat C as a free optimization.
+
+The Qwen3.8-Next technical report writes out these messy results. The authors ran multiple experiment groups around attention, residual connections, N-gram Embedding, and the optimizer, and they also disclosed which compute-saving attempts were ultimately not adopted. By following the control groups and failure cases, you can see how these designs were selected.
+
+The discussion below starts with objectives and cost metrics, then moves to mechanisms and experiments. All measurements come from the authors; diagrams and engineering analysis are compiled by this article, without independent training or inference reproduction.
+
+## 1. First, Let's Be Clear About What "More Efficient" Means
+
+The reported model scale is **125B total parameters, 6B active parameters per token, plus a separate 51B N-gram Embedding table**. The final Base model is compared against the previous-generation Qwen3.7-Plus-Base (397B-A17B), leading on 8 out of 14 pretraining benchmarks, with the remaining 6 gaps no larger than approximately 2.6 percentage points. The authors also report roughly one-third of the active parameters and roughly one-third of the training tokens, corresponding to approximately one-ninth of the training FLOPs. (Abstract; Table 11, pp. 22–23)
+
+Understanding these results requires separating four things.
+
+**Total parameter count answers the storage capacity question.** Active parameters only describe the parameter budget involved in a single token's computation. Experts not selected by MoE still need to be stored somewhere; moving the N-gram table to host memory only changes the storage location—it doesn't make those parameters disappear. According to the categories listed in the report, 125B plus an additional 51B sums to approximately 176B. This addition helps understand the capacity composition, but it cannot directly determine the memory requirements of any given framework.
+
+**Active parameter count helps understand the computational burden per token.** But it is not a complete inference cost model. Expert communication, attention computation, state reads/writes, quantization formats, and batching strategies all change actual latency. Even if two models have similar active parameters, their performance under long contexts can differ substantially.
+
+**Training FLOPs describe the arithmetic workload.** One-third times one-third helps explain the roughly one-ninth magnitude relationship stated in the paper, but it is not an audited dollar bill, nor does it include all research experiments. Switching optimizers, increasing data movement, or lowering device utilization can all cause the same FLOPs to correspond to different wall-clock times.
+
+**Task scores describe capabilities under specific evaluation conditions.** Fourteen Base benchmarks do not automatically cover complete agent workflows, vision tasks, or various production scenarios. Whether capabilities are comparable must be judged in the context of specific tasks and evaluation setups.
+
+<TechGraph src="/images/posts/qwen38-next-技术报告深读/g01.svg" title="From a Single Modification to an Adoptable Design" caption="Diagram: The four reading checks in this article (drawn by the author, based on the original report's Introduction and Sections 2–4)." />
+
+These experiments support a design that significantly reduces training compute under specific capability targets. How to verify these benefits at deployment time is discussed together in Section 8.
+
+## 2. Locating Four Designs Along a Single Forward Pass
+
+The global architecture diagram has three types of information flow: **cross-token history, cross-layer features, and lookup vectors corresponding to local token combinations**.
+
+<Figure src="/images/posts/qwen38-next-技术报告深读/p01.png" alt="Qwen3.8-Flash-Next architecture, including GDN, QSA, GR, MoE, N-gram, and MTP" caption="Source: Original report Figure 1, PDF page 2; faithful crop only." />
+
+Cross-token history is handled by two attention mechanisms. Most layers use **Gated DeltaNet (GDN)**, which compresses previously read content into a matrix-shaped state; every four layers, one global attention layer is inserted, preserving the ability to directly retrieve historical tokens. During continued pretraining, these global attention layers are then replaced with **Qwen Sparse Attention (QSA)**, reducing the attention cost for long inputs.
+
+Cross-layer features are managed by **Gated Residual (GR)**. It expands a single residual stream into four branches; each attention or MLP sub-layer first reads from the branches, then writes its computation results back. "Cross-layer" here refers to the network depth direction—this is different from the role of KV cache in preserving conversation history.
+
+Local token combinations feed into **N-gram Embedding**. Given the current token and a small number of preceding tokens, the model can determine a lookup address. The table resides in host memory, and the needed vectors are sent to around layer 2 via asynchronous prefetching. It provides additional capacity, but also introduces new challenges for device memory and transfer scheduling.
+
+MoE still handles the nonlinear transformations within sub-layers. The report did not eliminate expert networks just because lookup-table memory was added; as we'll see later, the authors specifically compared "fewer experts, more table capacity" against "keep experts, add table capacity on top," and the two yielded different results.
+
+MTP sits in the output prediction stage. The report also changed the attention within MTP to QSA and reuses indices across multiple prediction steps to reduce redundant draft computation. Whether this translates into higher serving throughput still depends on acceptance length, verification overhead, and request distribution.
+
+For intuition, you can think of the model as a research team processing long documents: GDN maintains a continuously updated working memory, QSA helps look up important source material, GR lets features obtained in earlier steps be used by later steps, and the N-gram table provides supplementary reference material indexed by local word groups. This analogy only helps distinguish responsibilities; the actual memory and reference materials are trained numerical representations, not directly readable notes or factual databases.
+
+## 3. GDN: First Check What's Already Remembered, Then Write the Correction
+
+### 3.1 What Limitations Come with a Fixed-Size State
+
+Full self-attention's advantage is content-based access to preceding tokens; the cost is that standard attention faces quadratically growing token pairs during prefill and must maintain an ever-growing KV cache during generation. Sliding-window Attention limits the range to a local window, reducing computation and cache, but information outside the window must be relayed indirectly through other layers.
+
+GDN chooses to compress history into a fixed-shape state matrix. "Fixed size" means that once the model shape is determined, a single head's recurrent state does not grow linearly with the number of tokens already read. It is not infinite capacity: new information and old information share the same state, and the model must choose which associations to retain, decay, or correct. (§2.1.1, pp. 3–5)
+
+Therefore, the full model is not replaced by pure GDN. Keeping global retrieval every few layers means the architecture simultaneously acknowledges both the efficiency and the limitations of compressed memory. Routine updates can rely on the compact state; when computation needs fine-grained details, there is still an opportunity to go back to historical tokens.
+
+### 3.2 The Key to the Delta Update Is the "Error"
+
+Let the old state be `S_prev`, and the current key, value, and query be `k`, `v`, `q` respectively. The recurrence in Eqs. 1–4 of the report can be written as four steps, with transpose directions consistent with the paper:
+
+```text
+S_decay = α · S_prev
+error   = v − transpose(S_decay) · k
+S       = S_decay + β · outer(k, error)
+y       = transpose(S) · q
+```
+
+The first step uses the decay gate `α` to control how much of the old state is retained. The second step first reads the old prediction associated with the current key from the decayed state, then compares it to the current value. The third step writes the difference back, with write intensity controlled by `β`. Finally, the current query reads from the updated state.
+
+This process is substantively different from "just piling a key-value outer product in for every token." If an association is already remembered fairly accurately, the incoming correction is small; if the association has changed, the update concentrates on the prediction error. The subtraction in the formula is what gives it the ability to correct existing associations.
+
+<TechGraph src="/images/posts/qwen38-next-技术报告深读/g02.svg" title="GDN Single-Step Recurrence" caption="Diagram: Decay, comparison, corrective write, and readout (drawn by the author, based on the original report §2.1.1, Eqs. 1–5, PDF page 4)." />
+
+Shrink the state down to a single number, and you can hand-calculate one update. **The following is a pedagogical assumption, not model weights or experimental results**: old state `S_prev = 0.6`, let `k = q = v = 1`, and both the decay gate and write gate are `0.5`. Only the recurrence is demonstrated here; projection, convolution, output gates, and other surrounding operations are omitted.
+
+| Step | Substituted calculation | Result |
+|:---|:---|:---|
+| Decay old state | `0.5 × 0.6` | `S_decay = 0.3` |
+| Compare current target with old prediction | `1 − 0.3 × 1` | `error = 0.7` |
+| Write half of the error | `0.3 + 0.5 × 1 × 0.7` | `S = 0.65` |
+| Read with query | `0.65 × 1` | `y = 0.65` |
+
+The key is in the third step: the state moves from `0.3` halfway toward the target `1`, stopping at `0.65`. If the old prediction already equals the target, the error is zero, and the same association is not appended again. The actual model extends this scalar process to matrices: `k` locates the association to correct, the error vector determines what is written, and then `q` reads from the updated state.
+
+The actual module also includes input projection, a short causal convolution, L2 normalization of q/k, output normalization, and an output gate. The short convolution first provides local information, and normalization constrains the magnitude of values entering the recurrence. The report uses a bounded sigmoid output gate and zero-centered RMSNorm to constrain the numerical behavior after state readout.
+
+### 3.3 Controlled Experiments Support the Hybrid Structure, but Cannot Replace Full Attribution
+
+Table 1 compares full attention, SWA hybrid, and GDN hybrid on a 28-layer, 25B-A3B MoE model. Training first uses 400B tokens at 4K context, then 80B tokens at 32K context; both hybrids keep one full attention layer every four layers, and SWA's local window is 128.
+
+Under these conditions, GDN hybrid's average score across nine benchmarks is 53.81, higher than full attention's 49.87 and SWA hybrid's 51.15. It leads full attention on eight benchmarks and SWA hybrid on seven. However, GDN is not the best on EvalPlus. This is evidence for choosing the hybrid structure, and it also reminds us to pay attention to the specific task distribution. The authors explicitly note that this overall architecture comparison cannot separately explain how much improvement each local component contributes. (Table 1, p. 5)
+
+The authors also tried removing RoPE from the full attention layers: during pretraining the difference looked negligible, but after post-training it became more prone to non-terminating generation, so RoPE was retained. The report does not provide a full quantitative table, making it impossible to calculate the precise magnitude of degradation, but this observation demonstrates that similar pretraining loss is not sufficient to judge the output behavior after removing RoPE.
+
+## 4. QSA: How Much Does Sparse Attention Pay for Indexing?
+
+### 4.1 Finding What Matters Also Costs Compute
+
+The intuition behind sparse attention is: history is long, and each query doesn't need to carefully read every token—just compute the important parts. But before doing that computation, the system still has to find the important parts. If the indexer itself still compares a large number of queries against historical keys one by one, the screening work becomes overhead on long inputs.
+
+QSA compresses the indexer's key sequence into micro-blocks, first judging importance at the block level, then returning to original tokens for core attention. Continuing the earlier analogy, this is **using summaries to locate, then close-reading the original text**. In Figure 3, selected blocks are ultimately expanded back into their original tokens. (§2.1.2, p5-7)
+
+### 4.2 Four Tokens per Group, Positional Encoding Applied After Compression
+
+The report uses a compression ratio of `r = 4`. The keys of four adjacent tokens are first average-pooled, then normalized and given Partial RoPE. The order matters here: compressing content first, then assigning block positions, avoids directly averaging representations that already carry different rotational phases.
+
+The indexer uses MQA, with four query heads sharing one key head. Queries retain their own positions; compressed blocks use the position of their starting token. Multi-head similarities are passed through ReLU and then summed to form block-level importance scores.
+
+Given a token budget of `K = 2048`, the full-block budget is `ceil(K / r)`, which in the current setting selects up to 512 blocks. The selected blocks are then expanded into their original token indices, and the K/V of these tokens are used to compute sparse core attention.
+
+<TechGraph src="/images/posts/qwen38-next-技术报告深读/g03.svg" title="How micro-block indexing maps back to original tokens" caption="Diagram: QSA's block-level selection and token-level close reading (drawn by the author, based on original report §2.1.2, Eq.12-20, PDF pp. 6-7)." />
+
+There's also a causal boundary that concept diagrams tend to omit. The current query can only score historical blocks that have fully appeared. If the current token falls within a block that hasn't been completely filled yet, the already-visible trailing tokens in that block are directly added to the attention set. So "a budget of 2048 tokens" can't simply be written as "always looking at exactly 2048 tokens": the current configuration may additionally include up to three visible trailing tokens. Block-level selection cannot peek into the future by reading tokens that haven't appeared yet.
+
+Let's walk through 12 positions. **For ease of manual calculation, assume the full-block budget is shrunk to 1 block, i.e., `K = 4`; the paper actually uses `K = 2048`.** Block size is still 4, the current query is at position 10, so only positions 1 through 10 are visible. Further assume the indexer ranks the second block ahead of the first:
+
+| Position | Fully visible now? | Processing |
+|:---|:---|:---|
+| `1, 2, 3, 4` | Yes | Participates in block-level scoring, not selected |
+| `5, 6, 7, 8` | Yes | Selected and expanded, reads K/V of four original tokens |
+| `9, 10, 11, 12` | No | Does not participate in full-block scoring; visible `9, 10` directly added |
+
+The final attention set is `5, 6, 7, 8, 9, 10`, a total of six positions: four from the selected block, two from the current tail. `11, 12` have not yet appeared and can neither contribute to block summaries nor enter the attention set. The unselected first block simply wasn't read this time—this doesn't mean it has been deleted from the history cache. This small example separates "finding positions by block" from "computing attention with original tokens," and also explains why the tail can push the final count above `K`.
+
+During offline full-sequence training, all tokens in a block are available; improper masking could let training exploit information unavailable during generation. The report explicitly writes out the full-block constraint and tail path in Eq.15 and Eq.19.
+
+### 4.3 The Model Needs to Learn to Adapt to Sparse Selection
+
+QSA is introduced during continued pretraining at 256K sequence length, in two stages.
+
+The first stage trains only the indexer. Full attention provides token-level distributions, which are summed across teacher heads and normalized, then converted to block-level targets via max pooling, renormalized, and used to train the indexer with KL divergence. Here the teacher target uses max pooling, while the indexer key's content compression uses average pooling—the two serve different purposes: the former preserves the supervisory signal from salient tokens in a block, while the latter generates key representations for retrieval.
+
+The second stage turns on sparse attention, letting the backbone adapt together with the indexer to the new information selection scheme. The indexer KL loss is computed only on selected blocks, and teacher probabilities are renormalized within that set. The number of steps, batch sizes, and learning rates for both stages are as follows.
+
+<TechGraph src="/images/posts/qwen38-next-技术报告深读/g04.svg" title="From dense teacher to sparse model" caption="Diagram: QSA two-stage training (drawn by the author, based on original report §2.1.2 Training Details, PDF pp. 6-7)." />
+
+Multiplying the batch sizes by the number of steps from the report, the first stage processes roughly 2B tokens and the second stage roughly 200B tokens. This scale shows that it is not a zero-cost inference switch added to existing weights. The indexer head ablation in Figure 5 also shows that going directly sparse after completing only the first stage leaves a noticeable gap; joint training is needed to recover to near full-attention levels.
+
+### 4.4 Faster Core Attention ≠ Proportionally Faster End-to-End Serving
+
+<Figure src="/images/posts/qwen38-next-技术报告深读/p02.png" alt="QSA indexer and attention module prefill and decode latency at different context lengths" caption="Source: original report Figure 6, PDF p. 9; faithful crop only. Measurements are at the kernel level." />
+
+Figure 6 reports a 7.6× prefill speedup and 4.9× decode speedup for the attention portion at 1M context. This measurement includes the indexer and sparse core attention; prefill uses the last 16K chunk with batch size 1, and decode uses batch size 4 with `next_n = 4`, which includes three additional MTP prediction steps. The baseline is FlashInfer's paged GQA.
+
+From this figure one can conclude "the attention module is significantly faster under these conditions," but not "the entire model's output tokens per second also improves by 4.9×." MoE, GR, communication, scheduling, and other components are all still running. Here's a **hypothetical example purely for illustration**: if a service originally spent only half its time on the optimized component, then even if that component becomes five times faster, total latency only drops from 1 to `0.5 + 0.5 / 5 = 0.6`, roughly a 1.67× overall speedup. This number is not a Qwen measurement but illustrates how local speedups are constrained by time share.
+
+The complexity description should also be preserved as-is. QSA reduces the indexer from `O(n²)` to `O(n²/r)`. When `r` is fixed at 4, it reduces constant overhead while the expression still contains a quadratic term. Therefore, one cannot claim the entire indexing process has strictly linear complexity just because core attention becomes sparse.
+
+### 4.5 Longer Context Requires Looking at Absolute Performance Levels
+
+Table 3 provides more informative data than "supports 1M." On 8-needle MRCR at 1M, QSA scores 26.44 versus 20.71 for full attention; at 512K, it's 40.53 versus 30.66. QSA performs better in these tests, but the absolute scores still remind readers that being able to accept very long inputs does not mean all difficult retrieval tasks can reliably use that content.
+
+RULER scores are notably higher, which is not contradictory. Different benchmarks have different requirements, and a single window length cannot substitute for a task-capability description. For applications that need precise citation across large volumes of material, verification should be supplemented with your own evidence-location, false-citation, and omission rates. (Table 3, p8; the application checks above are this article's recommendation.)
+
+The MTP experiment checks something else: whether reusing QSA indices changes draft acceptance length. Under four-step speculative decoding, Table 4's average acceptance length is 4.07, versus 4.06 for the baseline. This supports the judgment that "acceptance length is essentially maintained on the tested tasks," but cannot alone prove the speedup ratio of a complete speculative decoding system.
+
+## 5. Gated Residual: How a Wider Residual Stream Becomes an Effective Pathway
+
+### 5.1 How Early Features Continue to Be Used as Depth Increases
+
+A plain residual connection can be simply written as `R_next = R + F(Norm(R))`. Each sublayer reads from the same stream and adds its output back. This provides a direct path for gradients and features, but as more and more layers write into it, early information also needs to coexist with content added later.
+
+The basic idea of widening the residual stream is to let the network maintain multiple branches. Continuing the research team analogy from earlier: previously all intermediate results were squeezed into a single set of working notes; now there are several parallel sets. But simply adding more sets isn't enough—how subsequent steps read from them and write results back determines whether the extra space is actually useful.
+
+The report first experiments with a very simplified wide residual: summing branches with learnable scalars, with sublayer outputs written to one branch in rotation by depth. This introduces almost no extra matrix multiplications and already improves training loss. The subsequent question is how much read/write machinery to add on top of this to remain cost-effective. (§2.2, p10)
+
+### 5.2 Reading, Writing, and Branch Mixing Are Three Distinct Operations
+
+Designs in the Hyper-Connections family split operations into three parts: `H_mix` determines what the sublayer reads from branches, `H_combine` determines how sublayer results are written back, and `H_res` directly mixes across residual branches.
+
+Qwen's experimental conclusion is that extra expressiveness should be invested more in "reading." Making read weights depend on the current residual state helps; further refining from one scalar per branch to one weight per branch per channel also helps. The same refinement applied to writing yields very little benefit, so per-branch scalar writing is kept. Once reading and writing are sufficiently flexible, additional `H_res` branch mixing shows no clear improvement and is ultimately removed.
+
+The read and write operations after ablation are asymmetric: reading is finer-grained, writing is simpler, and the extra memory accesses from branch mixing are eliminated.
+
+<Figure src="/images/posts/qwen38-next-技术报告深读/p03.png" alt="Comparison of Pre-norm, static and dynamic mHC, and GR on loss and nine benchmarks" caption="Source: original report Table 5, PDF p. 11; faithful crop only. Ablation scale is 25B-A3B, 560B training tokens." />
+
+Table 5 is very illustrative of why you can't look at loss alone. From Pre-norm to static mHC, loss drops from 1.617 to 1.596, and the nine-task average score rises from 50.91 to 52.49; from static to dynamic mHC, loss drops only another 0.002, yet the average score rises by another 1.98. The first step has a larger loss improvement; the second step has a larger task performance improvement.
+
+GR's average score is 54.66, versus 54.47 for dynamic mHC—the two are close in this set of experiments. A 0.19 percentage-point gap is insufficient to prove universal capability improvement; choosing GR also needs to factor in the memory access and stability results.
+
+### 5.3 GR's Actual Read/Write Flow
+
+GR uses four residual branches. Each branch is independently RMSNorm'd, then information from all branches is combined through a low-rank projection to predict sigmoid gates. These gates weight each branch at each channel separately, and the gated representations are then averaged to serve as the current sublayer's input.
+
+Writing is simpler. Each branch gets a state-dependent scalar `s_i`, and the sublayer output `y` is added back as `R_i_next = R_i + s_i · y`. The write scalars in the report are produced by `2 × sigmoid`, so one cannot generically describe all gates as ranging from 0 to 1. Four branches, per-channel reading, scalar writing—each corresponds to a different structural choice. (Eq.30-34, p11)
+
+<TechGraph src="/images/posts/qwen38-next-技术报告深读/g05.svg" title="GR's read/write division of labor" caption="Diagram: Per-channel gated reading and per-branch scalar writing (drawn by the author, based on original report §2.2, Eq.30-34, PDF p. 11)." />
+
+Because GR's reading internally already performs normalization and gating, it replaces the original sublayer pre-normalization rather than stacking a full module before the old normalization. With branch mixing removed, each branch always maintains an independent cumulative form, making cross-layer information paths easier to analyze.
+
+This also comes with engineering costs. Four branches mean a wider residual state, requiring more bytes to read and write. Removing `H_res`, fusing read/write kernels, and switching state storage from BF16 to FP8 are all choices made around this cost. The report states that FP8 residual storage causes almost no quality loss; the discussion here is about **residual state storage**, not that every weight and every operator in the model computes in FP8.
+
+### 5.4 What Are the Four Branches Actually Preserving?
+
+Because branches are not repeatedly mixed by `H_res`, the authors can decompose a given sublayer's reading into contributions from each earlier sublayer, then compare against a reference model without GR. Figure 7 shows cross-layer paths that are enhanced relative to the reference model.
+
+<Figure src="/images/posts/qwen38-next-技术报告深读/p04.png" alt="Cross-layer paths in GR's four branches, one biased toward long-range, others more local" caption="Source: original report Figure 7, PDF p. 13; faithful crop only. Line width represents contribution share increased relative to the reference model." />
+
+In this 20-layer model analysis, one branch primarily carries long-distance paths while the other three are more local. The authors observe similar specialization across five GR checkpoints and provide examples of how early GDN outputs flow more strongly into later global attention layers. The extra width strengthens specific paths rather than uniformly enhancing all connections. (§2.2, p12-14)
+
+The contribution shares here are numerical decompositions based on actual forward gate values. No path was deleted to test causal contribution, nor can this fully explain the model's semantic knowledge. A strengthened connection can provide mechanistic clues, but proving it caused a particular task capability improvement would require intervention experiments.
+
+### 5.5 Why a Seemingly Free Optimization Was Abandoned
+
+The authors observed imbalanced branch usage and tried reading from only the two branches with the largest gates. Pretraining loss and benchmarks were almost unaffected, but quality degraded noticeably after post-training; more complex sparsity schemes didn't solve this either, and the approach was ultimately not adopted. (Inference Efficiency, p14)
+
+Looking at pretraining results alone, reading two fewer branches is a reasonable bandwidth-saving scheme. But the post-training degradation changed this decision: whether the omitted reads affect final quality needs to be verified further along the training pipeline.
+
+## 6. N-gram Embedding: More Capacity Doesn't Necessarily Mean More Capability
+
+### 6.1 Why Table Lookup Can Serve as a New Capacity Axis
+
+Ordinary token embedding looks up a table by the current token's ID. N-gram Embedding uses a short sequence ending at the current token as the address, letting local context participate in the lookup. The same token appearing in different local combinations can retrieve different auxiliary representations.
+
+What the table stores are learned vectors. Unlike RAG, which retrieves external documents, it cannot provide traceable factual evidence for each output. Its address is determined by the token sequence, so data preparation can begin before the main network's computation reaches the point of use.
+
+The report places the extra table in host memory and connects it at Layer 2, allowing the prefetch to overlap with Layer 1 computation. (§2.3.1, pp. 14–15) This choice considers both task performance and execution order: connecting too early might not leave enough time for data transfer; connecting later would require experiments to determine whether there are additional benefits.
+
+<TechGraph src="/images/posts/qwen38-next-技术报告深读/g06.svg" title="Lookup address is known; data can be prepared in advance" caption="Diagram: N-gram prefetch overlapping with Layer 1 computation (drawn by the author based on original report §2.3.1, PDF pp. 14–15; does not represent measured latency proportions)." />
+
+Table 7 compares multiple placement positions and tests placing the table in two layers simultaneously under a fixed table parameter budget. The single-layer approach is already effective, while multi-layer allocation shows no stable gains; Layer 2 performs better and is also suitable for prefetch overlap, so the authors adopt the single-layer design.
+
+Reasoning from a deployment perspective, whether prefetching can fully hide the overhead depends on when the data is ready, how many vectors need to be transferred per step, and how long a computation window Layer 1 provides. Long batches, different token distributions, and different interconnects can all change the outcome. Therefore, "asynchronous prefetch is possible" is a mechanism condition—it cannot be directly translated into "zero latency cost on any machine." The report does not provide sufficient host bandwidth and cache hit data for us to make such a guarantee across all deployment conditions.
+
+### 6.2 First Check Whether the Budget Changed, Then Compare Results
+
+When studying newly added modules, a subtle problem frequently arises: the new approach uses more parameters or data than the old one, yet the results are entirely attributed to the structure being better. The two tables here separate the issue very clearly.
+
+The first type uses a **fixed total parameter budget**: when adding the N-gram table, MoE experts are reduced to offset the new parameters. The question is "given a model of the same size, how should capacity be allocated?" The second type **fixes the MoE scale and adds the table on top**: total model parameters increase. The question is "how much benefit does adding lookup capacity to the existing backbone bring?" The conclusions from these two types cannot be interchanged.
+
+<Figure src="/images/posts/qwen38-next-技术报告深读/p05.png" alt="Results of adjusting N-gram and MoE parameter proportions under a fixed total parameter budget" caption="Source: Original report Table 8, PDF p. 15; faithful crop only. N-gram parameters increase while experts decrease correspondingly." />
+
+In Table 8, loss is better around 10× the base vocabulary size, but the out-of-domain uncheatable PPL changes are small, and downstream benchmarks don't show clear across-the-board improvement over the MoE-only baseline. Therefore, this data should not be read as "replacing experts with table lookup has been proven superior." It better supports a more limited judgment: the two types of parameters serve different roles, and the loss-optimal allocation point is not necessarily the task-capability-optimal allocation point.
+
+### 6.3 Loss Keeps Dropping Monotonically, but Task Performance Starts to Diverge
+
+Table 9 fixes the MoE budget and progressively increases the N-gram table. Loss continues to decrease as the vocabulary expands, but tasks like MATH and GSM8K begin to saturate or fluctuate after a relatively small expansion; C-Eval and CMMLU continue to improve in this set of experiments. Different tasks respond inconsistently to additional lookup capacity.
+
+<Figure src="/images/posts/qwen38-next-技术报告深读/d01.svg" alt="Discrete data from Table 9: loss, MATH, GSM8K, and C-Eval as N-gram vocabulary scales up" caption="Data source: Original report Table 9, PDF p. 15; redrawn by the author. MoE budget is held constant while total parameters increase; each panel uses an independent y-axis and shows only the original discrete points." />
+
+Each task is shown in a separate panel to prevent aggregate scores from masking declines in individual tasks. Loss and task scores have different meanings and units, so independent y-axes are used as well.
+
+Taking MATH as an example, the score is 32.52 without an extra table, 37.38 at 20× vocabulary, and 35.34 at 200×. The largest table is still better than the no-table baseline, but it does not maintain the peak gains seen earlier. In contrast, loss drops steadily from 1.585 to 1.526. Looking at loss alone, you would miss the task degradation caused by continuing to expand table capacity.
+
+We can offer one interpretation: improvements in predicting local patterns and the generalization required for complex tasks do not always grow proportionally. But this is an interpretation of the results—the report does not fully disentangle the causal contribution of "pattern memorization" to each individual task. Nor can we conclude from this phenomenon alone that test set contamination or overfitting has occurred; such accusations require separate evidence.
+
+The capacity budget ultimately needs to be set according to target tasks. If doubling the table capacity only improves training loss while business-relevant tasks show no stable change, you need to carefully calculate how much effective benefit the additional storage brings. Table lookup saves compute, but it still incurs memory, transfer, and maintenance costs.
+
+## 7. Muon and Training Recipes: When You Change the Architecture, You Must Re-find the Right Pace
+
+### 7.1 The Optimizer Depends on Parameter Meaning and Shape
+
+Muon performs approximate orthogonalization on the momentum of matrix parameters, then forms the update direction. The report uses Newton-Schulz iterations, Polar Express coefficient scheduling, and eight iteration steps, combining more accurate orthogonalization with stability under stress testing. (§3.1, p. 16)
+
+This differs from approaches that adjust update magnitudes element-wise—the row-column relationships of the matrix enter the optimization process. Therefore, "the weight file contains a 2D tensor" does not automatically mean it is suitable for Muon. A matrix might simply be a temporary concatenation of semantically different parameters, or its output dimensions might be entirely independent of one another.
+
+| Parameter Category | Treatment in the Report | Reading Focus |
+| --- | --- | --- |
+| Attention q/k/v, output projection; expert main linear layers, etc. | Muon | Treated as actual linear mappings |
+| Token embedding, LM output head | AdamW | Not all 2D matrices are handed to Muon indiscriminately |
+| MoE router | AdamW | Muon exacerbated early-stage oscillations; later attempts also showed no clear benefit |
+| GR's two low-rank projections | AdamW | Authors link the performance difference to the elongated matrix shape |
+| N-gram embedding table | Adam, weight decay disabled | Refer to the detailed settings in §3.1 |
+| GDN decay, beta, and other per-head scalar projections | No matrix orthogonalization | Need to be split out from fused matrices by semantics |
+
+The table above corresponds to original report §3.1. The discussion of router causes is the authors' explanation, not a universally proven optimizer theorem. A particular type of parameter not benefiting may be jointly related to representation format, training stage, learning rate matching, and matrix shape.
+
+### 7.2 Fused Matrices Are Convenient for Computation but Not Necessarily for Optimization
+
+For efficient execution, training frameworks often store q/k/v projections as a fused matrix and also pack the gate and up parts of SwiGLU together. For forward computation, this reduces operations and scheduling overhead; for matrix orthogonalization, however, it may mix subspaces that should not be processed together.
+
+The report adopts the approach of first splitting gradients, orthogonalizing them separately, then writing back to the original layout. qkv and GDN input projections are refined to per-head granularity; the first layer of SwiGLU is split into gate and up. Two things change here: orthogonalization respects the semantics of the sub-matrices, and update scaling is computed based on the true sub-matrix shapes rather than the concatenated shape.
+
+**Fused in storage, but still separable for optimization.** Parameters residing in the same memory block does not mean they must undergo the same matrix orthogonalization.
+
+### 7.3 Distributed Overhead Cannot Be Averaged by Parameter Count
+
+Muon's per-step computation depends on matrix shape. The NS operation cost given in the report is approximately related to `max(A,B) × min(A,B)²` and the number of iteration steps. Therefore, two blocks containing the same number of elements but with different shapes may have different orthogonalization costs. Distributing elements evenly across devices will cause some devices to be slower while others wait.
+
+The authors use Canzona to decouple logical optimizer assignment from physical parameter layout, allocating complete matrices based on estimated orthogonalization FLOPs, then handling regrouping and communication under tensor parallelism. After splitting fused matrices, the number of small kernels increases, so CUDA graphs are used to reduce launch overhead. (§3.1 Implementation, p. 16)
+
+When comparing optimizers, in addition to convergence curves, you should also record the composition of step time: gradient communication, matrix regrouping, NS computation, kernel launch, and overlap with backward. Better loss at the same number of tokens may not offset an increase in per-step time.
+
+### 7.4 After Stability Improves, Old Hyperparameters May Be Overly Conservative
+
+The new architecture and new optimizer change the appropriate learning rate and batch size. Continuing to use the old recipe from Qwen3.5 can train successfully, but that doesn't mean the new structure is being used to its full potential. The authors re-fit the scaling law, then validate the two predictions separately: smaller models trained on more tokens to validate batch size, and larger models trained on limited tokens to validate learning rate.
+
+Whether an excessively large batch harms data efficiency requires a sufficiently long training run to observe; whether the learning rate causes instability as scale increases needs to be checked on larger models. A single small-scale short run can hardly answer both questions simultaneously.
+
+<Figure src="/images/posts/qwen38-next-技术报告深读/p06.png" alt="Comparison of training loss between fixed batch and batch warmup under a 4T token budget" caption="Source: Original report Figure 8, PDF p. 17; faithful crop only. Left: fixed batch; right: gradually increasing batch." />
+
+In the test with 20 layers, 10.8B-A0.89B MoE, and 4T tokens, the predicted batch is 25.2M tokens, while the old recipe used 12.6M; the corresponding learning rate is also matched per recipe. The final loss improvement is approximately 0.0072, and increasing the batch further to 37.7M only slightly worsens loss. The results support a "relatively flat suitable range" and should not be interpreted as a precise optimal constant down to the last decimal place. (§3.2, p. 17)
+
+The larger model validation uses 48 layers, 156B-A7B MoE, and the same 419B-token budget. The new predicted point and nearby settings are close in loss and outperform the old recipe; Table 10's average task scores also support the new recipe. The authors simultaneously note the limitations of evaluation count and narrow margins, so the ranking among the top few settings should not be written as a definitive statistical conclusion. (pp. 18–19)
+
+### 7.5 Which Kind of Warmup Is No Longer Needed
+
+The authors re-test batch-size warmup: gradually increasing from a smaller batch to 25.2M, trying both a version that maintains the target learning rate and a version that lowers the learning rate for smaller batches. Neither ultimately outperforms starting training at the target batch size, yet they consume 18.8% more optimizer steps to process the same number of tokens. (§3.2, p. 18)
+
+<Callout type="note" title="What's being eliminated here is batch-size warmup">
+
+The report still uses learning-rate warmup. Gradually increasing batch size and gradually increasing learning rate are two different schedules—this conclusion cannot be abbreviated to "Muon doesn't need warmup." The 18.8% is also the proportion of extra optimizer steps, not the measured reduction in total training cost.
+
+</Callout>
+
+Fewer steps may reduce communication and scheduling events, and larger batches may also improve device utilization, but per-step time also changes with batch size. How much is actually saved still depends on wall-clock time and resource usage.
+
+## 8. Stress Tests, Final Scores, and Engineering Judgment
+
+### 8.1 Why Running Fine at Small Scale Isn't Enough
+
+Training instability may not appear until late in the run. Larger models, longer training, and more steps spent in high-learning-rate regimes can all expose anomalies invisible in a short small-scale trial. By the time a problem surfaces during a full training run, the cost is often already very high.
+
+The report surfaces this stress early by sustaining high learning rates on a medium-scale model. The tests compare the Qwen3.5 architecture with AdamW, the same architecture with Muon, and Muon plus GR; the model is a 28-layer 25B-A3B, with batch size and gradient-clipping thresholds held constant. The authors track loss spikes, pre-clip gradient norms, and maximum activation values, explicitly defining a spike as a step whose loss exceeds the 201-step rolling median by 0.1. (§3.3, pp. 19–20)
+
+<Figure src="/images/posts/qwen38-next-技术报告深读/p07.png" alt="Training curves for AdamW, Muon, and Muon plus GR at 2× and 4× optimal learning rate" caption="Source: Original report Figure 10, PDF p. 19; faithful crop only. These are fixed high-learning-rate stress tests, not recommended production learning-rate settings." />
+
+Under 4× optimal learning-rate stress, the AdamW baseline produced 183 spikes per 10 000 steps; the Muon-plus-GR configuration recorded zero loss spikes, and neither Muon configuration crossed the gradient-clipping threshold. This supports the claim that "the new recipe is more stable under the tested stress," but it does not warrant the conclusion that "any model can simply quadruple its learning rate." The multipliers in the test are deliberately constructed stress conditions for a specific model under a specific spike definition, not a universal tuning formula.
+
+### 8.2 Separating the Combined Gain from the Gate's Contribution
+
+When a combined recipe performs well, you still need to ask which component is doing the work. The authors ran a separate pair of experiments that held AdamW, architecture, and data order constant, toggling only GatedNorm. At 3× optimal learning rate, the spike rate dropped from 32.0 to 3.2 per 10 000 steps, and threshold crossings fell from 256 to 20. (Figure 12; §3.3, pp. 20–21)
+
+This is closer to single-variable evidence for the gate's contribution than merely comparing "old recipe" versus "full new recipe." Still, the standalone GatedNorm experiment and the complete GR scheme differ in their layer-level details, so you cannot attribute the entire stability improvement to one simplified module.
+
+The authors argue that a network at high learning rates needs an effective rescaling mechanism. Without an explicit gate, the network may achieve rescaling by growing activation outliers, making it more fragile; a multiplicative gate provides a more direct scaling path. This is the authors' mechanistic interpretation—the spike and activation observations alone are not sufficient to fully prove it.
+
+### 8.3 After Stress Tests, Look at the Production Configuration
+
+High-learning-rate stress tests are good for rapid screening, but they deviate from the configuration actually used. The report therefore also compares production training over the first 276B tokens: same data order, learning-rate schedule, and optimizer, comparing Qwen3.5 plus Muon, then adding GR, and finally the full Flash-Next recipe.
+
+Figure 13 shows loss, gradient norms, and maximum residual activation values over this window. The gated configurations exhibit less fluctuation, and the full recipe achieves lower loss. The authors additionally report that the full training run completed with no loss spikes or gradient-norm anomalies. (pp. 21–22; Introduction p. 3)
+
+These two pieces of evidence should be stated separately: the publicly plotted controlled comparison covers an early window of production training; the claim about the full training completing smoothly is the authors' report. You should not misread the three early-window comparison curves as a full-length, side-by-side parallel run spanning the entire training duration.
+
+The report does not rely on qk-clip, SwiGLU-clip, or other explicit activation controls to maintain this stability—but that does not mean "no gradient clipping at all." Multiple experiments still set a gradient-norm threshold of 0.5 and track how often it triggers. Never triggering, being configured but never relied upon, and the mechanism not existing at all are three different states.
+
+### 8.4 What the Final Scores Support
+
+Table 11 compares three Base models. For ease of verification, the full 14-item results are preserved below. All values come from the original report Table 11 (p. 22); the final column's differences are computed by this article as Flash-Next minus Qwen3.7-Plus, in percentage points.
+
+| Benchmark | Flash-Next-Base | Qwen3.8-27B-Base | Qwen3.7-Plus-Base | Diff. vs Plus |
+| --- | ---: | ---: | ---: | ---: |
+| MMLU | 90.36 | 87.51 | 90.43 | −0.07 |
+| MMLU-Redux | 90.68 | 87.26 | 91.47 | −0.79 |
+| MMLU-Pro | 73.23 | 68.60 | 70.90 | +2.33 |
+| SuperGPQA | 51.36 | 44.86 | 48.42 | +2.94 |
+| BBH | 90.87 | 89.56 | 89.41 | +1.46 |
+| GPQA | 51.42 | 45.01 | 51.52 | −0.10 |
+| GSM8K | 93.29 | 93.18 | 92.95 | +0.34 |
+| MATH | 72.78 | 60.54 | 74.38 | −1.60 |
+| EvalPlus | 78.76 | 76.05 | 78.06 | +0.70 |
+| MultiPL-E | 79.09 | 74.50 | 81.68 | −2.59 |
+| SWEBench-Pretrain | 50.99 | 41.66 | 49.24 | +1.75 |
+| MGSM | 89.33 | 86.37 | 85.42 | +3.91 |
+| MMMLU | 84.86 | 79.74 | 84.53 | +0.33 |
+| INCLUDE | 78.40 | 74.37 | 78.90 | −0.50 |
+
+Flash-Next leads the 27B baseline on all 14 benchmarks. Against the 397B-A17B Plus baseline, the picture is roughly even overall, with each model winning on different items. Combined with training FLOPs, these results support an improvement in compute efficiency, but the benchmarks do not cover a full real-world Agent serving suite.
+
+Pay particular attention to `SWEBench-Pretrain`. The report defines it as an SWE-bench variant designed for pretrained models; you should not align it with SWE-bench Verified, SWE-bench Pro, or any coding-agent leaderboard score simply because the names look similar. The few-shot settings, CoT configurations, and aggregation details are itemized in §4; when citing the data, bring those settings along.
+
+### 8.5 Putting Ablation Results Back on Their Own Scales
+
+The report covers multiple model scales and training budgets—a strength that also introduces a misreading risk: readers may treat each section's best number as a cumulative gain on the same model.
+
+| Design Question | Key Experimental Setup Used in Report | Proper Interpretation |
+| --- | --- | --- |
+| Full / SWA / GDN | 25B-A3B; 400B + 80B tokens | Examining token-mixer selection |
+| QSA compression ratio, index heads | 35B-A3B; post-CPT evaluation | Examining sparse-index design |
+| Residual read/write | 25B-A3B; 560B tokens | Examining read/write expressiveness |
+| GR information pathways | 20-layer paired models | Analyzing cross-layer contribution structure |
+| Batch prediction | 10.8B-A0.89B; 4T tokens | Examining batch settings over longer training |
+| Learning-rate prediction | 156B-A7B; 419B tokens | Examining recipe extrapolation to larger models |
+| Final Base scores | 125B body + 51B table | Examining outputs of the full recipe |
+
+The average-score gains across these tables cannot be summed. Components interact with each other, and baselines, training volumes, and evaluation tasks are not fully identical. The authors screen at affordable scales first, then test risks at different scales, and finally evaluate the complete recipe.
+
+### 8.6 How to Adopt These Insights in Engineering Practice
+
+When doing architecture research, you can borrow the report's **validation sequence**: start with a specific question, then build a controlled comparison. If you want to reduce long-context overhead, record both the index and core attention simultaneously; if you want to change the residual, look at both task scores and activation behavior; if you want to switch to Muon, include step time, parameter shapes, and update semantics in your checks.
+
+For training experiments, retaining a set of probes that can reveal late-stage behavior is important. The report's NoPE and sparse-branch read patterns might both pass early-loss checks. A smaller but representative post-training check is more decision-relevant than arguing over the fourth decimal place of pretraining loss. This is a recommendation this article makes based on negative results, not a claim that the report has already proven the existence of some universal proxy metric.
+
+If the goal is deployment, acceptance testing should center on the real request distribution. I recommend fixing the model revision, inference framework version, weight quantization, context length, and concurrency, then breaking cost down into the following items:
+
+- **Prefill**: Record first-token latency separately for short and long inputs; check the scheduling behavior of chunked prefill.
+- **Decode**: Record per-token latency and total throughput; verify whether MTP is enabled, its acceptance length, and verification cost.
+- **Memory and data movement**: Record GPU and host memory usage and peaks; check whether N-gram prefetching truly hides behind computation.
+- **Task quality**: Fix the sampled tasks, generation budget, and judging criteria; specifically preserve long-range citation, tool-failure recovery, and termination behavior.
+
+Workloads and execution environments change the payoff of these designs. For instance, QSA is highly valuable for very long inputs, but when everyday requests are short, serving overhead may come mainly from elsewhere; if host table capacity is ample but device interconnect is weak, asynchronous prefetching may not fully hide data movement.
+
+For service migration, prioritize comparing latency and cost at the same task success rate. If the new configuration is faster but increases citation errors, repetitive generation, or tool misuse, the rework and failure costs should be counted in as well.
+
+### 8.7 Questions This Report Still Does Not Answer
+
+The most obvious gap is the full training and post-training recipe. The report provides substantial detail on architecture ablations, QSA CPT, and optimizer specifics, but training corpus composition, all production configurations, the post-training process, and evaluation materials remain insufficient for a third party to fully reproduce the model from documentation alone. Publishing an architecture is not the same as publishing the full source of capability.
+
+The second gap is end-to-end deployment evidence. The attention kernel results are relatively clear, but those figures alone cannot answer how much concurrency a specific set of hardware can sustain, how much tail latency host-table lookups add, or how different quantization strategies affect task quality. This article therefore offers no GPU count or dollar-cost recommendation; those require empirical measurement given specific hardware and business inputs.
+
+The third question is transferability of results. The gating, vocabulary size, and batch scheduling that work for this model and data recipe may rank differently on smaller models, less data, or different language distributions. The N-gram experiments in particular have already shown task-level response divergence, so you cannot derive a capacity allocation plan for all scenarios from a single set of averaged results.
+
+The fourth question is evaluation efficiency. The authors note in their conclusion that if a cheaper medium-scale probe could reliably predict post-training rankings, the design search space could be expanded. This open question runs through the entire paper: the bottleneck in architecture experiments is not just compute, but how late you have to wait before knowing you picked the wrong design.
+
+## 9. My Judgment: What's Worth Learning Is How to Make Trade-offs Testable
+
+This report made me value three design habits more.
+
+**First, design arithmetic workload and data movement together.** GDN's state, QSA's index, GR's branches, and N-gram's host memory each alter the relationship between computation and storage. Counting FLOPs alone cannot explain all latencies; counting parameters alone cannot explain which capacity must reside on-device and which can be prepared on demand.
+
+**Second, stability affects the choice of learning rate and batch size.** If gating lets training tolerate a more appropriate learning rate and batch size, it can improve training efficiency. Each link in this chain still requires separate verification—a smoother curve does not directly equal stronger generalization.
+
+**Third, write down the rejected designs too.** Degradation on some tasks, post-training regression, no gain from an extra component—these results explain why the authors abandoned a particular path and help future researchers judge whether it is worth retrying.
+
+The Qwen3.8-Next report preserves the experimental process from local modifications to the full recipe. By following this process, readers can verify where each gain occurred, under what conditions it was measured, and whether it still holds when entering subsequent training or deployment.
+
+## References and Image Sources
+
+1. Qwen Team. [*On the Design of Qwen3.8-Next Architecture: Evaluation, Efficiency, and Training Stability*](https://arxiv.org/abs/2608.30320). Primary source for this deep read; the [official PDF used](https://github.com/QwenLM/Qwen3.8-Flash-Next/blob/main/tech_report.pdf) has a cover date of 2026-08-26. Section numbers, figure/table numbers, and PDF page numbers are preserved throughout the text.
+2. Qwen Team. [Qwen3.8-Flash-Next official repository](https://github.com/QwenLM/Qwen3.8-Flash-Next). Used to confirm the correspondence between the model and the report.
+3. Qwen Team. [Qwen3.8-Flash-Next official release page](https://qwen.ai/blog?id=qwen3.8-flash-next). Used to confirm the release positioning; this article does not incorporate service pricing or product capabilities from the release page into the technical report experiments.
+
+Of the 14 figures in this article, 7 are directly cropped from the original report: Figures 1, 6, 7, 8, 10, and Tables 5, 8; 6 are concept or flow diagrams drawn by the blogger; 1 is redrawn from the discrete data in Table 9. Original figures received no AI enhancement or relabeling; self-drawn and redrawn figures are identified in their captions. The source PDF, image hashes, crop coordinates, data, and text are preserved in the local article package for verification.
