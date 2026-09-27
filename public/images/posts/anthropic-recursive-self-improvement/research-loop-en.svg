@@ -1,48 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="970" viewBox="0 0 900 970" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-quality-profile="showcase" data-style="6">
-<title id="title">改进必须传递到下一轮研发</title><desc id="desc">五个需要分别验证的环节；不是已实现的能力评级。</desc>
+<title id="title">An improvement must reach the next cycle</title><desc id="desc">Five links to verify, not a measured capability ladder.</desc>
 <style>text{font-family:"Hiragino Sans GB","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif}</style>
 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L8 4L0 8Z" fill="#796f62"/></marker></defs>
 <rect data-graph-role="background" width="900" height="970" fill="#f8f6f3"/>
-<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">改进必须传递到下一轮研发</text>
+<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">An improvement must reach the next cycle</text>
 <path id="e1" data-graph-role="edge" data-edge-id="e1" data-source="s0" data-target="s1" d="M 450.0 240 L 450.0 292" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="e2" data-graph-role="edge" data-edge-id="e2" data-source="s1" data-target="s2" d="M 450.0 402 L 450.0 454" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="e3" data-graph-role="edge" data-edge-id="e3" data-source="s2" data-target="s3" d="M 450.0 564 L 450.0 616" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="e4" data-graph-role="edge" data-edge-id="e4" data-source="s3" data-target="s4" d="M 450.0 726 L 450.0 778" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">五个需要分别验证的环节；不是已实现的能力评级。</text>
+<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">Five links to verify, not a measured capability ladder.</text>
 <g id="s0" data-graph-role="node" data-node-id="s0" data-graph-bounds="100,130,800,240">
 <rect x="100" y="130" width="700" height="110" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><circle cx="134" cy="165" r="13" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="134" cy="165" r="5" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="167" y="174" font-size="23" fill="#292824" font-weight="600" text-anchor="start">选择问题</text>
-<text x="124" y="210" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">明确价值、约束与失败标准。</text>
+<text x="167" y="174" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Choose a question</text>
+<text x="124" y="210" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Define value, constraints and a failure criterion.</text>
 </g>
 <text x="50" y="178" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">01</text>
 <g id="s1" data-graph-role="node" data-node-id="s1" data-graph-bounds="100,292,800,402">
 <rect x="100" y="292" width="700" height="110" rx="14" fill="#f4e4c1" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M124 313h14l6 6v22h-20Z M138 313v7h6 M129 328h10 M129 334h10" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="167" y="336" font-size="23" fill="#292824" font-weight="600" text-anchor="start">提出并运行实验</text>
-<text x="124" y="372" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">保留代码、数据、预算与结果。</text>
+<text x="167" y="336" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Propose and run experiments</text>
+<text x="124" y="372" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Keep code, data, budgets and results traceable.</text>
 </g>
 <text x="50" y="340" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">02</text>
 <g id="s2" data-graph-role="node" data-node-id="s2" data-graph-bounds="100,454,800,564">
 <rect x="100" y="454" width="700" height="110" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M123 502v-25h22v25 M123 485h22 M131 477v25" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="167" y="498" font-size="23" fill="#292824" font-weight="600" text-anchor="start">在搜索之外验证</text>
-<text x="124" y="534" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">使用优化过程没有反复适应过的证据。</text>
+<text x="167" y="498" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Test outside the search loop</text>
+<text x="124" y="534" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Use evidence the optimizer could not adapt to.</text>
 </g>
 <text x="50" y="502" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">03</text>
 <g id="s3" data-graph-role="node" data-node-id="s3" data-graph-bounds="100,616,800,726">
 <rect x="100" y="616" width="700" height="110" rx="14" fill="#f4e4c1" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M123 651l7 7l16 -17" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="167" y="660" font-size="23" fill="#292824" font-weight="600" text-anchor="start">集成到后继模型</text>
-<text x="124" y="696" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">局部收益还要通过完整系统验收。</text>
+<text x="167" y="660" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Integrate into a successor</text>
+<text x="124" y="696" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">A local gain must survive full-system validation.</text>
 </g>
 <text x="50" y="664" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">04</text>
 <g id="s4" data-graph-role="node" data-node-id="s4" data-graph-bounds="100,778,800,888">
 <rect x="100" y="778" width="700" height="110" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><circle cx="134" cy="813" r="13" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M134 805v9l6 4" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="167" y="822" font-size="23" fill="#292824" font-weight="600" text-anchor="start">测量下一轮研发</text>
-<text x="124" y="858" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">检查后继模型是否改善了研发本身。</text>
+<text x="167" y="822" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Measure the next research cycle</text>
+<text x="124" y="858" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Check whether the successor improves research itself.</text>
 </g>
 <text x="50" y="826" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">05</text>
-<text x="44" y="942" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">递归性来自：后继系统让后续研发更有效，而非单次任务更快。</text>
+<text x="44" y="942" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">Recursion requires successors to improve research, beyond a one-off speedup.</text>
 </svg>

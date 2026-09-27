@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="1000" viewBox="0 0 900 1000" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-quality-profile="showcase" data-style="6">
-<title id="title">一条序列，与一份历史的多次使用</title><desc id="desc">计算形状决定：用户侧的工作能否在多个候选之间共享。</desc>
+<title id="title">One sequence, many uses of one history</title><desc id="desc">The computation shape determines whether user-side work can be shared.</desc>
 <style>text{font-family:"Hiragino Sans GB","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif}</style>
 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L8 4L0 8Z" fill="#796f62"/></marker></defs>
 <rect data-graph-role="background" width="900" height="1000" fill="#f8f6f3"/>
-<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">一条序列，与一份历史的多次使用</text>
+<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">One sequence, many uses of one history</text>
 <rect data-graph-role="decoration" x="44" y="874" width="812" height="68" rx="14" fill="#e8eee7" stroke="#d8d0c5" stroke-width="1.5"/>
 <path id="predict0" data-graph-role="edge" data-edge-id="predict0" data-source="x0" data-target="y0" d="M 118.0 251 L 118.0 311" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="predict1" data-graph-role="edge" data-edge-id="predict1" data-source="x1" data-target="y1" d="M 282.0 251 L 282.0 311" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
@@ -13,8 +13,8 @@
 <path id="reuse0" data-graph-role="edge" data-edge-id="reuse0" data-source="history" data-target="c0" d="M 150 626 V 720" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="reuse1" data-graph-role="edge" data-edge-id="reuse1" data-source="history" data-target="c1" d="M 450 626 V 720" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="reuse2" data-graph-role="edge" data-edge-id="reuse2" data-source="history" data-target="c2" d="M 750 626 V 720" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">计算形状决定：用户侧的工作能否在多个候选之间共享。</text>
-<text x="44" y="145" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">01  语言建模：逐位置监督</text>
+<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">The computation shape determines whether user-side work can be shared.</text>
+<text x="44" y="145" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">01  LANGUAGE MODELING: DENSE SUPERVISION</text>
 <g id="x0" data-graph-role="node" data-node-id="x0" data-graph-bounds="60,176,176,251">
 <rect x="60" y="176" width="116" height="75" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
 <text x="84" y="220" font-size="23" fill="#292824" font-weight="600" text-anchor="start">x1</text>
@@ -55,31 +55,31 @@
 <rect x="716" y="311" width="116" height="75" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
 <text x="740" y="355" font-size="23" fill="#292824" font-weight="600" text-anchor="start">x6</text>
 </g>
-<text x="450" y="420" font-size="20" fill="#625d55" font-weight="400" text-anchor="middle">每个位置预测下一个 token</text>
-<text x="44" y="480" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">02  推荐排序：一份历史，多个候选</text>
+<text x="450" y="420" font-size="20" fill="#625d55" font-weight="400" text-anchor="middle">Each position predicts the next token</text>
+<text x="44" y="480" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">02  RANKING: ONE HISTORY, MANY CANDIDATES</text>
 <g id="history" data-graph-role="node" data-node-id="history" data-graph-bounds="130,514,770,626">
 <rect x="130" y="514" width="640" height="112" rx="14" fill="#f4e4c1" stroke="#8c8172" stroke-width="1.6"/>
-<text x="154" y="558" font-size="23" fill="#292824" font-weight="600" text-anchor="start">用户行为历史：1K 至 100K</text>
-<text x="154" y="594" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">噪声大、时间间隔不均匀</text>
+<text x="154" y="558" font-size="23" fill="#292824" font-weight="600" text-anchor="start">User history: 1K to 100K events</text>
+<text x="154" y="594" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Noisy events with irregular time gaps</text>
 </g>
 <g id="c0" data-graph-role="node" data-node-id="c0" data-graph-bounds="44,720,256,850">
 <rect x="44" y="720" width="212" height="130" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
-<text x="68" y="764" font-size="23" fill="#292824" font-weight="600" text-anchor="start">候选 1</text>
-<text x="68" y="800" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">标签 0/1</text>
-<text x="68" y="829" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">稀疏且延迟</text>
+<text x="68" y="764" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Candidate 1</text>
+<text x="68" y="800" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Label 0/1</text>
+<text x="68" y="829" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Sparse; delayed</text>
 </g>
 <g id="c1" data-graph-role="node" data-node-id="c1" data-graph-bounds="344,720,556,850">
 <rect x="344" y="720" width="212" height="130" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
-<text x="368" y="764" font-size="23" fill="#292824" font-weight="600" text-anchor="start">候选 2</text>
-<text x="368" y="800" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">标签 0/1</text>
-<text x="368" y="829" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">稀疏且延迟</text>
+<text x="368" y="764" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Candidate 2</text>
+<text x="368" y="800" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Label 0/1</text>
+<text x="368" y="829" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Sparse; delayed</text>
 </g>
 <g id="c2" data-graph-role="node" data-node-id="c2" data-graph-bounds="644,720,856,850">
 <rect x="644" y="720" width="212" height="130" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
-<text x="668" y="764" font-size="23" fill="#292824" font-weight="600" text-anchor="start">候选 N</text>
-<text x="668" y="800" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">标签 0/1</text>
-<text x="668" y="829" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">稀疏且延迟</text>
+<text x="668" y="764" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Candidate N</text>
+<text x="668" y="800" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Label 0/1</text>
+<text x="668" y="829" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Sparse; delayed</text>
 </g>
 <text x="66" y="916" font-size="29" fill="#292824" font-weight="600" text-anchor="start">N · (T + C)   →   T + N · C</text>
-<text x="44" y="972" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">T：用户侧成本；C：候选侧成本。示意公式，不是端到端实测。</text>
+<text x="44" y="972" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">T: user-side cost. C: candidate cost. Schematic, not measured total speedup.</text>
 </svg>

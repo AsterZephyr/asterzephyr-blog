@@ -1,0 +1,56 @@
+[
+  {
+    "source": "/images/posts/anthropic-recursive-self-improvement/research-loop.svg",
+    "target": "/images/posts/anthropic-recursive-self-improvement/research-loop-en.svg",
+    "sourceHash": "60e1a4eea10ea72f8f5120a12d8c78f77f6126a1b404355c72e93002afae4012",
+    "targetHash": "e481bd47e22d724f2c2fe915753b4236bcf8d5c20fdd758571bc63dc61366d26"
+  },
+  {
+    "source": "/images/posts/anthropic-recursive-self-improvement/evidence-ladder.svg",
+    "target": "/images/posts/anthropic-recursive-self-improvement/evidence-ladder-en.svg",
+    "sourceHash": "4206bbdd53b1812d2c374d3be087ba13814141e457c1a5e013eb434dcb3c6a06",
+    "targetHash": "9728adb0de6faed08c86b1a27519bf3f237cd65643b117e171406831dc37c6d2"
+  },
+  {
+    "source": "/images/posts/anthropic-recursive-self-improvement/evaluation-boundary.svg",
+    "target": "/images/posts/anthropic-recursive-self-improvement/evaluation-boundary-en.svg",
+    "sourceHash": "9a360c049971b5e81354f6348c52e1413638016568fffee391dee42c379005cc",
+    "targetHash": "70da12e7234be32385155cf96f372d27ae6ed3c137b1917d561dd826ca460285"
+  },
+  {
+    "source": "/images/posts/anthropic-recursive-self-improvement/possible-futures.svg",
+    "target": "/images/posts/anthropic-recursive-self-improvement/possible-futures-en.svg",
+    "sourceHash": "397d775f64caacf8f2f1305752b45017fa10e2dd261bd99f88a635bc1ed2f018",
+    "targetHash": "7bea821a41d6d0b810ec6a7f7d799d96d5c7de5e6f51c9590b6b5f2432cefd68"
+  },
+  {
+    "source": "/images/posts/短视频与注意力-一项脑电研究发现了什么/attention-functions.svg",
+    "target": "/images/posts/短视频与注意力-一项脑电研究发现了什么/attention-functions-en.svg",
+    "sourceHash": "edcd833dc7cb67facba21dbe44518383fefe523dab8344fcc80d920681eb7c67",
+    "targetHash": "51dd4d2d6a9cf80889bfedbec8f49c3ab80ff2173027ec83270e668a4ada7501"
+  },
+  {
+    "source": "/images/posts/短视频与注意力-一项脑电研究发现了什么/contrast-baselines.svg",
+    "target": "/images/posts/短视频与注意力-一项脑电研究发现了什么/contrast-baselines-en.svg",
+    "sourceHash": "408e02f2c470e0265e184d59bac9c44bb9c0a6f75f488ea9071d86548e8b1d82",
+    "targetHash": "8c608206beccfc337d4deb70beb2434940a33ee185cb77337e739c6c2036437b"
+  },
+  {
+    "source": "/images/posts/短视频与注意力-一项脑电研究发现了什么/causal-alternatives.svg",
+    "target": "/images/posts/短视频与注意力-一项脑电研究发现了什么/causal-alternatives-en.svg",
+    "sourceHash": "9d9a923e858ff505573378221c21470003553f01d59be8819e6c191af1076763",
+    "targetHash": "01954a775c8ae8b8e333842b1573955e9a23959586dc2c3c60cd5df841c4e242"
+  },
+  {
+    "source": "/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/compute-shape.svg",
+    "target": "/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/compute-shape-en.svg",
+    "sourceHash": "4e99ba9cd342aeeca94c41264089bb6548954e87d62cc05878e3443bc675555d",
+    "targetHash": "29b5f0233dc83be8235007cd395308778639b0a5ac12657ef7efbd0d29a6abf6"
+  },
+  {
+    "source": "/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/method-lineage.svg",
+    "target": "/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/method-lineage-en.svg",
+    "sourceHash": "83a6947304fc913b8982d9936db76dd6aa6f3377ca4856ffb6638a1b7ed50922",
+    "targetHash": "26d0ee958f7825bd7f69998c6117b88d7091120b2e77ddb924718b331704d507"
+  }
+]

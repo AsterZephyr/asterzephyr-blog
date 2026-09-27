@@ -21,6 +21,8 @@ Chinese and English share the existing page URL and canonical URL. No locale rou
 
 Each translation needs translated `title` and `summary`, `sourceFile` (original filename, including extension), and `sourceHash` (SHA-256 of the complete original file). Preserve original data, links, formulas and component APIs. Editing the Chinese source requires refreshing its English translation and hash; never update only the hash to suppress a stale-content check.
 
+Author-created diagrams can have translated labels: keep the Chinese SVG at its existing path and place the English edition beside it as `<name>-en.svg`. Reference the matching edition from each article, including any full-size image link. Register the exact pair and both SHA-256 hashes in `docs/localized-diagrams.json` after checking text, numbers, topology and rendered output. The build allows only those reviewed pairs; missing or modified files fail validation, and all other asset/link targets must still match. Original research figures and statistical charts remain unchanged.
+
 `english-translation-batch.json` records the initial 50-post selection by publication date, excluding drafts. Pinned status does not affect selection. Additional translations can be added independently.
 
 Every new published post must have a complete English counterpart in the same change. The build checks this automatically, including pinned posts. Unfinished originals may remain drafts. `legacy-untranslated-posts.json` freezes the older published posts that did not have an English edition when this rule began; it must not be extended to exempt new work. This guard checks completeness signals and source freshness; the author still translates and reviews both versions before publication.

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1150" viewBox="0 0 900 1150" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-quality-profile="showcase" data-style="6">
+<title id="title">Four papers, three technical starting points</title><desc id="desc">Connections map method lineage, not a single production system.</desc>
+<style>text{font-family:"Hiragino Sans GB","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif}</style>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L8 4L0 8Z" fill="#796f62"/></marker></defs>
+<rect data-graph-role="background" width="900" height="1150" fill="#f8f6f3"/>
+<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">Four papers, three technical starting points</text>
+<path id="din-sim" data-graph-role="edge" data-edge-id="din-sim" data-source="din" data-target="sim" d="M 284 261.0 L 334 261.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
+<path id="din-stca" data-graph-role="edge" data-edge-id="din-stca" data-source="din" data-target="stca" d="M 164.0 328 L 164 445 L 334 445.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
+<path id="stca-seq" data-graph-role="edge" data-edge-id="stca-seq" data-source="stca" data-target="seq" d="M 574 445.0 L 624 445.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
+<path id="llm-rest" data-graph-role="edge" data-edge-id="llm-rest" data-source="llm" data-target="rest" d="M 284 735.0 L 334 735 L 334 670 L 394 670.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
+<path id="llm-laz" data-graph-role="edge" data-edge-id="llm-laz" data-source="llm" data-target="laz" d="M 164.0 805 L 164 870 L 394 870.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
+<path id="rq-unique" data-graph-role="edge" data-edge-id="rq-unique" data-source="rq" data-target="unique" d="M 284 1065.0 L 394 1065.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">Connections map method lineage, not a single production system.</text>
+<text x="44" y="143" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">TARGET ATTENTION / LONG HISTORY</text>
+<g id="din" data-graph-role="node" data-node-id="din" data-graph-bounds="44,194,284,328">
+<rect x="44" y="194" width="240" height="134" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
+<text x="68" y="238" font-size="23" fill="#292824" font-weight="600" text-anchor="start">DIN</text>
+<text x="68" y="274" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">target attention</text>
+</g>
+<g id="sim" data-graph-role="node" data-node-id="sim" data-graph-bounds="334,194,574,328">
+<rect x="334" y="194" width="240" height="134" rx="14" fill="#e8e6e3" stroke="#8c8172" stroke-width="1.6"/>
+<text x="358" y="238" font-size="23" fill="#292824" font-weight="600" text-anchor="start">SIM / TWIN V2</text>
+<text x="358" y="274" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Retrieve, then</text>
+<text x="358" y="303" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">attend</text>
+</g>
+<g id="stca" data-graph-role="node" data-node-id="stca" data-graph-bounds="334,370,574,520">
+<rect x="334" y="370" width="240" height="150" rx="14" fill="#f4e4c1" stroke="#8c8172" stroke-width="1.6"/>
+<text x="358" y="414" font-size="23" fill="#292824" font-weight="600" text-anchor="start">STCA 10K</text>
+<text x="358" y="450" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Single-query</text>
+<text x="358" y="479" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">cross attention</text>
+</g>
+<g id="seq" data-graph-role="node" data-node-id="seq" data-graph-bounds="624,370,856,520">
+<rect x="624" y="370" width="232" height="150" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
+<text x="648" y="414" font-size="23" fill="#292824" font-weight="600" text-anchor="start">SequenceO1</text>
+<text x="648" y="450" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">100K: compress</text>
+<text x="648" y="479" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">+ cache</text>
+</g>
+<text x="44" y="567" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">GENERATIVE SEQUENCE MODELING</text>
+<g id="llm" data-graph-role="node" data-node-id="llm" data-graph-bounds="44,665,284,805">
+<rect x="44" y="665" width="240" height="140" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
+<text x="68" y="709" font-size="23" fill="#292824" font-weight="600" text-anchor="start">LLaMA-style /</text>
+<text x="68" y="741" font-size="23" fill="#292824" font-weight="600" text-anchor="start">HSTU</text>
+<text x="68" y="777" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">decoder-only</text>
+</g>
+<g id="rest" data-graph-role="node" data-node-id="rest" data-graph-bounds="394,600,856,740">
+<rect x="394" y="600" width="462" height="140" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
+<text x="418" y="644" font-size="23" fill="#292824" font-weight="600" text-anchor="start">ReST</text>
+<text x="418" y="680" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Heavy encoder, light decoder</text>
+</g>
+<g id="laz" data-graph-role="node" data-node-id="laz" data-graph-bounds="394,800,856,940">
+<rect x="394" y="800" width="462" height="140" rx="14" fill="#f4e4c1" stroke="#8c8172" stroke-width="1.6"/>
+<text x="418" y="844" font-size="23" fill="#292824" font-weight="600" text-anchor="start">LazFormer</text>
+<text x="418" y="880" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Generative pretraining + ranking</text>
+</g>
+<text x="44" y="970" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">SEMANTIC-ID RETRIEVAL</text>
+<g id="rq" data-graph-role="node" data-node-id="rq" data-graph-bounds="44,1000,284,1130">
+<rect x="44" y="1000" width="240" height="130" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
+<text x="68" y="1044" font-size="23" fill="#292824" font-weight="600" text-anchor="start">TIGER / RQ-VAE</text>
+</g>
+<g id="unique" data-graph-role="node" data-node-id="unique" data-graph-bounds="394,1000,856,1130">
+<rect x="394" y="1000" width="462" height="130" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
+<text x="418" y="1044" font-size="23" fill="#292824" font-weight="600" text-anchor="start">UNIQUE</text>
+<text x="418" y="1080" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">One-level codebook; shared forward</text>
+</g>
+</svg>

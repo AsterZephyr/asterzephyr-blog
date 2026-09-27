@@ -1,44 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="760" viewBox="0 0 900 760" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-quality-profile="showcase" data-style="6">
-<title id="title">让最终验收独立于候选搜索</title><desc id="desc">建议的评估分离流程；不代表 AAR 已采用这套完整方案。</desc>
+<title id="title">Keep the final test outside the search</title><desc id="desc">A proposed separation, not the reported AAR evaluation setup.</desc>
 <style>text{font-family:"Hiragino Sans GB","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif}</style>
 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L8 4L0 8Z" fill="#796f62"/></marker></defs>
 <rect data-graph-role="background" width="900" height="760" fill="#f8f6f3"/>
-<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">让最终验收独立于候选搜索</text>
+<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">Keep the final test outside the search</text>
 <rect data-graph-role="decoration" x="44" y="126" width="370" height="582" rx="14" fill="#f2ece2" stroke="#d8d0c5" stroke-width="1.5"/>
 <rect data-graph-role="decoration" x="486" y="126" width="370" height="582" rx="14" fill="#eaf0eb" stroke="#d8d0c5" stroke-width="1.5"/>
 <path id="develop" data-graph-role="edge" data-edge-id="develop" data-source="search" data-target="freeze" d="M 229.0 394 L 229.0 470" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="handoff" data-graph-role="edge" data-edge-id="handoff" data-source="freeze" data-target="test" d="M 392 567.0 L 508 567.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="replicate" data-graph-role="edge" data-edge-id="replicate" data-source="test" data-target="repeat" d="M 671.0 470 L 671.0 394" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">建议的评估分离流程；不代表 AAR 已采用这套完整方案。</text>
-<text x="66" y="162" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">开发与搜索</text>
-<text x="508" y="162" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">独立检查</text>
+<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">A proposed separation, not the reported AAR evaluation setup.</text>
+<text x="66" y="162" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">DEVELOPMENT</text>
+<text x="508" y="162" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">INDEPENDENT CHECKS</text>
 <g id="search" data-graph-role="node" data-node-id="search" data-graph-bounds="66,200,392,394">
 <rect x="66" y="200" width="326" height="194" rx="14" fill="#f4e4c1" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M90 225v20 M90 235h20v-10" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="90" cy="222" r="3" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="90" cy="248" r="3" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="110" cy="222" r="3" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="133" y="244" font-size="23" fill="#292824" font-weight="600" text-anchor="start">搜索候选</text>
-<text x="90" y="280" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">使用开发阶段的反馈</text>
-<text x="90" y="309" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">迭代候选方法。</text>
+<text x="133" y="244" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Search candidates</text>
+<text x="90" y="280" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Develop candidates using</text>
+<text x="90" y="309" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">development feedback.</text>
 </g>
 <g id="freeze" data-graph-role="node" data-node-id="freeze" data-graph-bounds="66,470,392,664">
 <rect x="66" y="470" width="326" height="194" rx="14" fill="#e8e6e3" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M90 491h14l6 6v22h-20Z M104 491v7h6 M95 506h10 M95 512h10" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="133" y="514" font-size="23" fill="#292824" font-weight="600" text-anchor="start">冻结候选</text>
-<text x="90" y="550" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">记录方法、代码版本</text>
-<text x="90" y="579" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">与已消耗的算力。</text>
+<text x="133" y="514" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Freeze a candidate</text>
+<text x="90" y="550" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Record method, code</text>
+<text x="90" y="579" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">revision</text>
+<text x="90" y="608" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">and compute spent.</text>
 </g>
 <g id="test" data-graph-role="node" data-node-id="test" data-graph-bounds="508,470,834,664">
 <rect x="508" y="470" width="326" height="194" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M531 518v-25h22v25 M531 501h22 M539 493v25" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="575" y="514" font-size="23" fill="#292824" font-weight="600" text-anchor="start">独立评估</text>
-<text x="532" y="550" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">使用未触碰的数据</text>
-<text x="532" y="579" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">与独立控制的评估器。</text>
+<text x="575" y="514" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Independent</text>
+<text x="575" y="546" font-size="23" fill="#292824" font-weight="600" text-anchor="start">evaluation</text>
+<text x="532" y="582" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Untouched data; an</text>
+<text x="532" y="611" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">evaluator</text>
+<text x="532" y="640" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">under separate control.</text>
 </g>
 <g id="repeat" data-graph-role="node" data-node-id="repeat" data-graph-bounds="508,200,834,394">
 <rect x="508" y="200" width="326" height="194" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M531 235l7 7l16 -17" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="575" y="244" font-size="23" fill="#292824" font-weight="600" text-anchor="start">复现与迁移</text>
-<text x="532" y="280" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">更换种子、负载或模型，</text>
-<text x="532" y="309" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">再决定能否部署。</text>
+<text x="575" y="244" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Replication and</text>
+<text x="575" y="276" font-size="23" fill="#292824" font-weight="600" text-anchor="start">transfer</text>
+<text x="532" y="312" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Vary seeds, workloads or</text>
+<text x="532" y="341" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">models</text>
+<text x="532" y="370" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">before deployment.</text>
 </g>
-<text x="44" y="732" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">开发反馈可以反复使用；最终验收不能成为另一轮调参。</text>
+<text x="44" y="732" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">Development feedback can repeat; final evaluation must remain independent.</text>
 </svg>

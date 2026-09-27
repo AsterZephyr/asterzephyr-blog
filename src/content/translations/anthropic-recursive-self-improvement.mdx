@@ -31,7 +31,7 @@ Writing a program is an intermediate output of research. Suppose a team wants to
 
 Passing those checks produces a useful engineering improvement. Calling it recursive self-improvement requires following the consequences further. Did the change help train a better successor model? Did that successor improve the efficiency or quality of the next research cycle? A single speedup, a model generating its own training data, or an agent editing its own prompt cannot answer both questions on its own.
 
-<TechGraph src="/images/posts/anthropic-recursive-self-improvement/research-loop.svg" title="From a change to the next research cycle" caption="Author-created diagram separating five stages that need their own verification, informed by the source's discussion of recursive improvement. These steps are not a demonstrated capability rating." />
+<TechGraph src="/images/posts/anthropic-recursive-self-improvement/research-loop-en.svg" title="From a change to the next research cycle" caption="Author-created diagram separating five stages that need their own verification, informed by the source's discussion of recursive improvement. These steps are not a demonstrated capability rating." />
 
 This distinction changes how we read evidence. A fix passing its tests establishes that it satisfies those tests. A new set of experiments scoring well establishes that the search found a solution favored by its scoring function. Deciding whether research advanced requires checking whether the scoring function measures what matters.
 
@@ -81,7 +81,7 @@ Making a piece of code faster has a fixed object and a relatively explicit objec
 
 The first task can return a timing result after each edit. In the second, even the observation must be designed, and eliminating an incorrect explanation can be progress. In the third, completing every experiment may still leave the value of the chosen direction unclear for a long time.
 
-<TechGraph src="/images/posts/anthropic-recursive-self-improvement/evidence-ladder.svg" title="Completing a task, establishing a result, creating value" caption="Author-created diagram showing why different kinds of success need different evidence. It builds on the source's distinction between engineering and research, adding a production acceptance perspective." />
+<TechGraph src="/images/posts/anthropic-recursive-self-improvement/evidence-ladder-en.svg" title="Completing a task, establishing a result, creating value" caption="Author-created diagram showing why different kinds of success need different evidence. It builds on the source's distinction between engineering and research, adding a production acceptance perspective." />
 
 Code optimization multiples are particularly easy to misread. A redundant starting implementation leaves room for large gains. The same technique has less room in an already optimized production system. Tracking models on the same fixed task is useful; applying its multiple directly to a training bill skips the baseline conditions. Footnote 7 of the main article explicitly cautions against treating its training-code optimization multiples as real-world production training speedups. [Main article, footnote 7](https://www.anthropic.com/institute/recursive-self-improvement)
 
@@ -124,7 +124,7 @@ Returning only an aggregate score, without exposing a label file, still reveals 
 
 Ordinary machine learning also faces validation-set overfitting. Automated research accelerates the search for those patterns, so evaluation design needs to change with it. Separate development feedback available during search, independent evaluation after freezing the candidate, and transfer across tasks. A final score below the development score does not necessarily mean the system has failed. It may reveal how much the earlier score depended on that particular environment.
 
-<TechGraph src="/images/posts/anthropic-recursive-self-improvement/evaluation-boundary.svg" title="Separate search from independent acceptance" caption="Author-created recommendation for evaluating a frozen candidate independently, motivated by the limitations reported in AAR. This is not a claim that the original experiment used this complete process." />
+<TechGraph src="/images/posts/anthropic-recursive-self-improvement/evaluation-boundary-en.svg" title="Separate search from independent acceptance" caption="Author-created recommendation for evaluating a frozen candidate independently, motivated by the limitations reported in AAR. This is not a claim that the original experiment used this complete process." />
 
 The distinction becomes clearer in production. Suppose a team improves a recommendation model on offline data. The gain may depend on adapting to a particular sampling rule. A different traffic distribution, candidate set, or latency budget changes whether the method remains effective. Feeding only the offline winner into the next automated search can accumulate errors across generations while every round reports a better score.
 
@@ -158,7 +158,7 @@ For someone working across engineering, algorithms, product, operations, and bus
 
 The source considers three possibilities: capability growth stalls while existing capabilities spread; research becomes increasingly automated while people retain direction-setting; or systems can fully develop their successors. These are conditional scenarios, not a timetable with known probabilities. [Possible futures](https://www.anthropic.com/institute/recursive-self-improvement)
 
-<TechGraph src="/images/posts/anthropic-recursive-self-improvement/possible-futures.svg" title="Three futures, three sets of conditions" caption="Author-created comparison of the source's scenarios by capability and division of research work. It adds no dates, probabilities, or conversions between company headcounts." />
+<TechGraph src="/images/posts/anthropic-recursive-self-improvement/possible-futures-en.svg" title="Three futures, three sets of conditions" caption="Author-created comparison of the source's scenarios by capability and division of research work. It adds no dates, probabilities, or conversions between company headcounts." />
 
 It helps to separate capability growth from adoption. Even if model capability stopped improving temporarily, companies could gain by organizing knowledge, improving permissions, adding feedback, and reallocating work. Conversely, rising benchmark scores do not immediately benefit an organization without usable data and integration capacity.
 

@@ -1,30 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="790" viewBox="0 0 900 790" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-quality-profile="showcase" data-style="6">
-<title id="title">三种未来，取决于不同条件</title><desc id="desc">比较可能性，不补写年份、概率或必然的演进顺序。</desc>
+<title id="title">Three futures, each with conditions</title><desc id="desc">Possibilities, not dates, probabilities or an inevitable sequence.</desc>
 <style>text{font-family:"Hiragino Sans GB","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif}</style>
 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L8 4L0 8Z" fill="#796f62"/></marker></defs>
 <rect data-graph-role="background" width="900" height="790" fill="#f8f6f3"/>
-<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">三种未来，取决于不同条件</text>
-<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">比较可能性，不补写年份、概率或必然的演进顺序。</text>
+<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">Three futures, each with conditions</text>
+<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">Possibilities, not dates, probabilities or an inevitable sequence.</text>
 <g id="future0" data-graph-role="node" data-node-id="future0" data-graph-bounds="70,135,830,289">
 <rect x="70" y="135" width="760" height="154" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><circle cx="104" cy="170" r="13" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M104 162v9l6 4" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="137" y="179" font-size="23" fill="#292824" font-weight="600" text-anchor="start">能力增长停滞</text>
-<text x="94" y="215" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">已有工具仍然扩散。</text>
-<text x="94" y="244" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">约束：新能力的学习。</text>
+<text x="137" y="179" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Capability plateaus</text>
+<text x="94" y="215" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Current tools still spread.</text>
+<text x="94" y="244" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Constraint: learning new capabilities.</text>
 </g>
 <g id="future1" data-graph-role="node" data-node-id="future1" data-graph-bounds="70,333,830,487">
 <rect x="70" y="333" width="760" height="154" rx="14" fill="#f4e4c1" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><circle cx="104" cy="368" r="13" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="104" cy="368" r="5" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="137" y="377" font-size="23" fill="#292824" font-weight="600" text-anchor="start">研发成本显著降低</text>
-<text x="94" y="413" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">人仍然选择方向、验证结果。</text>
-<text x="94" y="442" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">约束：判断、审查与资源。</text>
+<text x="137" y="377" font-size="23" fill="#292824" font-weight="600" text-anchor="start">R&amp;D becomes much cheaper</text>
+<text x="94" y="413" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">People still choose and validate directions.</text>
+<text x="94" y="442" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Constraint: judgment, review and resources.</text>
 </g>
 <g id="future2" data-graph-role="node" data-node-id="future2" data-graph-bounds="70,531,830,685">
 <rect x="70" y="531" width="760" height="154" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M94 556v20 M94 566h20v-10" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="94" cy="553" r="3" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="94" cy="579" r="3" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="114" cy="553" r="3" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="137" y="575" font-size="23" fill="#292824" font-weight="600" text-anchor="start">研发反馈进入模型</text>
-<text x="94" y="611" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">后继模型改善未来的研发。</text>
-<text x="94" y="640" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">约束：独立控制与验证。</text>
+<text x="137" y="575" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Research feeds back into models</text>
+<text x="94" y="611" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Successors improve future research.</text>
+<text x="94" y="640" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Constraint: independent control and verification.</text>
 </g>
-<text x="44" y="762" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">能力增长与采用速度需要分开观察。</text>
+<text x="44" y="762" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">Capability growth and adoption speed are separate variables.</text>
 </svg>

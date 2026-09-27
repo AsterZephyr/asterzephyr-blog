@@ -1,37 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="710" viewBox="0 0 900 710" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-quality-profile="showcase" data-style="6">
-<title id="title">每一层结论，都需要自己的证据</title><desc id="desc">完成一个阶段，不会自动证明其他阶段也成功。</desc>
+<title id="title">Each claim needs its own evidence</title><desc id="desc">Success at one stage does not certify the others.</desc>
 <style>text{font-family:"Hiragino Sans GB","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif}</style>
 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L8 4L0 8Z" fill="#796f62"/></marker></defs>
 <rect data-graph-role="background" width="900" height="710" fill="#f8f6f3"/>
-<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">每一层结论，都需要自己的证据</text>
-<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">完成一个阶段，不会自动证明其他阶段也成功。</text>
+<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">Each claim needs its own evidence</text>
+<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">Success at one stage does not certify the others.</text>
 <g id="n0" data-graph-role="node" data-node-id="n0" data-graph-bounds="44,140,430,336">
 <rect x="44" y="140" width="386" height="196" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M67 175l7 7l16 -17" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="111" y="184" font-size="23" fill="#292824" font-weight="600" text-anchor="start">任务完成</text>
-<text x="68" y="220" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">请求的产物是否通过检查？</text>
+<text x="111" y="184" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Task completion</text>
+<text x="68" y="220" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Did the requested artifact</text>
+<text x="68" y="249" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">pass its checks?</text>
 </g>
 <text x="68" y="310" font-size="28" fill="#aa6047" font-weight="600" text-anchor="start">01</text>
 <g id="n1" data-graph-role="node" data-node-id="n1" data-graph-bounds="470,140,856,336">
 <rect x="470" y="140" width="386" height="196" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M494 161h14l6 6v22h-20Z M508 161v7h6 M499 176h10 M499 182h10" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="537" y="184" font-size="23" fill="#292824" font-weight="600" text-anchor="start">科学有效</text>
-<text x="494" y="220" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">新数据与重复实验是否支持结果？</text>
+<text x="537" y="184" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Scientific validity</text>
+<text x="494" y="220" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Does the result survive fresh</text>
+<text x="494" y="249" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">data and replication?</text>
 </g>
 <text x="494" y="310" font-size="28" fill="#aa6047" font-weight="600" text-anchor="start">02</text>
 <g id="n2" data-graph-role="node" data-node-id="n2" data-graph-bounds="44,390,430,586">
 <rect x="44" y="390" width="386" height="196" rx="14" fill="#f4e4c1" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><circle cx="78" cy="425" r="13" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="425" r="5" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="111" y="434" font-size="23" fill="#292824" font-weight="600" text-anchor="start">研究价值</text>
-<text x="68" y="470" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">回答的是否是有价值的问题？</text>
+<text x="111" y="434" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Research value</text>
+<text x="68" y="470" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Was this a useful question</text>
+<text x="68" y="499" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">to answer?</text>
 </g>
 <text x="68" y="560" font-size="28" fill="#aa6047" font-weight="600" text-anchor="start">03</text>
 <g id="n3" data-graph-role="node" data-node-id="n3" data-graph-bounds="470,390,856,586">
 <rect x="470" y="390" width="386" height="196" rx="14" fill="#e8e6e3" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M493 438v-25h22v25 M493 421h22 M501 413v25" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="537" y="434" font-size="23" fill="#292824" font-weight="600" text-anchor="start">生产价值</text>
-<text x="494" y="470" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">完整系统在真实约束下变好了吗？</text>
+<text x="537" y="434" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Production value</text>
+<text x="494" y="470" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Does the integrated system</text>
+<text x="494" y="499" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">improve under real constraints?</text>
 </g>
 <text x="494" y="560" font-size="28" fill="#aa6047" font-weight="600" text-anchor="start">04</text>
-<text x="44" y="682" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">这些是不同的验收问题，不是一条自动升级的评分阶梯。</text>
+<text x="44" y="682" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">These are distinct acceptance questions, not an automatic progression.</text>
 </svg>

@@ -1,45 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="800" viewBox="0 0 900 800" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-quality-profile="showcase" data-style="6">
-<title id="title">一种注意力，三个测量问题</title><desc id="desc">ANT 用条件间的反应时间差，分别估计三种注意功能。</desc>
+<title id="title">Three questions hidden inside attention</title><desc id="desc">The ANT estimates each function through reaction-time contrasts.</desc>
 <style>text{font-family:"Hiragino Sans GB","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif}</style>
 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L8 4L0 8Z" fill="#796f62"/></marker></defs>
 <rect data-graph-role="background" width="900" height="800" fill="#f8f6f3"/>
-<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">一种注意力，三个测量问题</text>
+<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">Three questions hidden inside attention</text>
 <path id="measure-edge0" data-graph-role="edge" data-edge-id="measure-edge0" data-source="function0" data-target="measure0" d="M 384 212.0 L 464 212.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="measure-edge1" data-graph-role="edge" data-edge-id="measure-edge1" data-source="function1" data-target="measure1" d="M 384 417.0 L 464 417.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="measure-edge2" data-graph-role="edge" data-edge-id="measure-edge2" data-source="function2" data-target="measure2" d="M 384 622.0 L 464 622.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">ANT 用条件间的反应时间差，分别估计三种注意功能。</text>
+<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">The ANT estimates each function through reaction-time contrasts.</text>
 <g id="function0" data-graph-role="node" data-node-id="function0" data-graph-bounds="44,135,384,289">
 <rect x="44" y="135" width="340" height="154" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><circle cx="78" cy="170" r="13" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M78 162v9l6 4" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="111" y="179" font-size="23" fill="#292824" font-weight="600" text-anchor="start">警觉</text>
-<text x="68" y="215" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">什么时候准备？</text>
+<text x="111" y="179" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Alerting</text>
+<text x="68" y="215" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">When to prepare?</text>
 </g>
 <g id="measure0" data-graph-role="node" data-node-id="measure0" data-graph-bounds="464,135,856,289">
 <rect x="464" y="135" width="392" height="154" rx="14" fill="#fffdf8" stroke="#8c8172" stroke-width="1.6"/>
-<text x="488" y="179" font-size="23" fill="#292824" font-weight="600" text-anchor="start">无提示 - 双提示</text>
-<text x="488" y="215" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">提示带来的准备收益</text>
+<text x="488" y="179" font-size="23" fill="#292824" font-weight="600" text-anchor="start">No cue - double cue</text>
+<text x="488" y="215" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Readiness benefit from a cue</text>
 </g>
 <g id="function1" data-graph-role="node" data-node-id="function1" data-graph-bounds="44,340,384,494">
 <rect x="44" y="340" width="340" height="154" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><circle cx="78" cy="375" r="13" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="375" r="5" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="111" y="384" font-size="23" fill="#292824" font-weight="600" text-anchor="start">定向</text>
-<text x="68" y="420" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">应该注意哪里？</text>
+<text x="111" y="384" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Orienting</text>
+<text x="68" y="420" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Where to attend?</text>
 </g>
 <g id="measure1" data-graph-role="node" data-node-id="measure1" data-graph-bounds="464,340,856,494">
 <rect x="464" y="340" width="392" height="154" rx="14" fill="#fffdf8" stroke="#8c8172" stroke-width="1.6"/>
-<text x="488" y="384" font-size="23" fill="#292824" font-weight="600" text-anchor="start">中央提示 - 空间提示</text>
-<text x="488" y="420" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">位置信息带来的收益</text>
+<text x="488" y="384" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Center cue - spatial cue</text>
+<text x="488" y="420" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Benefit from location</text>
+<text x="488" y="449" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">information</text>
 </g>
 <g id="function2" data-graph-role="node" data-node-id="function2" data-graph-bounds="44,545,384,699">
 <rect x="44" y="545" width="340" height="154" rx="14" fill="#f4e4c1" stroke="#8c8172" stroke-width="1.6"/>
 <g data-graph-role="decoration"><path d="M67 593v-25h22v25 M67 576h22 M75 568v25" fill="none" stroke="#aa6047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="111" y="589" font-size="23" fill="#292824" font-weight="600" text-anchor="start">执行控制</text>
-<text x="68" y="625" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">怎样处理冲突？</text>
+<text x="111" y="589" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Executive control</text>
+<text x="68" y="625" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">How to handle conflict?</text>
 </g>
 <g id="measure2" data-graph-role="node" data-node-id="measure2" data-graph-bounds="464,545,856,699">
 <rect x="464" y="545" width="392" height="154" rx="14" fill="#fffdf8" stroke="#8c8172" stroke-width="1.6"/>
-<text x="488" y="589" font-size="23" fill="#292824" font-weight="600" text-anchor="start">不一致 - 一致</text>
-<text x="488" y="625" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">干扰造成的反应成本</text>
+<text x="488" y="589" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Incongruent - congruent</text>
+<text x="488" y="625" font-size="20" fill="#625d55" font-weight="400" text-anchor="start">Response cost of conflict</text>
 </g>
-<text x="44" y="772" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">前两项是提示收益；后一项是冲突成本，数值方向不能混读。</text>
+<text x="44" y="772" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">Cue benefits and conflict costs have different interpretations.</text>
 </svg>

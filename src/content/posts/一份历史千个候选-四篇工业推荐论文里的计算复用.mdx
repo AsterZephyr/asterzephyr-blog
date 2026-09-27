@@ -36,15 +36,7 @@ LLM 的 scaling 路线已经很清楚：decoder-only Transformer，数据、参�
 
 长序列这条线之前的工业做法，大多是两阶段检索：SIM、TWIN、TWIN V2 先离线聚类或按类目检索出和候选相关的一小段行为，再做 target attention。这类方法能上线，但检索这一步和最终排序目标是分开优化的。字节在 WWW 2026 的 STCA 把端到端建模推到了 10K：去掉历史内部的 self-attention，只保留“候选对历史”的单 query cross attention，每层复杂度随长度线性增长。SequenceO1 的 baseline 就是 STCA 10K 加 TWIN V2，ReST 也把 STCA 列为 baseline。
 
-```mermaid
-graph LR
-    A[DIN<br/>target attention] --> B[SIM / TWIN V2<br/>先检索再注意力]
-    A --> C[STCA 10K<br/>单 query cross attention]
-    C --> D[SequenceO1 100K<br/>压缩 + 缓存]
-    E[LLaMA-style / HSTU<br/>decoder-only] --> F[ReST<br/>encoder 重 decoder 轻]
-    E --> G[LazFormer<br/>生成式预训练 + 排序]
-    H[TIGER / RQ-VAE<br/>语义 ID 召回] --> I[UNIQUE<br/>单层码本 + 召排共前向]
-```
+<TechGraph src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/method-lineage.svg" title="四篇论文的技术脉络" caption="图解：保留原有方法关系，按目标注意力、生成式序列建模和语义 ID 召回分组。箭头用于整理技术脉络，不表示这些模型属于同一个线上系统。" />
 
 四篇的起点不同，面对的序列长度也差了两个数量级。先看一张总览：
 

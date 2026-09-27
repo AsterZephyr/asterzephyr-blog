@@ -4,8 +4,10 @@ import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import yaml from 'js-yaml';
+import { assetTargetCounts, loadLocalizedDiagramMap } from './localized-diagrams.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+const localizedDiagrams = await loadLocalizedDiagramMap(root);
 const batch = JSON.parse(await readFile(path.join(root, 'docs/english-translation-batch.json'), 'utf8'));
 const legacy = new Set(JSON.parse(await readFile(path.join(root, 'docs/legacy-untranslated-posts.json'), 'utf8')).files);
 let failed = 0;
@@ -71,7 +73,7 @@ for (const filename of englishFiles) {
     const sourceBody = source.replace(/^---[\s\S]*?\n---/, '');
     const targetBody = translated.replace(/^---[\s\S]*?\n---/, '');
     assert.deepEqual(outline(targetBody), outline(sourceBody), 'Heading structure differs from original');
-    assert.deepEqual(counts(targetBody, /\b(?:src|href)=["']([^"']+)["']/g), counts(sourceBody, /\b(?:src|href)=["']([^"']+)["']/g), 'Component asset/link targets changed');
+    assert.deepEqual(assetTargetCounts(targetBody, localizedDiagrams), assetTargetCounts(sourceBody), 'Component asset/link targets changed');
     // Compare literal external link destinations; translated link labels may differ.
     const urls = (body) => counts(body, /\]\((https?:\/\/[^\s)]+)(?:\s+[^)]*)?\)/g);
     assert.deepEqual(urls(targetBody), urls(sourceBody), 'External Markdown destinations changed');

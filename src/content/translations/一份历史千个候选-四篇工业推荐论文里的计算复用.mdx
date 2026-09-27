@@ -5,7 +5,7 @@ tags: [技术报告解读, 广告与推荐]
 category: "技术分享"
 summary: "ReST, SequenceO1, LazFormer, and UNIQUE — four industrial recommendation papers from September 2026. On the surface they tackle long sequences and unified retrieval-ranking; underneath, they all answer the same question: when one user history must score many candidates, which parts do you compute only once, and at which layer do you reuse them?"
 sourceFile: "一份历史千个候选-四篇工业推荐论文里的计算复用.mdx"
-sourceHash: "2d974a6e2f533066b2f55889f4fa45365eab7cfb0aa5f98b516fbacd3420b8dc"
+sourceHash: "b8e35bdf72adda25bebeb491985c9907784005d69555a27fb11b2aa77afae6df"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -34,19 +34,11 @@ The LLM scaling playbook is well established: decoder-only Transformer, scale da
 
 **The second is the shape of computation.** LLM inference generates one sequence forward. Ranking pairs one history with N candidates. If you concatenate the user history with each candidate and run the decoder separately for every candidate, the compute is N·(T + C), where T is the user side and C is the candidate side. Factor out the user side and compute it only once, and it becomes T + N·C. When T is much larger than C, the gap between these two formulations is a factor of N.
 
-<TechGraph src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/compute-shape.svg" title="Computation shapes of LLM vs. recommendation ranking" caption="Illustration: In an LLM every position has a label; in ranking one history serves N candidates, with sparse and delayed labels. Whether the user side can be computed just once determines how large a sequence model can be deployed (diagram by the author, based on the discussion in ReST Section 1)" />
+<TechGraph src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/compute-shape-en.svg" title="Computation shapes of LLM vs. recommendation ranking" caption="Illustration: In an LLM every position has a label; in ranking one history serves N candidates, with sparse and delayed labels. Whether the user side can be computed just once determines how large a sequence model can be deployed (diagram by the author, based on the discussion in ReST Section 1)" />
 
 Prior industrial approaches to long sequences mostly used two-stage retrieval: SIM, TWIN, and TWIN V2 first cluster offline or retrieve by category a small relevant slice of behavior, then run target attention. These methods work in production, but the retrieval step is optimized separately from the final ranking objective. ByteDance's STCA at WWW 2026 pushed end-to-end modeling to 10K: it removes self-attention within the history and keeps only single-query cross attention from candidate to history, so per-layer complexity grows linearly with length. SequenceO1's baseline is STCA 10K plus TWIN V2, and ReST also lists STCA as a baseline.
 
-```mermaid
-graph LR
-    A[DIN<br/>target attention] --> B[SIM / TWIN V2<br/>retrieve then attend]
-    A --> C[STCA 10K<br/>single query cross attention]
-    C --> D[SequenceO1 100K<br/>compression + caching]
-    E[LLaMA-style / HSTU<br/>decoder-only] --> F[ReST<br/>heavy encoder, light decoder]
-    E --> G[LazFormer<br/>generative pretraining + ranking]
-    H[TIGER / RQ-VAE<br/>semantic ID retrieval] --> I[UNIQUE<br/>single-layer codebook + shared forward for retrieval & ranking]
-```
+<TechGraph src="/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/method-lineage-en.svg" title="Technical lineage of the four papers" caption="Illustration: the original method relationships, grouped by target attention, generative sequence modeling and semantic-ID retrieval. Arrows map technical lineage, not a single production system." />
 
 The four papers start from different places, and the sequence lengths they deal with differ by two orders of magnitude. Let's start with an overview:
 

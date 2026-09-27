@@ -79,7 +79,7 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
             <img src={cover} alt={title} data-alt-zh={title} data-alt-en={translation?.data.title || title} class="w-full mb-10 rounded-sm" />
           )}
           {translation ? (
-            <p class="translation-credit" data-lang="en" lang="en">English edition.{hasFigures && ' Figures retain their original language.'}</p>
+            <p class="translation-credit" data-lang="en" lang="en">English edition.{hasFigures && ' Some figures retain their original language.'}</p>
           ) : (
             <aside class="translation-notice" data-lang="en" lang="en">This article is currently available in Chinese only. You can still browse the rest of the site in English.</aside>
           )}

@@ -17,6 +17,8 @@ test('publication gate requires complete, current English editions for new and p
     await put('', 'package.json', '{"type":"module"}');
     await symlink(new URL('../node_modules', import.meta.url), path.join(root, 'node_modules'), 'dir');
     await copyFile(new URL('../scripts/check-translations.mjs', import.meta.url), path.join(root, 'scripts/check-translations.mjs'));
+    await copyFile(new URL('../scripts/localized-diagrams.mjs', import.meta.url), path.join(root, 'scripts/localized-diagrams.mjs'));
+    await put('docs', 'localized-diagrams.json', '[]');
     const files = Array.from({ length: 50 }, (_, index) => `initial-${index}.mdx`);
     await put('docs', 'english-translation-batch.json', JSON.stringify({ files }));
     await put('docs', 'legacy-untranslated-posts.json', JSON.stringify({ files: ['legacy.mdx'] }));

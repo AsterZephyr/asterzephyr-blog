@@ -1,44 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="940" viewBox="0 0 900 940" role="img" aria-labelledby="title desc" data-generator="fireworks-tech-graph" data-quality-profile="showcase" data-style="6">
-<title id="title">同一种相关，仍有不同因果解释</title><desc id="desc">箭头表示待检验的假设；本研究没有确定因果方向。</desc>
+<title id="title">One association, several causal stories</title><desc id="desc">Arrows denote hypotheses, not causal findings from this study.</desc>
 <style>text{font-family:"Hiragino Sans GB","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif}</style>
 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L8 4L0 8Z" fill="#796f62"/></marker></defs>
 <rect data-graph-role="background" width="900" height="940" fill="#f8f6f3"/>
-<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">同一种相关，仍有不同因果解释</text>
+<text x="44" y="52" font-size="30" fill="#292824" font-weight="600" text-anchor="start">One association, several causal stories</text>
 <path id="hyp1" data-graph-role="edge" data-edge-id="hyp1" data-source="use1" data-target="control1" d="M 392 233.0 L 508 233.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="hyp2" data-graph-role="edge" data-edge-id="hyp2" data-source="control2" data-target="use2" d="M 392 437.0 L 508 437.0" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="confound-use" data-graph-role="edge" data-edge-id="confound-use" data-source="common" data-target="use3" d="M 365 700 V 740 H 226 V 780" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
 <path id="confound-control" data-graph-role="edge" data-edge-id="confound-control" data-source="common" data-target="control3" d="M 535 700 V 740 H 674 V 780" fill="none" stroke="#796f62" stroke-width="2" marker-end="url(#arrow)"/>
-<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">箭头表示待检验的假设；本研究没有确定因果方向。</text>
-<text x="44" y="144" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">01  使用影响控制</text>
+<text x="44" y="89" font-size="18" fill="#625d55" font-weight="400" text-anchor="start">Arrows denote hypotheses, not causal findings from this study.</text>
+<text x="44" y="144" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">01  USE MAY AFFECT CONTROL</text>
 <g id="use1" data-graph-role="node" data-node-id="use1" data-graph-bounds="60,176,392,290">
 <rect x="60" y="176" width="332" height="114" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
-<text x="84" y="220" font-size="23" fill="#292824" font-weight="600" text-anchor="start">长期使用模式</text>
+<text x="84" y="220" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Long-term use</text>
 </g>
 <g id="control1" data-graph-role="node" data-node-id="control1" data-graph-bounds="508,176,840,290">
 <rect x="508" y="176" width="332" height="114" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
-<text x="532" y="220" font-size="23" fill="#292824" font-weight="600" text-anchor="start">控制相关活动</text>
+<text x="532" y="220" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Control-related activity</text>
 </g>
-<text x="44" y="348" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">02  原有特点影响使用</text>
+<text x="44" y="348" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">02  PRIOR TRAITS MAY AFFECT USE</text>
 <g id="control2" data-graph-role="node" data-node-id="control2" data-graph-bounds="60,380,392,494">
 <rect x="60" y="380" width="332" height="114" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
-<text x="84" y="424" font-size="23" fill="#292824" font-weight="600" text-anchor="start">原有控制特点</text>
+<text x="84" y="424" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Prior control traits</text>
 </g>
 <g id="use2" data-graph-role="node" data-node-id="use2" data-graph-bounds="508,380,840,494">
 <rect x="508" y="380" width="332" height="114" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
-<text x="532" y="424" font-size="23" fill="#292824" font-weight="600" text-anchor="start">使用倾向</text>
+<text x="532" y="424" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Use tendency</text>
 </g>
-<text x="44" y="552" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">03  共同因素影响二者</text>
+<text x="44" y="552" font-size="18" fill="#aa6047" font-weight="600" text-anchor="start">03  SHARED FACTORS MAY AFFECT BOTH</text>
 <g id="common" data-graph-role="node" data-node-id="common" data-graph-bounds="280,590,620,700">
 <rect x="280" y="590" width="340" height="110" rx="14" fill="#f4e4c1" stroke="#8c8172" stroke-width="1.6"/>
-<text x="304" y="634" font-size="23" fill="#292824" font-weight="600" text-anchor="start">共同因素</text>
+<text x="304" y="634" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Shared factors</text>
 </g>
 <g id="use3" data-graph-role="node" data-node-id="use3" data-graph-bounds="60,780,392,880">
 <rect x="60" y="780" width="332" height="100" rx="14" fill="#dfeaf6" stroke="#8c8172" stroke-width="1.6"/>
-<text x="84" y="824" font-size="23" fill="#292824" font-weight="600" text-anchor="start">使用倾向</text>
+<text x="84" y="824" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Use tendency</text>
 </g>
 <g id="control3" data-graph-role="node" data-node-id="control3" data-graph-bounds="508,780,840,880">
 <rect x="508" y="780" width="332" height="100" rx="14" fill="#d8ebe4" stroke="#8c8172" stroke-width="1.6"/>
-<text x="532" y="824" font-size="23" fill="#292824" font-weight="600" text-anchor="start">控制相关活动</text>
+<text x="532" y="824" font-size="23" fill="#292824" font-weight="600" text-anchor="start">Control-related activity</text>
 </g>
-<text x="44" y="912" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">横断面相关本身无法区分这些方向。</text>
+<text x="44" y="912" font-size="17" fill="#625d55" font-weight="400" text-anchor="start">Cross-sectional association alone cannot distinguish these directions.</text>
 </svg>
