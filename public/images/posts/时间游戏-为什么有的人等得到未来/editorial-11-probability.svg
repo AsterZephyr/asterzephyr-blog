@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="450" viewBox="0 0 560 450" role="img" aria-labelledby="title desc">
+<title id="title">风险在时间中累积</title><desc id="desc">一天30%的致命风险，与每日条件致命风险1%持续30天的累计26.0%比较。相同零起点比例尺。</desc>
+<rect width="560" height="450" fill="#f5f1e8"/>
+<g font-family="Songti SC, STSong, serif" fill="#282724">
+<text x="40" y="53" text-anchor="start" font-size="28">一天的致命风险</text>
+<text x="518" y="53" text-anchor="end" font-size="32">30%</text>
+<rect x="40" y="77" width="450" height="28" fill="#777972"/>
+<text x="40" y="164" text-anchor="start" font-size="25">每日条件风险 1%，持续 30 天</text>
+<rect x="40" y="190" width="390.45" height="28" fill="#9a5238"/>
+<text x="442" y="213" text-anchor="start" font-size="25">26.0%</text>
+<path d="M40 250 H490" stroke="#96938b" stroke-width="1"/>
+<path d="M40 246 V257" stroke="#96938b"/>
+<text x="40" y="282" text-anchor="middle" font-size="20">0%</text>
+<path d="M190 246 V257" stroke="#96938b"/>
+<text x="190" y="282" text-anchor="middle" font-size="20">10%</text>
+<path d="M340 246 V257" stroke="#96938b"/>
+<text x="340" y="282" text-anchor="middle" font-size="20">20%</text>
+<path d="M490 246 V257" stroke="#96938b"/>
+<text x="490" y="282" text-anchor="middle" font-size="20">30%</text>
+<path d="M40 319 H520" stroke="#c8c1b4"/>
+<text x="280" y="370" text-anchor="middle" font-size="32">1 − 0.99³⁰ ≈ 26.0%</text>
+<text x="280" y="415" text-anchor="middle" font-size="24">分散到多天，不代表风险消失</text>
+</g></svg>
