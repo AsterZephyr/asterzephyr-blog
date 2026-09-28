@@ -20,6 +20,15 @@ html[data-language='en'] [data-has-translation] [data-article-content][data-cont
   --color-accent-bg: #eee7da;
   --color-muted: #716d63;
   --color-border: #d8d1c4;
+  --color-overlay: rgb(38 39 34 / .45);
+  --color-mark: #ecdcb8;
+  --color-field: #fbf9f5;
+  --color-placeholder: #a19b8f;
+  --color-accent-soft: rgb(134 102 59 / .1);
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --shadow-pop: 0 1px 2px rgb(38 39 34 / .06), 0 28px 64px -16px rgb(38 39 34 / .32);
+  --focus-ring: 0 0 0 3px rgb(134 102 59 / .2);
   --font-heading: Georgia, 'Songti SC', 'Noto Serif CJK SC', SimSun, serif;
   --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --space-section: clamp(64px, 8vw, 112px);
@@ -32,8 +41,10 @@ html[data-language='en'] [data-has-translation] [data-article-content][data-cont
   h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); color: var(--color-heading); text-wrap: balance; }
   p { text-wrap: pretty; }
   a { transition: color 180ms ease; }
-  a, button { touch-action: manipulation; }
-  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 5px; }
+  a, button, summary, label { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; border-radius: 2px; }
+  /* Text fields draw their own focus state; an offset outline around them reads as a second border. */
+  :is(input, select, textarea):focus-visible { outline: none; }
   [id] { scroll-margin-top: 24px; }
 }
 
@@ -160,4 +171,9 @@ html[data-language='en'] [data-has-translation] [data-article-content][data-cont
 .prose :where(h2, h3, h4) { line-height: 1.55; text-wrap: pretty; }
 .prose :where(h2) { font-weight: 600; }
 .prose :where(table) { display: block; max-width: 100%; overflow-x: auto; }
-@media (max-width: 767px) { .prose { font-size: 17px; } }
+@media (max-width: 767px) {
+  .prose { font-size: 17px; }
+  .prose pre { padding: 1rem 1.125rem; font-size: 0.8125rem; }
+  .reading-title { font-size: 28px; line-height: 1.42; }
+  .reading-summary { margin-top: 18px; font-size: 16px; }
+}

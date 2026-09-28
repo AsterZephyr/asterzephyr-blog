@@ -45,12 +45,12 @@ const formattedUpdated = updated?.toLocaleDateString('en-US', {
 ---
 <BaseLayout title={title} description={summary || title} image={socialImagePath(post.id)}>
   <Header />
-  <article data-post-id={post.id} data-post-date={date.toISOString().slice(0, 10)} data-post-topics={tags.map((t) => TAG_LABELS[t] || t).join(' · ')} class="pt-32 md:pt-40 pb-16" data-has-translation={translation ? '' : undefined}
+  <article data-post-id={post.id} data-post-date={date.toISOString().slice(0, 10)} data-post-topics={tags.map((t) => TAG_LABELS[t] || t).join(' · ')} class="pt-24 md:pt-40 pb-16" data-has-translation={translation ? '' : undefined}
     data-post-title-zh={title} data-post-title-en={translation?.data.title}
     data-post-summary-zh={summary || title} data-post-summary-en={translation?.data.summary || translation?.data.title}>
     <div class="mx-auto max-w-6xl px-6">
       <div class="max-w-3xl mx-auto">
-        <header class="mb-12 pb-10 border-b border-[var(--color-border)]">
+        <header class="mb-8 pb-8 md:mb-12 md:pb-10 border-b border-[var(--color-border)]">
           <time datetime={date.toISOString()} class="text-sm uppercase tracking-wider text-[var(--color-muted)]">{formattedDate}</time>
           {formattedUpdated && (
             <span class="text-sm text-[var(--color-muted)] ml-3">

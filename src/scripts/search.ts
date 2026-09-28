@@ -8,8 +8,10 @@ type SearchAPI = {
   destroy: () => Promise<void>;
 };
 const dialog = document.querySelector<HTMLDialogElement>('#site-search')!;
-const input = dialog.querySelector<HTMLInputElement>('input')!;
-const select = dialog.querySelector<HTMLSelectElement>('select')!;
+const input = dialog.querySelector<HTMLInputElement>('#fulltext-query')!;
+const form = dialog.querySelector<HTMLFormElement>('form')!;
+const clear = dialog.querySelector<HTMLButtonElement>('[data-search-clear]')!;
+const selectedLanguage = () => form.querySelector<HTMLInputElement>('input[name="language"]:checked')?.value || 'all';
 const status = dialog.querySelector<HTMLElement>('[data-search-status]')!;
 const results = dialog.querySelector<HTMLOListElement>('[data-search-results]')!;
 const more = dialog.querySelector<HTMLButtonElement>('[data-search-more]')!;
@@ -54,11 +56,14 @@ function resultURL(raw: string, language: Language) {
 }
 function render(hit: Hit, language: Language, query: string) {
   const li = document.createElement('li'); li.className = 'search-result';
-  const label = document.createElement('small'); label.textContent = `${language === 'en' ? 'ENGLISH' : 'CHINESE'}${hit.meta.date ? ` · ${hit.meta.date}` : ''}`;
+  const meta = document.createElement('div'); meta.className = 'search-meta';
+  const badge = document.createElement('span'); badge.className = 'search-badge'; badge.textContent = language === 'en' ? 'English' : 'Chinese';
+  meta.append(badge);
+  if (hit.meta.date) { const date = document.createElement('span'); date.textContent = hit.meta.date; meta.append(date); }
   const h3 = document.createElement('h3'); h3.lang = language === 'zh' ? 'zh-CN' : 'en';
   const link = document.createElement('a'); link.href = resultURL(hit.url, language).href; link.textContent = hit.meta.title || 'Read article'; h3.append(link);
   const text = document.createElement('p'); text.lang = h3.lang; excerpt(text, hit.excerpt);
-  li.append(label, h3, text);
+  li.append(meta, h3, text);
   for (const section of matchingSections(hit, query)) {
     const anchor = document.createElement('a'); anchor.className = 'search-section'; anchor.lang = h3.lang;
     anchor.href = resultURL(section.url, language).href; anchor.textContent = `↳ ${section.title}`; li.append(anchor);
@@ -72,7 +77,7 @@ async function search() {
   if (!query) { results.replaceChildren(); status.textContent = 'Search full articles in English and Chinese.'; return; }
   status.textContent = 'Searching…';
   const preferred: Language = document.documentElement.dataset.language === 'zh' ? 'zh' : 'en';
-  const languages: Language[] = select.value === 'all' ? [preferred, preferred === 'zh' ? 'en' : 'zh'] : [select.value as Language];
+  const languages: Language[] = selectedLanguage() === 'all' ? [preferred, preferred === 'zh' ? 'en' : 'zh'] : [selectedLanguage() as Language];
   try {
     const batches = await Promise.all(languages.map(async (language) => {
       const found = await (await engine()).search(query, { filters: { edition: language } });
@@ -110,9 +115,13 @@ results.addEventListener('click', (event) => {
   if (event.target instanceof Element && event.target.closest('a[href]')) dialog.close();
 });
 dialog.addEventListener('close', () => { ++revision; clearTimeout(timer); document.documentElement.style.overflow = previousOverflow; trigger?.focus({ preventScroll: true }); });
-dialog.querySelector('form')?.addEventListener('submit', (event) => { event.preventDefault(); clearTimeout(timer); limit = 12; search(); });
-input.addEventListener('input', () => { ++revision; clearTimeout(timer); limit = 12; timer = setTimeout(search, 180); });
-select.addEventListener('change', () => { clearTimeout(timer); limit = 12; search(); });
+form.addEventListener('submit', (event) => { event.preventDefault(); clearTimeout(timer); limit = 12; search(); });
+input.addEventListener('input', () => { clear.hidden = !input.value; ++revision; clearTimeout(timer); limit = 12; timer = setTimeout(search, 180); });
+clear.addEventListener('click', () => { input.value = ''; clear.hidden = true; input.focus(); clearTimeout(timer); limit = 12; search(); });
+form.addEventListener('change', (event) => {
+  if (!(event.target instanceof HTMLInputElement) || event.target.name !== 'language') return;
+  clearTimeout(timer); limit = 12; search();
+});
 more.addEventListener('click', () => { limit += 12; search(); });
 document.addEventListener('keydown', (event) => {
   if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'k' && !document.querySelector('dialog[open]:not(#site-search)')) { event.preventDefault(); openSearch(); }

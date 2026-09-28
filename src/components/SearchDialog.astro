@@ -1,36 +1,70 @@
-<dialog id="site-search" aria-labelledby="search-heading">
-  <div class="search-top"><h2 id="search-heading">Search the journal</h2><button type="button" data-search-close aria-label="Close search">Close ×</button></div>
-  <form role="search"><label class="sr-only" for="fulltext-query">Search article text</label><input id="fulltext-query" type="search" placeholder="Ideas, questions, or a phrase…" maxlength="200" autocomplete="off" autofocus />
-    <label class="search-language">Language <select name="language" aria-label="Search language"><option value="all">Both languages</option><option value="en">English</option><option value="zh">Chinese</option></select></label>
+<dialog id="site-search" class="sheet sheet-full" aria-labelledby="search-heading">
+  <header class="sheet-header">
+    <h2 id="search-heading" class="sheet-title">Search the journal</h2>
+    <button type="button" class="icon-button" data-search-close aria-label="Close search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
+  </header>
+  <form role="search" class="search-form">
+    <div class="search-field">
+      <svg class="search-field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>
+      <label class="sr-only" for="fulltext-query">Search article text</label>
+      <input id="fulltext-query" type="search" placeholder="Ideas, questions, or a phrase…" maxlength="200" autocomplete="off" enterkeyhint="search" autofocus />
+      <button type="button" class="icon-button search-clear" data-search-clear aria-label="Clear search" hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
+    </div>
+    <fieldset class="segmented search-language">
+      <legend class="sr-only">Search language</legend>
+      <label><input type="radio" name="language" value="all" checked />All</label>
+      <label><input type="radio" name="language" value="zh" />Chinese</label>
+      <label><input type="radio" name="language" value="en" />English</label>
+    </fieldset>
   </form>
-  <p data-search-status role="status">Search full articles in English and Chinese.</p>
-  <ol data-search-results></ol>
-  <button type="button" data-search-more hidden>Show more results</button>
-  <p class="search-help"><span>⌘ / Ctrl K to search · Esc to close</span><a href="/blog/">Browse all writing ↗</a></p>
+  <div class="sheet-body">
+    <p data-search-status role="status">Search full articles in English and Chinese.</p>
+    <ol data-search-results></ol>
+    <button type="button" data-search-more hidden>Show more results</button>
+  </div>
+  <footer class="sheet-footer">
+    <span class="hide-on-touch"><kbd>⌘</kbd> <kbd>K</kbd> to search · <kbd>Esc</kbd> to close</span>
+    <a href="/blog/">Browse all writing ↗</a>
+  </footer>
 </dialog>
 <script>
   import '../scripts/search';
 </script>
 <style is:global>
-  #site-search { width: min(760px, calc(100vw - 32px)); max-height: min(780px, calc(100dvh - 48px)); margin: 24px auto auto; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-body); padding: 28px; border-radius: 4px; box-shadow: 0 24px 100px #26272233; overflow-y: auto; }
-  #site-search::backdrop { background: #26272266; }
-  .search-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-  .search-top h2 { font: 400 28px/1.3 var(--font-heading); color: var(--color-heading); }
-  .search-top button { font-size: 12px; min-height: 44px; }
-  #site-search form { margin-top: 22px; }
-  #fulltext-query { width: 100%; min-height: 52px; background: transparent; font-size: 18px; border: 0; border-bottom: 1px solid var(--color-accent); border-radius: 0; padding: 10px 0; }
-  .search-language { display: flex; gap: 12px; align-items: center; margin-top: 18px; font-size: 12px; }
-  .search-language select { background: var(--color-surface); border: 1px solid var(--color-border); padding: 6px 24px 6px 10px; color: var(--color-heading); }
-  [data-search-status] { margin: 20px 0 8px; color: var(--color-muted); font-size: 12px; }
-  [data-search-results] { list-style: none; padding: 0; }
-  .search-result { padding: 20px 0; border-bottom: 1px solid var(--color-border); }
-  .search-result h3 { font: 400 21px/1.45 var(--font-heading); color: var(--color-heading); margin: 7px 0 10px; }
-  .search-result a:hover { color: var(--color-accent); text-decoration: underline; text-underline-offset: 4px; }
-  .search-result p { font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
-  .search-result small { font-size: 10px; letter-spacing: .08em; color: var(--color-muted); }
-  .search-result mark { background: #e9dbbc; color: var(--color-heading); }
-  .search-section { display: block; font-size: 12px; line-height: 1.6; margin-top: 10px; }
-  [data-search-more] { padding: 14px 0; color: var(--color-accent); font-size: 13px; }
-  .search-help { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 24px; font-size: 11px; color: var(--color-muted); }
-  @media(max-width: 600px) { #site-search { padding: 20px; margin-top: 16px; max-height: calc(100dvh - 32px); } .search-top h2 { font-size: 24px; } }
+  #site-search { --sheet-width: 720px; }
+  .search-form { display: flex; flex-direction: column; gap: 14px; padding: 4px 24px 16px; border-bottom: 1px solid var(--color-border); }
+  .search-field { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 6px 0 14px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-field); transition: border-color 150ms ease, box-shadow 150ms ease; }
+  .search-field:focus-within { border-color: var(--color-accent-glow); box-shadow: var(--focus-ring); }
+  .search-field-icon { flex-shrink: 0; color: var(--color-muted); }
+  #fulltext-query { flex: 1; min-width: 0; height: 50px; border: 0; background: transparent; font-size: 17px; color: var(--color-heading); }
+  #fulltext-query::placeholder { color: var(--color-placeholder); }
+  #fulltext-query::-webkit-search-cancel-button, #fulltext-query::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+  .search-clear { width: 32px; height: 32px; }
+  .search-language { align-self: flex-start; }
+  [data-search-status] { margin: 16px 0 4px; color: var(--color-muted); font-size: 12px; }
+  [data-search-results] { list-style: none; margin: 0 -12px; padding: 0; }
+  .search-result { position: relative; padding: 16px 12px; border-radius: var(--radius-sm); transition: background-color 150ms ease; }
+  .search-result + .search-result::before { content: ''; position: absolute; top: 0; left: 12px; right: 12px; height: 1px; background: var(--color-border); }
+  .search-result:hover, .search-result:focus-within { background: var(--color-surface-alt); }
+  .search-result:is(:hover, :focus-within)::before, .search-result:is(:hover, :focus-within) + .search-result::before { opacity: 0; }
+  .search-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+  .search-badge { padding: 2px 8px; border-radius: 999px; background: var(--color-accent-soft); color: var(--color-accent); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  .search-result h3 { font: 400 19px/1.45 var(--font-heading); color: var(--color-heading); margin: 8px 0 6px; }
+  /* The title link covers the whole row; section links sit above it. */
+  .search-result h3 a::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+  .search-result h3 a:focus-visible { outline: none; }
+  .search-result:has(h3 a:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+  .search-result:hover h3 a { color: var(--color-accent); }
+  .search-result p { font-size: 13px; line-height: 1.8; color: var(--color-body); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .search-result mark { background: var(--color-mark); color: var(--color-heading); border-radius: 2px; padding: 0 1px; }
+  .search-section { position: relative; z-index: 1; display: block; width: fit-content; max-width: 100%; margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--color-muted); }
+  .search-section:hover { color: var(--color-accent); text-decoration: underline; text-underline-offset: 3px; }
+  [data-search-more] { display: block; width: 100%; margin-top: 12px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-accent); font-size: 13px; }
+  [data-search-more]:hover { background: var(--color-surface-alt); }
+  [data-search-more][hidden] { display: none; }
+  @media (max-width: 640px) {
+    .search-form { padding-inline: 20px; }
+    #fulltext-query { font-size: 16px; }
+    .search-result h3 { font-size: 18px; }
+  }
 </style>

@@ -29,10 +29,10 @@ function readingInset() {
 function progress() {
   return Math.max(0, Math.min(1, (scrollY + readingInset() - start) / Math.max(1, end - start)));
 }
+const chevron = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>';
 function expand(group: typeof groups[number], open: boolean) {
   group.children.hidden = !open;
   group.toggle.setAttribute('aria-expanded', String(open));
-  group.toggle.textContent = open ? '−' : '+';
 }
 function update() {
   frame = 0;
@@ -46,6 +46,8 @@ function update() {
       if (!group.manual) expand(group, Boolean(links[active] && group.children.parentElement?.contains(links[active])));
     });
     const current = links[active];
+    const label = document.querySelector('.reader-current');
+    if (label) label.textContent = current?.textContent || '';
     const nav = list?.parentElement;
     if (current && nav && !sidebar?.contains(document.activeElement)) {
       const rect = current.getBoundingClientRect();
@@ -53,8 +55,10 @@ function update() {
       if (rect.top < bounds.top || rect.bottom > bounds.bottom) nav.scrollTop += rect.top - bounds.top - nav.clientHeight / 3;
     }
   }
+  const ratio = progress();
   const indicator = document.querySelector('.reader-progress');
-  if (indicator) indicator.textContent = `${Math.round(progress() * 100)}%`;
+  if (indicator) indicator.textContent = `${Math.round(ratio * 100)}%`;
+  sidebar?.style.setProperty('--reader-progress', ratio.toFixed(3));
 }
 function measure() {
   if (!article) return;
@@ -117,6 +121,7 @@ function build() {
         children.id = `reader-sections-${index}`;
         const toggle = document.createElement('button');
         toggle.type = 'button';
+        toggle.innerHTML = chevron;
         toggle.setAttribute('aria-label', 'Toggle subsections: ' + parent.querySelector('a')?.textContent);
         toggle.setAttribute('aria-controls', children.id);
         const group = { children, toggle, manual: false };

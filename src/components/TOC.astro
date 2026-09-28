@@ -5,7 +5,13 @@ const toc = Astro.props.headings.filter((h) => h.depth === 2 || h.depth === 3);
 ---
 <aside class="reader-sidebar" hidden={toc.length === 0}>
   <details class="reader-toc" open>
-    <summary><LocalizedText zh="本文目录" en="On this page" /><span class="reader-progress" aria-hidden="true">0%</span></summary>
+    <summary>
+      <span class="reader-toc-label"><LocalizedText zh="本文目录" en="On this page" /></span>
+      <span class="reader-current" aria-hidden="true"></span>
+      <span class="reader-progress" aria-hidden="true">0%</span>
+      <svg class="reader-toc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+      <span class="reader-progress-track" aria-hidden="true"></span>
+    </summary>
     <nav aria-label="On this page">
       <ol class="reader-toc-list">
         {toc.map((h) => <li><a href={`#${h.slug}`} lang="zh-CN">{h.text}</a></li>)}
