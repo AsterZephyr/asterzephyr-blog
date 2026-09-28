@@ -5,7 +5,7 @@ tags: [技术报告解读, 广告与推荐]
 category: "技术分享"
 summary: "ReST, SequenceO1, LazFormer, and UNIQUE — four industrial recommendation papers from September 2026. On the surface they tackle long sequences and unified retrieval-ranking; underneath, they all answer the same question: when one user history must score many candidates, which parts do you compute only once, and at which layer do you reuse them?"
 sourceFile: "一份历史千个候选-四篇工业推荐论文里的计算复用.mdx"
-sourceHash: "b8e35bdf72adda25bebeb491985c9907784005d69555a27fb11b2aa77afae6df"
+sourceHash: "8b9b40e71f1f3ad8affc189766f3095d37a7b92ded63ad70a30c7bf15a2c77be"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -151,7 +151,7 @@ Online experiments ran for one month on Douyin and Douyin Lite, with all metrics
 
 ## 4. LazFormer: Reusing Parameters—and Training Data
 
-LazFormer comes from Alibaba International Digital Commerce Group. The scenario is homepage recommendations on a large e-commerce platform, jointly predicting CTR and CVR. It handles the longest sequences—2048 by default, extended to 9216 in experiments—though its approach to long sequences is the most straightforward. The novelty here is mainly in the training pipeline: how pre-trained parameters are connected to the ranking model, and how the same batch of data can safely be trained on for multiple epochs.
+LazFormer comes from Alibaba International Digital Commerce Group. The scenario is homepage recommendations on a large e-commerce platform, jointly predicting CTR and CVR. Its sequences are not especially long (2048 by default, extended to 9216 in experiments), and its approach to long sequences is the most straightforward. The novelty here is mainly in the training pipeline: how pre-trained parameters are connected to the ranking model, and how the same batch of data can safely be trained on for multiple epochs.
 
 ### 4.1 How Pre-training Connects to Ranking
 
