@@ -5,6 +5,7 @@ import { load } from 'cheerio';
 import { Resvg } from '@resvg/resvg-js';
 import * as pagefind from 'pagefind';
 import { pairHeadings } from '../src/lib/heading-pairs.js';
+import { spaceHan } from '../src/lib/cjk-search.mjs';
 import { socialCardSVG, socialImagePath } from '../src/lib/social-card.mjs';
 
 export function articleSearchDocuments(html, url) {
@@ -32,6 +33,8 @@ export function articleSearchDocuments(html, url) {
     shell('head').append('<meta data-pagefind-meta="date[content]" content=""/><meta data-pagefind-meta="language[content]" content=""/>');
     shell('[data-pagefind-meta="date[content]"]').attr('content', meta.attr('data-post-date') || '');
     shell('[data-pagefind-meta="language[content]"]').attr('content', language);
+    // Index Chinese per character so matching is substring-based (see src/lib/cjk-search.mjs).
+    if (language === 'zh') shell('main *').addBack('main').contents().each((_, node) => { if (node.type === 'text') node.data = spaceHan(node.data); });
     return { language, url: `${url}?lang=${language}`, content: shell.html() };
   });
 }

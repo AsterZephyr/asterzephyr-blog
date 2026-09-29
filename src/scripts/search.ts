@@ -1,8 +1,10 @@
 import { matchingSections } from '../lib/discovery.mjs';
+import { searchQueries, unspaceHan } from '../lib/cjk-search.mjs';
 type Language = 'zh' | 'en';
 type Hit = { url: string; meta: { title?: string; date?: string }; excerpt: string; sub_results?: { url: string; title: string; excerpt: string }[] };
+type Result = { id: string; data: () => Promise<Hit> };
 type SearchAPI = {
-  search: (query: string, options: { filters: { edition: Language } }) => Promise<{ results: { data: () => Promise<Hit> }[] }>;
+  search: (query: string, options: { filters: { edition: Language } }) => Promise<{ results: Result[] }>;
   options: (options: { mergeFilter: { edition: Language } }) => Promise<void>;
   mergeIndex: (path: string, options: { language: Language; mergeFilter: { edition: Language } }) => Promise<void>;
   destroy: () => Promise<void>;
@@ -27,8 +29,8 @@ function engine() {
     module = import(/* @vite-ignore */ url).then(async (api: SearchAPI) => {
       try {
         await api.options({ mergeFilter: { edition: 'en' } });
-        // The site shell stays English. Explicitly initialize Chinese segmentation
-        // through Pagefind's supported merged-index language option.
+        // The site shell stays English. The Chinese index is merged in with its own language;
+        // it is tokenized per character at build time (see src/lib/cjk-search.mjs).
         await api.mergeIndex('/search-index/zh/', { language: 'zh', mergeFilter: { edition: 'zh' } });
         return api;
       } catch (error) { await api.destroy(); throw error; }
@@ -48,6 +50,23 @@ function excerpt(target: HTMLElement, html: string) {
   };
   copy(parsed.body, target);
 }
+// Chinese results must contain every Han token as a substring, plus any remaining words.
+async function find(language: Language, query: string): Promise<Result[]> {
+  const api = await engine();
+  const queries = language === 'zh' ? searchQueries(query) : [query];
+  const sets = await Promise.all(queries.map(async (term) => (await api.search(term, { filters: { edition: language } })).results));
+  if (sets.length === 0) return [];
+  const [first, ...rest] = sets;
+  const required = rest.map((set) => new Set(set.map((result) => result.id)));
+  return first.filter((result) => required.every((ids) => ids.has(result.id)));
+}
+// The Chinese index stores spaced characters; show them as normal text again.
+const readable = (hit: Hit, language: Language): Hit => language === 'en' ? hit : {
+  ...hit,
+  meta: { ...hit.meta, title: unspaceHan(hit.meta.title) },
+  excerpt: unspaceHan(hit.excerpt),
+  sub_results: hit.sub_results?.map((section) => ({ ...section, title: unspaceHan(section.title), excerpt: unspaceHan(section.excerpt) })),
+};
 function resultURL(raw: string, language: Language) {
   const url = new URL(raw, location.origin);
   if (url.origin !== location.origin || !url.pathname.startsWith('/blog/')) throw new Error('Invalid search result URL');
@@ -80,9 +99,9 @@ async function search() {
   const languages: Language[] = selectedLanguage() === 'all' ? [preferred, preferred === 'zh' ? 'en' : 'zh'] : [selectedLanguage() as Language];
   try {
     const batches = await Promise.all(languages.map(async (language) => {
-      const found = await (await engine()).search(query, { filters: { edition: language } });
-      const hits = await Promise.all(found.results.slice(0, limit).map((result) => result.data()));
-      return { language, hits, total: found.results.length };
+      const found = await find(language, query);
+      const hits = await Promise.all(found.slice(0, limit).map(async (result) => readable(await result.data(), language)));
+      return { language, hits, total: found.length };
     }));
     if (current !== revision || !dialog.open) return;
     const seen = new Set<string>(); const nodes: HTMLElement[] = [];

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { load } from 'cheerio';
 import { articleSearchDocuments } from '../scripts/discovery-assets.mjs';
 import { matchingSections, relatedPosts, resolveSeries } from '../src/lib/discovery.mjs';
+import { searchQueries, spaceHan, unspaceHan } from '../src/lib/cjk-search.mjs';
 import { socialCardSVG, socialImagePath, wrapTitle } from '../src/lib/social-card.mjs';
 const post = (id, tags, draft = false) => ({ id, filePath: `/posts/${id}.mdx`, data: { tags, draft, date: new Date('2026-01-01') } });
 test('search section links favor the matching heading and best excerpt over document order', () => {
@@ -32,7 +33,9 @@ test('search extracts both complete bodies without indexing page chrome, and sha
   const html = `<html><body><nav>unrelated-navigation</nav><article data-post-title-zh="中文文章" data-post-title-en="English article" data-post-date="2026-01-01"><div data-article-content><h2 id="shared-id">原文标题</h2><p>只在正文中的检索词</p><pre><code>body_code_token</code></pre></div><template data-english-content><h2 id="english-id">Translated heading</h2><p>uniquebodytoken</p></template><aside>unrelated-recommendation</aside></article></body></html>`;
   const docs = articleSearchDocuments(html, '/blog/example/');
   assert.equal(docs.length, 2);
-  assert.match(docs[0].content, /只在正文中的检索词/);
+  // Chinese is indexed per character so queries match as substrings.
+  assert.match(docs[0].content, /只 在 正 文 中 的 检 索 词/);
+  assert.match(docs[0].content, /中 文 文 章/);
   assert.match(docs[0].content, /body_code_token/);
   assert.doesNotMatch(docs[0].content, /uniquebodytoken/);
   assert.match(docs[1].content, /uniquebodytoken/);
@@ -47,4 +50,15 @@ test('share cards bound long titles and escape XML, with stable URL-safe filenam
   assert.doesNotMatch(socialCardSVG({title:'<script>x</script>'}), /<script>/);
   assert.equal(socialImagePath('同一篇'), socialImagePath('同一篇'));
   assert.match(socialImagePath('../../unsafe?'), /^\/social\/[0-9a-f]{20}\.png$/);
+});
+test('Chinese search tokenizes per character and restores readable excerpts', () => {
+  assert.equal(spaceHan('缓存一致性 KV cache，延迟双删'), '缓 存 一 致 性 KV cache，延 迟 双 删');
+  assert.equal(unspaceHan(spaceHan('再见，延迟双删 in Redis')), '再见，延迟双删 in Redis');
+  assert.equal(unspaceHan('用 <mark>缓</mark> <mark>存</mark> 做'), '用<mark>缓存</mark>做');
+  assert.equal(unspaceHan('不 在 <mark>缓 </mark><mark>存 </mark>里，磁 盘IO'), '不在<mark>缓存</mark>里，磁盘IO');
+  assert.deepEqual(searchQueries('缓存'), ['"缓 存"']);
+  assert.deepEqual(searchQueries('  推荐 召回  KV cache '), ['"推 荐"', '"召 回"', 'KV cache']);
+  assert.deepEqual(searchQueries('"幂等"'), ['"幂 等"']);
+  assert.deepEqual(searchQueries('LLM scaling'), ['LLM scaling']);
+  assert.deepEqual(searchQueries('   '), []);
 });
