@@ -8,8 +8,6 @@ category: "技术分享"
 import Callout from '../../components/blog/Callout.astro'
 import Comparison from '../../components/blog/Comparison.astro'
 
-# 468KB 能做什么——当语音 AI 被逼到 80 美分芯片上
-
 一颗 RP2350 芯片，售价 80 美分。双核 ARM Cortex-M33，主频 250MHz，520KB SRAM，没有 GPU，没有 NPU，没有操作系统。Moonshine AI 在这颗芯片上跑通了完整的语音交互管线：Voice Activity Detection 检测到你开口说话，Speech-to-Text 识别你说了什么，Neural TTS 用合成语音回答你。整套系统实际占用 468KB 内存。
 
 同一周，transcribe.cpp 以 599 分登顶 Hacker News。它的思路完全相反：把 Whisper、Parakeet、Canary、Qwen3-ASR 等 16 个模型族、60 多个变体统一到一个基于 ggml 的推理引擎里，通过 Metal/Vulkan/CUDA 做 GPU 加速。跑一个 Whisper Large-v3 需要好几个 GB 的显存。

@@ -7,8 +7,6 @@ category: "技术分享"
 
 import TechGraph from '../../components/blog/TechGraph.astro'
 
-# 推荐系统的 Mixer 革命：从一篇论文到四家大厂全量上线
-
 2025 年 7 月，字节跳动发了一篇叫 RankMixer 的论文。核心想法很简单：推荐系统的排序模型不需要 self-attention——用一个无参数的 token mixing 操作替掉它，效果更好，速度更快。
 
 12 个月后的今天，token mixing 已经成为中国互联网大厂排序模型的标准架构。字节跳动把它 scale 到了 15B 参数（TokenMixer-Large），腾讯微信在它基础上发现了 representation collapse 并提出了 RankUp，美团基于类似思路做了 MTmixAtt。参数量跨越三个数量级（100M 到 15B），覆盖推荐、广告、电商、直播四个核心场景，全部全量上线。
