@@ -3,6 +3,7 @@ import { readdir, readFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import { load } from 'cheerio';
 import { matchingSections } from '../src/lib/discovery.mjs';
+import { findEdition } from '../src/lib/cjk-search.mjs';
 const dist = path.resolve(process.argv[2] || 'dist');
 let articles = 0; let translations = 0;
 for (const item of await readdir(path.join(dist, 'blog'), { withFileTypes: true })) {
@@ -63,8 +64,9 @@ try {
     ['codebook utilization', 'en', 'From Gradient Descent to Semantic IDs'],
     ['straight-through estimator', 'en', 'From Gradient Descent to Semantic IDs'],
   ]) {
-    const found = await api.search(query, { filters: { edition } });
-    const hits = await Promise.all(found.results.map((result) => result.data()));
+    // Use the same query path as the site search dialog.
+    const found = await findEdition(api, edition, query);
+    const hits = await Promise.all(found.map((result) => result.data()));
     const tutorial = hits.find((hit) => hit.meta.title.includes(title));
     assert.ok(tutorial, `${query}: expected full-text tutorial match`);
     assert.match(tutorial.excerpt, /<mark>/, `${query}: expected highlighted excerpt`);
