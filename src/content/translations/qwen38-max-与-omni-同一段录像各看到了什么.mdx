@@ -3,10 +3,10 @@ title: "One Recording, Two Models: What Qwen3.8-Max and Qwen3.8-Omni Each See"
 date: 2026-10-01
 tags: ["技术报告解读", "AI 与机器学习"]
 category: "技术分享"
-summary: "Qwen3.8-Max can already watch video, so why Qwen3.8-Omni? Following one meeting recording, this post looks at it from each model's point of view: what evidence each one receives, how it is trained to use that evidence, and how that lands in real-time interaction and tool execution."
+summary: "Qwen3.8-Max can already watch video, so why Qwen3.8-Omni? Following one meeting recording from each model's point of view: what evidence each one receives, how it is trained to use that evidence, and how that lands in real-time interaction and tool execution."
 draft: false
 sourceFile: "qwen38-max-与-omni-同一段录像各看到了什么.mdx"
-sourceHash: "cd977efde3e028a4380079e99459be20aeae61bc1b5d667e89a9ca5c8cd8322f"
+sourceHash: "675cc87e26d697c306501636657ab21a9f03b3ce37e0584bee9eb34e54adca2e"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -17,11 +17,11 @@ A meeting recording: the screen shows a quarterly budget sheet, the host says "l
 
 After reading the Qwen3.8-Omni technical report, a question comes up naturally: Qwen3.8-Max can already understand images, documents, and video, and it can operate interfaces and write code. Why also have an Omni?
 
-This post does not rank the two. Instead it hands the same recording to each model and looks at three things: **what raw evidence each one receives, how training lets it use that evidence, and how that use turns into action.** The basis is the [official Qwen3.8-Max release post](https://qwen.ai/blog?id=qwen3.8), the [Qwen3.8-Omni technical report](https://arxiv.org/abs/2609.25611), and the official API documentation as of October 1, 2026. The two sides disclose different depths: Max mainly discloses its workflows, training system ideas, and evaluations, while the Omni report gives details on perception encoding, pretraining, and the real-time system. The comparison below follows the depth actually disclosed, and says so where something was not disclosed.
+The two sides do not disclose the same depth: the [official Qwen3.8-Max release post](https://qwen.ai/blog?id=qwen3.8) mainly covers workflows, training system ideas, and evaluations, while the [Qwen3.8-Omni technical report](https://arxiv.org/abs/2609.25611) gives details on perception encoding, pretraining, and the real-time system. The official API documentation is taken as of October 1, 2026.
 
-## 1. Two Models, Three Entry Points
+## Two Models, Three Entry Points
 
-Start with what developers can actually call. In the current official vision model documentation, `qwen3.8-max` takes text, images, and video as input and outputs text. The same page states explicitly that when you need to understand the sound in a video or feed audio directly, you should switch to `qwen3.8-omni-flash`, which also outputs text. Real-time voice and video sessions correspond to a third entry point, `qwen3.8-omni-flash-realtime`. [Source: vision model documentation](https://docs.qwencloud.com/developer-guides/getting-started/vision-models), [speech-to-speech model documentation](https://docs.qwencloud.com/developer-guides/speech/s2s-models)
+In the current official vision model documentation, `qwen3.8-max` takes text, images, and video as input and outputs text. The same page states explicitly that when you need to understand the sound in a video or feed audio directly, you should switch to `qwen3.8-omni-flash`, which also outputs text. Real-time voice and video sessions correspond to a third entry point, `qwen3.8-omni-flash-realtime`. [Source: vision model documentation](https://docs.qwencloud.com/developer-guides/getting-started/vision-models), [speech-to-speech model documentation](https://docs.qwencloud.com/developer-guides/speech/s2s-models)
 
 | Public endpoint | Key input boundary | Output and interaction mode | What to watch when comparing |
 |---|---|---|---|
@@ -37,7 +37,7 @@ The origins of the two models also need to be kept apart. The Max release post s
 
 So rather than ranking "is Max or Omni stronger," it is more useful to ask about three dimensions separately: general task ability, the range of input evidence, and runtime interaction constraints. A name can hint at positioning, but it cannot replace these three checks.
 
-## 2. How Many Kinds of Evidence Are in One Recording
+## How Many Kinds of Evidence Are in One Recording
 
 A video container can hold picture, audio track, subtitles, and timing information all at once, but what the model finally receives depends on the endpoint, the media processing, and how the input is organized. Frames only, frames plus subtitles, and frames jointly input with the raw audio track preserved are three different observation conditions.
 
@@ -49,9 +49,7 @@ Transcribing speech into text first and then handing it to Max is a perfectly re
 
 Conversely, keeping the audio track is not a sufficient condition either. Whether the streams sit on the same timeline, whether frame sampling missed a key action, and whether the transcript misheard a negation all need checking. A native multimodal model moves part of the fusion work into the model, but capture and input organization still decide what it can see and hear.
 
-With these four kinds of evidence in hand, let us look at the recording from each model's point of view.
-
-## 3. As Qwen3.8-Max Sees It: Video Is Picture, Subtitles, and Work Feedback
+## As Qwen3.8-Max Sees It: Video Is Picture, Subtitles, and Work Feedback
 
 ### How Video Gets into Max
 
@@ -61,11 +59,11 @@ The evaluation settings make this path even clearer. In the multimodal results t
 
 These annotations show that in Max's public evaluations, the language information in a video mainly enters through the text channel of subtitles, and long time spans are supported by a memory system on the Harness side. This is an evaluation configuration, not a claim about the upper limit of Max's ability. But put back into that meeting recording, what Max can reliably get is the picture, the subtitle text, and the event structure organized by the memory tool; the tone of the interruption and the overlap of two people speaking at once depend on whether the upstream transcript kept them.
 
-Two more things need to be kept apart. "Hundreds of hours of video organized into retrievable memory" and "hundreds of hours of raw video stuffed into one API request" are not the same thing: the current official documentation limits video input for both Max and Omni-Flash to at most 2 hours and within 2GB. [Source: "Video support" in the vision model documentation](https://docs.qwencloud.com/developer-guides/getting-started/vision-models)
+"Hundreds of hours of video organized into retrievable memory" and "hundreds of hours of raw video stuffed into one API request" are not the same thing: the current official documentation limits video input for both Max and Omni-Flash to at most 2 hours and within 2GB. [Source: "Video support" in the vision model documentation](https://docs.qwencloud.com/developer-guides/getting-started/vision-models)
 
 ### Vision Is Not Only on the Input Side
 
-What is really worth looking at in Max's multimodality is that it connects vision to action. The release post stresses that during execution the model keeps observing its own intermediate artifacts, checking page layout, object orientation, spatial relationships, animation effects, and interaction results, and after finding problems such as a TV placed upside down or a misaligned interface, it replans and corrects itself. Vision thus changes from "understanding the input" into a feedback loop running through planning, execution, verification, and iteration.
+The more important side of Max's multimodality is that it connects vision to action. The release post stresses that during execution the model keeps observing its own intermediate artifacts, checking page layout, object orientation, spatial relationships, animation effects, and interaction results, and after finding problems such as a TV placed upside down or a misaligned interface, it replans and corrects itself. Vision thus changes from "understanding the input" into a feedback loop running through planning, execution, verification, and iteration.
 
 Take "recreating an app from a screenshot of its interface." The first version of the artifact may only resemble it in color and text. After opening the page, the model still has to judge whether a button is covered, whether the layout breaks when the window shrinks, and whether the state really changes after a click. Code builds the interface, and the running interface in turn checks the code. The official name for this route of combining programming with GUI operation is Hybrid Agent: programming completes large amounts of work efficiently, and GUI operation brings back feedback from the real running system.
 
@@ -85,9 +83,9 @@ The "Office Assistant" section of the Max release post discloses three interrela
 
 **An online data balancer reorganizes each batch.** It keeps the distribution within each batch balanced by task, difficulty, workspace, and Harness; the authors explain this as reducing gradient variance across batches so that the training compute for reinforcement learning can keep scaling stably. If a run of similar easy tasks gets sampled and is then suddenly replaced by a run of complex long-horizon tasks, the distribution of the training signal swings sharply. Controlling the mix ratio is exactly one of the links that turns "many environments" into "stable training."
 
-These three show how Max's working ability is organized by the training system. The full RL algorithm, reward weights, environment scale, and training cost have not been disclosed, and there is no perception encoder configuration that could be compared against Omni's. [Source: "Office Assistant" section of the official Max release post](https://qwen.ai/blog?id=qwen3.8)
+This is how Max's working ability is organized by the training system. The full RL algorithm, reward weights, environment scale, and training cost have not been disclosed, and there is no perception encoder configuration that could be compared against Omni's. [Source: "Office Assistant" section of the official Max release post](https://qwen.ai/blog?id=qwen3.8)
 
-## 4. As Qwen3.8-Omni Sees It: Sound and the Moment It Happens
+## As Qwen3.8-Omni Sees It: Sound and the Moment It Happens
 
 Switching to Omni's point of view, what is added in the same recording is that audio track. The architecture in the Omni report: a vision encoder, the AuT audio encoder, and the Spatial AuT spatial audio encoder each connect through an adapter to a shared Thinker, and text also enters the same reasoning backbone. The first problem to solve is representation alignment, turning different inputs into a sequence the backbone can use together, rather than each writing its own summary first and then stitching them together. [Source: Omni report Section 2, PDF pp. 3-4](https://arxiv.org/abs/2609.25611)
 
@@ -99,7 +97,7 @@ The ordinary AuT path processes audio as 16kHz sampling and 128-dimensional Mel 
 
 These numbers show that sound is compressed before it enters shared reasoning: 10ms is the initial time resolution, and about 160ms per position is the interval of the encoder output; the two are not at the same layer. A rough calculation at 6.25Hz gives about 375 feature positions at that layer per minute of sound; this number excludes video, text, spatial channels, and other sequence overhead, and it is not the endpoint's token billing formula. Still less is 6.25Hz a playback sampling rate or a response speed: how long after speaking a user hears a reply also depends on session commit, model computation, speech generation, the network, and the playback buffer.
 
-AuT is trained with ASR supervision, but at runtime what is handed to the Thinker is a learned audio representation, not "first force the sound into text." The ASR objective helps the representation learn linguistic information, while the joint perception path aims to let the shared model use the sound itself, as well as the relationship between sound and picture. How many nonverbal cues are actually kept ultimately has to be judged by task results.
+AuT is trained with ASR supervision, but at runtime what is handed to the Thinker is a learned audio representation, not "text the sound was forced into." The ASR objective helps the representation learn linguistic information, while the joint perception path aims to let the shared model use the sound itself, as well as the relationship between sound and picture. How many nonverbal cues are actually kept ultimately has to be judged by task results.
 
 ### Why Spatial Sound Takes a Separate Path
 
@@ -111,7 +109,7 @@ Back in the meeting room, spatial information might help tell who is speaking, p
 
 Just putting sound tokens and image tokens into the same context does not guarantee the model knows they happened at the same time. In a meeting, "version two" might be said before the screen share switches pages, or it might be rejected after the switch; the same word appearing at different moments can carry completely different meaning for the task. The Omni report keeps explicit text timestamps; spatial tokens in the same time slice share a temporal ID and are distinguished by different spatial IDs, so temporal and spatial relationships have a place to be expressed.
 
-This also suggests something for system design: events extracted by the model should ideally point back to a time range in the original media, so evidence can be retrieved again later. Explicit temporal information is an architectural fact from the report; a traceable event object is this post's engineering inference. Whether the timestamps are precise enough and whether clocks on different devices agree still has to be tested on real input.
+This also suggests something for system design: events extracted by the model should ideally point back to a time range in the original media, so evidence can be retrieved again later. Explicit temporal information is an architectural fact from the report; a traceable event object is an engineering suggestion drawn from it, not something the report gives. Whether the timestamps are precise enough and whether clocks on different devices agree still has to be tested on real input.
 
 ### Learn to Connect First, Then Learn to Work Together
 
@@ -125,9 +123,9 @@ Looking at the training on both sides together, the difference lies in what each
 
 Omni's side also has gaps: the report does not disclose the Thinker's full RL algorithm and reward mix, and the GSPO used in the Talker's final stage cannot be used to fill that gap; the initialization of the vision encoder is written as Next in some paragraphs and Qwen3.5 in others, so the specific checkpoint cannot be determined.
 
-## 5. When the Conversation Becomes Real-Time
+## When the Conversation Becomes Real-Time
 
-Now change that meeting from a recording into collaboration happening live. The user says "prepare it per version two," the system has already started answering, and the user adds, "don't send it yet, change it to version three." The problem is no longer just understanding a sentence: whether to stop the old answer, whether to update the task parameters, and how to handle background work that has already started all follow from it.
+Suppose that meeting is not a recording but collaboration happening live. The user says "prepare it per version two," the system has already started answering, and the user adds, "don't send it yet, change it to version three." The problem is no longer just understanding a sentence: whether to stop the old answer, whether to update the task parameters, and how to handle background work that has already started all follow from it.
 
 An ordinary text endpoint can use `stream=True` to return text chunk by chunk. A real-time voice system has to keep receiving input, commit the current segment, maintain session state, and play sound while generating it; the official Realtime documentation describes this mechanism with WebSocket / WebRTC sessions and the text and audio output configuration in `session.update`. Both are called "streaming," but their runtime semantics differ. [Source: Realtime multimodal speech guide](https://docs.qwencloud.com/developer-guides/speech/realtime-multimodal-speech)
 
@@ -141,9 +139,9 @@ Latency also needs to be read in pieces. The first-text and first-audio timings 
 
 Qwen-Live-Harness offers a useful structure: the foreground delegates a task and confirms immediately, the background keeps executing and monitoring, and feedback is organized after completion, so real-time interaction and long tasks do not have to squeeze into the same blocking path. [Source: report Section 7.3, PDF page 16](https://arxiv.org/abs/2609.25611)
 
-## 6. Connecting the Two Views in One Task
+## Connecting the Two Views in One Task
 
-Suppose you want to build a meeting assistant that has to understand the live discussion and also organize materials, edit files, and generate pages. One workable division of labor: observation that needs raw sound and real-time sessions go to Omni, and the later work suited to Max or another execution model goes to them. This is **an engineering design proposed by this post**, not an officially prescribed fixed pipeline of Omni feeding Max, and this post did not run API tests.
+Suppose you want to build a meeting assistant that has to understand the live discussion and also organize materials, edit files, and generate pages. One workable division of labor: observation that needs raw sound and real-time sessions go to Omni, and the later work suited to Max or another execution model goes to them. This is **an engineering design suggestion**; there is no officially prescribed fixed pipeline of Omni feeding Max, and it has not been tested against the API.
 
 <TechGraph src="/images/posts/qwen38-max-与-omni-同一段录像各看到了什么/g05-handoff.svg" title="PROPOSED EVIDENCE-PRESERVING HANDOFF" alt="Engineering proposal: the real-time foreground produces evidence objects with pointers to the original media, hands them to an optional execution backend, and gives feedback after tool results are verified" caption="Diagram: foreground-background collaboration that preserves raw evidence (drawn by the author of this post; an engineering proposal inspired by Omni report Section 7 and Max's visual workflow, not an official fixed model combination)" />
 
@@ -151,7 +149,7 @@ Suppose you want to build a meeting assistant that has to understand the live di
 
 If the foreground hands over only one sentence, "the meeting decided on version three," the background will treat a perceptual judgment as an established fact. Later, if you want to check who proposed the change, whether there were objections, and which file version three corresponds to, it is hard to locate any of it again.
 
-A more robust handoff object keeps the event identifier, time of occurrence, observed content, location in the original media, and questions still to be confirmed. Below is the data structure this post proposes, not an official API schema; `unresolved` holds items the system recorded as needing verification, not a probability calibrated by the model.
+A more robust handoff object keeps the event identifier, time of occurrence, observed content, location in the original media, and questions still to be confirmed. The example structure is a suggested format, not an official API schema; `unresolved` holds items the system recorded as needing verification, not a probability calibrated by the model.
 
 ```json
 {
@@ -183,30 +181,30 @@ Recognizing a table in a screenshot, adjusting a web page layout, or processing 
 
 These are routing principles based on input boundaries, not a measured cost-effectiveness ranking. Whether to choose a single model, ASR plus an execution model, native Omni, or a foreground-background combination has to be decided by comparing accuracy, waiting time, call cost, and failure recovery on your own tasks.
 
-## 7. How Far the Public Results Can Prove Things
+## How Far the Public Results Can Prove Things
 
 Both materials have plenty of evaluations, but they do not add up to a condition-matched Max versus Omni comparison. Many video tasks in the Max release post use subtitles, memory, or search, and the Harness and statistical conventions differ by benchmark; Omni's text tables mainly compare against Qwen3.8-Flash, not Max, and swapping the Flash column for Max would change what the paper means. Omni report Table 7 also includes Video-MME-v2 (static 65.0, Qwen Code 71.3), but its input mode differs from the subtitle-enabled 68.3 in the Max table, so ranking them together is meaningless.
 
-What best supports this post's main line is a comparison inside the Omni report: how the results change for the same Omni when it understands long video from static input versus when it actively gathers evidence through Qwen Code.
+More convincing is a comparison inside the Omni report: how the results change for the same Omni when it understands long video from static input versus when it actively gathers evidence through Qwen Code.
 
 <Figure src="/images/posts/qwen38-max-与-omni-同一段录像各看到了什么/p03-token-evidence.png" alt="Table 8 of the original Omni report: accuracy and tokens per query for the same model under static input and Qwen Code active understanding settings" caption="Source: Table 8 of the original Qwen3.8-Omni report, PDF page 14; faithful crop only. The comparison is between two ways of using the same Omni model" />
 
-In Table 8, OmniVideoBench accuracy rises from 63.4 to 67.8, an increase of 4.4 percentage points; tokens per query drop from 145,736 to 79,117, a reduction of about 45.7%, with cross-turn context retained in the count. In other words, under this model and task setting, organizing observation first and then gathering evidence on demand improved both answer quality and input consumption. It does not measure Max as better or worse than Omni, nor does it show that total latency or the bill will drop proportionally: multi-turn tool calls carry overhead for media processing, requests, and execution, and billing may also differ by input type.
+In Table 8, OmniVideoBench accuracy rises from 63.4 to 67.8, an increase of 4.4 percentage points; tokens per query drop from 145,736 to 79,117, a reduction of about 45.7%, with cross-turn context retained in the count. Under this model and task setting, organizing observation first and then gathering evidence on demand improved both answer quality and input consumption. It does not measure Max as better or worse than Omni, nor does it show that total latency or the bill will drop proportionally: multi-turn tool calls carry overhead for media processing, requests, and execution, and billing may also differ by input type.
 
 Omni did not improve on every sound task either. In Table 4, compared with the previous-generation model in the table, WenetNet's WER goes from 3.7 to 4.8 and FLEURS from 7.2 to 9.3, where lower WER is better. Wider capability coverage does not guarantee every kind of transcription task gets stronger; if the need is only ASR, test directly with your own languages, noise, and speaking conditions. [Source: Omni report Table 4, PDF page 11](https://arxiv.org/abs/2609.25611)
 
 Max's version also needs to be kept separate from the one at release. The official announcement states that since September 5, 2026, `qwen3.8-max` has switched to the `qwen3.8-max-0902` snapshot, so the model evaluated in the August 3 release post should not be assumed to be exactly the same as the version you get by calling the alias today. [Source: Max update announcement](https://docs.qwencloud.com/changelog/model-updates/qwen3.8-max-upgrade)
 
-To really compare the two, you have to fix at least the raw media, how sound and subtitles are preserved, tool permissions, the Harness, the number of retries, the model version, and the timing start point; meeting tasks also need a check that key decisions can be traced back to the original segment, and desktop tasks need verification of real application state. Comparing only whether the final answers read smoothly misses the relationship between evidence and action that this post has been tracking all along.
+To really compare the two, you have to fix at least the raw media, how sound and subtitles are preserved, tool permissions, the Harness, the number of retries, the model version, and the timing start point; meeting tasks also need a check that key decisions can be traced back to the original segment, and desktop tasks need verification of real application state. Comparing only whether the final answers read smoothly misses the relationship between evidence and action.
 
 ## Back to That Recording
 
 From Qwen3.8-Max's point of view, this recording is picture, subtitles, and events that can be organized into memory. It is good at turning what it sees into work, and at repeatedly looking back at results and correcting itself during execution; its training system organizes this ability around environment combination, unified rewards, and batch balancing. From Qwen3.8-Omni's point of view, the recording also holds raw sound, the direction of the sound, and the moment it happens. These signals go through their own encoders into the same reasoning backbone and then, through real-time sessions, become immediate responses in conversation.
 
-So the answer to "we already have Max, why Omni" depends on which piece of evidence the task is missing: the budget sheet needs reliable visual and document understanding, who rejected which version needs sound and temporal relationships, and putting changes into files needs tool execution and verification. The two models overlap in ability, their public endpoints have clear boundaries, and a system can pick one of them or let them work together.
+So the answer to "Max already exists, so why Omni" depends on which piece of evidence the task is missing: the budget sheet needs reliable visual and document understanding, who rejected which version needs sound and temporal relationships, and putting changes into files needs tool execution and verification. The two models overlap in ability, their public endpoints have clear boundaries, and a system can pick one of them or let them work together.
 
 Before building anything, ask three questions: Does the input keep the raw evidence the task needs? Can conclusions drawn from perception point back to their original location? Is "done" backed by real tool results?
 
-<Callout type="note" title="Scope of this post's comparison">
-This post compares public architecture, training systems, and endpoint boundaries. It did not run the Max or Omni API, nor did it run condition-matched performance experiments. The meeting scenario, event object, and foreground-background collaboration in this post are explanations and engineering proposals. Max's video evaluation numbers come from the results table in its official release post, and settings with subtitles, memory, or search follow the annotations in the original table.
+<Callout type="note" title="Scope of the Comparison">
+The comparison covers public architecture, training systems, and endpoint boundaries. The Max and Omni APIs were not run, and no condition-matched performance experiments were done. The meeting scenario, event object, and foreground-background collaboration are explanations and engineering proposals. Max's video evaluation numbers come from the results table in its official release post, and settings with subtitles, memory, or search follow the annotations in the original table.
 </Callout>
