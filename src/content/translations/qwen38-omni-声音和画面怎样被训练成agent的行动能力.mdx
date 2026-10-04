@@ -3,21 +3,21 @@ title: "Qwen3.8-Omni: How Sound and Vision Are Trained into an Agent's Ability t
 date: 2026-09-30
 tags: ["技术报告解读", "AI 与机器学习"]
 category: "技术分享"
-summary: "Following unified representations, four-stage co-training, multi-teacher distillation, and execution feedback, this post takes apart how Qwen3.8-Omni connects hearing and seeing to agent action, and checks the experimental evidence and implementation gaps along that chain."
+summary: "Following unified representations, four-stage co-training, multi-teacher distillation, and execution feedback, a breakdown of how Qwen3.8-Omni connects hearing and seeing to agent action, and checks the experimental evidence and implementation gaps along that chain."
 draft: false
 sourceFile: "qwen38-omni-声音和画面怎样被训练成agent的行动能力.mdx"
-sourceHash: "345a05563dc4114fd8bf97b1150a004286d210f809866c15c40a51e86334b4e0"
+sourceHash: "2a79102817372c7ae2afab1710545422a6c63a0b0da2af6292ddf54f700e63c2"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
 import Figure from '../../components/blog/Figure.astro'
 import TechGraph from '../../components/blog/TechGraph.astro'
 
-> Original report: *Qwen3.8-Omni: Towards Native Omni-Modal Agents*, Qwen Team, arXiv:2609.25611v1. Submitted to arXiv on September 22, 2026; the PDF cover is dated September 23. This post reads v1; the code analysis is pinned to commits collected on September 30.
+> Original report: *Qwen3.8-Omni: Towards Native Omni-Modal Agents*, Qwen Team, arXiv:2609.25611v1. Submitted to arXiv on September 22, 2026; the PDF cover is dated September 23. v1 is the version used; the code analysis is pinned to commits collected on September 30.
 
-When a meeting assistant hears "go with the plan from just now and change this part," it is still far from finishing the task. It has to know who said it, which stretch of discussion "just now" refers to, which object on screen "this part" points at, and then turn the sentence into a goal a tool can execute. That chain is the thing most worth following in the Qwen3.8-Omni technical report: how the perception encoders hand different signals to the same Thinker, and how training lets that Thinker inherit the reasoning and execution abilities of a text agent.
+When a meeting assistant hears "go with the plan from just now and change this part," it is still far from finishing the task. It has to know who said it, which stretch of discussion "just now" refers to, which object on screen "this part" points at, and then turn the sentence into a goal a tool can execute. That chain is the main line of the Qwen3.8-Omni technical report: how the perception encoders hand different signals to the same Thinker, and how training lets that Thinker inherit the reasoning and execution abilities of a text agent.
 
-The [original report](https://arxiv.org/abs/2609.25611v1) covers the model, training, video production, real-time speech, and two open-source frameworks. Walking through it feature by feature makes it read like a product catalog. This post follows representation and training downward instead, then uses the experiments and system implementation to test where the chain holds and where evidence is still missing.
+The [original report](https://arxiv.org/abs/2609.25611v1) covers the model, training, video production, real-time speech, and two open-source frameworks. Walking through it feature by feature makes it read like a product catalog. What actually ties these parts together is representation and training, and the experiments and system implementation can test where the chain holds and where evidence is still missing.
 
 ## From "Understand This Video" to "Act on This Video"
 
@@ -27,15 +27,15 @@ The common combination is to transcribe with ASR first, have a vision model writ
 
 Qwen3.8-Omni's approach is to get these signals into the same reasoning model as early as possible. The perception encoders are still separate, but their outputs are projected into a shared space and organized into one sequence by time, and text abilities and multimodal abilities shape the model together during training. The result the authors want: when the input switches to sound or video, the model keeps the planning, tool use, and long-horizon execution it has on text tasks.
 
-First, get the names straight. The model the report mainly discusses is **Qwen3.8-Omni-Flash**, and the real-time version is the non-thinking **Qwen3.8-Omni-Flash-Realtime**. It inherits the sparse MoE backbone of Qwen3.8-Next, but the Omni report and the Next architecture report are two separate documents: Next helps explain the backbone design, but its training parameters, speed, and evaluation conclusions cannot be used as Omni's results.
+The model the report mainly discusses is **Qwen3.8-Omni-Flash**, and the real-time version is the non-thinking **Qwen3.8-Omni-Flash-Realtime**. It inherits the sparse MoE backbone of Qwen3.8-Next, but the Omni report and the Next architecture report are two separate documents: Next helps explain the backbone design, but its training parameters, speed, and evaluation conclusions cannot be used as Omni's results.
 
-<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g01-mainline.svg" title="REPRESENTATION TO ACTION" caption="Diagram: the main line from three perception paths to a unified policy (drawn by the author of this post, based on Sections 2-4 of the original paper)" />
+<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g01-mainline.svg" title="REPRESENTATION TO ACTION" caption="Diagram: the main line from three perception paths to a unified policy (drawn by the blog author, based on Sections 2-4 of the original paper)" />
 
-The chain breaks into three questions. Did the encoders keep the information the task needs? Can the Thinker relate that information and find the relevant context? Did training make the model turn understanding into reliable action, rather than just an explanation? The architecture and training designs that follow each answer one of these.
+The chain breaks into three questions. Did the encoders keep the information the task needs? Can the Thinker relate that information and find the relevant context? Did training make the model turn understanding into reliable action, rather than just an explanation? The architecture and training designs each correspond to one of these questions.
 
 <Figure src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/p01-overview.png" alt="Original report Figure 1: overview of the Qwen3.8-Omni model and multimodal agent workflow" caption="Source: Figure 1 of the original paper, PDF page 2; faithful crop only" />
 
-Figure 1 draws the model and its applications together: the Thinker and perception components at top left, interfaces such as memory, caption, and skill in the middle, the main agent's planning, tool calls, context management, and execution on the right, and video production and research workflows at the bottom. The connection most worth looking at is "how perception output becomes execution evidence." The generation, editing, and experiment tools in the figure belong to external workflows. When a video or training result is delivered, not every artifact can be counted as the model's native output.
+Figure 1 draws the model and its applications together: the Thinker and perception components at top left, interfaces such as memory, caption, and skill in the middle, the main agent's planning, tool calls, context management, and execution on the right, and video production and research workflows at the bottom. The key connection is "how perception output becomes execution evidence." The generation, editing, and experiment tools in the figure belong to external workflows. When a video or training result is delivered, not every artifact can be counted as the model's native output.
 
 ## Three Encoders: Keep Different Information First, Then Enter the Same Thinker
 
@@ -81,7 +81,7 @@ Time serves two purposes here. Position indices tell the model the relative stru
 
 The positional layout of Spatial AuT is analogous to visual patches within a frame: spatial embeddings from the same time slice share a temporal index but each has a different spatial position index, so they are aligned to the audio timeline without being treated as the same position. The report says this reuses Qwen3.5-Omni's audio-video timestamp strategy, just bringing spatial audio into the existing convention.
 
-<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g02-temporal-layout.svg" title="TEMPORAL EVIDENCE" caption="Diagram: sound, image, and spatial representations share time anchors (drawn by the author of this post, based on Section 2.2 of the original paper; not an exact token arrangement)" />
+<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g02-temporal-layout.svg" title="TEMPORAL EVIDENCE" caption="Diagram: sound, image, and spatial representations share time anchors (drawn by the blog author, based on Section 2.2 of the original paper; not an exact token arrangement)" />
 
 Take "he just said this plan won't work." The audio content supplies the negative judgment, the time anchor bounds what "just" covers, the video may show which slide is meant, and spatial information can help tell sound sources apart. The model has to combine this evidence into one judgment, not paste three captions together.
 
@@ -97,7 +97,7 @@ QSA (Qwen Sparse Attention) further narrows what attention accesses: a lightweig
 
 QSA retrieval inside the model and an agent calling tools to reread video operate at two different levels. QSA selects among tokens already in context; tool calls fetch new evidence from external media that is not yet in context. The first improves internal access, the second changes how input is acquired, which is why the report emphasizes both the long-context backbone and active evidence gathering.
 
-This post does not transfer Next's micro-block parameters, top-k, training steps, or throughput to Omni. The Omni report describes the mechanism and stages but does not publish the specific configuration used in this multimodal training.
+Next's micro-block parameters, top-k, training steps, and throughput cannot be transferred to Omni: the Omni report describes the mechanism and stages but does not publish the specific configuration used in this multimodal training.
 
 ### 256K and 1M Belong to Different Training Stages
 
@@ -109,7 +109,7 @@ Window size determines how much context fits at once. Whether that context gets 
 
 The architecture provides the paths; pretraining decides whether the model actually uses them. Qwen3.8-Omni splits pretraining into S1 through S4, and each step is clear about which parameters and objectives change. The idea is that each training change solves only one problem.
 
-<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g03-pretraining.svg" title="FOUR-STAGE PRETRAINING" caption="Diagram: encoder alignment, full-parameter co-training, QSA warmup, and sparse adaptation (drawn by the author of this post, based on Section 3 of the original paper)" />
+<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g03-pretraining.svg" title="FOUR-STAGE PRETRAINING" caption="Diagram: encoder alignment, full-parameter co-training, QSA warmup, and sparse adaptation (drawn by the blog author, based on Section 3 of the original paper)" />
 
 ### S1: Freeze the Language Backbone and Open Up the Encoder Interface First
 
@@ -125,7 +125,7 @@ S2 unfreezes all parameters and trains on broader text, audio, image, video, and
 
 <Callout type="note" title="The original's total data volume has conflicting figures">
 
-The S2 text says "about 2.5T tokens," but the five items add up to 2.6T. This post keeps both original figures, does not treat either as the exact total, and does not use them to compute exact modality shares. The report does not explain whether the difference comes from rounding, counting scope, or an editing issue.
+The S2 text says "about 2.5T tokens," but the five items add up to 2.6T. Both original figures are kept; neither is treated as the exact total, and neither is used to compute exact modality shares. The report does not explain whether the difference comes from rounding, counting scope, or an editing issue.
 
 </Callout>
 
@@ -143,7 +143,7 @@ The report does not give the distillation loss, block size, score normalization,
 
 S4 actually enables QSA, and the backbone and indexer are optimized jointly. A backbone trained with dense attention is used to a certain kind of evidence coverage. After switching to sparse, even if most important blocks can be recovered, the attention distribution and the available information have changed, and joint training gives the two a stage to adjust together.
 
-Looking back, S1 through S4 address interface alignment, shared representation, block-level selection, and sparse adaptation: first get perception information in reliably, then lower the cost of access. This order is the engineering logic in the report most worth borrowing, but it is still far from a reproduction manual. The gap list below spells out what is missing.
+Looking back, S1 through S4 address interface alignment, shared representation, block-level selection, and sparse adaptation: getting perception information in reliably comes first, lowering the cost of access comes second. This order is the most borrowable engineering logic in the report, but it is still far from a reproduction manual; the gap list at the end spells out what is missing.
 
 ## Multi-Teacher Post-Training: Teaching One Thinker Several Task Policies
 
@@ -153,13 +153,13 @@ Pretraining gives the model usable representations and knowledge; post-training 
 
 The authors initialize several domain experts from the same pretrained Qwen3.8 base checkpoint, each doing its own SFT and RL, covering general instructions, basic reasoning, coding, agentic tasks, visual understanding, and audio understanding. The experts generate high-quality domain training trajectories, which are pooled into a unified multimodal training mixture and distilled into one student.
 
-<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g04-distillation.svg" title="MULTI-TEACHER DISTILLATION" caption="Diagram: domain experts generate trajectories, and their abilities flow into a single student (drawn by the author of this post, based on Section 4 of the original paper)" />
+<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g04-distillation.svg" title="MULTI-TEACHER DISTILLATION" caption="Diagram: domain experts generate trajectories, and their abilities flow into a single student (drawn by the blog author, based on Section 4 of the original paper)" />
 
 These "experts" are not the same thing as MoE experts. An MoE expert is a parameter module inside the backbone that tokens are routed to; post-training teachers are independently optimized models used to supply trajectories. After distillation, the student does not summon any teacher per request. What you end up with is a single policy with shared parameters.
 
 The authors argue that letting each domain first optimize fully on its own tasks and feedback, then giving the student consistent supervision, reduces cross-domain and cross-modal interference better than fine-tuning directly on heterogeneous mixed data. That is the authors' mechanistic explanation: the report has no equal-budget comparison of a single mixed SFT, multi-teacher distillation, and different numbers of teachers, so it does not yet hold up quantitatively.
 
-The value of trajectories is that they carry process. For an agent, giving only the final answer versus the full process is a huge difference in supervision: when to request evidence, when to call a tool, how to revise the plan after a failed result, all shape the execution policy. The report does not disclose the trajectory schema, tool-call fields, filtering thresholds, or domain weights, and this post does not assume any particular hidden reasoning format in the training data.
+The value of trajectories is that they carry process. For an agent, giving only the final answer versus the full process is a huge difference in supervision: when to request evidence, when to call a tool, how to revise the plan after a failed result, all shape the execution policy. The report does not disclose the trajectory schema, tool-call fields, filtering thresholds, or domain weights, so there is no basis for assuming any particular hidden reasoning format in the training data.
 
 This step also partly answers "how audio inherits text agent abilities": the architecture brings different inputs into the same Thinker, and multi-domain trajectories let it learn policies for different tasks within shared parameters. Goals, evidence, and environment feedback can come from different modalities, and decisions are made by the same policy. The report supports this with overall evaluations, but it does not design a strictly matched experiment proving that the gain on some sound task comes solely from transfer from the text domain.
 
@@ -169,13 +169,13 @@ The authors are candid about the problems after distillation: audio-conditioned 
 
 The task mix covers reasoning, coding, agentic execution, multimodal understanding, audio-conditioned dialogue, and multi-turn interaction, and rewards look at both task correctness and interaction quality. For long-horizon agents, rewards are determined by **task outcomes and execution results**; the model reporting "done" on its own does not count.
 
-<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g05-reward-loop.svg" title="OUTCOME-BASED POLICY" caption="Diagram: feeding task execution results and interaction quality back into the unified policy (drawn by the author of this post, based on Section 4 of the original paper)" />
+<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g05-reward-loop.svg" title="OUTCOME-BASED POLICY" caption="Diagram: feeding task execution results and interaction quality back into the unified policy (drawn by the blog author, based on Section 4 of the original paper)" />
 
 This is the sentence in the whole report most directly relevant to agent implementation. A model can narrate its steps fluently, and it can also claim the task is complete after making a mistake. If the reward only looks at surface text, the model has a chance to optimize for "looking successful." Setting rewards by execution results is what connects the policy objective back to the environment: was the file generated, did the program pass its checks, did the tool call produce the required result?
 
 In complex interactions, "helpfulness," "naturalness," and "persona stability" still need definitions and can even conflict with one another. v1 does not disclose the reward model, reward weights, the Thinker's RL algorithm, rollout budget, or training curves. In particular, you cannot infer that the Thinker also uses GSPO just because the Talker section later mentions GSPO: for the Thinker, the report only describes the two-stage framework and optimization objectives, while the Talker has a separate five-stage training whose final stage is the one that names GSPO.
 
-Cross-modal consistency is another hard problem. Ideally, the same task asked in text or by voice should not produce very different judgments; but voice carries pauses, vagueness, and environmental information, so verbatim consistency is not necessarily the right target either. A workable test: prepare text, audio, and audio-video versions of the same task, compare whether goal understanding, evidence citation, tool calls, and final artifacts are consistent, then extend to multiple turns and see whether the model forgets constraints, switches language on its own, or repeats execution. This is a suggestion this post derives from the training objectives; the report does not provide a ready-made test set.
+Cross-modal consistency is another hard problem. Ideally, the same task asked in text or by voice should not produce very different judgments; but voice carries pauses, vagueness, and environmental information, so verbatim consistency is not necessarily the right target either. A workable test: prepare text, audio, and audio-video versions of the same task, compare whether goal understanding, evidence citation, tool calls, and final artifacts are consistent, then extend to multiple turns and see whether the model forgets constraints, switches language on its own, or repeats execution. This is a suggestion derived from the training objectives; the report does not provide a ready-made test set.
 
 ## Experimental Checks: What the Unified Policy Preserved and What It Improved
 
@@ -199,7 +199,7 @@ The biggest change is in multi-speaker scenarios. AliMeeting **DER / cpWER** is 
 
 Ordinary ASR did not improve across the board. WenetSpeech Net WER rose from 3.7 in the previous generation to 4.8, and FLEURS-ASR from 7.2 to 9.3, both regressions. On OmniLingua-Long-AudioASR, the success rate rose from 94.07 to 95.56, but WER rose from 6.89 to 9.27: successful return and transcription quality are two dimensions. Audio interaction also has negative results: WildSpeech 74.3 (previous generation 75.7), VoiceBench 91.6 (previous generation 92.9). On music understanding, MuChoMusic-RUL improved noticeably, while MMAU, MMAR, and MMSU did not add up to a clear overall lead. These numbers alone cannot tell whether the regressions come from data mix, optimization, or evaluation setup, but they are enough to refute "unified multimodality is always better across the board."
 
-For the spatial ability that Spatial AuT targets, Table 5 shows OmniEchoBench at **43.9**, versus 23.3 for the previous generation and 32.0 for Gemini 3.8 Flash, a direction consistent with the new spatial path. The report does not run a matched ablation removing Spatial AuT, so the module's independent contribution still cannot be quantified. The body text separately says 41.7, which is inconsistent with the table; this post uses the table value.
+For the spatial ability that Spatial AuT targets, Table 5 shows OmniEchoBench at **43.9**, versus 23.3 for the previous generation and 32.0 for Gemini 3.8 Flash, a direction consistent with the new spatial path. The report does not run a matched ablation removing Spatial AuT, so the module's independent contribution still cannot be quantified. The body text separately says 41.7, which is inconsistent with the table; the table value is used.
 
 ### Agent Evaluations Test the Combination of Input Understanding and Tool Environment
 
@@ -221,11 +221,11 @@ Table 7 is well suited to testing this, because it only switches the usage mode 
 
 <TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/dv01-static-agentic.svg" title="STATIC VS AGENTIC" caption="Data source: Table 7 of the original paper, PDF page 14; redrawn from the six original value pairs, with no added data or interpolation" />
 
-In other words, under the report's setup, active execution improved Omni on three understanding tasks, and the other model also benefited on some tasks. The gain is not unique to Omni; the task and the way tools are used matter just as much. What changed here is the inference workflow, which says nothing about which module worked during training.
+Under the report's setup, active execution improved Omni on three understanding tasks, and the other model also benefited on some tasks. The gain is not unique to Omni; the task and the way tools are used matter just as much. What changed here is the inference workflow, which says nothing about which module worked during training.
 
 Table 8 gives the input cost on OmniVideoBench: accuracy goes from 63.4% to 67.8%, up **4.4 percentage points**; token consumption per query drops from **145,736** to **79,117**, a reduction of about **45.7%**, with cross-turn context included in the count. This is checkable evidence of token efficiency, but it is not "total time reduced by 45.7%" or "bill reduced by 45.7%": tool calls, media trimming, network transfer, and multi-turn output all cost time and money, and the report gives no end-to-end statistics.
 
-On-demand reading has its own failure modes: if the skim misses the key segment, close reading heads off in the wrong direction; if a summary loses its time anchors, tools cannot look back accurately; if a sub-agent gives an unverified explanation, the main agent may amplify the error. So beyond controlling the token budget, an implementation should keep source segment addresses, read logs, tool results, and failure states. The report does not publish a complete error recovery strategy; this is an engineering suggestion from this post.
+On-demand reading has its own failure modes: if the skim misses the key segment, close reading heads off in the wrong direction; if a summary loses its time anchors, tools cannot look back accurately; if a sub-agent gives an unverified explanation, the main agent may amplify the error. So beyond controlling the token budget, an implementation should keep source segment addresses, read logs, tool results, and failure states. The report does not publish a complete error recovery strategy; these points are engineering suggestions.
 
 The report also demonstrates autoresearch on Sichuanese ASR: four iterations in 12 hours, building 3,413 samples, with CER dropping from 25.79 to 15.30, a decrease of 10.49 percentage points, or about 40.7% relative. It shows an agent can organize data and iterate on experiments; but test selection, sample construction, and optimization all happened in the same workflow, with no fully independent held-out set and no repeated trials, so no general success rate for autonomous research can be inferred.
 
@@ -237,7 +237,7 @@ The Thinker takes multimodal input and produces text and high-level representati
 
 <Figure src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/p06-realtime.png" alt="Original report Figure 3: the Thinker-Talker real-time model and Qwen-Live-Harness connections to tools, sub-agents, and memory" caption="Source: Figure 3 of the original paper, PDF page 15; faithful crop only" />
 
-Speech and text have different token rates, and interleaving at a fixed ratio easily falls out of alignment. The report continues to use ARIA (Adaptive Rate Interleave Alignment), which lets the Talker generate coherent speech from a partial text prefix. The previous-generation Qwen3.5-Omni report describes it in Section 2.4 as an adaptive rate constraint; this version does not re-derive the formulas and thresholds, and this post does not fill in buffering parameters.
+Speech and text have different token rates, and interleaving at a fixed ratio easily falls out of alignment. The report continues to use ARIA (Adaptive Rate Interleave Alignment), which lets the Talker generate coherent speech from a partial text prefix. The previous-generation Qwen3.5-Omni report describes it in Section 2.4 as an adaptive rate constraint; this version does not re-derive the formulas and thresholds, so there is no basis for filling in buffering parameters.
 
 This generation's Code2Wav adds an upsampling path, extending waveform reconstruction from **24 kHz to 48 kHz**, which the authors say improves high-frequency fidelity. A higher sampling rate only gives high-frequency content room to be expressed; perceived quality, naturalness, and cloning accuracy have to be judged from speech benchmarks.
 
@@ -259,7 +259,7 @@ The key to reading this table is where timing starts. TTFT / TTFC run from the c
 
 A model that has learned to use tools does not automatically get an interface to every desktop application. The report open-sources Qwen-MM-Plugins, which adds multimodal capabilities to existing harnesses; Qwen-Live-Harness organizes the real-time foreground, background tasks, monitoring, and memory.
 
-The MM-Plugins commit archived for this post is `07736672525443c7f8a3f6405eed37d2236f023f`, and Live-Harness is `b6ce544ebbcd7417e37e0314ec946466c49c615c`. These are September 30 snapshots, later than the report's submission. They can be used to see whether the mechanisms have code behind them, but they cannot be treated as the exact versions used in the paper's experiments.
+The archived MM-Plugins commit is `07736672525443c7f8a3f6405eed37d2236f023f`, and Live-Harness is `b6ce544ebbcd7417e37e0314ec946466c49c615c`. These are September 30 snapshots, later than the report's submission. They can be used to see whether the mechanisms have code behind them, but they cannot be treated as the exact versions used in the paper's experiments.
 
 ### Plugins Connect Capabilities to Tools and Artifact Workflows
 
@@ -269,13 +269,13 @@ In the report, Omni-Caption, Video2Note, Omni-Memory, and Omni-Skill-Creator app
 
 In the pinned snapshot, the flow of `pipeline/runner.py` in `omni-video2note` is clear: read the source video and compute its hash, prepare media chunks, call the model for understanding, generate a document plan and first draft and validate them, select frames by time, and finally render a PDF locally. When screenshots are unavailable it falls back to plain text, and when rendering with images fails it may also output a plain-text PDF; before output, it checks the source file hash again. Understanding and artifacts are staged, so failures can be pinned to a specific step, and rechecking the hash during processing prevents understanding one video while citing another at delivery.
 
-Two things to watch at the same time. `status: complete` can come with a "no screenshots" warning, so you cannot conclude from the completion status alone that the artifact matches the original plan. The report says Video2Note can incorporate review feedback, but this entry point returns `audit: None` and `review: None`, so at least on this path you cannot assume automated review was executed. This post only did static reading and did not run cloud video understanding; understanding the code does not mean it will run successfully.
+Two things to watch at the same time. `status: complete` can come with a "no screenshots" warning, so you cannot conclude from the completion status alone that the artifact matches the original plan. The report says Video2Note can incorporate review feedback, but this entry point returns `audit: None` and `review: None`, so at least on this path you cannot assume automated review was executed. The code was only read statically, and cloud video understanding was not run; understanding it does not mean it will run successfully.
 
 ### The Real-Time Foreground and Background Tasks Run at Different Rhythms
 
 The [pinned Live-Harness documentation](https://github.com/QwenLM/Qwen-Live-Harness/blob/b6ce544ebbcd7417e37e0314ec946466c49c615c/README_ZH.md) splits the system into a Node.js daemon and an Electron Host: the Host handles capture, playback, permissions, and UI; the daemon connects to cloud Omni Realtime and schedules dialogue, tools, background harnesses, Proactive, and Memory; the two communicate over a local WebSocket.
 
-<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g06-async-harness.svg" title="ASYNC EXECUTION" caption="Diagram: foreground real-time responses and background task events run separately (drawn by the author of this post, based on Section 7.3 of the original paper and the pinned code snapshot)" />
+<TechGraph src="/images/posts/qwen38-omni-声音和画面怎样被训练成agent的行动能力/g06-async-harness.svg" title="ASYNC EXECUTION" caption="Diagram: foreground real-time responses and background task events run separately (drawn by the blog author, based on Section 7.3 of the original paper and the pinned code snapshot)" />
 
 When the foreground receives a complex task, it can first confirm receipt, then hand the task through a unified adapter to a backend such as Qwen Code, Codex, or Claude Code. The backend asynchronously returns progress, permission requests, and final results, and the foreground injects these events into its context and announces them at an appropriate moment. A voice answer does not have to wait until compilation, research, or file editing is fully finished.
 
@@ -283,7 +283,7 @@ This ties directly to the training main line: the Thinker has to distinguish "ta
 
 Proactive uses an independent monitoring session to check audio, visual, or time conditions, generates text events for the foreground, and uses a cooldown to avoid repeated triggers. In the pinned docs, Monitor observes at 1 FPS in 2-second rounds. This is a long-running workflow, a different thing from the one-shot latency benchmark earlier. Memory stores conversations, working memory, and user facts, and supports retrieval and optional visual observations. The docs distinguish the local memory store from cloud-side consolidation and vectorization, since data files living on the local machine does not mean inference is offline, and they also distinguish single-screenshot analysis in On Demand from continuous input in Live Feed.
 
-This post only examined these entry points. It did not install the frameworks, connect an API, or run background tasks. What is open-sourced is the surrounding workflows and harness; Omni's training weights, training set, and training code were not released with them.
+These entry points were likewise only checked statically. No framework was installed, no API connected, and no background task run. What is open-sourced is the surrounding workflows and harness; Omni's training weights, training set, and training code were not released with them.
 
 ## Reproduction Gap List
 
@@ -302,13 +302,13 @@ The scattered "not disclosed" notes in the body are collected here. They do not 
 | High-load P95, error rate, full turn latency | Real-time experience must be measured yourself over the full chain | Table 9 |
 | Safety alignment and red-team evaluation | Not covered by the report, cannot be assessed | Not covered anywhere |
 
-<Callout type="note" title="Internal conflicts in the original and how this post handles them">
+<Callout type="note" title="Internal conflicts in the original and the values adopted">
 
-- **C01**: Vision encoder initialization: Section 2 says from Qwen3.8-Next, S1 says from Qwen3.5. This post does not settle on an exact checkpoint.
+- **C01**: Vision encoder initialization: Section 2 says from Qwen3.8-Next, S1 says from Qwen3.5. The exact checkpoint cannot be determined.
 - **C02**: S2's roughly 2.5T tokens versus the 2.6T sum of the five items. Both original values are kept; no exact ratios are computed.
-- **C03**: The Table 1 title says Flash-Plus, while the main model throughout is Flash. This post treats it as Flash and does not infer another model variant.
-- **C04**: OmniEchoBench is 43.9 in the table and 41.7 in the text. This post uses the table value.
-- **C05**: In Table 5, OmniVChat is 89 versus 52.1 for the previous generation, yet the text says it ties the previous generation at 89. This post uses the table value and does not call it a tie.
+- **C03**: The Table 1 title says Flash-Plus, while the main model throughout is Flash. It is treated as Flash, without inferring another model variant.
+- **C04**: OmniEchoBench is 43.9 in the table and 41.7 in the text. The table value is used.
+- **C05**: In Table 5, OmniVChat is 89 versus 52.1 for the previous generation, yet the text says it ties the previous generation at 89. The table value is used, and it is not called a tie.
 
 These are direct comparisons between text and tables; the authors have not yet confirmed whether they are errata.
 
@@ -329,10 +329,10 @@ For implementation, you can start with these:
 
 ## References and Image Sources
 
-- [Qwen3.8-Omni: Towards Native Omni-Modal Agents, arXiv v1](https://arxiv.org/abs/2609.25611v1): the main source for this post, focusing on Sections 2-4 and 6-7. The original PDF, full text, and 24 rendered pages are stored in the local source bundle.
+- [Qwen3.8-Omni: Towards Native Omni-Modal Agents, arXiv v1](https://arxiv.org/abs/2609.25611v1): the main source, focusing on Sections 2-4 and 6-7. The original PDF, full text, and 24 rendered pages are stored in the local source bundle.
 - [On the Design of Qwen3.8-Next Architecture](https://arxiv.org/abs/2608.30320): background on the backbone; its training hyperparameters and efficiency results are not treated as measurements of Omni.
-- [Qwen3.5-Omni Technical Report](https://arxiv.org/abs/2604.15804): background on the previous generation's AuT, temporal modeling, and ARIA mechanism; this post only read the relevant sections.
+- [Qwen3.5-Omni Technical Report](https://arxiv.org/abs/2604.15804): background on the previous generation's AuT, temporal modeling, and ARIA mechanism; only the relevant sections were read.
 - [Qwen-MM-Plugins pinned commit](https://github.com/QwenLM/Qwen-MM-Plugins/tree/07736672525443c7f8a3f6405eed37d2236f023f): a selective local snapshot of the README, capability descriptions, and Video2Note-related files; some files failed to download, which is recorded in the index.
-- [Qwen-Live-Harness pinned commit](https://github.com/QwenLM/Qwen-Live-Harness/tree/b6ce544ebbcd7417e37e0314ec946466c49c615c): archived source code and documentation; this post only did static checks on the specified entry points.
+- [Qwen-Live-Harness pinned commit](https://github.com/QwenLM/Qwen-Live-Harness/tree/b6ce544ebbcd7417e37e0314ec946466c49c615c): archived source code and documentation; only static checks were done on the specified entry points.
 
-The seven paper images are faithful crops of specified pages of the v1 PDF; the six explanatory diagrams were drawn by the author of this post; one data chart was redrawn from the original values in Table 7. Sources, page numbers, crop coordinates, and file SHA-256 hashes are listed in `manifest.json` in the local source bundle.
+The seven paper images are faithful crops of specified pages of the v1 PDF; the six explanatory diagrams were drawn by the blog author; one data chart was redrawn from the original values in Table 7. Sources, page numbers, crop coordinates, and file SHA-256 hashes are listed in `manifest.json` in the local source bundle.
