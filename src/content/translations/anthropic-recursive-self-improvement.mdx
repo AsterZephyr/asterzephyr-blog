@@ -6,7 +6,7 @@ category: "技术分享"
 summary: "AI is getting faster at writing code and running experiments. Why does research still depend on people? A reading of Anthropic's discussion of recursive self-improvement through execution, judgment, verification, and coordination."
 draft: false
 sourceFile: "anthropic-recursive-self-improvement.mdx"
-sourceHash: "26a1c39160c4e02022823b7e27be5367cbecf3d0a451055eab5fb0c0e782017f"
+sourceHash: "d91d5913035b6020b0fe415c4c7268cd8dd377bb92a6cbed6166693e5a6997af"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -17,15 +17,13 @@ Imagine a research team. A researcher used to propose an idea, an engineer would
 
 More results arrive, bringing a different set of questions. Which ones should the team trust? Why did a metric improve? Is the result worth more compute? Will the change make another part of the full system worse? If the same process develops the next model, who decides whether that model is actually better?
 
-This hypothetical situation offers a way into the Anthropic Institute's [When AI builds itself](https://www.anthropic.com/institute/recursive-self-improvement). It discusses recursive self-improvement: AI helps develop successor systems, and those successors further improve research capability. The article does not claim that the complete loop already exists.
+The Anthropic Institute's [When AI builds itself](https://www.anthropic.com/institute/recursive-self-improvement) is about exactly this: recursive self-improvement, in which AI helps develop successor systems, and those successors further improve research capability. The article does not claim that the complete loop already exists.
 
-Start with execution, where the change is already visible, then follow the work through experiments, judgment, and acceptance. Whenever a stage requires less human effort, what must the next stage provide for the gain to carry forward? The workflow breakdowns, hypothetical calculations, and practical recommendations here are independent analysis.
-
-<Callout type="note" title="Scope of this reading">
-The main source is an institutional research commentary containing internal observations and future scenarios, not a single controlled experiment. This reading includes the website's September 18, 2026 update, alongside an automated research report, METR's methodology, and a system card. Original figures retain their English labels and are shared between the Chinese and English editions. Complete raw records for the internal statistics are not public; this essay does not claim independent replication.
+<Callout type="note" title="Reading scope">
+The main source is an institutional research commentary containing internal observations and future scenarios, not a single controlled experiment. Checks extend through the website's September 18, 2026 update, alongside an automated research report, METR's methodology, and a system card. Original figures retain their English labels and are shared between the Chinese and English editions. Complete raw records for the internal statistics are not public, so independent replication is not possible. The workflow breakdowns, hypothetical calculations, and practical recommendations extend the source; the source itself does not provide them.
 </Callout>
 
-## 1. What, Exactly, Must Improve in a Research Loop?
+## What, Exactly, Must Improve in a Research Loop?
 
 Writing a program is an intermediate output of research. Suppose a team wants to reduce model training costs. An agent could optimize kernels, change data loading, or explore parallelization strategies. Once the code runs faster, the team still needs to check numerical correctness, stable convergence, memory requirements, and whether the gain survives at the scale of the real workload.
 
@@ -33,7 +31,7 @@ Passing those checks produces a useful engineering improvement. Calling it recur
 
 <TechGraph src="/images/posts/anthropic-recursive-self-improvement/research-loop-en.svg" title="From a change to the next research cycle" caption="Author-created diagram separating five stages that need their own verification, informed by the source's discussion of recursive improvement. These steps are not a demonstrated capability rating." />
 
-This distinction changes how we read evidence. A fix passing its tests establishes that it satisfies those tests. A new set of experiments scoring well establishes that the search found a solution favored by its scoring function. Deciding whether research advanced requires checking whether the scoring function measures what matters.
+This distinction changes how evidence should be read. A fix passing its tests establishes that it satisfies those tests. A new set of experiments scoring well establishes that the search found a solution favored by its scoring function. Deciding whether research advanced requires checking whether the scoring function measures what matters.
 
 For example, training throughput might improve because the implementation became more efficient. It might also improve because the program reads less data, changes precision, or moves work outside the timed interval. Some such changes may be acceptable; others may not. That depends on what the task promised to keep fixed. Recording only that something became faster discards the conditions needed to judge it.
 
@@ -47,7 +45,7 @@ That distinction matters in engineering. A problem that takes a developer famili
 
 A more useful acceptance process measures success on a collection of the team's own tasks. Include both small fixes with explicit inputs and outputs and investigations that require checking logs against configuration and implementation. Where a model stalls, guesses, or needs human judgment often tells the team more about what to build next than a single aggregate score.
 
-## 2. After More Code, Ask What Was Delivered
+## After More Code, Ask What Was Delivered
 
 Anthropic's code-output chart groups daily merged lines per active contributor by quarter, relative to the average before 2025. The final bar is labeled roughly 8 times the baseline, but covers only the observed days of that quarter, not a complete quarterly total. [Original chart and caption](https://www.anthropic.com/institute/recursive-self-improvement)
 
@@ -55,7 +53,7 @@ Anthropic's code-output chart groups daily merged lines per active contributor b
 
 Understanding the chart does not require deciding in advance whether lines of code have value. They measure a real form of activity, but review, integration, deployment, and operating feedback still stand between activity and completed projects. A team might generate more tests and fix more neglected bugs. It might also generate more duplicate implementations. Both increase line counts, with different consequences for maintenance.
 
-For a team's own measurement, I would pair an outcome metric with a cost metric. Outcomes could include accepted requirements, time to resolve incidents, or the cycle time needed to reach a credible experimental conclusion. Costs should include human review, compute, rework, and subsequent maintenance. Generated work and completed work should not share a column.
+For a team's own measurement, pair an outcome metric with a cost metric. Outcomes could include accepted requirements, time to resolve incidents, or the cycle time needed to reach a credible experimental conclusion. Costs should include human review, compute, rework, and subsequent maintenance. Generated work and completed work should not share a column.
 
 A more specific question also helps: how much time was removed between proposal and deployment for the same amount of useful change? That fixes the basic meaning of the output and reduces confusion from expanding scope. If a team starts exploring ideas it would never previously have attempted, record the value of that additional work separately instead of forcing it into an estimate of hours saved on the old process.
 
@@ -67,17 +65,17 @@ Employees' experiences still deserve attention, but the survey cannot become a p
 
 A 2025 METR study involved 16 open-source developers familiar with their projects and 246 tasks. Allowing the AI tools available at the time increased actual completion time by 19%, while participants still estimated afterward that the tools had saved roughly 20%. The study concerns particular models, people, and tasks. It cannot invalidate later model progress, but it shows that perceived gains and measured time can move in opposite directions. [Study abstract and methodology](https://arxiv.org/abs/2507.09089)
 
-Time spent is only part of the question; the task also needs to be completed. The next chart shifts attention from output volume to completion.
+Beyond time spent, the task also needs to be completed.
 
 <Figure src="/images/posts/anthropic-recursive-self-improvement/session-success.png" alt="Earlier Anthropic chart of internal Claude Code session success rates by task difficulty" caption="Source: unmodified earlier session-success chart from Anthropic's official article. Task difficulty and success are model-judged; weekly points show a trailing four-week mean." />
 
 Session success takes measurement a step further by asking whether the system completed the work assigned to it. Yet a completed session, a maintainable change, and an improvement that lasts in production remain different judgments. A session requiring no user correction might have succeeded, or its problem might simply remain undiscovered. Cheap, reversible work may need only a quick check. Changes affecting data, permissions, or production behavior require verification proportionate to their consequences.
 
-## 3. From Completing Experiments to Choosing the Next Step
+## From Completing Experiments to Choosing the Next Step
 
 Better execution lets a team try more ideas with less human effort. Allocating those opportunities becomes the next difficulty.
 
-Making a piece of code faster has a fixed object and a relatively explicit objective. Explaining a training regression requires choosing whether to examine data, the optimizer, or evaluation. Deciding what research to pursue next quarter also requires comparing the long-term value of different directions. All three involve reasoning, but they offer very different feedback.
+Making a piece of code faster has a fixed object and a relatively explicit objective. Explaining a training regression requires choosing whether to start with data, the optimizer, or evaluation. Deciding what research to pursue next quarter also requires comparing the long-term value of different directions. All three involve reasoning, but they offer very different feedback.
 
 The first task can return a timing result after each edit. In the second, even the observation must be designed, and eliminating an incorrect explanation can be progress. In the third, completing every experiment may still leave the value of the chosen direction unclear for a long time.
 
@@ -93,11 +91,11 @@ The experimental process offers more useful things to inspect. Does the system t
 
 The test uses 129 preselected moments and a Claude judge. In a separate set of 127 moments where the human choice was already strong, model suggestions were judged better only about 20% of the time. This supports a narrower interpretation than a general claim that models are better researchers. [Research-judgment discussion and footnote 8](https://www.anthropic.com/institute/recursive-self-improvement)
 
-The test can still be useful for a real team. Select important decisions from completed projects, hide what happened afterward, ask a model for the next step, and assess whether it introduces a hypothesis the team missed. That makes it a tool for reviewing decisions. Evaluating whether a system can independently lead research requires selecting projects in advance and following their trajectories and resource use, rather than selecting moments where hindsight already tells us a person went wrong.
+The test can still be useful for a real team. Select important decisions from completed projects, hide what happened afterward, ask a model for the next step, and assess whether it introduces a hypothesis the team missed. That makes it a tool for reviewing decisions. Evaluating whether a system can independently lead research requires selecting projects in advance and following their trajectories and resource use, rather than selecting moments where hindsight already shows a person went wrong.
 
 Choosing a next step is not an isolated action. Researchers weigh information gained against the cost of failure and the available time. An experiment with a modest score may eliminate an entire mistaken direction. Another may produce an attractive result without changing the team's understanding. Judging every intermediate decision by its final score misses that difference.
 
-## 4. The Hard Part of Automated Research May Lie Outside the Scorer
+## The Hard Part of Automated Research May Lie Outside the Scorer
 
 When a system proposes its own experiments, its scorer becomes part of the research process. An agent modifies candidate methods in response to feedback. If it can do that quickly enough, small differences between the test and the intended objective can be amplified repeatedly.
 
@@ -114,7 +112,7 @@ PGR = (new method score - weak teacher score)
     = 0.8
 ```
 
-That recovers 80% of the comparable gap. It does not mean accuracy is 80%, or that 80% of alignment has been solved. The denominator depends on the selected models, task, and baselines, so changing the environment changes what the value means. The 60%, 90%, and 84% values above are hypothetical numbers used to explain the formula.
+That recovers 80% of the comparable gap. It does not mean accuracy is 80%, or that 80% of alignment has been solved. The denominator depends on the selected models, task, and baselines, so changing the environment changes what the value means.
 
 ### Access to a score can reveal information about answers
 
@@ -130,7 +128,7 @@ The distinction becomes clearer in production. Suppose a team improves a recomme
 
 An automated research system should therefore preserve evidence of failures and rollbacks. After releasing a candidate, the team should be able to locate its code version, data scope, control configuration, selection process, and total search budget. When transfer fails, those records help distinguish an ineffective method, an implementation error, and an environment change, instead of launching another search without a clear basis.
 
-## 5. Why Faster Execution Still Leaves Limits on Progress
+## Why Faster Execution Still Leaves Limits on Progress
 
 Once there are many candidates, turning them into credible results becomes scarce. Unless review, replication, and integration speed up too, research queues at those stages.
 
@@ -152,9 +150,9 @@ Automated checks, risk-based review, and smaller changes can increase review thr
 
 Organizational decisions follow the same logic. Faster prototypes require product teams to obtain real user feedback sooner. Faster integration requires operations to allocate traffic and experiments. A technically sound solution still needs business development to establish customer demand, budgets, and delivery obligations. Multiplying one stage's speed across the whole process underestimates these dependencies.
 
-For someone working across engineering, algorithms, product, operations, and business development, a useful question is which necessary condition will arrive last. If the customer has not settled the problem, more prototypes may merely expand the set of choices. If the production feedback cycle is fixed, additional experiments should improve discrimination between explanations rather than merely increase the experiment count.
+For someone working across engineering, algorithms, product, operations, and business development, the question to ask is which necessary condition will arrive last. If the customer has not settled the problem, more prototypes may merely expand the set of choices. If the production feedback cycle is fixed, additional experiments should improve discrimination between explanations rather than merely increase the experiment count.
 
-## 6. These Constraints Lead to Three Possible Futures
+## These Constraints Lead to Three Possible Futures
 
 The source considers three possibilities: capability growth stalls while existing capabilities spread; research becomes increasingly automated while people retain direction-setting; or systems can fully develop their successors. These are conditional scenarios, not a timetable with known probabilities. [Possible futures](https://www.anthropic.com/institute/recursive-self-improvement)
 
@@ -172,11 +170,11 @@ Think of this as a series of interfaces that each need evidence. Research tools 
 
 The updated curves provide material for continued observation, but the interfaces above still need separate verification. Completing more open-ended tasks and independently selecting long-term research directions are distinct capabilities. They may reinforce each other; sharing a model name does not make them the same measurement.
 
-## 7. Let Improvements Happen, and Make Them Checkable
+## Let Improvements Happen, and Make Them Checkable
 
 Once verification affects the pace of research, safety becomes part of system design. It influences how much work a team can delegate with confidence and how far a mistake can propagate.
 
-The Opus 4.7 system card lists failure patterns including circumventing safeguards, acting without sufficient verification, and presenting guesses as facts. These are examples assembled by the authors, not an estimate of their frequency. They illustrate why capability and reliable action need separate measurement. [System card, p. 33 onward](https://cdn.sanity.io/files/4zrzovbb/website/037f06850df7fbe871e206dad004c3db5fd50340.pdf#page=33)
+The Opus 4.7 system card lists failure patterns including circumventing safeguards, acting without sufficient verification, and presenting guesses as facts. These are examples assembled by the authors, not an estimate of their frequency. They show that capability and reliable action need separate measurement. [System card, p. 33 onward](https://cdn.sanity.io/files/4zrzovbb/website/037f06850df7fbe871e206dad004c3db5fd50340.pdf#page=33)
 
 In an automated research environment, proposing changes, running experiments, and approving deployment can have separate permissions. An agent's ability to write a deployment script does not mean every experiment needs production deployment access. Understanding the evaluation does not require access to final test labels. Assigning permissions according to the task reduces the chance that an accidental error becomes a systemic problem.
 
@@ -186,11 +184,11 @@ Extending this reasoning across organizations is harder. The source advocates ve
 
 From an evaluation-design perspective, such an arrangement must specify what activity it constrains, how a violation could be detected, who interprets the evidence, and how disputes are resolved. Principles without observable objects are hard to verify. Large volumes of logs without explicit decision rules do not automatically create trust either. A demonstration of model capability cannot substitute for the required technology, institutions, and cooperation.
 
-## 8. Bring the Argument Back to a Real Project
+## Bring the Argument Back to a Real Project
 
 Most teams can begin with something concrete: choose a workflow with real feedback, delegate part of it to AI, and observe where the bottleneck moves. Learning to organize this work need not wait for complete recursive self-improvement.
 
-The following is a suggested project record. It connects engineering and algorithm work to product, operations, and business outcomes without converting every achievement into lines of code. It is practical advice, not a measured Anthropic template.
+A project record can connect engineering and algorithm work to product, operations, and business outcomes without converting every achievement into lines of code.
 
 | Stage | Evidence worth keeping | Mistake to avoid |
 | --- | --- | --- |
