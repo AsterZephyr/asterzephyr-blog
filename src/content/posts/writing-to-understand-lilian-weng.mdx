@@ -4,10 +4,9 @@ date: 2026-10-07
 tags: [成长与思考]
 category: "学习与写作"
 summary: "读完论文有了笔记，离读懂一个领域还差一步：说清它们之间的关系。从 Lilian Weng 的博客方法出发，讨论写作到底多做了什么，以及为什么把方法写进 AI 指令，还不能证明文章变好了。"
-draft: true
+draft: false
 ---
 
-import Diagram from '../../components/blog/Diagram.astro'
 import Figure from '../../components/blog/Figure.astro'
 
 读完几篇论文，分别记下问题、方法和实验结果，笔记就有了。可如果有人接着问：它们在解决同一个问题吗？后一篇改变了前一篇的哪个假设？两个看起来相反的结论，为什么都可能成立？这些答案通常不在任何一份摘要里。
@@ -24,21 +23,7 @@ Weng 把按时间排开的论文比作一部研究史，里面有突破，也有
 
 Chris Olah 和 Shan Carter 在 Distill 的 [Research Debt](https://distill.pub/2017/research-debt/)（2017）里给这种负担起了名字。解释一个想法要花力气，理解它也要花力气，两者此消彼长，他们把这份力气叫做“解释劳动”（interpretive labor）。一对多的场合里，解释只需要做一次，理解却要每位读者各付一遍。没人做的解释劳动累积起来，就是研究债。
 
-<Diagram title="从三篇论文到一条解释路径" caption="自绘示意，依据演讲约 14:41 至 17:24 的内容整理。A、B、C 是抽象例子；共同背景只在定义和假设相容时合并。">
-```mermaid
-graph TB
-    subgraph papers["按论文分别阅读"]
-        direction TB
-        PA["论文 A：背景 → 方法 A → 证据 A"]
-        PB["论文 B：背景 → 方法 B → 证据 B"]
-        PC["论文 C：背景 → 方法 C → 证据 C"]
-        PA ~~~ PB ~~~ PC
-    end
-    papers --> BG["共同背景只解释一次"]
-    BG --> AB["围绕问题比较方法"]
-    AB --> EV["区分各方法的证据与边界"]
-```
-</Diagram>
+<Figure src="/images/posts/writing-to-understand-lilian-weng/paper-synthesis.png" alt="三篇论文如何被重组成一条解释路径：共同背景只解释一次，方法沿同一组问题比较，证据和边界分别保留。" caption="本文根据演讲约 14:41 至 17:24 整理并重新绘制。图中使用抽象符号，不对应具体论文。" />
 
 一篇综合性的博客就是在还这笔债：删去重复铺垫，把相近工作放在一起，补上连接它们所需的解释。写作者替读者付了解释成本，而付的过程中，写作者自己最先弄懂。
 
@@ -100,17 +85,7 @@ Weng 的 [Attention? Attention!](https://lilianweng.github.io/posts/2018-06-24-a
 
 这里要分清两种缺口。**解释缺口靠推导、例子和背景补上；证据缺口需要新的观察、实验或证明。** 原文没有比较过两种方法的组合，就不能因为它们结构上互补，写出“组合起来效果更好”。
 
-<Diagram title="写作中的回读" caption="自绘示意：写作与回读之间的循环。">
-```mermaid
-graph TD
-    A["阅读材料，保留问题"] --> B["比较概念、假设与证据"]
-    B --> C["安排读者的理解顺序"]
-    C --> D["写出具体解释"]
-    D --> E["发现无法解释的连接"]
-    E --> F["定向补读，或收窄结论"]
-    F --> B
-```
-</Diagram>
+<Figure src="/images/posts/writing-to-understand-lilian-weng/writing-rereading-loop.png" alt="写作、回读与修正理解的循环：从材料和笔记出发，写到无法解释的连接，再回到原文补过程或收窄结论。" caption="本文根据文章主线重新绘制，不是演讲原图。" />
 
 提纲因此会跟着理解变。写作暴露一个问题，回读带回一个新的区分，这个区分又可能改动章节顺序。一次有用的修改，未必多写多少字，有时只是把两个不该连在一起的结论拆开。
 

@@ -2,11 +2,10 @@
 title: "How Writing Helps Us Understand a Field"
 summary: "Reading papers gives you notes; understanding a field takes one more step: explaining how they relate. Starting from Lilian Weng's approach to blogging, what does writing actually add, and why doesn't writing that method into AI instructions prove the articles got better?"
 sourceFile: "writing-to-understand-lilian-weng.mdx"
-sourceHash: "51cde70cd7b1e64233f3c599bda265d77456e2940685c30db69771f6628804fa"
-draft: true
+sourceHash: "5f96409b93697e1f56fda57295b7c600b8f15eda42d69bac28fe6eb82412af2a"
+draft: false
 ---
 
-import Diagram from '../../components/blog/Diagram.astro'
 import Figure from '../../components/blog/Figure.astro'
 
 After reading a few papers and noting each one's problem, method, and results, you have notes. Then someone asks: are these papers solving the same problem? Which assumption did the later one change? Why might two apparently opposite conclusions both hold? Those answers usually aren't in any single summary.
@@ -23,21 +22,7 @@ That repetition is necessary for a single paper and a burden for someone trying 
 
 In [Research Debt](https://distill.pub/2017/research-debt/) on Distill (2017), Chris Olah and Shan Carter gave this burden a name. Explaining an idea takes effort and so does understanding it; there's a tradeoff between the two, and they call that effort "interpretive labor." In a one-to-many setting, the explanation is done once, but every reader pays the cost of understanding separately. Interpretive labor that nobody does accumulates as research debt.
 
-<Diagram title="From three papers to one explanatory path" caption="Author-created schematic based on approximately 14:41 to 17:24 of the talk. A, B, and C are abstract examples; shared background is merged only where definitions and assumptions are compatible.">
-```mermaid
-graph TB
-    subgraph papers["Reading paper by paper"]
-        direction TB
-        PA["Paper A: background → method A → evidence A"]
-        PB["Paper B: background → method B → evidence B"]
-        PC["Paper C: background → method C → evidence C"]
-        PA ~~~ PB ~~~ PC
-    end
-    papers --> BG["Explain shared background once"]
-    BG --> AB["Compare methods around a question"]
-    AB --> EV["Separate each method's evidence and limits"]
-```
-</Diagram>
+<Figure src="/images/posts/writing-to-understand-lilian-weng/paper-synthesis.png" alt="How three papers become one explanatory path: shared background is explained once, methods are compared along common questions, and evidence and limits remain distinct." caption="Redrawn from the talk at approximately 14:41 to 17:24. Abstract symbols represent the structure, not specific papers." />
 
 A synthesizing blog post pays down that debt: it cuts repeated setup, puts related work side by side, and adds the explanation needed to connect it. The writer pays the explanation cost on the reader's behalf, and in paying it, the writer is the first to understand.
 
@@ -99,17 +84,7 @@ Filling in a paragraph like that may mean rechecking a formula's definitions, tr
 
 Two kinds of gaps need to be kept apart. **Explanation gaps are filled with derivations, examples, and background; evidence gaps require new observations, experiments, or proofs.** If the sources never compared a combination of two methods, structural complementarity is not grounds for writing "combining them works better."
 
-<Diagram title="Returning to sources while writing" caption="Author-created diagram: the loop between writing and rereading.">
-```mermaid
-graph TD
-    A["Read materials and keep questions"] --> B["Compare concepts, assumptions, and evidence"]
-    B --> C["Plan the reader's order of understanding"]
-    C --> D["Write concrete explanations"]
-    D --> E["Find connections you cannot explain"]
-    E --> F["Reread selectively or narrow the claim"]
-    F --> B
-```
-</Diagram>
+<Figure src="/images/posts/writing-to-understand-lilian-weng/writing-rereading-loop.png" alt="The loop between writing, rereading, and revising understanding: start from sources and notes, reach a connection you cannot explain, then return to the source or narrow the claim." caption="Author-created illustration based on the article’s argument, not an original slide from the talk." />
 
 So the outline changes as understanding changes. Writing exposes a question, rereading brings back a new distinction, and that distinction may reorder the sections. A useful revision doesn't necessarily add many words; sometimes it just separates two conclusions that never belonged together.
 
