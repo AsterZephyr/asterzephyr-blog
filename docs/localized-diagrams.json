@@ -52,5 +52,71 @@
     "target": "/images/posts/一份历史千个候选-四篇工业推荐论文里的计算复用/method-lineage-en.svg",
     "sourceHash": "83a6947304fc913b8982d9936db76dd6aa6f3377ca4856ffb6638a1b7ed50922",
     "targetHash": "26d0ee958f7825bd7f69998c6117b88d7091120b2e77ddb924718b331704d507"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g1-ledgers.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g1-ledgers-en.svg",
+    "sourceHash": "e31131ce092bb2c4291c474d5b4356b58162ceb44c91ef4d310a6aeb22c715ce",
+    "targetHash": "f820878a951cfc28d295607800a3b40a56a51e0d927fb7a35c9a83a374d3769b"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g2-objectives.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g2-objectives-en.svg",
+    "sourceHash": "7e750f2dbc586486bb1d3a8755add49fc789c425eff3cd7cbb13846a129415fa",
+    "targetHash": "563e98f9b91f9fb633ca6bcfca69bf1da65f703acea7c20760d9d2a129a82e18"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g3-duality.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g3-duality-en.svg",
+    "sourceHash": "ff21457fb66cf855d677904edaed4cd64066bc52496deb7e523f81c1fb6a54df",
+    "targetHash": "b2b2ba50ac27c3dc72a34df8c954f730b9c14ced63c190577fc4fbaf3ada1594"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g4-update.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g4-update-en.svg",
+    "sourceHash": "ad510efbbbf10db8abcce44b5786e94896835ad1ee5dc68fbdea38acd48ff93a",
+    "targetHash": "d6cba189f98b08861944e8b9c1bf263648b94f3fa45d9f81cb9f5143041a9893"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g5-feasible.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g5-feasible-en.svg",
+    "sourceHash": "b498725104bd90ab2f7891c2eb79ffe6dc7fa06c8d6a5655fc2c8a3b1a5e7376",
+    "targetHash": "e95108b5584fcba45bdf1b7cbfe2f3ae916fe8e2336917e589f5c9c435f35c4a"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g6-coordination.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g6-coordination-en.svg",
+    "sourceHash": "8518b954ff94a22175a8281edee2b2397594bbdb11ac26eee31046bad3bdee83",
+    "targetHash": "7afcedd68fd4ac816a574796dd6d50cc0a031b039dbfca4b2153e42bfc4a2f1e"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g7-margin.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g7-margin-en.svg",
+    "sourceHash": "23c193eecfccffb80400f223ad8510e82b626eabd436abb330da8e9c5bfd5269",
+    "targetHash": "81ff3e66a4b3e00a5a9297d43e11ee8e0a38cb6ab7265593c2f7aa96c77840fd"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g8-profit.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g8-profit-en.svg",
+    "sourceHash": "35c0cce112e927f78c9f29ff5197968685ad117dbdb3afaae7d85b0ee4afe8ff",
+    "targetHash": "c72fe46265ce7d482994c6dbafef570ce3d07676deaa77612892e976b1247d6e"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g9-sharing.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g9-sharing-en.svg",
+    "sourceHash": "f0243981751c8dd3069fcaf5921b91b28f3f6f856ea45972b3673dbb968ea5f8",
+    "targetHash": "d83f40c48595a39003248236a30c8e0511866d7ae4d8ecb16e3a967ae3ad2989"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g10-market.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g10-market-en.svg",
+    "sourceHash": "b2e82a19a0878853d4fe7cc0c6d9d763cfa49566abc7517e3d037e5bbb40bedc",
+    "targetHash": "ee173d7163c2c81d2439e94260c4aad68e743d1bc5b305421cd89c7d8c30c2de"
+  },
+  {
+    "source": "/images/posts/pacing-ros-dynamic-take-rate/g11-feedback.svg",
+    "target": "/images/posts/pacing-ros-dynamic-take-rate/g11-feedback-en.svg",
+    "sourceHash": "9bdf34876f942715dd8c473b87dca6208225b54f3a5a767cb1288f44ca623a6e",
+    "targetHash": "5a95f49423be1409fdcaaea9aff9b845a96c60c1613091a57ee3c3f9aa2a9111"
   }
 ]

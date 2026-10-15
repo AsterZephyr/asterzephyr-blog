@@ -1,0 +1,341 @@
+---
+title: "More Spend, Which Floor to Hold? From ROS Pacing to Dynamic Take Rates"
+date: 2026-10-15
+tags: [广告与推荐, 技术报告解读]
+summary: "Starting from three ledgers, two dual variables and one bid, how budget and ROS pacing are coordinated, and which conclusions survive, and which must be rederived, when the method moves to platform margin and dynamic take rates."
+sourceFile: "pacing-ros-dynamic-take-rate.mdx"
+sourceHash: "4d4918cb2a333ecc9e5631e001fb93c0ab076a7258029f409117178c1975097c"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+"The budget isn't spent yet. Can delivery go up while ROI still holds?"
+
+It sounds like a single objective, but the system receives several different requirements: acquire more conversions, control payments, maintain efficiency, and perhaps also protect the platform's own gross margin. They all act on the same bid, and they do not necessarily point in the same direction.
+
+[A Field Guide for Pacing Budget and ROS Constraints](https://proceedings.mlr.press/v235/balseiro24a.html) studies exactly this conflict: budget control and ROS control can run separately, but the final bid needs coordination. Following that line from advertiser value maximization to exchange margins and dynamic take rates, the two sides can share a constrained-optimization approach. Connecting the formulas, however, first requires knowing who pays, who receives the value, and which payment the budget actually limits.
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g2-objectives-en.svg" title="Two different optimization problems" alt="Compare the objectives, constraints and Lagrangians of an advertiser maximizing normalized value and a platform maximizing customer payment" caption="Derivation drawn by the author of this post. Each side has its own dual variables; the bid multiplier assumes a truthful auction and a positive denominator. Both expressions omit the constant term μB." />
+
+## Three ledgers in one transaction
+
+Over one settlement window, let the customer pay the platform **R**, let the platform pay publishers **C**, and let the advertiser obtain conversion value **V**. In this simplified ledger, platform gross profit is **Π = R − C**.
+
+There are at least two different ratios:
+
+```text
+Advertiser ROAS = V / R
+Platform gross margin m = (R − C) / R
+```
+
+Gross margin uses revenue as its denominator. If a business divides profit by cost, or counts rebates and service fees as revenue, the definitions must be reconciled first. The teaching examples below ignore taxes, rebates and infrastructure cost, and do not treat gross profit as net profit.
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g1-ledgers-en.svg" title="Three ledgers and three prices" alt="The customer obtains value 500 and pays 100, the platform pays publishers 80 and keeps gross profit 20, plus the three stages of original quote, submitted bid and actual settlement" caption="Drawn by the author of this post; teaching assumption. Customer ROAS is 5 and platform gross margin is 20%; the two have different denominators and concern different parties." />
+
+Suppose V=500, R=100, C=80. For every 1 unit the customer spends, it obtains 5 units of recorded conversion value; the platform keeps 20 of gross profit out of 100 of revenue. Whether the advertiser actually makes money also depends on product margins, fulfillment costs and more; ROAS=5 alone cannot answer that.
+
+Now the platform cuts procurement cost from 80 to 70, with everything else unchanged:
+
+```text
+Customer payment:     100 → 100
+Publisher revenue:     80 → 70
+Platform gross profit: 20 → 30
+Customer ROAS:          5 → 5
+```
+
+The platform does earn 10 more, yet the customer's bill for this transaction is unchanged. The customer saves money directly only if the settlement mechanism passes the procurement savings through. If the price change also alters volume, inventory quality or conversions, the customer's total spend and results change in other ways too; "no lower bill on this transaction" cannot be stretched into "the customer notices nothing at all."
+
+So whether a customer "billed by bid" receives the benefit of price reduction requires further questions: billed on which layer of bid? The original quote or the final bid? Are there separate discounts and rebates? An algorithm can change a price; the contract decides whose ledger that change lands on.
+
+## How a ROS constraint becomes a bid
+
+Back to the advertiser side. Field Guide indexes each auction by t: predicted value is vₜ, the allocation obtained after submitting bid bₜ is xₜ(bₜ), and the payment is pₜ(bₜ). x can be an allocation probability, so vₜxₜ is the expected value obtained in that round.
+
+The advertiser wants to maximize total value while respecting a budget and a ROS requirement. After normalizing the ROS target to 1, the problem is:
+
+```text
+maximize   Σ vₜ xₜ(bₜ)
+subject to Σ pₜ(bₜ) ≤ Σ vₜ xₜ(bₜ)    ROS constraint
+           Σ pₜ(bₜ) ≤ B                budget constraint
+```
+
+If the original target is "at least τ units of value per unit spent," divide the original value by τ and then use the formulation above. This normalization does not change the direction of value maximization, but it changes the numerical scale of the symbols.
+
+The budget constraint prevents spending beyond what is authorized; the ROS constraint prevents the money spent from buying too little value. Both are aggregate constraints. A single transaction need not reach the average ROS; earlier high-efficiency transactions can leave room for later low-efficiency ones.
+
+### A dual variable is the shadow price of a constraint
+
+Introduce two nonnegative variables: λ for ROS and μ for the budget. Putting the cost of violating each constraint into the objective gives the Lagrangian:
+
+```text
+L = Σvₜxₜ − λ(Σpₜ − Σvₜxₜ) − μ(Σpₜ − B)
+  = μB + Σ[(1 + λ)vₜxₜ − (μ + λ)pₜ]
+```
+
+So a problem that originally spans many auctions can, for given λ and μ, be split into a choice per auction. Dividing the per-round term by the positive number μ+λ, it is equivalent to:
+
+```text
+maximize   k vₜ xₜ(b) − pₜ(b)
+where      k = (1 + λ) / (μ + λ)
+```
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g3-duality-en.svg" title="Constraints → Lagrangian → bid" alt="Maximizing value under budget and ROS limits yields the bid multiplier k equal to one plus λ divided by μ plus λ" caption="Drawn by the author of this post, based on Field Guide §2.1, equations (2)-(3). λ and μ are state; k is the multiplier sent to bidding." />
+
+In a truthful auction mechanism, the optimal action for maximizing quasi-linear utility is to bid one's own value, so here the bid can be **bₜ = kvₜ**. A second-price auction is the intuitive example. This step depends on the auction rules; it cannot be carried over directly to every RTB market.
+
+In a first-price auction, the winner pays its own bid, so the one-shot best response must also account for how win rate changes with the bid. For example, with F(b) as the win rate and ignoring other fees, given effective value kv the one-shot objective is `(kv − b)F(b)`. The controller supplies kv, and the auction optimizer then chooses b from it. Field Guide §2 also keeps such a one-shot optimizer for non-truthful auctions. **Budget and ROS control decide how much to be willing to pay; the bid-shading module decides how to take part in a particular auction.**
+
+### Feedback corrects the next round; it does not predict the future
+
+Let ρ=B/T be the average per-round budget. The two most direct feedback quantities are:
+
+```text
+ROS gap    = pₜ − vₜxₜ
+Budget gap = pₜ − ρ
+```
+
+A positive gap means this round added pressure to the corresponding constraint. An explanatory projected-gradient update is:
+
+```text
+λₜ₊₁ = max(0, λₜ + ηλ × ROS gap)
+μₜ₊₁ = max(0, μₜ + ημ × Budget gap)
+```
+
+This is a teaching update; the paper mainly uses multiplicative updates, not this pseudocode. Multiplicative and additive updates share the idea of "adjust state using constraint residuals," but their initialization, learning rates and theoretical conditions cannot be mixed.
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g4-update-en.svg" title="Tracing one update" alt="λ updates from 1 to 1.02, μ from 0.2 to 0.23, and the joint bid multiplier falls from 1.667 to 1.616" caption="Drawn by the author of this post; projected-gradient teaching example. All values are assumptions used to check one feedback update, not paper measurements." />
+
+In the figure, payment is 0.8, value obtained is 0.6, and the average per-round budget is 0.5. The two gaps are 0.2 and 0.3; with learning rate 0.1, λ goes from 1 to 1.02 and μ from 0.2 to 0.23. The joint multiplier changes from 2/1.2≈1.667 to 2.02/1.25=1.616, so with an unchanged value prediction the next round bids lower.
+
+This is the correction direction at the current state; it does not make λ a universally monotonic "lower the price" button. In the joint formula, λ appears in both numerator and denominator, and its effect also depends on μ. The full decision must be read from the combined expression.
+
+## Unspent budget can already be optimal
+
+Take an artificially constructed opportunity curve: procurement spend is C and normalized value is `W=5√C`. Spending more still obtains more value, but marginal returns decline. Requiring W≥C caps feasible spend at 25, because `5√25=25`.
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g5-feasible-en.svg" title="Binding constraints in two cases" alt="Two teaching plots: with budget 16 the budget constraint binds first; with budget 40 ROS binds at spend 25" caption="Teaching curve W=5√C drawn by the author of this post, not a market fit or paper data. The brown line is obtainable value; the dashed diagonal is the efficiency boundary." />
+
+With budget B=16, spend can reach 16 and obtain value 20, so the budget is the bottleneck first. With budget B=40, ROS instead limits spend to 25; moving further right, value does not grow fast enough and the efficiency constraint would be violated.
+
+The remaining 15 of budget then does not automatically mean the controller has failed. **A budget is a ceiling; spending it all is not a commitment that outranks the efficiency constraint.** If the business really requires spending as much as possible, it needs to adjust the efficiency target, find better inventory, or improve prediction and bidding. Simply making the budget controller more aggressive does not create new high-value opportunities.
+
+### How two individually reasonable controllers cancel each other out
+
+Field Guide compares three combinations:
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g6-coordination-en.svg" title="Three controller combinations" alt="Comparison of sequential multiplication, min-pacing taking the smaller bid, and the joint dual formula" caption="Drawn by the author of this post, based on Field Guide equations (3), (6) and (7). The relevant variables are assumed positive, and the hard cap on remaining budget is omitted." />
+
+The sequential scheme first produces a ROS bid and then multiplies it by a budget factor. The problem appears when ROS already binds and the budget is not yet exhausted: the ROS controller sees insufficient efficiency and lowers its multiplier; the budget controller sees low spend and lowers the budget shadow price μ, making `1/μ` larger. The two feedback loops cancel each other in the final bid, and can even become unstable.
+
+Min-pacing puts the two candidate bids on the same level and takes the smaller. The budget controller can still try to raise its candidate, but as long as the ROS candidate is lower, the final bid will not be pulled up by it. The two services need not be merged into one, but they must share the final auction feedback and apply an explicit combination rule before execution.
+
+The joint scheme directly uses `(1+λ)/(μ+λ)`. It is derived from the Lagrangian problem, with both variables coordinated in one expression. The value of min-pacing is that when organizational or engineering conditions make a joint redesign expensive, a smaller interface change can still achieve close performance.
+
+### How close is the paper's "close"
+
+The paper analyzes min-pacing under stochastic i.i.d. and other conditions and gives an O(√T) regret bound; regret here is the loss relative to the offline optimal value. For the sequential algorithm studied, the authors construct instances that produce linear ROS violation or linear regret. This does not say every modular controller must fail; it says simple sequential composition lacks a reliable guarantee.
+
+Nor does the theory promise zero ROS violation every day. The formal Theorem 2 bound on cumulative ROS violation contains a logarithmic factor, O(√T log T); the budget is separately protected by a hard limit. In practice, an error bound, an average target, and "no single decision may cross the line" are three different requirements.
+
+The experiments use a semi-synthetic model built from real advertising data, covering **100,000 campaigns**, with a day split into 144 ten-minute windows and each algorithm simulated 10 times per campaign. It is not an online A/B test. Learning rates were searched on the same dataset, scored by total value in the zero-ROS-error bucket; the results cannot be described as independent held-out validation.
+
+<Figure src="/images/posts/pacing-ros-dynamic-take-rate/field-guide-campaigns.jpg" alt="Paper Figure 2a: cumulative number of campaigns for the three algorithms at different relative ROS error thresholds" caption="Source: Field Guide Figure 2(a), PDF page 9, original image extracted directly without alteration. As the horizontal axis widens, more campaigns with ROS violations are included." />
+
+<Figure src="/images/posts/pacing-ros-dynamic-take-rate/field-guide-value.jpg" alt="Paper Figure 2b: cumulative conversion value for the three algorithms at different relative ROS error thresholds" caption="Source: Field Guide Figure 2(b), PDF page 9, original image extracted directly without alteration. Comparing value requires looking at the permitted violation level at the same time." />
+
+Table 2 gives a difference worth keeping: in the **zero-ROS-violation** bucket, the joint algorithm has 62% of campaigns, min 49%, and sequential 11%. Using the total benchmark value across all campaigns as a common denominator, the corresponding cumulative values are 0.62, 0.42 and 0.19.
+
+Relaxing the tolerated relative error to 5%, cumulative values become 0.75, 0.73 and 0.23, and min is then very close to joint. Relative error here is defined as `max(0, spend/value − 1)`. Different algorithms admit different sets of campaigns, so 0.73/0.75 cannot be read as a direct improvement ratio on the same set of campaigns. The result supports an engineering compromise, and also shows that strictness changes the ranking of the schemes.
+
+## Writing "hold margin, raise spend" as its own model
+
+Switch to the platform side. If "raise spend" means increasing actual customer payment R, and the platform must hold gross margin m on a revenue denominator, then:
+
+```text
+(R − C) / R ≥ m
+is equivalent to
+C ≤ (1 − m)R
+```
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g7-margin-en.svg" title="Mapping the margin constraint" alt="The gross-margin floor is rewritten as cost no more than one minus margin times revenue, then customer budget and procurement budget are distinguished" caption="Derivation by the author of this post. The ratio must be aggregate revenue over aggregate cost in the same window, not a simple average of per-transaction margins." />
+
+This form closely resembles ROS: platform revenue plays the role of "value" in the original model, and publisher cost plays the role of "spend." Without an extra budget limit, maximizing R is equivalent to maximizing the fixed multiple `(1−m)R`, which normalizes the efficiency constraint to 1.
+
+But a customer's budget usually limits R, whereas the budget in the original advertiser procurement model limits its procurement payment. Once the roles of the money change, the budget term must change with them.
+
+### Both are called budget, but on R and on C they are two problems
+
+With customer budget B, the platform model can be written as:
+
+```text
+max R
+s.t. C − (1−m)R ≤ 0
+     R ≤ B
+
+L = [1 + λ(1−m) − μ]R − λC + μB
+```
+
+If the budget limits publisher procurement cost C, it becomes:
+
+```text
+max R
+s.t. C − (1−m)R ≤ 0
+     C ≤ B
+
+L = [1 + λ(1−m)]R − (λ+μ)C + μB
+```
+
+This is a derivation from the simplified business definitions above, not a ready-made platform formula from the Field Guide text. In the former, μ acts on the revenue coefficient; in the latter, it acts on the cost coefficient. Calling both "budget" does not justify reusing the same bid multiplier and the same min-pacing guarantee.
+
+Assume further that the platform revenue r from one won impression is fixed and does not change with the bid the platform submits to the publisher; that procurement is a truthful auction; and that λ>0. The customer-budget model then has effective procurement value:
+
+```text
+r × [1 + λ(1−m) − μ] / λ
+```
+
+When the effective value is nonpositive and procurement payments are nonnegative, the platform can abstain. This expression shows how business constraints enter the bid. If r itself changes with the bid, R(b) must stay inside the optimization; if procurement is a first-price auction, one-shot bid optimization is still needed.
+
+### A more fundamental difference: the platform does not need to predict revenue
+
+Once the symbols are swapped, one structural difference remains, and the similarity of the formulas easily hides it.
+
+On the advertiser side, vₜ is a **predicted quantity**. A model estimates what this impression is worth; if the estimate is wrong, the controller still bids on the wrong value. The entire Field Guide derivation rests on the premise that "a v is available," leaving prediction error to the upstream pCTR, pCVR and value models.
+
+On the platform side, rₜ is largely an **observed quantity**. The buyer sends its bid, and once the revenue definition is fixed, how much billing this win will bring is essentially already written in the request. What the platform has to estimate is not its own revenue but two other things: where the clearing price on the publisher side will land, and whether the buyer will keep bidding on this traffic afterward.
+
+This difference shifts the engineering focus. Much of the effort the advertiser side spends on value prediction moves, on the platform side, to estimating the supply-side price distribution. The "revenue known, cost to be determined" structure also makes the margin constraint easier to account for immediately than the ROS constraint: a transaction's R and C are both available at the moment it clears, with no need to wait for an attribution window to close.
+
+One more point matters even more. An advertiser can only submit bids, and the auction rules are set by someone else; an exchange, however, holds part of the rules itself: what the floor price is, which buyers this request is sent to, and what rule settles the payment. The problem it solves is therefore closer to mechanism design than to pure bid control. That is exactly why the paper in the next section treats reserve prices and payment rules as decision variables instead of tuning a bid multiplier.
+
+### What alpha really is depends on where it acts
+
+If a system names the dual state of the margin constraint alpha, and the constraint direction, normalization and update method all match, a correspondence `alpha ↔ λ` can be established.
+
+If alpha multiplies the original bid directly, it more likely corresponds to the final multiplier k, or to a parameter of some auction optimizer, rather than to λ itself. Even within these sources, the same letter is not the same quantity: Field Guide uses α as a learning rate, while Dynamic Revenue Sharing uses α for the take-rate ceiling.
+
+No specific production system's alpha implementation was inspected here, so only a model-level mapping can be established. Confirming the equals sign in code requires tracing the objective function, the billing definition and the update formula.
+
+<Callout type="note" title="Maximizing revenue, procurement spend and profit are not equivalent either">
+Suppose two mutually exclusive options both satisfy customer budget 100 and gross margin of at least 20%. Option A: R=100, C=50, gross profit 50; option B: R=90, C=72, gross profit 18. Maximizing customer spend R selects A; maximizing publisher spend C selects B. A single phrase like "maximize spend" cannot stand in for a definition of the objective.
+</Callout>
+
+## Why lower margin can still earn more
+
+Suppose currently R₀=100, C₀=80, gross profit Π₀=20 and gross margin 20%. If scaling up lowers the overall margin to 18%, keeping gross profit from falling requires:
+
+```text
+0.18 × R₁ ≥ 20
+R₁ ≥ 111.11…
+```
+
+Revenue must grow by at least about 11.11% to offset the lower margin. If revenue only rises from 100 to 105, gross profit is just 18.9: spend grows, yet profit still falls.
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g8-profit-en.svg" title="Margin and profit amount" alt="Teaching comparison: revenue goes from 100 to 150, cost from 80 to 123, profit from 20 to 27, and gross margin from 20% to 18%" caption="Teaching example drawn by the author of this post. Blue is cost and green is gross profit; bar lengths use the same monetary scale." />
+
+In the figure, the scaled-up scheme reaches revenue 150 and cost 123, with overall margin 18% and gross profit 27. It earns 7 more not because lowering margin creates gain by itself, but because the added revenue sufficiently covers the added cost.
+
+Now isolate the 50 of incremental revenue: incremental cost is 43, incremental gross profit is 7, and **incremental margin is only 14%**. If the platform requires every transaction to reach 18%, these opportunities are rejected; if it requires the aggregate to reach 18%, the existing high-margin transactions combined with them satisfy the constraint exactly.
+
+This is the point of an aggregate constraint: allocate scarce margin headroom to the opportunities more worth taking. But that headroom must be computed over the same settlement window, actual billing and collectible revenue. Predicted revenue that has not yet materialized is not subsidy money already in hand.
+
+These three schemes are only static accounting; they do not assume the real market will supply these increments after a price cut. The questions that actually need answers are: where the extra trades come from, whether they crowd out existing high-margin trades, whether the customer budget is fixed, and whether the value of the new traffic meets the target.
+
+## Dynamic take rates: each transaction differs, the aggregate still complies
+
+[Dynamic Revenue Sharing](https://papers.neurips.cc/paper/6861-dynamic-revenue-sharing.pdf) studies a related problem from the exchange's side: the platform collects from buyers and then pays publishers. The traditional practice keeps the same fraction on every transaction; with a fixed fraction, some opportunities that actually had room to trade are shut out.
+
+In the paper, α is the **maximum revenue fraction** the platform may keep, and c is the publisher's opportunity cost. Under the simple policy, for the publisher to receive at least c, the buyer must pay at least `c/(1−α)`. For example, if the publisher needs 90 and the platform takes a fixed 20%, the buyer must pay at least 112.5. A buyer willing to pay 100 covers the publisher's 90, yet cannot trade under this fixed rule.
+
+### Put two transactions together and room to allocate appears
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g9-sharing-en.svg" title="Fixed per transaction versus an aggregate constraint" alt="Teaching example: the first transaction takes 30, the second takes 10, each with revenue 100, and the aggregate take rate is still 20%" caption="Ledger teaching example drawn by the author of this post, not a numerical reproduction of the paper's auction policy. Both buyers are assumed to pay 100; publisher A accepts 70, publisher B needs at least 90." />
+
+At a fixed 20%, A can trade: the platform keeps 20 and the publisher receives 80. B can only give its publisher 80, below the required 90, so it fails.
+
+If the contract allows the take rate to be met over this aggregation scope, A can have the platform keep 30 and the publisher receive 70; B has the platform keep 10 and the publisher receive 90. Total revenue is 200, publisher payments are 160, platform gross profit is 40, and the aggregate take rate is still 20%.
+
+The example also exposes a distribution problem: A's publisher drops from 80 to 70 so that B can trade. If A and B belong to different publishers with independent contracts, they cannot be offset across contracts. The pooling makes sense only when they sit within a legitimate, consistently agreed settlement scope. Even for the same publisher, the comparison must include what it would have received on other transaction paths.
+
+### A take-rate ceiling and a margin floor point in exactly opposite directions
+
+The two constraints look alike, but they are signed for opposite purposes.
+
+A take-rate ceiling `platform retention ≤ α × revenue` is a promise written for the publisher: the platform will not take too much. It constrains how greedy the platform is. The platform can always choose to keep less in exchange for a trade, so the constraint always has slack in the "keep less" direction. What this rule blocks are trades where the buyer's bid is insufficient and the platform refuses to give up any share.
+
+A gross-margin floor `C ≤ (1−m)R` is discipline written for the platform itself: do not buy too expensively. It constrains how generous the platform is, and its slack lies in the "keep more" direction. It blocks a different kind of trade: those where the buyer's money, after reserving the margin, cannot cover the publisher's ask.
+
+The same transaction can meet completely different fates under the two rules. Back to the example above, where the buyer pays 100 and the publisher asks 90: a 20% take-rate ceiling lets the platform keep only 10 and trade, so the deal goes through; a 20% margin floor requires cost no higher than 80, so the same deal must be abandoned. "Dynamic take rate" and "dynamic margin" are therefore not two names for the same thing; they reject opposite opportunities.
+
+The only thing the two share is the bit of flexibility gained by replacing per-transaction checks with aggregate checks over a window.
+
+### What the 2017 paper actually optimizes
+
+The paper's objective is to maximize platform profit while satisfying publisher payment requirements and the platform's take-rate ceiling. Its main model is a second-price auction with reserve prices, allowing the exchange to adjust reserves and payment rules; it cannot be treated directly as a general controller for every first-price auction environment today.
+
+The paper first studies constraints satisfied on every transaction, then constraints satisfied across many transactions. The latter allow some transactions to fall short, compensated by others. It further distinguishes:
+
+- **Satisfied in expectation:** the constraint holds after taking expectations over random outcomes; a single actual run can still underpay.
+- **End-of-window compensation:** the shortfall is made up when the window closes, so the aggregate of the actual transactions in that period complies.
+- **Cumulatively satisfied at every point:** looking back at all completed transactions at every point in time, the constraint must hold, which is a stricter restriction.
+
+These are not differences of wording. They determine how much risk the platform can carry temporarily, when settlement happens, and how much freedom the algorithm has left. This is also exactly what the contract needs to state clearly: at which scope the constraint is checked, and who bears temporary deviations within the window.
+
+The paper uses two days of data from 20 publishers, estimating parameters on day one and simulating on day two. In Table 1 at α=25%, REFUND relative to NAIVE raises platform profit by 9.55%, publisher revenue by 9.57%, and match rate by 10.71%. But the more strictly constrained PREFIX actually lowers platform profit by 1.00% and match rate by 18.51%. These are results of specific data and simulation mechanisms; they show that the form of the constraint changes the gains, and picking only the positive numbers cannot prove that "dynamic is always better."
+
+## The market already uses it, but one platform's growth is not market-wide increment
+
+In its [October 23, 2025 announcement](https://www.indexexchange.com/2025/10/23/new-model-dynamic-take-rates/), Index Exchange introduced Transparent Dynamic Take Rates: lower take rates in some auctions to improve competitiveness, adjust take rates in others to balance the overall economics, comply with the contract over the billing period, and provide per-impression audit information.
+
+This shows that dynamic take rates already exist as a concrete product. It does not disclose enough for outsiders to map the internal implementation one-to-one onto any paper's algorithm.
+
+Its [Guardian case study](https://www.indexexchange.com/2025/10/23/guardian-boosts-auction-efficiency-revenue/) reports a 4% revenue increase and a 45% impression increase in a one-month controlled test. These are vendor-disclosed results; the public material does not provide complete raw data or traffic-split definitions. In particular, dividing the two percentages cannot establish a change in the publisher's all-channel eCPM, because whether the scopes match still needs verification.
+
+In June 2026, Rotem Shaul of Primis raised a sharper challenge in a [signed AdExchanger commentary](https://www.adexchanger.com/the-sell-sider/dynamic-take-rates-are-a-market-wide-squeeze-disguised-as-innovation/): the extra fees taken on high-priced trades subsidize low-priced trades, and the latter were not necessarily unsellable; they might otherwise have traded through another exchange.
+
+This is not only a question of whether fees are transparent; it also involves the **counterfactual**: without dynamic take rates, how would this impression have traded?
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g10-market-en.svg" title="A market-wide ledger of two trades" alt="Across two trades, publisher receipts fall by 2 and rise by 1, A's gross profit rises by 9, B's falls by 8, and publishers receive 1 less in total" caption="Teaching assumption drawn by the author of this post: buyer payment is 100 in both trades; A keeps 2 more on its existing trade and, in another trade, replaces B's publisher payment of 92 with 93. The amounts only explain the counterfactual accounting and are not industry measurements." />
+
+If B originally paid the publisher 92 and, once the feature is on, A bids 93 and wins, A's report gains a new 93 trade, while the publisher's real gain is only 1. If the subsidy also makes another trade pay the publisher 2 less, overall net revenue actually falls by 1.
+
+This example does not prove that dynamic take rates necessarily harm publishers; it explains why looking only at one exchange's match rate and revenue is not enough. Shaul's article is opinion and illustration and cannot replace a market-level experiment; Index's vendor case cannot replace conclusions across all publishers and all transaction paths. Both point to the same measurement requirement: make the control cover the real substitute paths, observe publisher-wide net revenue and buyer value, and avoid recording migrated trades as newly created value.
+
+## What remains between the formula and a controller
+
+Yuanlong Chen's [A Practical Guide to Budget Pacing Algorithms in Digital Advertising](https://arxiv.org/abs/2503.06942v2) first appeared in 2025; the version referenced here is v2, revised July 20, 2026. It works better as an engineering map: from throttling to PID, MPC and Dual Online Gradient Descent, it covers how different methods control delivery.
+
+PID and dual methods are not necessarily two mutually exclusive routes. The dual method identifies which constraint residuals to track; a PID form can process current error, accumulated error and change in error. Chen's DOGD chapter also discusses how the two relate through mirror descent and filtering of error history. But attaching PID to some variable does not automatically inherit another algorithm's theoretical guarantees.
+
+<TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g11-feedback-en.svg" title="What feedback the controller actually reads" alt="Request prediction, bid protection, pending costs after a win, attribution and settlement, and the next-round state update form the feedback chain" caption="Drawn by the author of this post, combining Chen's discussion of delayed feedback with engineering reasoning. Not the deployment architecture of any particular platform." />
+
+When actually going live, several questions directly change the control direction:
+
+**Do errors share a common scale?** Large and small budgets using the same absolute monetary error usually cannot share the same parameter intuition. The normalization must be explicit, and edge cases such as zero targets and too few samples must be handled.
+
+**Is the feedback already complete?** CPC click charges appear later than the impression, and conversion value may come back even later. If the controller reads "no charge seen yet" as "nothing spent yet," it will keep raising bids. Pending cost exposure, attribution windows and reporting time must be handled together.
+
+**Is the target curve reasonable?** Target spend can follow expected traffic instead of being spread evenly over every minute. But if remaining traffic is mispredicted, PID tracking the target ever more accurately only tracks a wrong curve accurately.
+
+**Are update frequency and hard protection given separate jobs?** High-frequency updates are more responsive, and also more prone to chasing noise. Two-variable control handles regulation; hard budget protection under concurrent requests and delayed billing still needs its own implementation. The paper's idealized process of truncating at the remaining budget does not mean overspend has been solved in a distributed system.
+
+### Product commitments should come back to metrics the customer can verify
+
+Google Ads [Target ROAS](https://support.google.com/google-ads/answer/6268637?hl=en-AU) is a clear product example: maximize conversion value while trying to reach a target average ROAS. It does not maximize the customer's bill, nor does it promise rigid compliance on every transaction or every day. The [Maximize conversion value help page](https://support.google.com/google-ads/answer/7684216?hl=en) also distinguishes the behavior of trying to spend the full budget when no ROAS target is set.
+
+So "raise spend, protect ROI" needs to be translated into verifiable objectives: is the increase in customer payment, publisher procurement volume, or conversion value? Is the floor customer ROAS or platform gross margin? Is the constraint checked daily, per billing period, or cumulatively at every point? How much short-term deviation is allowed?
+
+A platform should keep at least customer payment R, publisher cost C, customer conversion value V and gross profit R−C, with consistent attribution and windows. Whether an algorithm is worth adopting depends on how these quantities move together under an appropriate control.
+
+A lower procurement price can increase platform profit; better constraint control can allocate budget to more valuable opportunities; only an explicit settlement arrangement can pass the agreed part of the gains to the customer. Writing these three things down separately is what gives "raise spend" a verifiable meaning.
+
+## Sources and evidence notes
+
+- Balseiro et al., [A Field Guide for Pacing Budget and ROS Constraints](https://proceedings.mlr.press/v235/balseiro24a.html), ICML 2024. Formulas in §2, theory in §3, experiments in §4 and Appendix E. The two original figures are extracted directly from Figure 2.
+- Chen, [A Practical Guide to Budget Pacing Algorithms in Digital Advertising](https://arxiv.org/abs/2503.06942v2), v2, 2026-07-20. The main references are the PID and DOGD chapters in Part II; this is not a review of the whole book.
+- Balseiro et al., [Dynamic Revenue Sharing](https://papers.nips.cc/paper_files/paper/2017/hash/cb8acb1dc9821bf74e6ca9068032d623-Abstract.html), NIPS 2017. Mechanisms and gains are cited from the conference paper; additional PREFIX/HYBRID details are in the official supplementary version.
+- Google Ads: the two official help pages above; Index Exchange: the announcement and the Guardian case study; Shaul: the signed AdExchanger column. Product materials were checked on 2026-10-15.
+
+The ledger numbers, opportunity curve and counterfactual examples in the text are all teaching assumptions. Self-drawn derivations and original paper figures are labeled separately; no specific company's production implementation or customer operating data is included.
