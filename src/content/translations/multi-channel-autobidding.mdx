@@ -1,0 +1,222 @@
+---
+title: "Is Tuning Budgets Enough for Multi-channel Ads? Unpacking Multi-channel Autobidding"
+date: 2026-10-16
+tags: [技术报告解读, 广告与推荐]
+summary: "A Google and MIT paper proves that across channels, per-channel ROI targets alone can lose arbitrarily much, while per-channel budgets alone reach the global optimum, and gives an SGD-UCB learner with O(T^-1/3) error. Taking the model, counterexamples and algorithm apart shows that \"budgets suffice\" breaks once traffic quality varies across periods."
+sourceFile: "multi-channel-autobidding.mdx"
+sourceHash: "09852e38dc6a14cd3c748e26242943421eeffc2f479cc756d75b9d6576890cd1"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+> Paper: Multi-channel Autobidding with Budget and ROI Constraints<br />
+> Authors: Yuan Deng, Negin Golrezaei, Patrick Jaillet, Jason Cheuk Nam Liang, Vahab Mirrokni (Google Research, MIT)<br />
+> Version: arXiv v3, June 2023<br />
+> Link: [arXiv:2302.01523](https://arxiv.org/abs/2302.01523)
+
+A small business advertises on Google Ads and Meta at the same time, with one total budget and one overall ROI requirement. The two dashboards offer almost the same fields: a daily budget and a target CPA (or cost per result goal). The platform's autobidding then buys traffic in auctions on the business's behalf and reports total spend and total conversions the next day.
+
+<Figure src="/images/posts/multi-channel-autobidding/fig1-interfaces.png" alt="Campaign creation screens in Google Ads and Meta Ads Manager with budget, target CPA and start and end dates" caption="Source: Figure 1 of the paper, PDF page 3, extracted unchanged. Left: Google Ads; right: Meta Ads Manager. The red box is Meta's own description of its autobidding goal." />
+
+What the business actually wants to solve is a global problem: maximize conversions over all channels, keep total ROI on target and total spend within budget. All it can touch are two knobs per channel. Are those knobs enough, and how should they be set?
+
+The paper's answer is blunt. With target ROIs alone, conversions can fall arbitrarily far below the global optimum; with budgets alone, the global optimum is reachable and the target ROI is redundant. On top of this the authors design SGD-UCB, which learns the budget split from nothing but each channel's reported total conversion, with approximation error O(T^-1/3).
+
+The conclusion is attractive to anyone running campaigns or building a DSP, because it compresses a multi-dimensional tuning problem into one dimension. Once the model is taken apart, though, "budgets suffice" turns out to depend on a condition the paper never states. When traffic quality swings from day to day, budgets alone can also lose arbitrarily much.
+
+## Why the advertiser can only turn knobs
+
+Most advertising research sits in one of two seats: the platform designing the auction, or the bidder deciding how much to bid in a single auction. Attribution answers "which channel works". The step in between has gone unexamined: how an advertiser deals with channels.
+
+In practice the advertiser never touches a single auction. Channels are independent entities that feed the advertiser's settings into their own autobidding black box, which decides which impressions to buy and at what price. All the advertiser sees, after a period (an hour or a day) ends, is total spend and total conversion.
+
+<TechGraph src="/images/posts/multi-channel-autobidding/g1-setup-en.svg" title="MULTI-CHANNEL SETUP" alt="The advertiser sends budgets and target ROIs to M channels, which bid in their own auctions and report back only total conversion and spend" caption="Diagram: modeling multi-channel procurement (drawn by the blogger, based on Section 2 of the paper)" />
+
+The paper models this in three layers.
+
+**The auction layer**, channel j runs mj parallel auctions, each with a value v (expected conversions) and a cost d (for example the highest competing bid in a second-price auction). The whole set of (v, d) is drawn once per period from an unknown discrete distribution pj.
+
+**The channel layer**, given the advertiser's target ROI γj and budget ρj, the channel solves a linear program over the auctions drawn this time (Eq. 4 of the paper):
+
+```text
+max  vᵀx
+s.t. vᵀx ≥ γj · dᵀx      channel-level ROI
+     dᵀx ≤ ρj            channel-level budget
+     x ∈ [0,1]^mj
+```
+
+The channel is assumed to do "optimal autobidding", really maximizing conversions for the advertiser. The authors cite Meta's line "Meta will aim to get the most landing page views and try to keep the average cost around $1.00" as support for this assumption.
+
+**The advertiser layer**, the advertiser solves its own problem over all the channels' knobs. The paper defines two versions, which differ in how fine the control is.
+
+<TechGraph src="/images/posts/multi-channel-autobidding/g2-problems-en.svg" title="GL-OPT VS CH-OPT" alt="Objectives and constraints of GL-OPT, deciding auction by auction, and CH-OPT, tuning only channel knobs" caption="Diagram: the ideal problem and the implementable one (drawn by the blogger, based on Eq. 1, 3 and 4 of the paper)" />
+
+GL-OPT is the ideal: the advertiser decides auction by auction whether to buy, and the decision may change with every drawn (v, d). The constraints only need to hold in expectation, because the number of auctions is huge and the advertiser only cares about meeting targets on average. CH-OPT(I) is reality: the advertiser can only choose each channel's (γj, ρj), with three options, budgets only IB, ROI targets only IR, or both IG.
+
+Lemma 3.1 is intuitive: no knob setting gets more conversions than GL-OPT, because a channel's solution is itself a feasible point of GL-OPT. The real question is how big the gap is.
+
+## Why ROI targets alone lose
+
+Theorem 3.2 uses a three-auction toy example to show that ROI targets alone can lose without bound. The global ROI target is γ = 1, the budget is unlimited, and (v, d) has a single realization.
+
+<TechGraph src="/images/posts/multi-channel-autobidding/g3-roi-fail-en.svg" title="ROI-ONLY FAILURE" alt="Channel 1 has a zero-cost auction, channel 2 has two auctions with ROI below 1; the global optimum gets 1+X conversions, ROI targets alone get 1" caption="Diagram: the counterexample of Theorem 3.2 (drawn by the blogger, based on Section 3 and Appendix A.2 of the paper)" />
+
+Channel 1 has a free auction: value 1, cost 0. Both auctions in channel 2 have ROI X/(1+X), just below 1. The global optimum buys channel 1's free conversion and uses its "ROI surplus" to subsidize one loss-making auction in channel 2: total conversion 1+X, total spend 1+X, ROI exactly 1.
+
+What does channel 2 do if only γ2 is set? The channel maximizes conversion within its own constraints. The two auctions have identical ROI, so as long as γ2 is at most X/(1+X), the channel buys both: total conversion 1+3X, total spend 3+3X, global ROI below 1, infeasible. Raise γ2 slightly and the channel buys neither. The advertiser is left with channel 1's single conversion, and the ratio 1/(1+X) goes to 0 as X grows.
+
+The crux of the example is that an ROI target is a hard cutoff. Every auction in channel 2 either clears it together or fails it together, and the advertiser has no way to tell the channel "buy only half". A budget can: set ρ2 to 1+X and the channel can only afford one auction, landing exactly on the global optimum.
+
+## Why budgets alone suffice
+
+Theorem 3.3 is the paper's central claim: for any γ and ρ, CH-OPT(IB) = GL-OPT. Corollary 3.4 follows: there is an optimal solution with all γj = 0, so target ROIs are redundant, and the rest of the paper drops them.
+
+The proof idea is short. Take the optimal solution x̃ of GL-OPT, set each channel's budget ρ̃j to x̃'s expected spend in that channel, and show that a channel solving its own problem with ρ̃j gets no fewer conversions and no worse ROI than x̃.
+
+Lemma 4.3 explains why letting the channel "solve it itself" works. With γj = 0, the channel's problem is a fractional knapsack: buy in decreasing order of v/d until the budget runs out. Conversion as a function of budget, Vj(ρj), is therefore piecewise linear and concave, and the slope of each piece is the v/d of that tier of auctions.
+
+<TechGraph src="/images/posts/multi-channel-autobidding/g4-greedy-en.svg" title="FRACTIONAL KNAPSACK" alt="The channel buys in decreasing v/d, so conversion grows with budget along a concave piecewise linear curve" caption="Diagram: the greedy structure of the channel problem (drawn by the blogger, based on Lemma 4.3 of the paper)" />
+
+Concavity buys two things. First, the advertiser's cross-channel problem becomes convex (Proposition B.4). Second, the Lagrangian
+
+```text
+Lj(ρj, λ, μ) = (1 + λ) · Vj(ρj) − (λγ + μ) · ρj
+```
+
+is unimodal in ρj, and the optimal budget always sits at a kink. λ is the dual price of the global ROI constraint and μ the dual price of the total budget. Writing out the slope of Lj in ρj, (1+λ)·s − (λγ+μ) ≥ 0 is equivalent to
+
+```text
+s ≥ (λγ + μ) / (1 + λ)
+```
+
+s is how many extra conversions one more dollar buys in the channel, that is, the marginal ROI. The two dual prices together set one marginal ROI threshold: each channel keeps adding budget until the next tier of auctions falls below it. All channels share the same threshold, which is the principle of "equal marginal ROI". Figure 2 of the paper shows one channel finding its optimal kink at given prices.
+
+<Figure src="/images/posts/multi-channel-autobidding/fig2-lagrangian.png" alt="Lagrangians of one channel under three realizations and their expectation, maximized at the second kink" caption="Source: Figure 2 of the paper, PDF page 16, extracted unchanged. The solid grey line is the expected Lagrangian; the red dot is the optimal budget r(j,2) at dual prices c = (4, 2); the two bold segments are the slopes on either side of the optimum." />
+
+The figure matters again later: the flatter the slopes σ⁻ and σ⁺ on either side of the optimum, the cheaper a wrong budget is, but the more samples it takes to tell the best arm from the runner-up.
+
+## Budgets alone can lose too
+
+One step in the proof of Theorem 3.3 deserves a closer look. Eq. (17) in Appendix A.3 says the channel's solution under budget ρ̃j is at least as good as x̃j(zj), citing "optimality of the channel's solution". That requires x̃j(zj) to be feasible for the channel's problem, meaning dᵀx̃j(zj) ≤ ρ̃j for **every** drawn zj.
+
+But ρ̃j is x̃'s **expected** spend. A GL-OPT solution may vary with z, spending more in some periods and less in others, as long as the average stays within budget. A channel's budget is a hard cap that applies in every period. As soon as the global optimum spends unevenly across periods, (17) fails.
+
+A minimal counterexample makes this concrete.
+
+<TechGraph src="/images/posts/multi-channel-autobidding/g7-good-bad-day-en.svg" title="GOOD DAY, BAD DAY" alt="One channel, good day v=20 d=10 and bad day v=1 d=10 with equal probability; global optimum 10, budgets only 5.25, adding an ROI target recovers 10" caption="Diagram: a counterexample where budgets alone fail (constructed by the blogger, based on the stochastic setting of Eq. 1 and 4 of the paper, checked by numerical enumeration)" />
+
+There is one channel with one auction. On a good day (probability 1/2) its value is 20 and cost 10; on a bad day (probability 1/2) value 1 and cost 10. The global ROI target is γ = 1 and the total budget ρ = 5.
+
+- GL-OPT: buy fully on good days, skip bad days. Expected spend 5, expected conversion 10, ROI 2, feasible.
+- Budgets only: the same ρ1 every day. With γ1 = 0 the channel looks only at the budget, and the bad-day auction still has positive value, so it buys. Expected spend equals ρ1, so ρ1 ≤ 5, and expected conversion is 0.5×20×0.5 + 0.5×1×0.5 = 5.25.
+- Add a target ROI: take γ1 above 0.1 and at most 2, with budget 10. On bad days the channel decides the auction isn't worth it and buys nothing; on good days it buys everything. Expected conversion is back to 10.
+
+Budgets alone get 52.5% of GL-OPT. Shrink the good-day probability to p and scale up its value, and the budget-only ratio is about p, so it can also go to 0, exactly mirroring Theorem 3.2's result for ROI targets alone. The same example shows that Corollary 3.4 fails in the stochastic setting: here the optimum requires γ1 > 0.
+
+<Callout type="warning" title="How much this gap matters">
+Theorem 3.2 uses a single-point support with no randomness, so it is unaffected. Theorem 3.3 also holds under single-point support. The gap appears only when (v, d) has several realizations and the global optimum spends unevenly across them. The first step of the regret decomposition in Section 4 ((i) in Appendix B.1) cites GL-OPT = CH-OPT(IB) directly, so Theorem 4.6's "approximates GL-OPT" should be read as "approximates CH-OPT(IB)". Only arXiv v3 was checked; whether a conference or journal version fixed this was not compared.
+</Callout>
+
+Seen the other way round, the gap also explains why the paper's experiments are unlikely to expose it. Each channel has 100 auctions per period, each with (v, d) sampled independently and uniformly, so by the law of large numbers the number of "good auctions" per period is very stable and the global optimum's spend barely varies across periods. The steadier the traffic, the closer budgets alone come to optimal.
+
+<TechGraph src="/images/posts/multi-channel-autobidding/g8-levers-en.svg" title="TWO LEVERS, TWO AXES" alt="Budgets split money across channels; target ROIs pick traffic within a channel across periods" caption="Diagram: how the two knobs divide the work (drawn by the blogger, based on Theorem 3.2 and the counterexample above)" />
+
+Put the two counterexamples together and the division of labor is clear: the budget decides how money splits across channels, which is what lets "cheap channels' surplus subsidize costly ones"; the target ROI decides which traffic inside a channel is worth buying, which lets the channel spend less in bad periods on its own. The paper proves the importance of the first axis; the second is invisible in a deterministic model.
+
+Whether tuning both knobs (IG) always reaches GL-OPT in the stochastic setting is not proved separately; the paper derives it from Theorem 3.3. There is a reason for doubt: in each period the global optimum applies the single marginal ROI threshold from the previous section, while a channel-level ROI constraint controls average ROI. When average ROI is on target, the last tier bought can sit far below the threshold. The two need not line up, and the IG result needs its own argument.
+
+## SGD-UCB: learning budgets from black-box feedback
+
+Even searching only within IB, the advertiser does not know what Vj(ρj) looks like. The distribution pj is unknown, channels do not reveal individual auctions, and each period each channel gets one budget and returns one total conversion. This is standard bandit feedback.
+
+The classic approach is dual SGD: keep two prices λ and μ, solve for the optimal budget at those prices each period, and update the prices according to constraint violation. The trouble is the step "solve for the optimal budget at those prices": the argmax needs Lj, which is exactly what is unknown. Remark 4.1 contrasts this with budget pacing in single auctions (Balseiro et al. 2017 and others): there the Lagrangian has a closed-form structure, the bid v/(1+μ) can be written down directly, and bandit feedback does no harm. At the multi-channel layer a black box sits between knob and outcome, and the closed form is gone.
+
+The authors' fix is to give each channel a multi-armed bandit.
+
+<TechGraph src="/images/posts/multi-channel-autobidding/g5-sgd-ucb-en.svg" title="SGD-UCB LOOP" alt="Each period: pick budget arms by UCB, observe conversions, update dual prices, and trigger the safety valve if needed" caption="Diagram: one period of SGD-UCB (drawn by the blogger, based on Algorithm 1 of the paper)" />
+
+1. Discretize the budget range [0, ρ] into K arms with spacing δ. In the first K periods, pull each arm once in turn.
+2. After that, each period each channel picks the arm maximizing an "optimistic Lagrangian": mean conversion plus the UCB radius √(2 log T / N), minus the spend cost at current prices.
+3. Observe the conversion and update that arm's mean. Under Assumption 4.1 (channels always spend the whole budget), spend equals the budget and need not be observed.
+4. Compute ROI slack g1 = Σ(Vj − γρj) and budget slack g2 = ρ − Σρj, and update λ and μ by projected gradient steps.
+5. Safety valve: if cumulative ROI slack gets too negative or cumulative spend too high, stop learning and give every channel a tiny budget for the remaining periods, which keeps the constraints satisfied in expectation.
+
+The final output is the time average of the budgets over T periods, ρ̄T.
+
+### The hard part: dual prices act as adversarial contexts
+
+Bolting UCB onto SGD looks natural, but the analysis is not ordinary bandit analysis. Each arm's "reward" is a Lagrangian value that depends on the current λ and μ. Those prices are updated by SGD, not sampled from some well-behaved distribution, so they act as adversarial contexts. The authors point out two consequences.
+
+First, reward magnitude is uncontrolled. The larger λ and μ, the larger |Lj|, and UCB's loss grows with it. Lemma 4.4 caps the dual variables at CF, which pins Lj inside a constant range.
+
+Second, the exploration-exploitation tradeoff shifts with the context. Back to Figure 2: the slopes on either side of the optimal kink are set by λ and μ. When the slopes are flat, a wrong guess is cheap but hard to detect; when steep, easy to detect but costly. Lemma 4.5 introduces a threshold σ, treats periods with slopes flatter than σ separately from steeper ones, and obtains a UCB error bound of O(δT + σT + 1/(σδ)).
+
+Combine these three terms with SGD's O(ηT + 1/η), take η = Θ(T^-1/2) and δ = σ = Θ(T^-1/3), and total regret is O(T^2/3); the output budget's approximation error is O(T^-1/3), with both constraints met in expectation (Theorem 4.6).
+
+<TechGraph src="/images/posts/multi-channel-autobidding/g6-rates-en.svg" title="CONVERGENCE RATES" alt="Flaxman 2004 at T^-1/4, this paper at T^-1/3, two-point methods at T^-1/2 and T^-1" caption="Diagram: approximation rates against their assumptions (drawn by the blogger, based on Section 1.2 and Remark 4.2 of the paper)" />
+
+Rates have to be read together with assumptions. Flaxman et al. 2004 gets O(T^-1/4) but assumes known constraints, so a solution's feasibility can be checked directly; here the ROI constraint depends on an unknown distribution and cannot be checked in advance. Usmanova et al. 2019 and Nguyen & Balasubramanian 2022 reach O(T^-1) and O(T^-1/2), but they require smooth functions (the latter also strong convexity) and "two-point estimation": querying the function twice per round and using the difference to estimate a gradient. An advertiser can give a channel only one budget per period, a single query, and the objective is piecewise linear, so neither premise holds. In Remark 4.2 the authors acknowledge that the optimal rate for this one-point, unknown-constraint, non-smooth combination is still open; O(T^-1/3) is not necessarily the ceiling.
+
+### Extensions: multi-slot auctions and cost-aware objectives
+
+Section 5 extends single-slot auctions to auctions selling several positions. As long as each auction has "increasing marginal values" (Definition 5.1), the concave structure of Lemma 4.3 survives and every result carries over. VCG satisfies the condition (Example 5.1); GSP need not, and the paper does not treat GSP.
+
+Section 7.1 changes the advertiser objective from pure conversion to "conversion minus α times spend"; α = 1 is quasi-linear utility. Channels still maximize conversion only, so objectives are misaligned; the authors say the results still hold once α is put into the Lagrangian, but do not give a full proof.
+
+## Experiments: behavior on synthetic data
+
+All numerical experiments use synthetic data. There are M = 10 channels with 100 auctions each, total budget ρ = 10 and global ROI γ = 1.3. For the first 5 channels values and costs are sampled uniformly from [0,1]; for the last 5, values come from [0,2], giving better average value for money, and the authors call these the lucrative channels. Each channel's support has size 5000, the probability distribution is generated at random, and everything is repeated over 100 independent trials. Under the hindsight-optimal budgets, the lucrative channels take about 80% of the budget.
+
+<Figure src="/images/posts/multi-channel-autobidding/fig3-results.jpeg" alt="Left: box plots of the percentage of global optimal conversion for different numbers of periods T; right: heatmap of average percentage at T=200 for combinations of corruption factors" caption="Source: Figure 3 of the paper, PDF page 24, extracted unchanged. Left: α1 = α2 = 1; right: fixed T = 200, normalized percentage computed with conversion under optimal autobidding." />
+
+The left panel shows sample efficiency. Read off the chart, the median is about 86.5% at T = 100, about 91% at T = 200, about 95.4% at T = 500 and about 97% at T = 1000, and the boxes narrow as T grows. The authors highlight that T = 200 exceeds 91%, which is about 8 to 9 days if one period is an hour.
+
+The right panel shows behavior when channels' autobidding is not optimal. The authors model this with corruption factors: non-lucrative channels only achieve α1 times the optimal conversion and lucrative channels α2 times; the algorithm sees the discounted conversion, and evaluation converts back to optimal conversion. Two patterns:
+
+- With α1 fixed, results improve as lucrative channels get closer to optimal (larger α2). The worst cell, α1 = 1 and α2 = 0.2, is 81%.
+- With α2 fixed, results improve as non-lucrative channels get worse (smaller α1). In the α2 = 0.2 column, lowering α1 from 1.0 to 0.2 raises the figure from 81% to 92%. The authors' explanation: non-lucrative channels look even worse, so the algorithm shifts more budget to lucrative channels, which is where value for money was higher all along.
+
+With both factors at 0.2 the result is still 92%, which the authors take as "graceful degradation" under non-optimal autobidding.
+
+<Callout type="note" title="How to read the experiment">
+Corruption multiplies a whole channel's conversion by a constant. It does not change the purchase order inside the channel, only how the advertiser perceives the channel's value for money. Real channels are suboptimal more often by buying the wrong traffic (spending on low-quality inventory, say), which changes the shape of the Vj curve, and this experiment does not cover that. The paper also only calls the denominator "hindsight optimal" without saying how it was computed; if it is actually CH-OPT(IB), the gap from the previous section is defined away in the experiment. Nor is the method compared with any baseline, such as splitting budget in proportion to historical ROI.
+</Callout>
+
+## Engineering implications and limits
+
+### What this means for campaign and DSP systems
+
+The paper's most useful contribution is the modeling frame: the advertiser never touches auctions, only knobs, and behind each knob sits a black-box optimizer. The pattern is everywhere in the industry: brands splitting budget across platforms, agencies across DSPs, a DSP itself across SSPs or ad exchanges. [The post on ROS pacing and dynamic take rates](/posts/pacing-ros-dynamic-take-rate) is about how to bid inside the black box; this one is about how the party outside turns the knobs. The dual variables mean the same thing at both layers: λ is the price of the ROI constraint and μ the price of the budget.
+
+A few judgments to take away:
+
+- **Splitting money across channels needs budgets, not just per-channel tCPA**. The mechanism of Theorem 3.2 is common in practice: one channel (brand search or retargeting, say) has very high ROI, another (prospecting) misses target on its own. Give every channel the same target ROI and prospecting either doesn't run or runs fully, and the total misses target. Letting some channels "run at a loss" takes budgets to carve out.
+- **Target ROIs are not redundant**. When traffic quality swings over time (sales events, weekends, news), a fixed daily budget still gets spent on bad days. A channel-level ROI target lets the channel pull back on bad days by itself. The paper's "budgets suffice" should be limited to steady traffic.
+- Under the optimal-autobidding assumption, the budget-to-conversion curve is concave. Concavity gives theoretical backing to many simple methods: splitting budget so marginal ROI is equal is just the KKT condition said plainly. Discretizing budgets and running a bandit is steadier than zeroth-order gradient steps in a continuous space.
+- Learning itself costs money. The algorithm spends its first K periods trying each budget level in turn, and δ = Θ(T^-1/3) means the number of levels grows with T. The paper gives no constant for δ, so how many of the T = 200 periods go to exploration can't be told from the paper. Real systems usually have historical data for a prior, or adjust within a narrow range, rather than starting from zero.
+
+### Limitations and open questions
+
+- The gap in the proofs of Theorem 3.3 and Corollary 3.4 in the stochastic setting, with the counterexample above. The algorithm of Section 4 is not affected, but its benchmark should be CH-OPT(IB).
+- Assumption 4.1 requires channels to always spend the full budget. That is reasonable for small advertisers, but not for large budgets or traffic-limited channels (long-tail keywords, say). Once budgets go unspent, spend becomes another observation and the structure changes.
+- Optimal channel autobidding is the core assumption. Real channels have their own business goals, and their autobidding objective may not fully match the advertiser's. Section 7.2 only mentions switching to corruption-robust bandits, with no results.
+- Channels are treated as independent. Cross-channel user conversions, overlapping attribution, and channels bidding each other up (the same advertiser bidding through two channels on the same exchange) are all outside the model.
+- The distribution pj is stationary. The O(T^-1/3) guarantee relies on i.i.d. periods; non-stationary environments need separate treatment, which the authors list as a direction in related work but do not pursue.
+- All experiments use synthetic data, with no baseline and no real channel data. As "theory plus a sanity check" that is acceptable; as engineering evidence it is thin.
+
+## Summary
+
+The paper writes "how an advertiser deals with channels" as a clean optimization problem (the authors say it is the first model of its kind), and the three-auction counterexample of Theorem 3.2 shows the fundamental flaw of the target-ROI knob very clearly: it is a hard cutoff and cannot subsidize across channels. The value of SGD-UCB lies in its analysis, treating dual prices as adversarial contexts and splitting the exploration cost by slope, an idea that carries over to other problems where a black box sits behind the knob.
+
+The main thing to take away is the picture that emerges when the two counterexamples sit side by side. Budgets and target ROIs do not replace each other; each governs one axis: the budget decides how money splits across channels, the target ROI decides whether a channel buys in a given period. A deterministic model only sees the first axis, hence "budgets suffice". Once traffic quality fluctuates, the second axis comes back. For a system allocating budget across channels, learn the cross-channel budget split with the paper's method first, then keep channel-level ROI targets as a per-period quality gate; the two do not conflict.
+
+## References and figure sources
+
+- Paper: Deng, Golrezaei, Jaillet, Liang, Mirrokni. [Multi-channel Autobidding with Budget and ROI Constraints](https://arxiv.org/abs/2302.01523), arXiv:2302.01523v3, 2023.
+- Related work compared in the paper (cited as described in Section 1.2 of the paper, not checked one by one): Flaxman et al. 2004; Usmanova et al. 2019; Nguyen & Balasubramanian 2022; Balseiro et al. 2017.
+- Paper figures: Figure 1 (PDF page 3), Figure 2 (page 16), Figure 3 (page 24), all extracted directly from images embedded in the PDF, unmodified.
+- Blogger-drawn figures: 8, redrawn or derived from the corresponding sections of the paper; the "good day, bad day" counterexample was constructed by the blogger and checked by numerical enumeration: GL-OPT = 10, budgets only = 5.25, with a target ROI = 10.
+- Related post: [More Spend, Which Floor to Hold? From ROS Pacing to Dynamic Take Rates](/posts/pacing-ros-dynamic-take-rate)

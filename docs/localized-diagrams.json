@@ -118,5 +118,53 @@
     "target": "/images/posts/pacing-ros-dynamic-take-rate/g11-feedback-en.svg",
     "sourceHash": "9bdf34876f942715dd8c473b87dca6208225b54f3a5a767cb1288f44ca623a6e",
     "targetHash": "5a95f49423be1409fdcaaea9aff9b845a96c60c1613091a57ee3c3f9aa2a9111"
+  },
+  {
+    "source": "/images/posts/multi-channel-autobidding/g1-setup.svg",
+    "target": "/images/posts/multi-channel-autobidding/g1-setup-en.svg",
+    "sourceHash": "5e515087cacb4f2406aa5ae8d8640c41ea141f562bd22f65c39ccbc697664a95",
+    "targetHash": "b8350b9611a4a8675c451b221de494890c734ee75a62dd5ee3704dcb8c6a4223"
+  },
+  {
+    "source": "/images/posts/multi-channel-autobidding/g2-problems.svg",
+    "target": "/images/posts/multi-channel-autobidding/g2-problems-en.svg",
+    "sourceHash": "0f9fe9d08f2311c25a9ea891ac1f84bafd1817bd413021bad682764113411bab",
+    "targetHash": "8fc2439d73737b99df4c5988ced4de3b2e1cf32c1e9df59ab32614379d7661f8"
+  },
+  {
+    "source": "/images/posts/multi-channel-autobidding/g3-roi-fail.svg",
+    "target": "/images/posts/multi-channel-autobidding/g3-roi-fail-en.svg",
+    "sourceHash": "121af9ef1a3a0a6944900a8b5a65ae3429908ec511f2d97a34d75a83b9a25657",
+    "targetHash": "fccdb16dd48e1d41e231dafe72e8de1a1bcbdaa9722b752244c7578388184e93"
+  },
+  {
+    "source": "/images/posts/multi-channel-autobidding/g4-greedy.svg",
+    "target": "/images/posts/multi-channel-autobidding/g4-greedy-en.svg",
+    "sourceHash": "63fad6f38424035630113e55c3fb385eb45f8c5647fdbed604bdc60f44b7a9f3",
+    "targetHash": "21b22b23c0204e5497fb282ce993b3b296690e97af7dc0d662fc3c8fb91b3387"
+  },
+  {
+    "source": "/images/posts/multi-channel-autobidding/g5-sgd-ucb.svg",
+    "target": "/images/posts/multi-channel-autobidding/g5-sgd-ucb-en.svg",
+    "sourceHash": "a821205e0c1315e9ac00edf4ca845e9f1e0905fb018b63d60c87a0a31580e1aa",
+    "targetHash": "c9de47ffbf130e3394be56e0ec92b1477fa26329b7ff18b176abebfad791e703"
+  },
+  {
+    "source": "/images/posts/multi-channel-autobidding/g6-rates.svg",
+    "target": "/images/posts/multi-channel-autobidding/g6-rates-en.svg",
+    "sourceHash": "d23472125139a771279b8cd6b062795f8a9ca8e01728bfbf1749bdf7b096ae9f",
+    "targetHash": "c66e19e3d747ce61091c449d425deed3f91092d5fa11e109cb36a36148c6d600"
+  },
+  {
+    "source": "/images/posts/multi-channel-autobidding/g7-good-bad-day.svg",
+    "target": "/images/posts/multi-channel-autobidding/g7-good-bad-day-en.svg",
+    "sourceHash": "4e891389d8e34ddedad4e4c23dbad4831a8a6a963d15548d04199a4e23a402fe",
+    "targetHash": "03d87ac520c143fba763bfe34398664c51e2ce790bf207d7156b8df04b9e1e6e"
+  },
+  {
+    "source": "/images/posts/multi-channel-autobidding/g8-levers.svg",
+    "target": "/images/posts/multi-channel-autobidding/g8-levers-en.svg",
+    "sourceHash": "9cfd241c299835ee672fdc6cf35e952734c8159a77d8fc5a7ae8cd007eefe4cd",
+    "targetHash": "1cbb9d2129c6fa6c33e77b7126e44bd624422a5695971e45d9b1fc7c51bc9bca"
   }
 ]
