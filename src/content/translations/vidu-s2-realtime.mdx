@@ -1,0 +1,208 @@
+---
+title: "Vidu S2: Generating Video While Accepting New Instructions"
+date: 2026-10-23
+tags:
+  - 技术报告解读
+  - AI 与机器学习
+summary: "Follow a continuously generated video through Vidu S2's Self-Replay Forcing, asymmetric noisy caches, one-step refinement, and VLM state control, then use StreamEval to distinguish visual continuity, real-time delivery, and successful instruction execution."
+draft: false
+sourceFile: "vidu-s2-realtime.mdx"
+sourceHash: "08f152bc572eb4e038f2c0cd579bfa2eb4a747096a39a2f12bed1d2ee7d0e289"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+> Main report: *Vidu S2: Real-Time Interactive, Editable, and Spatial Video Generation*, Tsinghua University and Shengshu Technology, arXiv:2609.11638v1, September 10, 2026.<br />
+> Evaluation reference: *StreamEval: Evaluating Interactive Streaming Video Generation Models*, arXiv:2610.28402v1, October 20, 2026.<br />
+> [Vidu S2 report](https://arxiv.org/abs/2609.11638v1) · [Official project](https://github.com/shengshu-ai/Vidu-S) · [StreamEval paper](https://arxiv.org/abs/2610.28402v1)
+
+Ask a video character to pick up a cup, then tell it to smile. The character must understand the second instruction, change its expression, and keep holding the cup. The video also has to keep playing, without stopping to regenerate the entire sequence.
+
+That small interaction combines several difficulties: generation must keep pace with playback, new instructions must take effect promptly, and previously established states must persist. Smooth lip motion and an undistorted face cover only part of the requirement.
+
+Vidu S2 distributes these responsibilities across modules. S2-Avatar generates interactive audiovisual characters; S2-Editing modifies an incoming video stream. A backbone generates successive chunks, a Refiner restores high-resolution detail, and a VLM agent observes the result and updates subsequent prompts. Self-Replay Forcing addresses a training problem behind all this: the history the model sees next is its own recent output, which may already contain errors.
+
+Starting with that history makes it easier to understand why caches, agents, and inference optimization all have a role.
+
+## 1. Once chunks are played, history cannot be freely rewritten
+
+An offline video model can process a whole noisy sequence together, allowing earlier and later frames to influence each other over repeated denoising steps. Streaming interaction has a different constraint. The first segment has already reached the user, the second is being generated, and the next instruction may not have arrived.
+
+S2-Avatar works with audiovisual segments, or chunks. To generate segment i, it receives the current chunk's noise, its condition, a reference image, and the history it is allowed to access. Temporal attention uses a block-wise causal mask: content within a block can be modeled jointly, while later blocks cannot supply future information to earlier ones. (Main report, §2.2, PDF p.6.)
+
+<TechGraph src="/images/posts/vidu-s2-realtime/causal-stream.svg" title="A STREAM COMMITS ITS PAST" alt="Three successive chunks. The current chunk reads a reference, its current instruction, and valid history. Future chunks are unavailable, and already played content cannot be revised." caption="Author-created diagram of the inputs to one generation step, based on §2.2 of the main report. The number of chunks is illustrative." />
+
+Using notation close to Eq.3 in the report:
+
+```text
+x̂₀ⁱ = fθ(xⁱ_tᵢ, tᵢ, r, cⁱ, x<ⁱ_τᵢ, τᵢ)
+```
+
+`xⁱ_tᵢ` is the current chunk's noisy audiovisual latent, and `tᵢ` its noise level. `r` is the reference image, `cⁱ` the current condition, and `x<ⁱ_τᵢ` the valid historical states at noise level `τᵢ`. The output `x̂₀ⁱ` estimates the current chunk's clean latent. Sampling and decoding are still required before it becomes playable audio and video. A latent is a compressed numerical representation rather than raw pixels.
+
+The current chunk's noise level and the history's noise level are separate inputs. Keeping some noise in the history means the model need not treat every detail as reliable. The backbone and Refiner later make different choices about how much noise to retain.
+
+Training must accommodate this causal process. The report first trains a bidirectional model for image-to-video and reference-to-video generation, with conditions assigned to individual segments rather than a single prompt for the whole sequence. It then replaces temporal attention with a block-wise causal structure and mixes two training modes. Teacher Forcing supplies clean ground-truth history; Diffusion Forcing supplies noisy history, letting the model practice continuing from imperfect context.
+
+These choices narrow the gap between training and inference, but the ground-truth history still comes from the dataset. At inference, if the model generates a malformed hand, the next chunk receives that malformed hand. The model also needs practice continuing from its own outputs.
+
+## 2. SRF: Generate first, then replay with gradients
+
+[Self Forcing](https://self-forcing.github.io/) runs autoregressive generation during training and uses the generated chunks as subsequent context. This changes where the history comes from. In the training path described by the Vidu S2 report, however, that history is supplied clean and detached, so later losses cannot propagate backward through those historical representations.
+
+Vidu S2's Self-Replay Forcing, or SRF, splits the process into two passes.
+
+The first is a **rollout**. The student generates a relatively long trajectory autoregressively. Generated blocks and KV caches are detached, so the original generation process does not retain its backward computation graph. This pass establishes the histories the model actually encounters, without requiring backpropagation through the entire long trajectory.
+
+The second is a **replay**. The system selects a portion of the self-generated trajectory, independently samples noise levels for its blocks, re-noises them, and processes them in a differentiable causal forward pass. Replayed block representations share a computation graph. A later block's loss can therefore reach earlier replay representations through causal attention dependencies. External history inherited from the rollout, outside the replayed portion, remains fixed. (§2.2, Eq.4, PDF p.6.)
+
+<TechGraph src="/images/posts/vidu-s2-realtime/self-replay.svg" title="ROLLOUT FIRST, REPLAY WITH GRADIENTS" alt="A detached autoregressive rollout is followed by causal replay of three independently re-noised chunks. Gradients cross block boundaries within replay but do not return through the original rollout." caption="Author-created diagram of SRF's two passes and gradient boundary, based on §2.2 of the main report. The three blocks are illustrative." />
+
+Consider three blocks, A, B, and C. Suppose A introduces a slight identity error, B carries it forward, and by C the face has visibly changed. This is a teaching example of error propagation, not a measured trajectory from the paper.
+
+With an erroneous history held fixed for C, its loss directly optimizes continuation from that history in this pass. SRF instead re-noises and replays the selected A, B, and C together, allowing C's supervision to affect the historical features computed for earlier blocks during replay. Training thus uses states generated by the current student while retaining gradient connections across replay blocks.
+
+That boundary matters. Cross-block backpropagation does not mean connecting every denoising step and cache update of the original long rollout into one end-to-end backward pass. The rollout has already been detached. Replay length, noise sampling, and external-history selection still affect training cost; the report does not disclose a complete configuration sufficient to reproduce every setting.
+
+### Why training on its own flawed outputs does not mean copying the flaws
+
+The self-generated trajectory establishes the training states; it does not directly become the correct answer. SRF uses Distribution Matching Distillation, or DMD, to move the student's output distribution toward the teacher distribution. A perceptual loss helps mitigate mode collapse and preserve generation diversity. The report summarizes the objective as:
+
+```text
+L_SRF = L_DMD(replayed outputs) + L_perc(replayed outputs)
+```
+
+The student is not asked to copy its erroneous video pixel by pixel, nor is every trajectory guaranteed to converge to a single reference video. The teacher distribution and perceptual constraint determine the optimization direction. Self-generated history puts those constraints on states that arise during inference.
+
+The bidirectional and streaming stages also have their own preference optimization. The former uses diffusion DPO to improve quality and expression. The latter uses Streaming Negative-aware Fine-Tuning (Streaming NFT) for reward-based optimization, replaying self-generated trajectories after a detached rollout. SRF, preference optimization, and data improvements all enter the final system. Without separate ablations, the final scores cannot tell us how much SRF contributes on its own.
+
+## 3. High-resolution detail does not all need a high-resolution backbone
+
+The report describes S2-Avatar output at **720p and 25 to 42 FPS**. A low-resolution causal backbone is followed by a one-step super-resolution Refiner operating in latent space. The backbone establishes motion and structure. The Refiner upsamples the latent, adds noise at a fixed level, and predicts a high-resolution latent. (§2.2, Eq.5, PDF p.7.)
+
+The two modules read different historical caches. The backbone uses higher-noise history; the Refiner uses lower-noise, high-resolution history. The report expresses the relation as `τB > τR`.
+
+<TechGraph src="/images/posts/vidu-s2-realtime/dual-cache.svg" title="MOTION AND DETAIL USE DIFFERENT HISTORIES" alt="A low-resolution causal backbone reads higher-noise history for motion and structure. A one-step Refiner reads lower-noise, high-resolution history to restore detail, followed by VAE decoding." caption="Author-created diagram of the low-resolution backbone, one-step Refiner, and asymmetric history noise, based on §2.2. No undisclosed internal sizes or timings are assumed." />
+
+Why give the backbone noisier history? The authors argue that higher noise reduces sensitivity to high-frequency artifacts, helping propagate coarse motion and longer-range structure. The Refiner needs cleaner high-resolution context to retain clothing textures, local appearance, and identity details.
+
+This division has a cost. Moving detail restoration to the Refiner reduces the backbone's repeated high-resolution work but adds a computation step and another history. The report retains S1's sink blocks, sliding window, and noisy KV caches rather than storing every past chunk forever. An open-ended stream does not imply precise recall of arbitrarily old details.
+
+### Playing at 25 FPS does not mean responding in 40 milliseconds
+
+At 25 FPS, the system produces 25 frames per second. If playback also consumes 25 frames per second, sustained production must at least match that rate to avoid continually draining the buffer. This is a throughput requirement.
+
+Interaction latency measures a different interval: after a new instruction arrives, how long until the first frame correctly reflecting it reaches the user's screen? Speech recognition, VLM prompt generation, waiting for the next chunk, denoising, refinement, VAE decoding, and transport may all lie on that path. `1 / 25 = 40 ms` is a frame interval, not the response time of the chain.
+
+The report describes a layer-wise mixture of SageAttention, SpargeAttention, and SLA, together with per-block W8A8 linear layers, kernel fusion, CUDA Graphs, Ulysses-style multi-GPU context parallelism, and communication quantization. These target attention computation, matrix operations, memory traffic, launch overhead, and communication respectively. (§2.3, PDF pp.7 to 8.)
+
+For the editing pipeline, the team schedules the VAE encoder, backbone, Refiner, and VAE decoder on a shared timeline. When one module does not need certain GPUs, another can reuse them, reducing waiting caused by static GPU reservations. (§3.3, PDF p.11.)
+
+These descriptions explain where acceleration occurs. They do not provide a complete mapping of the 720p, 25 to 42 FPS result to GPU model, GPU count, concurrency, and end-to-end latency percentiles, or a separate timing table for each optimization. They therefore do not support calculating the deployment cost of a session. S1's hardware results cannot simply be assigned to S2 either.
+
+## 4. Before a character learns to dance, the data must retain complete actions
+
+Fast inference cannot recover an action sequence cut from the training video. The report uses unboxing videos as an example: an edit may preserve the before and after while removing the opening process. Treating that as a continuous action introduces a discontinuity into the supervision itself.
+
+S2 samples frames around candidate cut points and uses a VLM for a second assessment to detect subtle edits. Clarity filtering also goes beyond nominal resolution. Bitrate, encoding, texture, edges, and compression artifacts inform selection, so heavily compressed 1080p footage is not automatically treated as a source of fine detail. (§2.1, PDF pp.4 to 5.)
+
+Motion data presents another tradeoff. Dance videos offer varied body movement, but cameras often track, zoom, or orbit. Rejecting all of them sacrifices motion diversity; retaining them unchanged can interfere with learning stable backgrounds. S2 retains smooth camera motion that can be approximately corrected. It masks foreground subjects, estimates geometric transformations from background features, stabilizes the background, then crops and filters again. Large, complex camera movements remain excluded.
+
+Captions change too. Instead of separate fields for subjects, environments, and camera motion, they describe actions and outcomes chronologically. Chunk captions follow event boundaries, helping distinguish reaching for an object from holding it afterward. Three concrete parts of the supervision change: whether the action is complete, whether the background is stable, and whether conditions express temporal order. Stronger action following cannot be attributed solely to a distillation method.
+
+## 5. The agent helps maintain “keep holding the cup”
+
+A new prompt does not automatically tell a generative model which old states must persist. S2 places a VLM agent around the generator. It interprets user text, transcribed speech, the initial image, and new references, writes prompts for the Avatar, then reads generated frames to decide subsequent prompts. (§2.4, PDF pp.8 to 9.)
+
+<Figure src="/images/posts/vidu-s2-realtime/agent-loop.png" alt="The report's VLM agent pipeline: user text, audio, and images enter the agent; prompts go to Vidu S2-Avatar; generated frames return as feedback." caption="Source: main report, Figure 3, PDF p.8. Faithfully cropped without modification." />
+
+For “pick up a cup, then smile,” prompts separately describe identity, appearance, expression, gaze, pose, actions, and objects that should remain held. After the pickup finishes, subsequent prompts retain “continue holding the cup” and update the expression. Otherwise, the cup might disappear during the smile, or the character might repeat the pickup.
+
+The agent inspects frames in temporal order and judges whether an action is complete, partial, inconsistent with the request, or inconclusive. An accepted completion judgment can shift the prompt from performing the action to maintaining the resulting pose. Incomplete actions lead to revised instructions; uncertainty does not confirm success. The report mentions confidence checks and agreement across observations when necessary, without disclosing a complete reproducible threshold configuration.
+
+References can change during the stream as well. The agent first determines whether an image represents a handheld object, clothing, or a background, then incorporates the change into later prompts. The report illustrates generating or replacing a blue cup, moving into a new scene, and removing and replacing a hat.
+
+<Figure src="/images/posts/vidu-s2-realtime/reference-control.png" alt="Original report examples of cup generation and replacement, scene changes, and removing and replacing a hat." caption="Source: main report, Figure 4, PDF p.9. Faithfully cropped without modification. Static frames demonstrate appearance changes, not interaction latency." />
+
+Two kinds of state coexist here. Video latents and KV caches retain numerical features for later generation. Subsequent agent prompts retain explicit semantic constraints such as “the cup has been picked up” or “the hat is being worn.” Continuous interaction depends on both. Attributing the whole result to the backbone's long-term memory would omit prompt maintenance and visual feedback.
+
+## 6. Live editing begins by aligning source and target frames
+
+S2-Editing receives a source video that keeps advancing. If a person raises a hand while the task changes their clothing, the output should still raise the hand at the corresponding time. The reference supplies desired appearance; the source supplies motion, layout, and timing.
+
+The report encodes the source video and optional reference as conditioning tokens, feeds them into the DiT alongside noisy target tokens, and uses condition-specific RoPE encodings for position. It restricts attention between source and target: **each target frame interacts only with its source frame at the same time, while every target frame can access the reference image.** Temporal modeling within the target video is learned first with bidirectional training, then adapted to streaming through causal masks, hybrid forcing, and SRF. (§3.2, PDF pp.10 to 11.)
+
+<TechGraph src="/images/posts/vidu-s2-realtime/aligned-editing.svg" title="SOURCE MOTION IS READ AT THE SAME TIME" alt="Source frames s1, s2, and s3 correspond to target frames y1, y2, and y3. Cross-time source mixing is restricted. A reference provides appearance, while target history remains causal." caption="Author-created diagram of frame-aligned source access and the distinct roles of references and target history, based on §3.2 and the Introduction." />
+
+Unrestricted access to earlier and later source frames could mix poses from different times. Frame alignment reduces that ambiguity, making the contemporaneous source frame an anchor for current motion. This is the design rationale, not a guarantee against every occlusion or fast-motion failure.
+
+Caches have separate roles too. The report says source frames are consumed alongside their corresponding targets and are not retained in the cache. The target stream still needs causal history. “Source video does not accumulate in the cache” does not mean “video editing needs no cache.” The reference remains accessible, maintaining the new appearance condition as motion advances.
+
+This conditioning structure needs paired data. From 800,000 filtered videos, the team samples four disjoint subsets of 200,000 for style transfer, subject replacement, background replacement, and virtual try-on. For style transfer, it estimates a surface-normal video from the original, trains reconstruction using normals and a reference image, then substitutes a stylized reference to synthesize a paired target. This aims to separate motion structure from appearance. Filtering and comparative selection across model candidates follow. (§3.1, PDF pp.9 to 10.)
+
+One detail concerns editing-prompt annotation: the captioning VLM does not read the source video. It describes the editing objective, relevant reference attributes, and preservation constraints. Training therefore cannot rely on text that has already inspected the entire source video and leaks frames unavailable during live inference.
+
+## 7. What exactly does ranking first measure?
+
+The public benchmarks in the Vidu S2 report and the subsequently released StreamEval need separate readings. Their tasks, comparison systems, and metrics differ.
+
+### What the main report supports
+
+In Table 1's StreamAV-Bench comparison, S2-Avatar has the best value in all nine reported metrics, covering visual and audio quality, synchronization, and subject/background consistency. The report explicitly limits the table to the available Gemini-MLLM subset. The original [StreamAV-Bench](https://liukqchoco.github.io/StreamAVBench/) has 32 fine-grained dimensions. Nine best columns do not establish first place on every dimension of the full benchmark.
+
+Editing results come from Sparkle-Bench, OpenVE, RefVIE, and ViViD. Sparkle-Bench Overall is 3.74, versus 3.67 for Decart-Lucy2.5 in the comparison table. On unpaired virtual try-on, lower VFID I is better: S2 scores 9.9515, versus 19.5131 for CatV2TON. These values support leads on those particular benchmarks. Differences across unrelated metrics cannot be added, and halving a distributional distance does not mean doubling user experience. (Tables 2 to 4, PDF pp.15 to 16.)
+
+Duration-stratified human ratings provide another view. The horizontal axis below covers 10 to 90 seconds; the vertical axis shows mean ratings from 1 to 5. The useful question is whether quality holds as duration increases, not just which model wins on the shortest clip.
+
+<Figure src="/images/posts/vidu-s2-realtime/duration-ratings.png" alt="Figure 5 compares consistency, video quality, motion quality, emotional expression, and overall quality from 10 to 90 seconds. Vidu S2-Avatar maintains relatively high ratings." caption="Source: main report, Figure 5, PDF p.16. Faithfully cropped without modification. Missing tail points indicate unavailable ratings." />
+
+[View the full-size curves](/images/posts/vidu-s2-realtime/duration-ratings.png)
+
+The authors' ratings show S2 maintaining relatively high scores, but finite-duration curves do not prove that drift never occurs over arbitrarily long streams. They do not isolate SRF's contribution either. Internal paired evaluations also report overall-quality preference rates of 85.7% against Runway and 100% against PixVerse and HeyGen. Interpreting such high rates still requires effective comparison counts and uncertainty, not percentages alone.
+
+### The Flow in StreamEval is MemFlow
+
+StreamEval v1 covers five tasks with 300 scripted cases, 60 per task, lasting 15 to 300 seconds, with three repetitions per model and case. It tests whether systems execute incrementally arriving requests while preserving unaffected state. The following are the highest Overall scores within each task in that version, **not a cross-task ranking**.
+
+| Task | Leader in this version | Overall |
+| --- | --- | ---: |
+| Digital-human dialogue | Vidu S2 Avatar | 93.98 |
+| Avatar performance | Vidu S2 Avatar | 81.71 |
+| World generation | MemFlow | 33.36 |
+| Instruction video editing | Vidu S2 Editing | 45.43 |
+| Reference video editing | Vidu S2 Editing | 39.02 |
+
+Source: [StreamEval §3.3, Tables 2 to 6](https://arxiv.org/html/2610.28402v1#S3.SS3). Avatar tasks add 5 points for custom-avatar support: dialogue's 93.98 is 88.98 in mean content metrics plus 5, and performance's 81.71 is 76.71 plus 5. The other tasks have no customization bonus. This article uses the paper snapshot; a check of the [StreamEval website](https://streameval.ai/) on October 23, 2026 found matching rankings and scores across all five tasks.
+
+Individual tasks behind the totals provide a sharper test of interaction.
+
+S2 leads avatar-performance Following at **36.90**, defined as the proportion of control events executing requested gaze, expression, pose, or gestures. It also leads reference-editing Edit Success, but at only **15.00**. That metric requires scope, timing, persistence, protected content, and other conditions to hold together. Leading the comparison and failing many requests can both be true.
+
+Other models lead individual dimensions. LiveTalk has higher performance Quality, Tavus has higher dialogue A-V Sync, and JoyAI-Video-Edit has higher instruction-editing Preservation. Overall combines metrics; it cannot replace criteria chosen for a particular use case.
+
+<Callout type="note" title="Stable video may still miss the request">
+A character can retain its face and keep speaking while failing to raise the specified hand on time. An edited video can preserve source motion yet fail to adopt the reference clothing. Stability, visual quality, and execution need separate tests. StreamEval's failure proportions apply to its scripts and scoring conditions, not universally to commercial use cases.
+</Callout>
+
+This subsequent evaluation should not be described as wholly independent verification either. StreamEval's contribution list includes authors of the Vidu S2 report. It provides another set of test questions and scoring rules, which still need to be assessed alongside inspectable evidence and subsequent independent measurements.
+
+## 8. Spatial video reaches stereo, not a freely navigable world
+
+The report also converts generated or edited monocular video into left- and right-eye views. It estimates per-frame depth, converts depth to horizontal disparity, treats the monocular frame as a center view, and warps toward both sides. Lightweight processing addresses disocclusion holes and temporal fluctuations in depth. For existing stereo video, the views are concatenated horizontally, edited together, and split again. (§4, PDF pp.11 to 12.)
+
+<Figure src="/images/posts/vidu-s2-realtime/spatial-video.png" alt="Vidu S2 spatial-video examples showing paired left- and right-eye views from Avatar and Editing." caption="Source: main report, Figure 13, PDF p.21. Faithfully cropped without modification." />
+
+Stereo disparity provides depth perception, but synthesizing two views from a center image does not construct a complete 3D environment that users can freely navigate. Generating previously unseen regions after a head turn and keeping objects consistent across viewpoints require additional mechanisms. The report itself leaves panoramic spatial video with head-turn exploration to future work and notes the higher resolution and end-to-end latency requirements of headsets.
+
+Returning to the cup, Vidu S2 assigns concrete responsibilities: SRF trains on self-generated history, refinement and inference optimization sustain delivery, the agent explicitly maintains action outcomes, and frame alignment anchors edited motion to its source. The next checks are just as concrete: how soon a new instruction becomes visible, whether the action finishes, and how long the cup remains held afterward. Smoothly playing video alone cannot answer those questions.
+
+## References
+
+1. Zhang et al. [Vidu S2: Real-Time Interactive, Editable, and Spatial Video Generation](https://arxiv.org/abs/2609.11638v1), 2026. Main report; page numbers refer to the locally saved 25-page PDF.
+2. [Official Vidu S project](https://github.com/shengshu-ai/Vidu-S). Used to verify the series and published capability descriptions. Training and deployment were not independently reproduced here.
+3. StreamEval Team. [StreamEval: Evaluating Interactive Streaming Video Generation Models](https://arxiv.org/abs/2610.28402v1), 2026. Rankings are fixed to the October 20 v1 snapshot.
+4. Liu et al. [StreamAV-Bench project and evaluation description](https://liukqchoco.github.io/StreamAVBench/), 2026. Distinguishes the original benchmark from the metric subset in the S2 report.
+5. Huang et al. [Self Forcing: Bridging the Train-Test Gap in Autoregressive Video Diffusion](https://self-forcing.github.io/), 2025. Background on training with self-generated history.
+6. Chen et al. [Diffusion Forcing: Next-token Prediction Meets Full-Sequence Diffusion](https://arxiv.org/abs/2407.01392), 2024. Background on independent noise levels and causal generation.

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="660" viewBox="0 0 680 660" role="img" aria-labelledby="title desc">
+<title id="title">Causal streaming generation</title><desc id="desc">Current chunk reads references, its current condition and valid historical states. Future inputs are unavailable; emitted frames are committed.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5a5a5a"/></marker><marker id="grad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#287361"/></marker></defs>
+<rect width="680" height="660" rx="16" fill="#f8f6f3"/>
+<style>text { font-family: Arial, Helvetica, sans-serif; fill: #1a1a1a; } .secondary { fill: #5a5a5a; }</style>
+<text x="340" y="48" font-size="27" font-weight="700" text-anchor="middle" class="">GENERATE THE NEXT CHUNK</text>
+<g id="conditions" data-graph-role="node"><rect x="90" y="90" width="500" height="100" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2"/>
+<text x="340.0" y="126" font-size="25" font-weight="600" text-anchor="middle" class="">Reference r + current condition c(i)</text>
+<text x="340.0" y="157" font-size="21" font-weight="400" text-anchor="middle" class="secondary">No future user instruction is available</text>
+</g>
+<g id="history" data-graph-role="node"><rect x="30" y="280" width="170" height="145" rx="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2"/>
+<text x="115.0" y="316" font-size="25" font-weight="600" text-anchor="middle" class="">History</text>
+<text x="115.0" y="347" font-size="21" font-weight="400" text-anchor="middle" class="secondary">sink + window</text>
+<text x="115.0" y="376" font-size="21" font-weight="400" text-anchor="middle" class="secondary">valid past states</text>
+</g>
+<g id="current" data-graph-role="node"><rect x="255" y="280" width="170" height="145" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2"/>
+<text x="340.0" y="316" font-size="25" font-weight="600" text-anchor="middle" class="">Chunk i</text>
+<text x="340.0" y="347" font-size="21" font-weight="400" text-anchor="middle" class="secondary">noisy A/V latent</text>
+<text x="340.0" y="376" font-size="21" font-weight="400" text-anchor="middle" class="secondary">causal denoising</text>
+</g>
+<g id="future" data-graph-role="node"><rect x="480" y="280" width="170" height="145" rx="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2"/>
+<text x="565.0" y="316" font-size="25" font-weight="600" text-anchor="middle" class="">Future</text>
+<text x="565.0" y="347" font-size="21" font-weight="400" text-anchor="middle" class="secondary">not generated</text>
+<text x="565.0" y="376" font-size="21" font-weight="400" text-anchor="middle" class="secondary">not visible</text>
+</g>
+<polyline id="condition-current" points="340,190 340,280" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline id="history-current" points="200,352 255,352" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<g id="emit" data-graph-role="node"><rect x="110" y="515" width="460" height="100" rx="12" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="2"/>
+<text x="340.0" y="551" font-size="25" font-weight="600" text-anchor="middle" class="">Emit audio + video</text>
+<text x="340.0" y="582" font-size="21" font-weight="400" text-anchor="middle" class="secondary">Already played frames stay committed</text>
+</g>
+<polyline id="current-emit" points="340,425 340,515" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+</svg>

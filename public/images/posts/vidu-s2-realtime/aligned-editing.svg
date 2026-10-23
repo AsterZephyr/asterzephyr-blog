@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="790" viewBox="0 0 680 790" role="img" aria-labelledby="title desc">
+<title id="title">Frame-aligned video editing</title><desc id="desc">Each target frame reads its matching source frame. References provide appearance to all targets. The causal target stream retains history; consumed source frames do not accumulate in its cache.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5a5a5a"/></marker><marker id="grad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#287361"/></marker></defs>
+<rect width="680" height="790" rx="16" fill="#f8f6f3"/>
+<style>text { font-family: Arial, Helvetica, sans-serif; fill: #1a1a1a; } .secondary { fill: #5a5a5a; }</style>
+<text x="340" y="48" font-size="28" font-weight="700" text-anchor="middle" class="">FRAME-ALIGNED EDITING</text>
+<text x="40" y="106" font-size="23" font-weight="600" text-anchor="start" class="">SOURCE VIDEO</text>
+<g id="source-1" data-graph-role="node"><rect x="40" y="145" width="160" height="100" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2"/>
+<text x="120.0" y="181" font-size="25" font-weight="600" text-anchor="middle" class="">Source 1</text>
+<text x="120.0" y="212" font-size="21" font-weight="400" text-anchor="middle" class="secondary">time 1</text>
+</g>
+<g id="source-2" data-graph-role="node"><rect x="260" y="145" width="160" height="100" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2"/>
+<text x="340.0" y="181" font-size="25" font-weight="600" text-anchor="middle" class="">Source 2</text>
+<text x="340.0" y="212" font-size="21" font-weight="400" text-anchor="middle" class="secondary">time 2</text>
+</g>
+<g id="source-3" data-graph-role="node"><rect x="480" y="145" width="160" height="100" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2"/>
+<text x="560.0" y="181" font-size="25" font-weight="600" text-anchor="middle" class="">Source 3</text>
+<text x="560.0" y="212" font-size="21" font-weight="400" text-anchor="middle" class="secondary">time 3</text>
+</g>
+<g id="target-1" data-graph-role="node"><rect x="40" y="350" width="160" height="100" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2"/>
+<text x="120.0" y="386" font-size="25" font-weight="600" text-anchor="middle" class="">Target 1</text>
+<text x="120.0" y="417" font-size="21" font-weight="400" text-anchor="middle" class="secondary">edited frame</text>
+</g>
+<polyline id="aligned-1" points="120,245 120,350" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<g id="target-2" data-graph-role="node"><rect x="260" y="350" width="160" height="100" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2"/>
+<text x="340.0" y="386" font-size="25" font-weight="600" text-anchor="middle" class="">Target 2</text>
+<text x="340.0" y="417" font-size="21" font-weight="400" text-anchor="middle" class="secondary">edited frame</text>
+</g>
+<polyline id="aligned-2" points="340,245 340,350" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<g id="target-3" data-graph-role="node"><rect x="480" y="350" width="160" height="100" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2"/>
+<text x="560.0" y="386" font-size="25" font-weight="600" text-anchor="middle" class="">Target 3</text>
+<text x="560.0" y="417" font-size="21" font-weight="400" text-anchor="middle" class="secondary">edited frame</text>
+</g>
+<polyline id="aligned-3" points="560,245 560,350" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline id="target-history-12" points="200,400 260,400" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline id="target-history-23" points="420,400 480,400" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="340" y="502" font-size="23" font-weight="400" text-anchor="middle" class="">Causal target history flows forward</text>
+<g id="reference" data-graph-role="node"><rect x="40" y="630" width="600" height="100" rx="12" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="2"/>
+<text x="340.0" y="666" font-size="25" font-weight="600" text-anchor="middle" class="">Reference image: desired appearance</text>
+<text x="340.0" y="697" font-size="21" font-weight="400" text-anchor="middle" class="secondary">Visible to every target frame</text>
+</g>
+<path d="M 340 630 V 570 H 120 V 450 M 340 570 V 450 M 340 570 H 560 V 450" fill="none" stroke="#5a5a5a" stroke-width="2.5"/>
+<path d="M 114 460 L 120 450 L 126 460" fill="none" stroke="#5a5a5a" stroke-width="2.5"/>
+<path d="M 334 460 L 340 450 L 346 460" fill="none" stroke="#5a5a5a" stroke-width="2.5"/>
+<path d="M 554 460 L 560 450 L 566 460" fill="none" stroke="#5a5a5a" stroke-width="2.5"/>
+<text x="340" y="768" font-size="21" font-weight="400" text-anchor="middle" class="">Consumed source frames do not accumulate in cache</text>
+</svg>

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="890" viewBox="0 0 680 890" role="img" aria-labelledby="title desc">
+<title id="title">Self-Replay Forcing training</title><desc id="desc">A detached autoregressive rollout supplies states. Sampled chunks are re-noised and replayed in a differentiable causal pass. Gradients cross replay blocks only; external rollout history remains fixed.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5a5a5a"/></marker><marker id="grad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#287361"/></marker></defs>
+<rect width="680" height="890" rx="16" fill="#f8f6f3"/>
+<style>text { font-family: Arial, Helvetica, sans-serif; fill: #1a1a1a; } .secondary { fill: #5a5a5a; }</style>
+<text x="340" y="48" font-size="28" font-weight="700" text-anchor="middle" class="">SELF-REPLAY FORCING</text>
+<text x="40" y="108" font-size="24" font-weight="600" text-anchor="start" class="">1  AUTOREGRESSIVE ROLLOUT</text>
+<g id="rollout-A" data-graph-role="node"><rect x="40" y="145" width="160" height="100" rx="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2"/>
+<text x="120.0" y="181" font-size="25" font-weight="600" text-anchor="middle" class="">Chunk A</text>
+<text x="120.0" y="212" font-size="21" font-weight="400" text-anchor="middle" class="secondary">self-generated</text>
+</g>
+<g id="rollout-B" data-graph-role="node"><rect x="260" y="145" width="160" height="100" rx="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2"/>
+<text x="340.0" y="181" font-size="25" font-weight="600" text-anchor="middle" class="">Chunk B</text>
+<text x="340.0" y="212" font-size="21" font-weight="400" text-anchor="middle" class="secondary">self-generated</text>
+</g>
+<g id="rollout-C" data-graph-role="node"><rect x="480" y="145" width="160" height="100" rx="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2"/>
+<text x="560.0" y="181" font-size="25" font-weight="600" text-anchor="middle" class="">Chunk C</text>
+<text x="560.0" y="212" font-size="21" font-weight="400" text-anchor="middle" class="secondary">self-generated</text>
+</g>
+<polyline id="rollout-ab" points="200,195 260,195" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline id="rollout-bc" points="420,195 480,195" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="340" y="288" font-size="23" font-weight="600" text-anchor="middle" class="">Generated blocks + KV cache: DETACHED</text>
+<g id="renoise" data-graph-role="node"><rect x="40" y="360" width="600" height="90" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2"/>
+<text x="340.0" y="396" font-size="25" font-weight="600" text-anchor="middle" class="">Select trajectory + independently re-noise</text>
+<text x="340.0" y="427" font-size="21" font-weight="400" text-anchor="middle" class="secondary">No backpropagation through the original rollout</text>
+</g>
+<polyline id="trajectory" points="340,302 340,360" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="40" y="513" font-size="24" font-weight="600" text-anchor="start" class="">2  DIFFERENTIABLE CAUSAL REPLAY</text>
+<g id="replay-A" data-graph-role="node"><rect x="40" y="550" width="160" height="100" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2"/>
+<text x="120.0" y="586" font-size="25" font-weight="600" text-anchor="middle" class="">Replay A</text>
+<text x="120.0" y="617" font-size="21" font-weight="400" text-anchor="middle" class="secondary">features</text>
+</g>
+<g id="replay-B" data-graph-role="node"><rect x="260" y="550" width="160" height="100" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2"/>
+<text x="340.0" y="586" font-size="25" font-weight="600" text-anchor="middle" class="">Replay B</text>
+<text x="340.0" y="617" font-size="21" font-weight="400" text-anchor="middle" class="secondary">features</text>
+</g>
+<g id="replay-C" data-graph-role="node"><rect x="480" y="550" width="160" height="100" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2"/>
+<text x="560.0" y="586" font-size="25" font-weight="600" text-anchor="middle" class="">Replay C</text>
+<text x="560.0" y="617" font-size="21" font-weight="400" text-anchor="middle" class="secondary">features</text>
+</g>
+<polyline id="replay-ab" points="200,595 260,595" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline id="replay-bc" points="420,595 480,595" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline id="renoise-replay" points="340,450 340,550" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline id="grad-cb" points="480,625 420,625" fill="none" stroke="#287361" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#grad)"/>
+<polyline id="grad-ba" points="260,625 200,625" fill="none" stroke="#287361" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#grad)"/>
+<text x="340" y="714" font-size="23" font-weight="600" text-anchor="middle" class="">DMD + perceptual loss on replayed outputs</text>
+<text x="340" y="760" font-size="22" font-weight="400" text-anchor="middle" class="">External history from rollout stays fixed</text>
+<polyline id="legend-flow" points="50,844 97,844" fill="none" stroke="#5a5a5a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="110" y="852" font-size="20" font-weight="400" text-anchor="start" class="">forward</text>
+<polyline id="legend-grad" points="350,844 397,844" fill="none" stroke="#287361" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#grad)"/>
+<text x="410" y="852" font-size="20" font-weight="400" text-anchor="start" class="">replay gradient</text>
+</svg>
