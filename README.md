@@ -1,6 +1,6 @@
 # AsterZephyr Blog
 
-Personal homepage and blog built with [Astro](https://astro.build), [Tailwind CSS](https://tailwindcss.com), and [MDX](https://mdxjs.com/). Designed with an amber-toned, academic aesthetic inspired by classical art. Content managed via Obsidian and deployed on Vercel.
+Personal homepage and blog built with [Astro](https://astro.build), [Tailwind CSS](https://tailwindcss.com), and [MDX](https://mdxjs.com/). A cinematic aerial homepage leads into a paper-toned reading layout. Content managed via Obsidian and deployed on Vercel.
 
 **Live site**: [asterzephyr.xyz](https://www.asterzephyr.xyz)
 
@@ -147,13 +147,14 @@ Classify by the article's main question: an agent runtime overview belongs under
 
 ## Replacing Placeholder Images
 
-The site ships with classical oil paintings as placeholders. Replace them with your own:
+The homepage uses a beach video; the project covers retain classical paintings. To replace these media:
 
 ### Hero Background
-- **File**: `public/images/hero-bg.jpg`
-- **Recommended size**: 1920x1200px or wider, landscape orientation
-- **Current**: Thomas Cole - "The Consummation of Empire" (1836), public domain
-- **Tips**: A dark or richly-colored image works best since it gets a gradient overlay. Landscapes, cityscapes, or dramatic scenes work well.
+- **Manifest**: `src/data/hero-media.json`
+- **Current**: macOS "Goa Beaches", a silent 3840 × 2160 H.264 loop used on all screen sizes
+- **Files**: content-fingerprinted MP4 and matching poster under `public/media/goa/4k/`
+- **Caching**: one-year immutable media caching configured in `vercel.json`; generate new fingerprints whenever bytes change
+- **Details**: see [hero media provenance and playback](docs/hero-video.md). The Apple-derived footage retains its original copyright; it is not public domain or included in the code's MIT license.
 
 ### Avatar / Profile Photo
 - **File**: `public/images/avatar.jpg`
@@ -200,7 +201,7 @@ Custom domain: Add your domain in Vercel project settings > Domains.
 
 All placeholder images are **public domain** paintings sourced from [Wikimedia Commons](https://commons.wikimedia.org/):
 
-- **Hero**: Thomas Cole, *The Consummation of Empire* (1836) - [source](https://commons.wikimedia.org/wiki/File:Cole_Thomas_The_Consummation_The_Course_of_the_Empire_1836.jpg)
+- **Former hero image, retained locally**: Thomas Cole, *The Consummation of Empire* (1836) - [source](https://commons.wikimedia.org/wiki/File:Cole_Thomas_The_Consummation_The_Course_of_the_Empire_1836.jpg)
 - **Project 1**: Karl Bryullov, *The Last Day of Pompeii* (1833) - [source](https://commons.wikimedia.org/wiki/File:Karl_Brullov_-_The_Last_Day_of_Pompeii_-_Google_Art_Project.jpg)
 - **Project 2**: Jean-Leon Gerome, *The Death of Caesar* (1867) - [source](https://commons.wikimedia.org/wiki/File:Gerome_Death_of_Caesar.jpg)
 - **Project 3**: Jacques-Louis David, *Oath of the Horatii* (1784) - [source](https://commons.wikimedia.org/wiki/File:%22Oath_of_the_Horatii%22_by_Jacques-Louis_David.jpg)
@@ -216,4 +217,4 @@ All placeholder images are **public domain** paintings sourced from [Wikimedia C
 
 ## License
 
-Content (blog posts, project descriptions) is copyright the author. Code and templates are MIT licensed.
+Content (blog posts, project descriptions) is copyright the author. Code and templates are MIT licensed. Third-party media, including the Apple-derived hero footage, retain their respective copyrights and are not relicensed by this repository.
