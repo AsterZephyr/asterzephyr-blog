@@ -1,11 +1,19 @@
 ---
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import PageLayout from '../layouts/PageLayout.astro';
+
+const version = createHash('sha256')
+  .update(readFileSync(resolve(process.cwd(), 'public/files/resume.pdf')))
+  .digest('hex')
+  .slice(0, 12);
 ---
 <PageLayout title="Resume" description="Resume of AsterZephyr">
   <div class="pt-20 h-screen flex flex-col">
     <div class="flex-1 w-full">
       <iframe
-        src="/files/resume.pdf"
+        src={`/files/resume.pdf?v=${version}`}
         class="w-full h-full border-0"
         title="Resume"
       ></iframe>
