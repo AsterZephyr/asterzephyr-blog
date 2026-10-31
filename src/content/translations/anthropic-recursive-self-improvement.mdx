@@ -6,7 +6,7 @@ category: "技术分享"
 summary: "AI is getting faster at writing code and running experiments. Why does research still depend on people? A reading of Anthropic's discussion of recursive self-improvement through execution, judgment, verification, and coordination."
 draft: false
 sourceFile: "anthropic-recursive-self-improvement.mdx"
-sourceHash: "d91d5913035b6020b0fe415c4c7268cd8dd377bb92a6cbed6166693e5a6997af"
+sourceHash: "780def9b412701f52c27f06a9ccf96a754e6f437c6800955cff1afe6f7784ef7"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -105,12 +105,14 @@ Weak-to-strong supervision asks whether supervision from a weaker system can eli
 
 A hypothetical accuracy example helps explain recovered performance gap. Suppose a weak teacher scores 60%, and a strong student trained with ground truth can reach 90%. A new method brings the student to 84%. The recovered gap is:
 
-```text
-PGR = (new method score - weak teacher score)
-      / (ground-truth-supervised student score - weak teacher score)
-    = (84 - 60) / (90 - 60)
-    = 0.8
+```math
+\begin{aligned}
+\mathrm{PGR}&=\frac{S_{\mathrm{new}}-S_{\mathrm{weak}}}{S_{\mathrm{GT\ student}}-S_{\mathrm{weak}}}\\
+&=\frac{84-60}{90-60}=0.8
+\end{aligned}
 ```
+
+$$S_{\mathrm{new}}$$ is the new method score, $$S_{\mathrm{weak}}$$ the weak teacher score, and $$S_{\mathrm{GT\ student}}$$ the ground-truth-supervised student score.
 
 That recovers 80% of the comparable gap. It does not mean accuracy is 80%, or that 80% of alignment has been solved. The denominator depends on the selected models, task, and baselines, so changing the environment changes what the value means.
 
@@ -134,8 +136,8 @@ Once there are many candidates, turning them into credible results becomes scarc
 
 A simplified calculation using Amdahl's law is useful here. Normalize the original duration of a work cycle to 1. Let a fraction `p` remain unchanged while the rest speeds up by a factor of `s`. The overall speedup is:
 
-```text
-S = 1 / (p + (1 - p) / s)
+```math
+S=\frac{1}{p+\frac{1-p}{s}}
 ```
 
 Suppose an experimental cycle used to take 10 hours: 8 for implementation and execution, and 2 for review, interpretation, and integration. Speeding up the first part tenfold gives a new duration of `0.8 + 2 = 2.8` hours, an overall gain of roughly 3.57 times. Even if the first part became instantaneous, the remaining 2 hours would cap the gain at 5 times. This is a teaching example with fixed work and additive serial durations, not Anthropic measurement data.

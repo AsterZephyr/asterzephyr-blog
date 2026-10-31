@@ -5,7 +5,7 @@ tags: [系统与工程]
 summary: "Given a GPU with 16 GB of VRAM, how large a model can you deploy? From VRAM calculation, storage hierarchy, and the Roofline Model to quantization strategies — build a complete cognitive framework for GPU inference deployment organized by Bloom's taxonomy."
 draft: false
 sourceFile: "gpu推理部署学习指南-从显存计算到性能优化.mdx"
-sourceHash: "a54a938bdea4727373357d01cfaa4ddaa1d5533f62248a2cfea0b71026a7e504"
+sourceHash: "d816a5f633a36c43c8e3779645a105a0bf99e0d5dd21ffbc2cc8b78617c1e062"
 ---
 
 import TechGraph from '../../components/blog/TechGraph.astro'
@@ -29,8 +29,11 @@ import Callout from '../../components/blog/Callout.astro'
 
 VRAM usage during model inference consists of three parts:
 
-```
-VRAM Usage = Parameters (B) × Bytes per Parameter + KV Cache + Activations
+```math
+\begin{aligned}
+\text{VRAM usage}={}&\text{Parameters(B)}\times\text{Bytes/param}\\
+&+\text{KV Cache}+\text{Activations}
+\end{aligned}
 ```
 
 Where:
@@ -110,8 +113,8 @@ A similar idea is vLLM's **PagedAttention**: managing KV Cache in "pages" to avo
 
 ### Core Concept: Arithmetic Intensity
 
-```
-Arithmetic Intensity = Compute (FLOPS) / Data Movement (Bytes)
+```math
+\text{Arithmetic Intensity}=\frac{\text{Compute(FLOPS)}}{\text{Data moved(Bytes)}}
 ```
 
 This ratio measures: for every byte of data moved, how many compute operations can be performed.

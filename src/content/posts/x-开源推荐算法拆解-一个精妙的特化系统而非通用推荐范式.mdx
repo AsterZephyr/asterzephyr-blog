@@ -83,10 +83,17 @@ X 有 5 亿日活用户，每天产生数十亿次互动。在这个数据规模
 
 Phoenix 模型同时预测 19 种用户行为的概率，最终分数通过加权求和得到：
 
-```
-Final Score = w_like * P(like) + w_reply * P(reply) + w_repost * P(repost)
-            + w_share * P(share) + w_dwell * P(dwell) + ...
-            - w_block * P(block) - w_mute * P(mute) - w_report * P(report)
+```math
+\begin{aligned}
+\mathrm{Final\ Score}={}&w_{\mathrm{like}}P(\mathrm{like})\\
+&+w_{\mathrm{reply}}P(\mathrm{reply})\\
+&+w_{\mathrm{repost}}P(\mathrm{repost})\\
+&+w_{\mathrm{share}}P(\mathrm{share})\\
+&+w_{\mathrm{dwell}}P(\mathrm{dwell})+\cdots\\
+&-w_{\mathrm{block}}P(\mathrm{block})\\
+&-w_{\mathrm{mute}}P(\mathrm{mute})\\
+&-w_{\mathrm{report}}P(\mathrm{report})
+\end{aligned}
 ```
 
 多行为联合建模本身是好的实践——字节、快手、阿里都在做类似的事情。但 X 的权重设计暴露了一个有趣的问题：**这些权重是怎么定的？**

@@ -4,7 +4,7 @@ date: 2026-09-10
 tags: [技术报告解读, AI 与机器学习]
 category: "技术分享"
 sourceFile: "deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致.mdx"
-sourceHash: "767dd7c43f4972953ebff84457ab7dad128e0600e60e817e6cd727b928777a4b"
+sourceHash: "72c7671c746c84557c5f29dd84da72c3ab7b52dbadb95a1a36a2f3152e8be1a4"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -91,10 +91,14 @@ CED extends the cross-layer KV reuse and prefill early-exit ideas from [YoCo](ht
 
 Below is a simplified expression of where the decoder's global KV comes from; the actual storage is further governed by CSA2's cross-layer sharing rules—not every layer saves an independent copy:
 
+```math
+\begin{aligned}
+C_l&=H_{L/2}W_l^{\mathrm{KV}}\\
+Z_l&=H_{L/2}W_l^Z
+\end{aligned}
 ```
-C_l = H_{L/2} * W_l^{KV}    // Global KV projected from the encoder's last layer
-Z_l = H_{L/2} * W_l^{Z}     // Compression weights also projected from the encoder
-```
+
+Both global KV and compression weights are projected from the encoder's final-layer representation.
 
 This means:
 - **Prefill**: The encoder processes the input and generates the representations needed for the decoder's global KV; the decoder no longer fully processes the entire prompt, but still replays the tail window to initialize its own SWA.
@@ -383,8 +387,11 @@ V4.1-Flash is trained on 45T multimodal data with sequence lengths up to 1M toke
 
 **Balanced image sharding**: A single ultra-long image-dense sequence can exhaust a node's I/O and CPU resources. The solution is to load-balance each sequence's images across CP ranks with sharding, reading each image only once. The key decision condition is a simple inequality:
 
-```
-N × ρ / B_IO < N × C / B_GPU  ⟺  ρ < (B_IO / B_GPU) × C
+```math
+\begin{aligned}
+\frac{N\rho}{B_{\mathrm{IO}}}&<\frac{NC}{B_{\mathrm{GPU}}}\\
+\Longleftrightarrow\quad\rho&<\frac{B_{\mathrm{IO}}}{B_{\mathrm{GPU}}}C
+\end{aligned}
 ```
 
 where N is the number of tokens, ρ is the raw bytes per token, C is the compute per token, B_IO is filesystem throughput (bytes/s), and B_GPU in this formula represents GPU compute throughput (FLOPs/s), not memory bandwidth. Because N cancels out, the decision depends only on the ratio of per-token I/O volume to per-token compute. For vision-module configurations with large ρ (high resolution, large patches), storage throughput becomes the bottleneck; for production-scale models, the workload is typically compute-bound.
@@ -442,9 +449,11 @@ V4.1-Flash introduces a scalar effort level b (range 1–100) as an explicit con
 
 The core mechanism is an **exponential token penalty** tied to the effort level:
 
-```
-r_len = -min(C_max, k(b) * l / L_norm)
-k(b) = k_0 * exp(-(b - b_min) / tau)
+```math
+\begin{aligned}
+r_{\mathrm{len}}&=-\min\left(C_{\max},\frac{k(b)l}{L_{\mathrm{norm}}}\right)\\
+k(b)&=k_0\exp\left(-\frac{b-b_{\min}}{\tau}\right)
+\end{aligned}
 ```
 
 Higher effort means a smaller token penalty coefficient k(b) (exponential decay), so the penalty for the same length is smaller, allowing the model to choose longer reasoning chains. Conversely, low effort imposes heavy penalties on long outputs, forcing the model to be concise.

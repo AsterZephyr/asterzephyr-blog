@@ -64,13 +64,17 @@ KDA 采用另一条路径。每个 attention head 维护一张固定形状的矩
 
 把报告公式 1 改写成等价的计算顺序，更容易理解。`α` 是长度为 `d_k` 的保留门，每个分量位于 0 和 1 之间；`β` 是控制本次写入强度的标量。它们由当前输入生成。
 
-```text
-S_bar = Diag(α) · S_old       # 分别衰减 key 通道
-v_hat = S_barᵀ · k           # 旧状态对当前内容的预测
-error = v − v_hat            # 本次需要修正的差额
-S_new = S_bar + β · k · errorᵀ
-output = S_newᵀ · q
+```math
+\begin{aligned}
+\bar S&=\operatorname{Diag}(\alpha)S_{\mathrm{old}}\\
+\hat v&=\bar S^\top k\\
+\mathrm{error}&=v-\hat v\\
+S_{\mathrm{new}}&=\bar S+\beta k\,\mathrm{error}^\top\\
+\mathrm{output}&=S_{\mathrm{new}}^\top q
+\end{aligned}
 ```
+
+前两行分别按 key 通道衰减旧状态，并读出旧状态的预测；随后计算本次需要修正的差额。
 
 这就是 delta rule 在这里的含义。直接把 `k vᵀ` 不断加进状态，可能把已经存在的信息重复累加；减去预测值后，更新围绕“旧状态还差多少”展开。`α` 允许不同通道以不同速度遗忘，`β` 决定相信这次新观察多少。
 
@@ -371,9 +375,11 @@ Agent Behavior Bench 则提醒我们，轨迹更长不必然代表行为更成�
 
 K3 的 AttnRes 案例从 283.6ms 降至 114.4ms。把数字重新算一遍：
 
-```text
-延迟降幅 = (283.6 − 114.4) / 283.6 ≈ 59.7%
-速度倍数 = 283.6 / 114.4 ≈ 2.48 倍
+```math
+\begin{aligned}
+\text{延迟降幅}&=\frac{283.6-114.4}{283.6}\approx59.7\%\\
+\text{速度倍数}&=\frac{283.6}{114.4}\approx2.48
+\end{aligned}
 ```
 
 原图纵轴写 Speedup，标出 59.7%；对应正文延迟，准确的量纲是延迟降低约 59.7%。它不是“速度变成 1.597 倍”，更不是 K3 模型自身推理快了 59.7%。优化对象是一个 kernel 的测量结果。

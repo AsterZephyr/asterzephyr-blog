@@ -345,9 +345,12 @@ TP=2 on 2x4090 (PCIe Gen4):
 
 Ring AllReduce 是 NCCL 最常用的集合通信算法。对于 N 个 GPU，每个 GPU 持有大小为 D 的数据：
 
-```
-通信量 = 2 * (N-1) / N * D
-延迟 = 2 * (N-1) * alpha + 2 * (N-1) / N * D / bandwidth
+```math
+\begin{aligned}
+\text{通信量}&=\frac{2(N-1)}{N}D\\
+\text{延迟}&=2(N-1)\alpha\\
+&\quad+\frac{2(N-1)D}{N\,\mathrm{bandwidth}}
+\end{aligned}
 ```
 
 其中：

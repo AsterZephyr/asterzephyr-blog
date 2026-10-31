@@ -165,7 +165,18 @@ html[data-language='en'] [data-has-translation] [data-article-content][data-cont
 .prose :not(pre) > code {
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 0.85em;
+  overflow-wrap: anywhere;
 }
+
+.prose .katex { font-size: 1.05em; }
+.prose .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-block: 1.5em;
+  padding-block: 0.6em;
+}
+.prose .katex-display > .katex { text-align: left; }
 
 .prose { --tw-prose-body: var(--color-body); --tw-prose-headings: var(--color-heading); --tw-prose-bold: var(--color-heading); --tw-prose-counters: var(--color-muted); --tw-prose-bullets: var(--color-accent-glow); --tw-prose-hr: var(--color-border); --tw-prose-th-borders: var(--color-border); --tw-prose-td-borders: var(--color-border); line-height: 1.95; }
 .prose :where(h2, h3, h4) { line-height: 1.55; text-wrap: pretty; }

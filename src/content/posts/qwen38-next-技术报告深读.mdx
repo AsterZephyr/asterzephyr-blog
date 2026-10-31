@@ -45,12 +45,16 @@ token mixer 决定一个位置能拿到哪些前文信息。全注意力让每�
 
 GDN 的每个头维护一个状态矩阵 `S`，形状是 `d_k × d_v`，大小与已经读过多少 token 无关。第 t 个 token 到来时，先由输入算出 query `q_t`、key `k_t`（两者都做了 L2 归一化）和 value `v_t`，再按报告的 Eq. 1 至 4 更新：
 
-```text
-S̃_{t-1} = α_t · S_{t-1}              整体衰减，α_t ∈ (0, 1)
-e_t     = v_t − S̃_{t-1}ᵀ k_t         用 k_t 读出旧值，算出误差
-S_t     = S̃_{t-1} + β_t · k_t e_tᵀ    只把误差写回，β_t ∈ (0, 1)
-y_t     = S_tᵀ q_t                   用 q_t 读出这一步的输出
+```math
+\begin{aligned}
+\tilde S_{t-1}&=\alpha_t S_{t-1},\quad \alpha_t\in(0,1)\\
+e_t&=v_t-\tilde S_{t-1}^{\top}k_t\\
+S_t&=\tilde S_{t-1}+\beta_t k_t e_t^\top,\quad\beta_t\in(0,1)\\
+y_t&=S_t^\top q_t
+\end{aligned}
 ```
+
+四行依次表示整体衰减、用 key 读出旧值并计算误差、只写回误差，以及用 query 读出当前输出。
 
 `α_t` 和 `β_t` 都由当前输入算出：`α_t` 控制旧记忆整体保留多久，`β_t` 控制这一次改写多少。GDN 和普通线性注意力的区别在第二行，写入之前先用 `k_t` 查一下状态里已经记着什么，只写入预测误差。
 
@@ -83,12 +87,18 @@ y_t     = S_tᵀ q_t                   用 q_t 读出这一步的输出
 
 打分只针对已经完整出现的块：块 `b` 的最后一个 token `4b + 3` 不晚于 `i`，这个块才参与，分数是 4 个头上 ReLU 之后的内积之和。token 预算 `K = 2048`，每个 query 留下分数最高的 `2048 / 4 = 512` 个块，展开回原来的 token 下标；还没填满的那个块里已经出现的 0 到 3 个 token 总会加进来。核心注意力最后读的是这些原始 token 的 K/V，压缩后的块只用来打分。
 
-```text
-k̄_b  = RoPE(RMSNorm(mean(k_{4b}, …, k_{4b+3})), 位置 4b)
-I_ib = Σ_h ReLU(q_{i,h} · k̄_b)      只对完整块（4b + 3 ≤ i）计算
-B_i  = 分数最高的 512 个块            K = 2048，r = 4
-S_i  = B_i 展开成的原 token ∪ {4⌊(i+1)/4⌋, …, i}
+```math
+\begin{aligned}
+\bar k_b=\operatorname{RoPE}\bigl(&\operatorname{RMSNorm}(\\
+&\operatorname{mean}(k_{4b},\ldots,k_{4b+3})),4b\bigr)\\
+I_{ib}&=\sum_h\operatorname{ReLU}(q_{i,h}\cdot\bar k_b)\\
+B_i&=\operatorname{Top512}(I_{i,\cdot})\\
+S_i&=\operatorname{expand}(B_i)\\
+&\quad\cup\{4\lfloor(i+1)/4\rfloor,\ldots,i\}
+\end{aligned}
 ```
+
+RoPE 使用位置 $$4b$$；只对满足 $$4b+3\le i$$ 的完整块计算分数。$$B_i$$ 取分数最高的 512 个块；$$K=2048$$，$$r=4$$。展开这些块的原 token 后，再并入当前尚未完整的块。
 
 <TechGraph src="/images/posts/qwen38-flash-next/qsa-token-strip.svg" title="SCORE BLOCKS, READ TOKENS" alt="位置 0 到 11 的 token 条带，query 位于位置 9。位置 0 到 3 和 4 到 7 是两个完整块，各自压缩成一个块 key 参与打分；位置 8 和 9 是尚未填满的块里已经可见的尾部，不参与打分但总会被读取；位置 10 和 11 尚未生成。选出的块展开回原始 token，核心注意力读取位置 0 到 9 的原始 K/V。下方说明长上下文时约 n/4 个完整块里只保留 512 个，以及索引 key 用平均池化、第一阶段训练目标用最大池化。" caption="图解：位置 9 上的 query 怎样决定要读哪些 token（博主自绘，基于原报告 §2.1.2 Eq. 12 至 19；只画 12 个位置，属教学示意）。" />
 
@@ -160,14 +170,19 @@ Hyper-Connections（HC）把读写拆成三个算子：读算子 `H_mix` 决定�
 
 最后定下的 Gated Residual（GR）把表达能力几乎都花在了读上。它和团队在另一项工作中提出的 GatedNorm 是同一个形式，在 RMSNorm 之后接一个轻量的逐元素自门控（Eq. 29）。读的时候，4 条分支先各自做 RMSNorm，再拼起来经过一个秩为 `d/8` 的低秩瓶颈（`d` 是隐藏维度）和 sigmoid，给每条分支的每个通道各出一个门控值，门控后的 4 条分支取平均，作为子层输入。写的时候，每条分支只得到一个标量 `s_i = 2σ(·)`，取值在 0 到 2 之间，子层输出乘上它加回这条分支。注意力子层和 MLP 子层各有一个 GR 模块。
 
-```text
-R̂_i  = RMSNorm(R_i)                            i = 1, …, 4，每条分支各自归一化
-G    = σ(W_u · SiLU(W_d · [R̂_1; …; R̂_4] / 4))   4 × d 个门控值
-x    = (1/4) · Σ_i G_i ⊙ R̂_i                   子层输入
-y    = F(x)                                    F 是 GDN、QSA 或 MoE
-s    = 2σ(W_w · [R̂_1; …; R̂_4] / 4)              4 个标量
-R_i' = R_i + s_i · y                           写回未归一化的每条分支
+```math
+\begin{aligned}
+\hat R_i&=\operatorname{RMSNorm}(R_i),\quad i=1,\ldots,4\\
+G&=\sigma\Bigl(W_u\operatorname{SiLU}\bigl(\\
+&\qquad W_d[\hat R_1;\ldots;\hat R_4]/4\bigr)\Bigr)\\
+x&=\frac14\sum_i G_i\odot\hat R_i\\
+y&=F(x)\\
+s&=2\sigma\bigl(W_w[\hat R_1;\ldots;\hat R_4]/4\bigr)\\
+R_i'&=R_i+s_i y
+\end{aligned}
 ```
+
+每条分支各自归一化；$$G$$ 给出 $$4\times d$$ 个门控值，$$x$$ 是子层输入。$$F$$ 可以是 GDN、QSA 或 MoE；$$s$$ 给出 4 个标量，输出写回尚未归一化的各分支。
 
 <TechGraph src="/images/posts/qwen38-flash-next/gr-read-write.svg" title="RICH READ, SCALAR WRITE" alt="GR 的一次读写。四条残差分支各自做 RMSNorm，从全部分支算出 4 乘 d 个逐元素门控值，门控后的归一化分支取平均得到子层输入；子层 GDN、QSA 或 MoE 的输出乘以每条分支一个标量后加回未归一化的四条分支。恒等路径上的 4 乘 4 混合矩阵 H_res 被去掉，分支之间仍经由读、子层和写交换信息；残差分支以 FP8 存储，读和写各融合为一个 kernel。" caption="图解：GR 的一次读和一次写（博主自绘，基于原报告 §2.2 Eq. 30 至 34）。读按分支和通道逐元素加门控，写只有每条分支一个标量；没有显式的分支混合矩阵，交换信息要经过读、子层和写。" />
 

@@ -48,9 +48,13 @@ MAI-Base-1 的预训练数据包括公开可获取的数据和通过商业协议
 
 分数用的是 NLL（negative log-likelihood，负对数似然）：拿一段留出的文本让模型逐 token 预测，取它给真实下一个 token 的概率的负对数，再求平均，越低越好。报告的内部评测集有近 40 个，分成代码、STEM、数学、通用知识和多语言五类，来源包括供应商专门编写的题解、微软内部不在网上的代码和 PR、人机对话记录等，都和训练数据做过去重（§2.3，PDF 第 9 至 10 页）。每一项先用一个固定的内部参考模型做归一化，类内取平均，五类再按下面的权重合成一个目标分数：
 
-```text
-Target = 0.5 × Coding + 0.175 × STEM + 0.175 × Math
-       + 0.1 × General knowledge + 0.05 × Multilingual
+```math
+\begin{aligned}
+\mathrm{Target}={}&0.5\,\mathrm{Coding}\\
+&+0.175\,\mathrm{STEM}+0.175\,\mathrm{Math}\\
+&+0.1\,\mathrm{General\ knowledge}\\
+&+0.05\,\mathrm{Multilingual}
+\end{aligned}
 ```
 
 这组权重写明了团队的优先级：代码占一半，数学单独成为一类，和 STEM 同权。它是 MAI 自己的取舍，并不是一个通用的质量分（Eq. 3，PDF 第 10 页）。
@@ -79,9 +83,11 @@ Target = 0.5 × Coding + 0.175 × STEM + 0.175 × Math
 
 数据定下来以后，结构和训练配方也在阶梯上挑选，衡量指标叫效率增益（efficiency gain，EG）。先在基线阶梯上拟合一条扩展律：
 
-```text
-L = f(C) = A × C^(-α) + E
-EG = f⁻¹(L′) / C′
+```math
+\begin{aligned}
+L=f(C)&=AC^{-\alpha}+E\\
+\mathrm{EG}&=\frac{f^{-1}(L')}{C'}
+\end{aligned}
 ```
 
 C 是训练成本，可以按 FLOPs 计，也可以按在现有硬件上的训练时间计；L 是 Eq. 3 那样的聚合评测损失；A、α、E 是拟合系数，其中 E 是不可约损失。一个候选模型花了成本 C′、达到损失 L′，把 L′ 代回基线曲线，求出基线要达到同样的损失需要多少成本，也就是 `f⁻¹(L′)`，再除以 C′，就是 EG（Eq. 1 至 2，PDF 第 8 页）。EG = 1.3 表示基线要多花 30% 的成本才能追平候选；反过来看，候选只用了基线 1/1.3 ≈ 77% 的成本，在这个损失水平上省了约 23%。在几个不同的成本预算上各算一次 EG，就能看出增益是随规模保持、扩大，还是慢慢消失。
@@ -148,9 +154,13 @@ RL 跑在 MAI 自研的异步框架 Rocket 上。学习器用 YOLO，推理用 S
 
 奖励由三部分组成：
 
-```text
-R(q, y) = R_task(q, y) + w_lang × R_lang(y) − w_len × R_len(y)
-R_len(y) = ρ_q × |y| / ℓ_max
+```math
+\begin{aligned}
+R(q,y)={}&R_{\mathrm{task}}(q,y)\\
+&+w_{\mathrm{lang}}R_{\mathrm{lang}}(y)\\
+&-w_{\mathrm{len}}R_{\mathrm{len}}(y)\\
+R_{\mathrm{len}}(y)&=\frac{\rho_q|y|}{\ell_{\max}}
+\end{aligned}
 ```
 
 R_task 是任务本身的奖励，这道数学题就是答对与否。R_lang 鼓励思维链只用英语，每出现一个非英语单词就扣一点，原因放到下一节说。R_len 是长度惩罚，`|y|` 是回答长度，`ℓ_max` 是当前允许的最大长度，`ρ_q` 是这道题的通过率。乘上通过率，难题的长度惩罚就弱，模型可以放开写长推理；简单题的惩罚强，促使它删掉绕圈和反复犹豫的部分（§3.1.2，PDF 第 33 页）。常用设置是 `w_lang = 0.5`、`w_len = 0.25`，到最大长度 128K 的阶段，长度惩罚完全取消（PDF 第 36 页）。
@@ -159,8 +169,8 @@ R_task 是任务本身的奖励，这道数学题就是答对与否。R_lang 鼓
 
 有了每个回答的奖励，GRPO（Group Relative Policy Optimization）在组内做比较。一个回答的优势值，是它的奖励减去组内平均，再除以组内标准差：
 
-```text
-A_i = (R_i − mean(R_1..R_G)) / std(R_1..R_G)
+```math
+A_i=\frac{R_i-\operatorname{mean}(R_1,\ldots,R_G)}{\operatorname{std}(R_1,\ldots,R_G)}
 ```
 
 举一个 4 个回答的教学例子（不是报告数据，并假设语言和长度两项对每个回答的净贡献都是 0，总奖励 R_i 就等于任务奖励）：总奖励依次是 1、0、0、1，平均 0.5，标准差 0.5（这里按总体标准差计算，报告没有说明用哪一种），优势值就是 +1、−1、−1、+1。答对的两个回答里每个 token 的概率都被往上推，答错的往下压。如果 4 个回答的总奖励完全相同，比如都是 1，组内就没有差别，标准差为 0，这个公式给不出谁好谁坏，这道题对更新提供不了信号。仅仅 4 个都答对并不保证这一点，长度和语言两项仍可能让总奖励有差别。报告没有说明实现里怎样处理标准差为 0 的组；在这个算例的假设下，总奖励全部相同意味着 4 个回答对错一致，这样的组已经被前面的通过率过滤挡掉了。同理，组内所有回答都拿到的同一份奖励，比如每个回答都没有夹杂外语时一样的语言奖励，也会在减平均时抵消，真正起作用的是组内回答之间的差别。
@@ -179,9 +189,13 @@ A_i = (R_i − mean(R_1..R_G)) / std(R_1..R_G)
 
 RL 的数据来自旧策略 π_old，也就是生成这批回答时的模型，更新的却是当前策略 π_θ。重要性比率 r 衡量两者对同一个 token 的概率相差多少：
 
-```text
-r_i,t = π_θ(y_i,t | q, y_i,<t) / π_old(y_i,t | q, y_i,<t)
-token objective = min( r × A,  clip(r, 1 − ε, (1 − ε)⁻¹ + k) × A )
+```math
+\begin{aligned}
+r_{i,t}&=\frac{\pi_\theta(y_{i,t}\mid q,y_{i,<t})}{\pi_{\mathrm{old}}(y_{i,t}\mid q,y_{i,<t})}\\
+\text{token objective}&=\min\Bigl(rA,\\
+&\quad\operatorname{clip}\bigl(r,1-\varepsilon,\\
+&\qquad(1-\varepsilon)^{-1}+k\bigr)A\Bigr)
+\end{aligned}
 ```
 
 r = 1 表示新旧策略对这个 token 一样确定。clip 给 r 设一个信任区间，防止一步更新把策略推得太远。MAI 的区间是 `[1 − ε, (1 − ε)⁻¹ + k]`，常用 ε = 0.6，按这个值算，下界是 0.4，上界在 k = 0 时是 2.5，两个边界在对数尺度上关于 1 对称（ln 0.4 ≈ −0.92，ln 2.5 ≈ +0.92）（PDF 第 31 至 32、36 页）。按这个目标，优势为正的 token，r 超过上界以后，这一项不再提供继续推高概率的梯度；优势为负的 token，r 低于下界以后，这一项也不再继续往下压。这是替代目标里的梯度边界，并不保证更新以后概率真的停在区间里，同一组参数还受其他 token 的梯度推动。
@@ -190,8 +204,12 @@ r = 1 表示新旧策略对这个 token 一样确定。clip 给 r 设一个信�
 
 k 是一个随训练调整的放宽量，只加在上界上。上界太宽，熵会爆炸；太窄，会出现熵塌缩，也就是输出分布越来越集中，回答越来越单一（PDF 第 32 页）。报告每一步用重要性加权的方式，估计当前策略在这个 batch 上每个 token 的平均熵 Ĥ，再用一个积分控制器更新 k：
 
-```text
-k ← clip( k + δ × sign(H* − Ĥ), 0, k_max )
+```math
+\begin{aligned}
+k\leftarrow\operatorname{clip}\bigl(
+&k+\delta\operatorname{sign}(H^*-\hat H),\\
+&0,k_{\max}\bigr)
+\end{aligned}
 ```
 
 熵低于目标 H* 时，k 增加一个步长 δ，上界放宽，优势为正的回答里原本概率不高的 token 可以更快被推高，策略变得更分散；熵高于目标时，k 减小，信任区间收紧。常用设置是 H* = 0.3、δ = 0.25、k_max = 2.5，上界因此在 2.5 到 5.0 之间移动。报告说，这比直接在损失里加一个熵奖励项效果更好。

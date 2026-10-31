@@ -5,7 +5,7 @@ tags: [AI 与机器学习]
 summary: "Why did DeepSeek-R1 succeed with RL while most academic reproductions completely failed? Understanding the fundamental limitations of RL training for LLMs, five failure modes, and entropy collapse from the perspective of pass@k."
 draft: false
 sourceFile: "rl-for-llm-为什么强化学习训练大模型这么难.mdx"
-sourceHash: "6845703108fa2ce71d2b730a75012de14ac4c07652e226ae1863a9fee2a8c5ab"
+sourceHash: "186d44ad3b22798ca336bf4517a53c4af0c5fbef76b02f6b37fc62dbeabfaeaf"
 ---
 
 import TechGraph from '../../components/blog/TechGraph.astro'
@@ -235,9 +235,11 @@ When **all** of the following conditions are met:
 
 The core objective of reinforcement learning is to maximize expected return:
 
-```
-J(theta) = E[sum of rewards]
-Policy Gradient: nabla J = E[nabla log pi(a|s) * A(s,a)]
+```math
+\begin{aligned}
+J(\theta)&=\mathbb E\left[\sum_t r_t\right]\\
+\nabla_\theta J&=\mathbb E\bigl[\nabla_\theta\log\pi(a\mid s)A(s,a)\bigr]
+\end{aligned}
 ```
 
 Where A(s,a) is the advantage function — measuring how much better this action is compared to the "average."
@@ -246,9 +248,11 @@ Where A(s,a) is the advantage function — measuring how much better this action
 
 PPO uses a separate Value Network (Critic) to estimate the advantage:
 
+```math
+A(s,a)=R(s,a)-V(s)
 ```
-A(s,a) = R(s,a) - V(s)  (baseline estimated by Critic)
-```
+
+The baseline is estimated by the Critic.
 
 The problem: training the Critic requires a 5th large model (Actor + Reference + Reward + Critic), **doubling memory and compute costs**.
 
@@ -258,26 +262,27 @@ DeepSeek's solution: **drop the Critic, replace the baseline with statistics fro
 
 For each prompt x, sample k responses (y_1, ..., y_k) and compute their respective rewards (r_1, ..., r_k):
 
+```math
+\begin{aligned}
+A_i^{\mathrm{GRPO}}&=\frac{r_i-\operatorname{mean}(r_1,\ldots,r_k)}{\operatorname{std}(r_1,\ldots,r_k)}\\
+A_i^{\mathrm{PPO}}&=r_i-V(s)
+\end{aligned}
 ```
-GRPO Advantage:
-  A_i = (r_i - mean(r_1..k)) / std(r_1..k)
 
-Compare with PPO:
-  A_i = r_i - V(s)  (requires an extra network)
-
-GRPO's A_i is entirely determined by the group's statistics, no extra parameters needed.
-```
+PPO needs an additional value network. GRPO computes its advantage entirely from group statistics, with no additional parameters.
 
 ### Gradient Update Formula
 
+```math
+\begin{aligned}
+L_{\mathrm{GRPO}}={}&-\mathbb E\bigl[\min\bigl(\rho A,\\
+&\qquad\operatorname{clip}(\rho,1-\epsilon,1+\epsilon)A\bigr)\bigr]\\
+&+\beta\operatorname{KL}(\pi\Vert\pi_{\mathrm{ref}})\\
+\rho&=\frac{\pi_\theta(y\mid x)}{\pi_{\mathrm{old}}(y\mid x)}
+\end{aligned}
 ```
-L_GRPO = -E[ min(rho * A, clip(rho, 1-eps, 1+eps) * A) ] + beta * KL(pi || pi_ref)
 
-Where:
-  rho = pi_theta(y|x) / pi_old(y|x)  -- importance sampling ratio
-  A = GRPO advantage (group-normalized)
-  beta * KL = distance penalty from the reference model
-```
+$$\rho$$ is the importance sampling ratio and $$A$$ is the group-normalized GRPO advantage. The KL term penalizes distance from the reference model.
 
 ### Why the KL Penalty Is Critical
 

@@ -7,7 +7,7 @@ tags:
 summary: "MAI-Thinking-1 is a reasoning model Microsoft AI trained from scratch, with 35B active and 1T total parameters. Following its training order, from web extraction, deduplication and data mixing to 30T-token pre-training, thousands of RL steps and the merging of three specialist models, this piece looks at how the report decides whether a gain seen in small experiments still holds at scale, and which recipe details it does not disclose."
 draft: false
 sourceFile: "mai-thinking-1.mdx"
-sourceHash: "55a135ff10aa05f46a70ec4b9dd10da6a8414d9c471ee64664841215bab56c64"
+sourceHash: "0e2f1e169197d30d73f96fb2f592360ccd0ff0c7c6c4c73a1919709416581e1d"
 ---
 
 import Figure from '../../components/blog/Figure.astro'
@@ -50,9 +50,13 @@ The processed data comes from hundreds of sources, and how much weight each gets
 
 The score is NLL (negative log-likelihood): the model predicts a held-out text token by token, and the score is the average negative log of the probability it assigns to the true next token; lower is better. The report's internal evaluation suite has nearly 40 sets in five categories: code, STEM, math, general knowledge and multilingual. Sources include worked solutions written by vendors, Microsoft-internal code and PRs that are not on the web, and records of human-AI conversations, all deduplicated against the training data (§2.3, PDF pp. 9-10). Each set is first normalized against a fixed in-house reference model, scores are averaged within each category, and the five categories are combined into one target with these weights:
 
-```text
-Target = 0.5 × Coding + 0.175 × STEM + 0.175 × Math
-       + 0.1 × General knowledge + 0.05 × Multilingual
+```math
+\begin{aligned}
+\mathrm{Target}={}&0.5\,\mathrm{Coding}\\
+&+0.175\,\mathrm{STEM}+0.175\,\mathrm{Math}\\
+&+0.1\,\mathrm{General\ knowledge}\\
+&+0.05\,\mathrm{Multilingual}
+\end{aligned}
 ```
 
 These weights state the team's priorities: code gets half, and math is its own category with the same weight as STEM. It is MAI's own trade-off, not a universal quality score (Eq. 3, PDF p. 10).
@@ -81,9 +85,11 @@ Reading the final mix requires keeping two token columns apart: unique is how mu
 
 Once the data is settled, the architecture and training recipe are also chosen on the ladder, using a measure called efficiency gain (EG). First, a scaling law is fitted to the baseline ladder:
 
-```text
-L = f(C) = A × C^(-α) + E
-EG = f⁻¹(L′) / C′
+```math
+\begin{aligned}
+L=f(C)&=AC^{-\alpha}+E\\
+\mathrm{EG}&=\frac{f^{-1}(L')}{C'}
+\end{aligned}
 ```
 
 C is the training cost, measured either in FLOPs or in training time on existing hardware; L is an aggregate evaluation loss such as Eq. 3; A, α and E are fitted coefficients, with E the irreducible loss. A candidate model spends cost C′ and reaches loss L′. Plugging L′ back into the baseline curve gives the cost the baseline would need to reach the same loss, `f⁻¹(L′)`; dividing that by C′ gives EG (Eq. 1 to 2, PDF p. 8). EG = 1.3 means the baseline needs 30% more cost to match the candidate; put the other way, the candidate used 1/1.3 ≈ 77% of the baseline's cost, a saving of about 23% at that loss level. Computing EG at several cost budgets shows whether a gain holds, grows or fades with scale.
@@ -150,9 +156,13 @@ Once the 16 answers are graded, the problem worker looks at the pass rate: the f
 
 The reward has three parts:
 
-```text
-R(q, y) = R_task(q, y) + w_lang × R_lang(y) − w_len × R_len(y)
-R_len(y) = ρ_q × |y| / ℓ_max
+```math
+\begin{aligned}
+R(q,y)={}&R_{\mathrm{task}}(q,y)\\
+&+w_{\mathrm{lang}}R_{\mathrm{lang}}(y)\\
+&-w_{\mathrm{len}}R_{\mathrm{len}}(y)\\
+R_{\mathrm{len}}(y)&=\frac{\rho_q|y|}{\ell_{\max}}
+\end{aligned}
 ```
 
 R_task is the reward for the task itself; for this math problem, whether the answer is right. R_lang rewards keeping the chain of thought in English, deducting a little for every non-English word; the reason comes in the next section. R_len is a length penalty, where `|y|` is the answer's length, `ℓ_max` is the current maximum allowed length and `ρ_q` is the problem's pass rate. Multiplying by the pass rate makes the length penalty weak on hard problems, so the model can write long reasoning, and strong on easy ones, pushing it to cut loops and repeated hedging (§3.1.2, PDF p. 33). The usual settings are `w_lang = 0.5` and `w_len = 0.25`, and the length penalty is removed entirely at the 128K maximum-length stage (PDF p. 36).
@@ -161,8 +171,8 @@ Whether this reward is usable depends on whether the reference answers are right
 
 With a reward for each answer, GRPO (Group Relative Policy Optimization) compares answers within the group. An answer's advantage is its reward minus the group mean, divided by the group standard deviation:
 
-```text
-A_i = (R_i − mean(R_1..R_G)) / std(R_1..R_G)
+```math
+A_i=\frac{R_i-\operatorname{mean}(R_1,\ldots,R_G)}{\operatorname{std}(R_1,\ldots,R_G)}
 ```
 
 A teaching example with 4 answers (not report data; it assumes the language and length terms contribute zero net reward to every answer, so each total reward R_i equals the task reward): total rewards 1, 0, 0, 1 give a mean of 0.5 and a standard deviation of 0.5 (using the population standard deviation here; the report does not say which one it uses), so the advantages are +1, −1, −1, +1. The probability of every token in the two correct answers is pushed up, and that of the wrong answers is pushed down. If all 4 total rewards are exactly equal, for example all 1, the group has no differences, the standard deviation is 0, and the formula cannot say which answer is better, so the problem provides no signal for the update. Four correct answers alone do not guarantee this, since the length and language terms can still make the total rewards differ. The report does not say how its implementation handles a group with zero standard deviation; under this toy example's assumptions, identical total rewards mean all 4 answers are equally right or wrong, and such a group has already been removed by the pass-rate filters. Likewise, any reward that every answer in the group receives equally, such as the same language reward when no answer contains foreign words, cancels out when the mean is subtracted; what matters is how the answers in the group differ.
@@ -181,9 +191,13 @@ A climb runs for thousands of consecutive steps. The STEM climb in Figure 15 ran
 
 RL data comes from the old policy π_old, the model that generated the answers, while the update applies to the current policy π_θ. The importance ratio r measures how much the two differ in the probability they give the same token:
 
-```text
-r_i,t = π_θ(y_i,t | q, y_i,<t) / π_old(y_i,t | q, y_i,<t)
-token objective = min( r × A,  clip(r, 1 − ε, (1 − ε)⁻¹ + k) × A )
+```math
+\begin{aligned}
+r_{i,t}&=\frac{\pi_\theta(y_{i,t}\mid q,y_{i,<t})}{\pi_{\mathrm{old}}(y_{i,t}\mid q,y_{i,<t})}\\
+\text{token objective}&=\min\Bigl(rA,\\
+&\quad\operatorname{clip}\bigl(r,1-\varepsilon,\\
+&\qquad(1-\varepsilon)^{-1}+k\bigr)A\Bigr)
+\end{aligned}
 ```
 
 r = 1 means the new and old policies are equally confident about the token. Clipping sets a trust region for r so that one update cannot push the policy too far. MAI's interval is `[1 − ε, (1 − ε)⁻¹ + k]`; with the usual ε = 0.6, the lower bound is 0.4 and the upper bound at k = 0 is 2.5, and the two bounds are symmetric around 1 on a log scale (ln 0.4 ≈ −0.92, ln 2.5 ≈ +0.92) (PDF pp. 31-32, 36). Under this objective, for a token with positive advantage, once r exceeds the upper bound this term no longer supplies gradient to push its probability further up; for a token with negative advantage, once r falls below the lower bound this term stops pushing it further down. This is a gradient boundary in the surrogate objective. It does not guarantee that probabilities actually stay inside the interval after the update, because the same parameters are also moved by the gradients of other tokens.
@@ -192,8 +206,12 @@ r = 1 means the new and old policies are equally confident about the token. Clip
 
 k is a relaxation that adjusts during training and applies only to the upper bound. If the upper bound is too wide, entropy explodes; if it is too narrow, entropy collapse sets in, meaning the output distribution concentrates more and more and the answers become increasingly uniform (PDF p. 32). At each step the report estimates the current policy's average per-token entropy Ĥ on the batch with importance weighting, then updates k with an integral controller:
 
-```text
-k ← clip( k + δ × sign(H* − Ĥ), 0, k_max )
+```math
+\begin{aligned}
+k\leftarrow\operatorname{clip}\bigl(
+&k+\delta\operatorname{sign}(H^*-\hat H),\\
+&0,k_{\max}\bigr)
+\end{aligned}
 ```
 
 When entropy is below the target H*, k grows by a step δ and the upper bound widens, so tokens that had low probability in positive-advantage answers can be pushed up faster and the policy spreads out; when entropy is above the target, k shrinks and the trust region tightens. The usual settings are H* = 0.3, δ = 0.25 and k_max = 2.5, so the upper bound moves between 2.5 and 5.0. The report says this works better than adding an entropy bonus term directly to the loss.

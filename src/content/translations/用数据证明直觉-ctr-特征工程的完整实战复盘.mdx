@@ -4,7 +4,7 @@ date: 2026-02-27
 category: "技术分享"
 tags: [广告与推荐]
 sourceFile: "用数据证明直觉-ctr-特征工程的完整实战复盘.mdx"
-sourceHash: "493f0da4147df71ae4e7c92e4f35f0532dfc65eb16ca998cfaf4eb34b5d96756"
+sourceHash: "899acfaee18115bf46f023ae8400bf39bca7b6370ab1e9d03457dd2e489d8906"
 ---
 
 
@@ -172,8 +172,10 @@ After finishing the experiments, I compared this workflow against the RTB produc
 
 In the experiment, I manually constructed product features like `I5 * I9`, which worked well with tree models. But in production systems, the FM layer is already doing this—and it does it exhaustively:
 
-```
-FM: 0.5 * [(Σ vi·xi)² - Σ(vi·xi)²]
+```math
+\mathrm{FM}=\frac12\left[
+\left(\sum_i v_i x_i\right)^2
+-\sum_i(v_i x_i)^2\right]
 ```
 
 FM computes second-order interactions across all feature pairs with O(kn) complexity, without requiring you to select which feature pairs are worth crossing. So in production systems that use FM, the value of manually constructed cross features is dramatically reduced.

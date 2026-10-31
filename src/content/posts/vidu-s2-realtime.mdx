@@ -53,8 +53,12 @@ vlog 一类的视频里有不少不明显的剪辑。开箱视频常常只留下
 
 Agent 管得住提示里写什么，管不住画面误差的累积。回到开头那条约束，第 i 段看到的历史是模型自己刚生成的。报告 Eq. 3 把一次因果去噪写成：
 
-```text
-x̂₀ⁱ = fθ(xⁱ_tᵢ, tᵢ, r, cⁱ, x<ⁱ_τᵢ, τᵢ)
+```math
+\begin{aligned}
+\hat x_0^i=f_\theta\bigl(
+&x_{t_i}^i,t_i,r,c^i,\\
+&x_{\tau_i}^{<i},\tau_i\bigr)
+\end{aligned}
 ```
 
 `xⁱ_tᵢ` 是第 i 段的带噪音视频潜变量，`tᵢ` 是它当前所处的扩散时间步；`r` 是参考图，`cⁱ` 是这一段的条件；`x<ⁱ_τᵢ` 是前面各段留下的历史，处在噪声等级 `τᵢ`。模型输出这一段干净潜变量的估计 `x̂₀ⁱ`，之后还要解码才变成能播放的画面和声音。潜变量是压缩后的数值表示，不是像素。
@@ -79,8 +83,11 @@ Self-Replay Forcing（SRF）把一次训练拆成两遍计算。第一遍是 rol
 
 轨迹里的错误并不会因此变成训练目标。报告把 SRF 定义为一种 on-policy 的分布匹配蒸馏（Distribution Matching Distillation，DMD）：自生成轨迹决定训练发生在哪些状态上，监督信号来自教师模型，让学生在这些状态下的输出分布向教师分布靠拢。报告另外沿用 Vidu S1 的感知损失，用来缓解模式坍塌、保留生成的多样性。目标概括为：
 
-```text
-L_SRF = L_DMD(replayed outputs) + L_perc(replayed outputs)
+```math
+\begin{aligned}
+L_{\mathrm{SRF}}={}&L_{\mathrm{DMD}}(\text{replayed outputs})\\
+&+L_{\mathrm{perc}}(\text{replayed outputs})
+\end{aligned}
 ```
 
 `replayed outputs` 是学生在重新加噪的自生成轨迹上的预测。这个目标没有要求学生逐像素复现自己刚才那段有错的视频，也不保证每条轨迹都收敛到同一段标准答案；教师分布和感知约束决定往哪个方向优化，自生成的历史让这些约束落在推理时真会出现的状态上。
@@ -93,8 +100,11 @@ S1 的实时输出是 540p，S2-Avatar 把实时分辨率提到 720p，报告给
 
 推理时，因果主干继续在低分辨率上运行，后面接一个在潜空间工作、只走一步的超分 Refiner：它先把主干输出的低分辨率潜变量放大，加上固定时间步 `t_r` 的噪声，再预测对应的高分辨率潜变量。（§2.2，Eq. 5，PDF 第 7 页）
 
-```text
-zⁱ_tr = (1 − t_r) · U(x̂ⁱ₀,LR) + t_r · εⁱ,   εⁱ ~ N(0, I)
+```math
+\begin{aligned}
+z_{\mathrm{tr}}^i&=(1-t_r)U(\hat x_{0,\mathrm{LR}}^i)+t_r\varepsilon^i\\
+\varepsilon^i&\sim\mathcal N(0,I)
+\end{aligned}
 ```
 
 `U` 是潜空间里的空间上采样，`x̂ⁱ₀,LR` 是主干给出的第 i 段低分辨率结果。两个模块读的历史也不同：主干读一份噪声较高的历史缓存，Refiner 读一份噪声较低的高分辨率历史缓存，报告记作 `τB > τR`，思路来自 S1 的 TwinCache。

@@ -122,8 +122,8 @@ hour_bucket = "night" if hour > 20 else "day"  # "night"
 
 #### 均方误差 (MSE) — 回归任务
 
-```
-MSE = (1/N) * sum((y_i - y_hat_i)^2)
+```math
+\mathrm{MSE}=\frac1N\sum_i(y_i-\hat y_i)^2
 ```
 
 直觉：预测值和真实值差得越远，惩罚越重（因为是平方）。
@@ -143,8 +143,12 @@ mse = ((100-110)^2 + (200-180)^2 + (150-160)^2) / 3
 
 二分类交叉熵：
 
-```
-BCE = -(1/N) * sum(y_i * log(y_hat_i) + (1-y_i) * log(1-y_hat_i))
+```math
+\begin{aligned}
+\mathrm{BCE}=-\frac1N\sum_i\bigl[
+&y_i\log\hat y_i\\
+&+(1-y_i)\log(1-\hat y_i)\bigr]
+\end{aligned}
 ```
 
 直觉：如果真实标签是 1（点击了），模型预测的概率越接近 1，loss 越小。如果预测了 0.01（几乎确定不点击），但实际点了，惩罚 -log(0.01) = 4.6，非常大。
@@ -168,8 +172,8 @@ CTR 预估是分类问题（点/不点），不是回归问题。用 MSE 训练�
 
 #### 重建损失 — 自编码器 / VQ-VAE
 
-```
-L_reconstruct = ||x - Decoder(Encoder(x))||^2
+```math
+L_{\mathrm{reconstruct}}=\|x-\operatorname{Decoder}(\operatorname{Encoder}(x))\|^2
 ```
 
 直觉：把输入压缩再还原，看还原得像不像。VQ-VAE 中这个损失决定了码本是否保留了足够信息。
@@ -182,8 +186,8 @@ L_reconstruct = ||x - Decoder(Encoder(x))||^2
 
 **梯度**告诉你"当前脚下哪个方向是上坡最陡的"。**梯度下降**就是"朝梯度反方向迈一步"——永远朝下坡方向走。
 
-```
-参数_new = 参数_old - learning_rate * gradient
+```math
+\text{参数}_{\mathrm{new}}=\text{参数}_{\mathrm{old}}-\mathrm{learning\ rate}\times\mathrm{gradient}
 ```
 
 #### 学习率 (Learning Rate)
@@ -312,16 +316,16 @@ def dropout(x, rate=0.5, training=True):
 
 惩罚参数值过大，鼓励模型用"简单"的规则。
 
-```
-Total_Loss = Original_Loss + lambda * sum(w_i^2)
+```math
+L_{\mathrm{total}}=L_{\mathrm{original}}+\lambda\sum_i w_i^2
 ```
 
 lambda = 0.01 时，如果某个权重 w = 10，额外惩罚 0.01 * 100 = 1.0。这迫使模型倾向于用很多小权重而非少数大权重，降低模型复杂度。
 
 #### L1 正则化 (Lasso)
 
-```
-Total_Loss = Original_Loss + lambda * sum(|w_i|)
+```math
+L_{\mathrm{total}}=L_{\mathrm{original}}+\lambda\sum_i|w_i|
 ```
 
 和 L2 的区别：L1 倾向于让参数变成精确的 0（稀疏性），L2 倾向于让参数变小但不为零。L1 天然做特征选择——不重要的特征对应的权重会被"压死"。
@@ -434,8 +438,8 @@ AUC = 1.0  → 完美（所有正样本的分数都高于所有负样本）
 
 #### GAUC — 工业推荐系统更常用
 
-```
-GAUC = sum(AUC_user_i * impression_user_i) / sum(impression_user_i)
+```math
+\mathrm{GAUC}=\frac{\sum_i\mathrm{AUC}_{\mathrm{user},i}\,\mathrm{impression}_{\mathrm{user},i}}{\sum_i\mathrm{impression}_{\mathrm{user},i}}
 ```
 
 按用户分组计算 AUC 再加权平均。因为不同用户的点击率基线不同（重度用户 CTR 高，轻度用户 CTR 低），GAUC 消除了这种差异。
@@ -504,10 +508,14 @@ class MLP:
 **为什么需要非线性激活？**
 
 如果没有激活函数，多层线性变换的复合仍然是线性变换：
+```math
+\begin{aligned}
+z_2&=W_2(W_1x+b_1)+b_2\\
+&=(W_2W_1)x+(W_2b_1+b_2)
+\end{aligned}
 ```
-z2 = W2 * (W1 * x + b1) + b2 = (W2*W1) * x + (W2*b1 + b2)
-# 这等价于一层线性变换！多层白搭。
-```
+
+这等价于一层线性变换；没有非线性激活，叠多层仍然只是线性变换。
 
 激活函数打破了这种线性叠加，让多层网络能表达非线性关系。
 
@@ -548,16 +556,27 @@ gelu(x) = x * 0.5 * (1 + erf(x/sqrt(2)))
 
 **以两层网络为例的完整推导**：
 
+```math
+\begin{aligned}
+z_1&=W_1x+b_1,\quad a_1=\operatorname{ReLU}(z_1)\\
+z_2&=W_2a_1+b_2,\quad\hat y=\operatorname{sigmoid}(z_2)\\
+\frac{\partial L}{\partial W_2}
+&=\frac{\partial L}{\partial\hat y}
+\frac{\partial\hat y}{\partial z_2}
+\frac{\partial z_2}{\partial W_2}\\
+&=(\hat y-y)\operatorname{sigmoid}'(z_2)a_1\\
+\frac{\partial L}{\partial W_1}
+&=\frac{\partial L}{\partial\hat y}
+\frac{\partial\hat y}{\partial z_2}
+\frac{\partial z_2}{\partial a_1}
+\frac{\partial a_1}{\partial z_1}
+\frac{\partial z_1}{\partial W_1}\\
+&=(\hat y-y)\operatorname{sigmoid}'(z_2)\\
+&\qquad W_2\operatorname{ReLU}'(z_1)x
+\end{aligned}
 ```
-前向: x → z1=W1*x+b1 → a1=relu(z1) → z2=W2*a1+b2 → y_hat=sigmoid(z2) → Loss
 
-反向 (链式法则):
-dL/dW2 = dL/dy_hat * dy_hat/dz2 * dz2/dW2
-       = (y_hat - y) * sigmoid'(z2) * a1
-
-dL/dW1 = dL/dy_hat * dy_hat/dz2 * dz2/da1 * da1/dz1 * dz1/dW1
-       = (y_hat - y) * sigmoid'(z2) * W2 * relu'(z1) * x
-```
+前两行是从输入到预测、再计算 Loss 的前向过程；后四行展示链式法则的反向传播。
 
 本质就是高中数学的链式求导法则 `f(g(h(x)))' = f' * g' * h'` 在多层函数复合中的应用。
 
@@ -1437,13 +1456,11 @@ SID 生成 = "GPT 续写，但词表只有 1024 个码字"
 
 **LLM 的 Scaling Law (Kaplan 2020, Chinchilla 2022)**：
 
+```math
+L=aN^{-\alpha}+bD^{-\beta}+c
 ```
-Loss = a * N^(-alpha) + b * D^(-beta) + c
-# N: 模型参数量
-# D: 训练数据量
-# Loss: 验证集上的交叉熵损失
-# alpha ≈ 0.076, beta ≈ 0.095 (Chinchilla)
-```
+
+$$N$$ 是模型参数量，$$D$$ 是训练数据量，$$L$$ 是验证集交叉熵损失。Chinchilla 中 $$\alpha\approx0.076$$、$$\beta\approx0.095$$。
 
 核心发现：增加参数量和数据量都能可预测地降低损失，没有天花板（在观测范围内）。
 
@@ -1540,9 +1557,11 @@ class VAE:
 这是 VAE 最关键的创新。问题：采样操作 `z ~ N(mu, sigma)` 不可微，梯度无法通过"采样"传回去。
 
 解决：把随机性从"计算图"中分离出来：
+```math
+z=\mu+\sigma\epsilon,\qquad\epsilon\sim\mathcal N(0,1)
 ```
-z = mu + sigma * epsilon  (epsilon ~ N(0,1) 是外部噪声)
-```
+
+$$\epsilon$$ 是外部噪声。
 
 现在 z 对 mu 的梯度是 1，对 sigma 的梯度是 epsilon——都可以计算！
 
@@ -5036,18 +5055,20 @@ SGD 对所有参数使用同一个学习率，但不同参数的损失面形状�
 
 Adam 结合了 Momentum（动量）和 RMSProp（自适应步长缩放），是目前最广泛使用的优化器。
 
+```math
+\begin{aligned}
+m_0&=0,\quad v_0=0,\quad t=0\\
+t&\leftarrow t+1\\
+g_t&=\nabla_\theta L\\
+m_t&=\beta_1m_{t-1}+(1-\beta_1)g_t\\
+v_t&=\beta_2v_{t-1}+(1-\beta_2)g_t^2\\
+\hat m_t&=\frac{m_t}{1-\beta_1^t},\quad
+\hat v_t=\frac{v_t}{1-\beta_2^t}\\
+\theta_t&=\theta_{t-1}-\frac{\mathrm{lr}\,\hat m_t}{\sqrt{\hat v_t}+\epsilon}
+\end{aligned}
 ```
-初始化: m_0 = 0 (一阶矩), v_0 = 0 (二阶矩), t = 0
 
-每步更新:
-  t = t + 1
-  g_t = gradient(loss, theta)
-  m_t = beta1 * m_{t-1} + (1 - beta1) * g_t       # 梯度的指数移动平均
-  v_t = beta2 * v_{t-1} + (1 - beta2) * g_t^2     # 梯度平方的指数移动平均
-  m_hat = m_t / (1 - beta1^t)                      # 偏差修正
-  v_hat = v_t / (1 - beta2^t)                      # 偏差修正
-  theta_t = theta_{t-1} - lr * m_hat / (sqrt(v_hat) + epsilon)
-```
+$$m_t$$ 和 $$v_t$$ 分别跟踪梯度及梯度平方的指数移动平均；$$\hat m_t$$、$$\hat v_t$$ 是偏差修正后的值。
 
 直觉解读：m_hat 告诉你"应该往哪个方向走"（带惯性，不会被单步噪声左右）；v_hat 告诉你"这个方向的地形有多陡"（越陡步子越小）。最终效果：在平坦方向大步走、在陡峭方向小步走——自动适应不同参数的地形。
 
@@ -5061,10 +5082,15 @@ Adam 结合了 Momentum（动量）和 RMSProp（自适应步长缩放），是�
 
 正确做法（AdamW）：在 Adam 更新后独立减去一个衰减项：
 
+```math
+\begin{aligned}
+\theta_t=\theta_{t-1}-\mathrm{lr}\Bigl(
+&\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon}\\
+&+\mathrm{wd}\,\theta_{t-1}\Bigr)
+\end{aligned}
 ```
-theta_t = theta_{t-1} - lr * (m_hat / (sqrt(v_hat) + eps) + wd * theta_{t-1})
-                               ↑ Adam 更新项                    ↑ 独立衰减项
-```
+
+括号内前一项是 Adam 更新，后一项是独立的权重衰减。
 
 实践建议：PyTorch 的 `torch.optim.Adam` 默认实现的是 L2（错误的），`torch.optim.AdamW` 才是正确的 Weight Decay。现代深度学习训练一律用 AdamW。
 
@@ -9683,57 +9709,57 @@ ANN 召回在向量空间中做近邻搜索，依赖 embedding 质量，冷启�
 
 | 符号 | 含义 | 典型值/范围 |
 |------|------|-------------|
-| x | 输入数据 (原始特征) | R^(d_in) |
-| z_e | Encoder 输出 (连续表示) | R^d |
-| z_q | 量化后的表示 (离散) | R^d |
-| x_hat | Decoder 重建的输出 | R^(d_in) |
-| e_k | 码本中第 k 个码字 | R^d |
-| K | 每层码本大小 | 256-8192 |
-| L | RQ 层数 | 2-8 |
-| $d$ | 码字维度 | 16-128 |
-| $B$ | Batch Size | 512-8192 |
-| $N$ | Item 总数 | $10^6$-$10^9$ |
+| $$x$$ | 输入数据 (原始特征) | $$\mathbb R^{d_{\mathrm{in}}}$$ |
+| $$z_e$$ | Encoder 输出 (连续表示) | $$\mathbb R^d$$ |
+| $$z_q$$ | 量化后的表示 (离散) | $$\mathbb R^d$$ |
+| $$\hat x$$ | Decoder 重建的输出 | $$\mathbb R^{d_{\mathrm{in}}}$$ |
+| $$e_k$$ | 码本中第 k 个码字 | $$\mathbb R^d$$ |
+| $$K$$ | 每层码本大小 | 256-8192 |
+| $$L$$ | RQ 层数 | 2-8 |
+| $$d$$ | 码字维度 | 16-128 |
+| $$B$$ | Batch Size | 512-8192 |
+| $$N$$ | Item 总数 | $$10^6$$-$$10^9$$ |
 
 ### 67.2 损失函数符号
 
 | 符号 | 含义 | 公式 |
 |------|------|------|
-| L_recon | 重建损失 | ‖x - x_hat‖² |
-| L_VQ | 码字损失 | ‖sg(z_e) - z_q‖² |
-| L_commit | Commitment损失 | ‖z_e - sg(z_q)‖² |
-| sg(·) | Stop Gradient | 前向通过, 反向梯度为 0 |
-| $\alpha, \beta$ | 损失权重 | $\alpha=1, \beta=0.25$ |
+| $$L_{\mathrm{recon}}$$ | 重建损失 | $$\lVert x-\hat x\rVert^2$$ |
+| $$L_{\mathrm{VQ}}$$ | 码字损失 | $$\lVert\operatorname{sg}(z_e)-z_q\rVert^2$$ |
+| $$L_{\mathrm{commit}}$$ | Commitment损失 | $$\lVert z_e-\operatorname{sg}(z_q)\rVert^2$$ |
+| $$\operatorname{sg}(\cdot)$$ | Stop Gradient | 前向通过, 反向梯度为 0 |
+| $$\alpha, \beta$$ | 损失权重 | $$\alpha=1, \beta=0.25$$ |
 
 ### 67.3 Transformer 符号
 
 | 符号 | 含义 | 公式 |
 |------|------|------|
-| $Q, K, V$ | Query/Key/Value | $Q=XW_Q, K=XW_K, V=XW_V$ |
-| $d_k$ | Key 维度 | $d / H$ (H=头数) |
-| $H$ | 注意力头数 | 4-32 |
-| Attn | 注意力输出 | softmax(QK^T/√d_k) · V |
-| FFN | 前馈网络 | max(0, xW1+b1)W2+b2 |
+| $$Q, K, V$$ | Query/Key/Value | $$Q=XW_Q, K=XW_K, V=XW_V$$ |
+| $$d_k$$ | Key 维度 | $$d / H$$ (H=头数) |
+| $$H$$ | 注意力头数 | 4-32 |
+| $$\mathrm{Attn}$$ | 注意力输出 | $$\operatorname{softmax}(QK^\top/\sqrt{d_k})V$$ |
+| $$\mathrm{FFN}$$ | 前馈网络 | $$\max(0,xW_1+b_1)W_2+b_2$$ |
 
 ### 67.4 训练相关符号
 
 | 符号 | 含义 | 公式 |
 |------|------|------|
-| η | 学习率 | 1e-4 ~ 1e-3 |
-| γ | EMA 衰减率 | 0.99-0.999 |
-| $\theta$ | 模型参数 | — |
-| ∇θL | 梯度 | ∂L/∂θ |
-| $T$ | Temperature | 0.01-1.0 |
-| $\epsilon$ | Sinkhorn 正则系数 | 0.01-0.1 |
+| $$\eta$$ | 学习率 | 1e-4 ~ 1e-3 |
+| $$\gamma$$ | EMA 衰减率 | 0.99-0.999 |
+| $$\theta$$ | 模型参数 | — |
+| $$\nabla_\theta L$$ | 梯度 | $$\partial L/\partial\theta$$ |
+| $$T$$ | Temperature | 0.01-1.0 |
+| $$\epsilon$$ | Sinkhorn 正则系数 | 0.01-0.1 |
 
 ### 67.5 评估指标符号
 
 | 符号 | 含义 | 公式 |
 |------|------|------|
-| Util | 码本利用率 | |&#123;k: N_k > 0&#125;| / K |
-| Coll | 碰撞率 | 1 - |unique SIDs| / N |
-| Recall@K | 召回率 | |S ∩ G| / |G| |
-| NDCG@K | 排序质量 | DCG@K / IDCG@K |
-| MSE | 均方误差 | (1/N)Σ‖x_i - x_hat_i‖² |
+| Util | 码本利用率 | $$\frac{\lvert\{k:N_k>0\}\rvert}{K}$$ |
+| Coll | 碰撞率 | $$1-\frac{\lvert\text{unique SIDs}\rvert}{N}$$ |
+| Recall@K | 召回率 | $$\frac{\lvert S\cap G\rvert}{\lvert G\rvert}$$ |
+| NDCG@K | 排序质量 | $$\mathrm{DCG@K}/\mathrm{IDCG@K}$$ |
+| MSE | 均方误差 | $$\frac1N\sum_i\lVert x_i-\hat x_i\rVert^2$$ |
 
 ---
 
@@ -9792,8 +9818,8 @@ OneRec / OneSearch 是这个方向的早期工业实践：统一了搜索和推�
 
 Temperature 出现在深度学习的各个场景中，但其数学本质只有一个：控制 softmax 输出分布的尖锐程度。
 
-```
-P(i) = exp(z_i / T) / sum(exp(z_j / T))
+```math
+P(i)=\frac{\exp(z_i/T)}{\sum_j\exp(z_j/T)}
 ```
 
 T 趋向 0 时分布退化为 one-hot（只选最大的），T = 1 时是标准 softmax，T 趋向无穷时分布趋向均匀（完全随机）。
@@ -11504,71 +11530,70 @@ RQ-VAE Semantic ID 不是一个孤立的技术——它站在 Embedding 演进�
 
 ### B.1 注意力机制
 
-```text
-Self-Attention:
-  Attention(Q, K, V) = softmax(QK^T / sqrt(d_k)) V
-
-Multi-Head:
-  MultiHead(Q, K, V) = Concat(head_1, ..., head_h) W_O
-  head_i = Attention(QW_Q^i, KW_K^i, VW_V^i)
-
-Causal Mask (SID 生成):
-  mask[i][j] = 0 if j <= i else -inf
-  (只能看到前面的码字, 不能偷看后面的)
+```math
+\begin{aligned}
+\operatorname{Attention}(Q,K,V)
+&=\operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right)V\\
+\operatorname{MultiHead}(Q,K,V)
+&=\operatorname{Concat}(\mathrm{head}_1,\ldots,\mathrm{head}_h)W_O\\
+\mathrm{head}_i
+&=\operatorname{Attention}(QW_Q^i,KW_K^i,VW_V^i)\\
+\mathrm{mask}_{ij}&=\begin{cases}
+0,&j\le i\\
+-\infty,&j>i
+\end{cases}
+\end{aligned}
 ```
+
+前三行依次是 Self-Attention、Multi-Head 和单个 head 的计算。SID 生成使用最后的因果掩码，只能看到前面的码字。
 
 ### B.2 向量量化
 
-```text
-VQ 量化:
-  z_q = argmin_k ||z_e - e_k||^2  (找最近码字)
-
-VQ-VAE Loss:
-  L = ||x - D(z_q)||^2 + ||sg[z_e] - z_q||^2 + beta * ||z_e - sg[z_q]||^2
-
-RQ (多层):
-  r_0 = z_e
-  z_q^l = argmin_k ||r_(l-1) - e_k^l||^2
-  r_l = r_(l-1) - z_q^l
-  z_final = sum(z_q^l)
-
-EMA 码本更新:
-  N_k = gamma * N_k + (1-gamma) * n_k         (分配计数)
-  m_k = gamma * m_k + (1-gamma) * sum(z_e_i)  (分配向量和)
-  e_k = m_k / N_k                              (码字 = 均值)
-
-Sinkhorn (最优传输):
-  Q = exp(-dist / tau)
-  repeat: Q = normalize_rows(normalize_cols(Q))
+```math
+\begin{aligned}
+z_q&=\operatorname*{arg\,min}_k\|z_e-e_k\|^2\\
+L={}&\|x-D(z_q)\|^2\\
+&+\|\operatorname{sg}[z_e]-z_q\|^2\\
+&+\beta\|z_e-\operatorname{sg}[z_q]\|^2\\[0.4em]
+r_0&=z_e\\
+z_q^l&=\operatorname*{arg\,min}_k\|r_{l-1}-e_k^l\|^2\\
+r_l&=r_{l-1}-z_q^l,\quad z_{\mathrm{final}}=\sum_l z_q^l\\[0.4em]
+N_k&\leftarrow\gamma N_k+(1-\gamma)n_k\\
+m_k&\leftarrow\gamma m_k+(1-\gamma)\sum_i z_{e,i}\\
+e_k&=\frac{m_k}{N_k}\\[0.4em]
+Q&=\exp(-\mathrm{dist}/\tau)\\
+Q&\leftarrow\operatorname{normalizeRows}
+(\operatorname{normalizeCols}(Q))
+\end{aligned}
 ```
+
+依次列出 VQ 最近码字选择、VQ-VAE 损失、多层 RQ、EMA 码本更新和 Sinkhorn 最优传输。EMA 的分配计数与分配向量和分别累计到 N 和 m，码字取均值；Sinkhorn 重复进行列归一化与行归一化。
 
 ### B.3 对比学习
 
-```text
-InfoNCE:
-  L = -log(exp(sim(z_i, z_j)/tau) / sum_k(exp(sim(z_i, z_k)/tau)))
-
-Cosine Similarity:
-  sim(a, b) = a dot b / (||a|| * ||b||)
-
-Temperature scaling:
-  tau -> 0: distribution -> one-hot (hard)
-  tau -> inf: distribution -> uniform (soft)
+```math
+\begin{aligned}
+L&=-\log\frac{\exp(\operatorname{sim}(z_i,z_j)/\tau)}
+{\sum_k\exp(\operatorname{sim}(z_i,z_k)/\tau)}\\
+\operatorname{sim}(a,b)&=\frac{a\cdot b}{\|a\|\|b\|}
+\end{aligned}
 ```
+
+第一式是 InfoNCE，第二式是余弦相似度。温度 $$\tau\to0$$ 时分布趋向 one-hot（硬选择）；$$\tau\to\infty$$ 时趋向均匀分布（软选择）。
 
 ### B.4 推荐指标
 
-```text
-CTR = clicks / impressions
-
-Recall@K = |relevant intersect top-K| / |relevant|
-
-NDCG@K = DCG@K / IDCG@K
-  DCG@K = sum_i (2^rel_i - 1) / log2(i+1)
-
-AUC = P(score(pos) > score(neg))
-  (随机抽一正一负, 正样本得分更高的概率)
+```math
+\begin{aligned}
+\mathrm{CTR}&=\frac{\mathrm{clicks}}{\mathrm{impressions}}\\
+\mathrm{Recall@K}&=\frac{|\mathrm{relevant}\cap\mathrm{top\text{-}K}|}{|\mathrm{relevant}|}\\
+\mathrm{NDCG@K}&=\frac{\mathrm{DCG@K}}{\mathrm{IDCG@K}}\\
+\mathrm{DCG@K}&=\sum_i\frac{2^{\mathrm{rel}_i}-1}{\log_2(i+1)}\\
+\mathrm{AUC}&=P(\mathrm{score(pos)}>\mathrm{score(neg)})
+\end{aligned}
 ```
+
+AUC 表示随机抽取一个正样本和一个负样本时，正样本得分更高的概率。
 
 ---
 

@@ -5,7 +5,7 @@ tags: [广告与推荐]
 category: "技术分享"
 summary: "X (Twitter)'s For You recommendation algorithm, open-sourced in 2026, is a specialized system tailor-made for its own scenario. This article analyzes its core design from an ads-system engineer's perspective, compares it with the general-purpose architectures of ByteDance and Kuaishou, and dissects its real transferable value."
 sourceFile: "x-开源推荐算法拆解-一个精妙的特化系统而非通用推荐范式.mdx"
-sourceHash: "48f71c3f1b87ad37df4af5f938ca8c7706fc2013049c80645307c62cdc1b2d03"
+sourceHash: "45104f6d1a897a9a985a8efad6bed0e2e46f15e0b0911c8e06293fe5a0a923ea"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -84,10 +84,17 @@ My actual experience in an advertising DSP system proved this: when we expanded 
 
 The Phoenix model simultaneously predicts the probability of 19 types of user actions, with the final score computed through a weighted sum:
 
-```
-Final Score = w_like * P(like) + w_reply * P(reply) + w_repost * P(repost)
-            + w_share * P(share) + w_dwell * P(dwell) + ...
-            - w_block * P(block) - w_mute * P(mute) - w_report * P(report)
+```math
+\begin{aligned}
+\mathrm{Final\ Score}={}&w_{\mathrm{like}}P(\mathrm{like})\\
+&+w_{\mathrm{reply}}P(\mathrm{reply})\\
+&+w_{\mathrm{repost}}P(\mathrm{repost})\\
+&+w_{\mathrm{share}}P(\mathrm{share})\\
+&+w_{\mathrm{dwell}}P(\mathrm{dwell})+\cdots\\
+&-w_{\mathrm{block}}P(\mathrm{block})\\
+&-w_{\mathrm{mute}}P(\mathrm{mute})\\
+&-w_{\mathrm{report}}P(\mathrm{report})
+\end{aligned}
 ```
 
 Multi-action joint modeling itself is good practice—ByteDance, Kuaishou, and Alibaba all do similar things. But X's weight design exposes an interesting question: **how are these weights determined?**

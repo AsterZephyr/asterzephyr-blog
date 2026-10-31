@@ -5,7 +5,7 @@ tags: [系统与工程]
 summary: "From the SGLang Omni architecture to parallelism strategy choices for DiT/World Models—understanding when TP yields negative returns, and the correct multi-GPU approach: Sequence Parallelism. With empirical analysis from major companies' technical reports on why they don't use TP for DiT."
 draft: false
 sourceFile: "world-model-tp并行深度分析-为什么tp-n比tp-1还慢.mdx"
-sourceHash: "c24a360b7c2f35af24bfe83493ff36237bbc64cb9c9be900524ba95cebf809a3"
+sourceHash: "16bae5f6448cec6c794aadbb6c8e83afc17de3da61c80785f156c09177d789a0"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -347,9 +347,12 @@ Same model on DGX (NVLink):
 
 Ring AllReduce is the most commonly used collective communication algorithm in NCCL. For N GPUs, each holding data of size D:
 
-```
-Communication volume = 2 * (N-1) / N * D
-Latency = 2 * (N-1) * alpha + 2 * (N-1) / N * D / bandwidth
+```math
+\begin{aligned}
+\text{Communication volume}&=\frac{2(N-1)}{N}D\\
+\text{Latency}&=2(N-1)\alpha\\
+&\quad+\frac{2(N-1)D}{N\,\mathrm{bandwidth}}
+\end{aligned}
 ```
 
 Where:

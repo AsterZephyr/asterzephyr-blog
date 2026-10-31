@@ -4,7 +4,7 @@ date: 2026-05-17
 tags: [技术报告解读, 广告与推荐]
 category: "技术分享"
 sourceFile: "onetrans-统一transformer架构的工业落地.mdx"
-sourceHash: "6f5278f3657a703957378b0ff039e9ffaf20df71ca57b1cd95dd99008a026c3b"
+sourceHash: "16c84099a3b2ec9a97037f548940fdd2ee0c675f580edfd5d232a8d17dd6a4c0"
 ---
 
 import TechGraph from '../../components/blog/TechGraph.astro'
@@ -49,12 +49,19 @@ This is OneTrans's most elegant design. Within the same Transformer block:
 - **S-tokens (sequence tokens)** share one set of Q/K/V and FFN parameters. The rationale: behavior-sequence tokens are inherently homogeneous—they all represent a user doing something—so shared parameters let the model learn general patterns of behavioral evolution.
 - **NS-tokens (non-sequence tokens)** each have independent parameters. The rationale: features such as age, city, and ad category have very different meanings; separate parameters let the model learn a specialized transformation for each feature type.
 
-```
-Transformer Block:
-  S-tokens:  Q = W_q^shared × x,  K = W_k^shared × x,  V = W_v^shared × x
-  NS-token₁: Q = W_q^1 × x,     K = W_k^1 × x,     V = W_v^1 × x
-  NS-token₂: Q = W_q^2 × x,     K = W_k^2 × x,     V = W_v^2 × x
-  ...
+```math
+\begin{aligned}
+\text{S-tokens:}\quad
+Q&=W_q^{\mathrm{shared}}x\\
+K&=W_k^{\mathrm{shared}}x,\quad V=W_v^{\mathrm{shared}}x\\[0.4em]
+\text{NS-token}_1:\quad
+Q&=W_q^1 x\\
+K&=W_k^1 x,\quad V=W_v^1 x\\[0.4em]
+\text{NS-token}_2:\quad
+Q&=W_q^2 x\\
+K&=W_k^2 x,\quad V=W_v^2 x\\
+&\vdots
+\end{aligned}
 ```
 
 ### Causal Attention Mask

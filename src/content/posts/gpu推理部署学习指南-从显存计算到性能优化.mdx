@@ -27,8 +27,11 @@ import Callout from '../../components/blog/Callout.astro'
 
 模型推理时的显存占用由三部分组成：
 
-```
-显存占用 = 参数量(B) x 每参数字节数 + KV Cache + 激活值
+```math
+\begin{aligned}
+\text{显存占用}={}&\text{参数量(B)}\times\text{每参数字节数}\\
+&+\text{KV Cache}+\text{激活值}
+\end{aligned}
 ```
 
 其中：
@@ -108,8 +111,8 @@ import Callout from '../../components/blog/Callout.astro'
 
 ### 核心概念：算术强度
 
-```
-算术强度 (Arithmetic Intensity) = 计算量(FLOPS) / 数据搬运量(Bytes)
+```math
+\text{算术强度}=\frac{\text{计算量(FLOPS)}}{\text{数据搬运量(Bytes)}}
 ```
 
 这个比值衡量的是：每搬运 1 字节数据，能做多少次计算。

@@ -233,9 +233,11 @@ Entropy（熵）衡量模型输出的**多样性**。正常 RL 训练的 entropy
 
 强化学习的核心目标是最大化期望回报：
 
-```
-J(theta) = E[sum of rewards]
-Policy Gradient: nabla J = E[nabla log pi(a|s) * A(s,a)]
+```math
+\begin{aligned}
+J(\theta)&=\mathbb E\left[\sum_t r_t\right]\\
+\nabla_\theta J&=\mathbb E\bigl[\nabla_\theta\log\pi(a\mid s)A(s,a)\bigr]
+\end{aligned}
 ```
 
 其中 A(s,a) 是 advantage function -- 衡量这个 action 比"平均"好多少。
@@ -244,9 +246,11 @@ Policy Gradient: nabla J = E[nabla log pi(a|s) * A(s,a)]
 
 PPO 用一个独立的 Value Network (Critic) 来估计 advantage：
 
+```math
+A(s,a)=R(s,a)-V(s)
 ```
-A(s,a) = R(s,a) - V(s)  (Critic 估计的 baseline)
-```
+
+其中的 baseline 由 Critic 估计。
 
 问题：训练 Critic 需要第 5 个大模型（Actor + Reference + Reward + Critic），**显存和计算成本翻倍**。
 
@@ -256,26 +260,27 @@ DeepSeek 的解法：**不用 Critic，用同组采样的统计量代替 baselin
 
 对于每个 prompt x，采样 k 个回答 (y_1, ..., y_k)，计算各自的 reward (r_1, ..., r_k)：
 
+```math
+\begin{aligned}
+A_i^{\mathrm{GRPO}}&=\frac{r_i-\operatorname{mean}(r_1,\ldots,r_k)}{\operatorname{std}(r_1,\ldots,r_k)}\\
+A_i^{\mathrm{PPO}}&=r_i-V(s)
+\end{aligned}
 ```
-GRPO Advantage:
-  A_i = (r_i - mean(r_1..k)) / std(r_1..k)
 
-对比 PPO:
-  A_i = r_i - V(s)  (需要额外网络)
-
-GRPO 的 A_i 完全由同组样本的统计量决定，不需要额外参数。
-```
+PPO 需要额外的价值网络；GRPO 的优势完全由同组样本的统计量决定，不需要额外参数。
 
 ### 梯度更新公式
 
+```math
+\begin{aligned}
+L_{\mathrm{GRPO}}={}&-\mathbb E\bigl[\min\bigl(\rho A,\\
+&\qquad\operatorname{clip}(\rho,1-\epsilon,1+\epsilon)A\bigr)\bigr]\\
+&+\beta\operatorname{KL}(\pi\Vert\pi_{\mathrm{ref}})\\
+\rho&=\frac{\pi_\theta(y\mid x)}{\pi_{\mathrm{old}}(y\mid x)}
+\end{aligned}
 ```
-L_GRPO = -E[ min(rho * A, clip(rho, 1-eps, 1+eps) * A) ] + beta * KL(pi || pi_ref)
 
-其中:
-  rho = pi_theta(y|x) / pi_old(y|x)  -- 重要性采样比
-  A = GRPO advantage (组内标准化)
-  beta * KL = 与 reference model 的距离惩罚
-```
+$$\rho$$ 是重要性采样比，$$A$$ 是组内标准化的 GRPO 优势；KL 项惩罚当前策略与 reference model 的距离。
 
 ### 为什么 KL 惩罚至关重要
 

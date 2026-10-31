@@ -4,7 +4,7 @@ date: 2026-10-15
 tags: [广告与推荐, 技术报告解读]
 summary: "Starting from three ledgers, two dual variables and one bid, how budget and ROS pacing are coordinated, and which conclusions survive, and which must be rederived, when the method moves to platform margin and dynamic take rates."
 sourceFile: "pacing-ros-dynamic-take-rate.mdx"
-sourceHash: "4d4918cb2a333ecc9e5631e001fb93c0ab076a7258029f409117178c1975097c"
+sourceHash: "b5937f5895855b17c343c84b6282f98e47b2d6d2ca44cc6fb6ec7308390663de"
 draft: false
 ---
 
@@ -26,10 +26,11 @@ Over one settlement window, let the customer pay the platform **R**, let the pla
 
 There are at least two different ratios:
 
-```text
-Advertiser ROAS = V / R
-Platform gross margin m = (R − C) / R
+```math
+\mathrm{ROAS}=\frac VR,\qquad m=\frac{R-C}{R}
 ```
+
+The first is advertiser ROAS; the second is platform gross margin.
 
 Gross margin uses revenue as its denominator. If a business divides profit by cost, or counts rebates and service fees as revenue, the definitions must be reconciled first. The teaching examples below ignore taxes, rebates and infrastructure cost, and do not treat gross profit as net profit.
 
@@ -56,11 +57,15 @@ Back to the advertiser side. Field Guide indexes each auction by t: predicted va
 
 The advertiser wants to maximize total value while respecting a budget and a ROS requirement. After normalizing the ROS target to 1, the problem is:
 
-```text
-maximize   Σ vₜ xₜ(bₜ)
-subject to Σ pₜ(bₜ) ≤ Σ vₜ xₜ(bₜ)    ROS constraint
-           Σ pₜ(bₜ) ≤ B                budget constraint
+```math
+\begin{aligned}
+\max_{\{b_t\}}\quad&\sum_t v_t x_t(b_t)\\
+\text{s.t.}\quad&\sum_t p_t(b_t)\le\sum_t v_t x_t(b_t)\\
+&\sum_t p_t(b_t)\le B
+\end{aligned}
 ```
+
+The two inequalities are the ROS constraint and the budget constraint.
 
 If the original target is "at least τ units of value per unit spent," divide the original value by τ and then use the formulation above. This normalization does not change the direction of value maximization, but it changes the numerical scale of the symbols.
 
@@ -70,16 +75,23 @@ The budget constraint prevents spending beyond what is authorized; the ROS const
 
 Introduce two nonnegative variables: λ for ROS and μ for the budget. Putting the cost of violating each constraint into the objective gives the Lagrangian:
 
-```text
-L = Σvₜxₜ − λ(Σpₜ − Σvₜxₜ) − μ(Σpₜ − B)
-  = μB + Σ[(1 + λ)vₜxₜ − (μ + λ)pₜ]
+```math
+\begin{aligned}
+L={}&\sum_t v_t x_t
+-\lambda\Bigl(\sum_t p_t-\sum_t v_t x_t\Bigr)\\
+&-\mu\Bigl(\sum_t p_t-B\Bigr)\\
+={}&\mu B+\sum_t\bigl[(1+\lambda)v_t x_t\\
+&\qquad-(\mu+\lambda)p_t\bigr]
+\end{aligned}
 ```
 
 So a problem that originally spans many auctions can, for given λ and μ, be split into a choice per auction. Dividing the per-round term by the positive number μ+λ, it is equivalent to:
 
-```text
-maximize   k vₜ xₜ(b) − pₜ(b)
-where      k = (1 + λ) / (μ + λ)
+```math
+\begin{aligned}
+\max_b\quad&k v_t x_t(b)-p_t(b)\\
+k&=\frac{1+\lambda}{\mu+\lambda}
+\end{aligned}
 ```
 
 <TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g3-duality-en.svg" title="Constraints → Lagrangian → bid" alt="Maximizing value under budget and ROS limits yields the bid multiplier k equal to one plus λ divided by μ plus λ" caption="Drawn by the author of this post, based on Field Guide §2.1, equations (2)-(3). λ and μ are state; k is the multiplier sent to bidding." />
@@ -92,16 +104,20 @@ In a first-price auction, the winner pays its own bid, so the one-shot best resp
 
 Let ρ=B/T be the average per-round budget. The two most direct feedback quantities are:
 
-```text
-ROS gap    = pₜ − vₜxₜ
-Budget gap = pₜ − ρ
+```math
+\begin{aligned}
+\text{ROS gap}&=p_t-v_t x_t\\
+\text{Budget gap}&=p_t-\rho
+\end{aligned}
 ```
 
 A positive gap means this round added pressure to the corresponding constraint. An explanatory projected-gradient update is:
 
-```text
-λₜ₊₁ = max(0, λₜ + ηλ × ROS gap)
-μₜ₊₁ = max(0, μₜ + ημ × Budget gap)
+```math
+\begin{aligned}
+\lambda_{t+1}&=\max(0,\lambda_t+\eta_\lambda\,\text{ROS gap})\\
+\mu_{t+1}&=\max(0,\mu_t+\eta_\mu\,\text{Budget gap})
+\end{aligned}
 ```
 
 This is a teaching update; the paper mainly uses multiplicative updates, not this pseudocode. Multiplicative and additive updates share the idea of "adjust state using constraint residuals," but their initialization, learning rates and theoretical conditions cannot be mixed.
@@ -154,10 +170,8 @@ Relaxing the tolerated relative error to 5%, cumulative values become 0.75, 0.73
 
 Switch to the platform side. If "raise spend" means increasing actual customer payment R, and the platform must hold gross margin m on a revenue denominator, then:
 
-```text
-(R − C) / R ≥ m
-is equivalent to
-C ≤ (1 − m)R
+```math
+\frac{R-C}{R}\ge m\quad\Longleftrightarrow\quad C\le(1-m)R
 ```
 
 <TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g7-margin-en.svg" title="Mapping the margin constraint" alt="The gross-margin floor is rewritten as cost no more than one minus margin times revenue, then customer budget and procurement budget are distinguished" caption="Derivation by the author of this post. The ratio must be aggregate revenue over aggregate cost in the same window, not a simple average of per-transaction margins." />
@@ -170,30 +184,34 @@ But a customer's budget usually limits R, whereas the budget in the original adv
 
 With customer budget B, the platform model can be written as:
 
-```text
-max R
-s.t. C − (1−m)R ≤ 0
-     R ≤ B
-
-L = [1 + λ(1−m) − μ]R − λC + μB
+```math
+\begin{aligned}
+\max\quad&R\\
+\text{s.t.}\quad&C-(1-m)R\le0\\
+&R\le B\\[0.5em]
+L={}&[1+\lambda(1-m)-\mu]R\\
+&-\lambda C+\mu B
+\end{aligned}
 ```
 
 If the budget limits publisher procurement cost C, it becomes:
 
-```text
-max R
-s.t. C − (1−m)R ≤ 0
-     C ≤ B
-
-L = [1 + λ(1−m)]R − (λ+μ)C + μB
+```math
+\begin{aligned}
+\max\quad&R\\
+\text{s.t.}\quad&C-(1-m)R\le0\\
+&C\le B\\[0.5em]
+L={}&[1+\lambda(1-m)]R\\
+&-(\lambda+\mu)C+\mu B
+\end{aligned}
 ```
 
 This is a derivation from the simplified business definitions above, not a ready-made platform formula from the Field Guide text. In the former, μ acts on the revenue coefficient; in the latter, it acts on the cost coefficient. Calling both "budget" does not justify reusing the same bid multiplier and the same min-pacing guarantee.
 
 Assume further that the platform revenue r from one won impression is fixed and does not change with the bid the platform submits to the publisher; that procurement is a truthful auction; and that λ>0. The customer-budget model then has effective procurement value:
 
-```text
-r × [1 + λ(1−m) − μ] / λ
+```math
+r\,\frac{1+\lambda(1-m)-\mu}{\lambda}
 ```
 
 When the effective value is nonpositive and procurement payments are nonnegative, the platform can abstain. This expression shows how business constraints enter the bid. If r itself changes with the bid, R(b) must stay inside the optimization; if procurement is a first-price auction, one-shot bid optimization is still needed.
@@ -226,9 +244,11 @@ Suppose two mutually exclusive options both satisfy customer budget 100 and gros
 
 Suppose currently R₀=100, C₀=80, gross profit Π₀=20 and gross margin 20%. If scaling up lowers the overall margin to 18%, keeping gross profit from falling requires:
 
-```text
-0.18 × R₁ ≥ 20
-R₁ ≥ 111.11…
+```math
+\begin{aligned}
+0.18R_1&\ge20\\
+R_1&\ge111.11\ldots
+\end{aligned}
 ```
 
 Revenue must grow by at least about 11.11% to offset the lower margin. If revenue only rises from 100 to 105, gross profit is just 18.9: spend grows, yet profit still falls.

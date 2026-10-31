@@ -5,7 +5,7 @@ tags: [系统与工程]
 summary: "From PagedAttention fundamentals to KV Cache capacity calculations in multi-GPU deployments—fully understand why single-GPU metrics show 52K yet the system can handle 200K+ context. Covers Block Manager architecture, TP/CP parallelism strategies, and MLA architecture specifics."
 draft: false
 sourceFile: "vllm-kv-cache-block-manager-深度教程.mdx"
-sourceHash: "06390bacd4c5a86e0dfb05aaf13c306bf28132665d136a3ee009ea469125268b"
+sourceHash: "5e0446a5eea7cf68360b203346c3d3aaaa51c2182efcb45ee1669533e9ccea6e"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -135,10 +135,15 @@ available_kv_memory = total_gpu_memory x gpu_memory_utilization - model_weights 
 
 ### 4.2 Block Size Calculation
 
-```
-block_size_bytes = block_size x num_layers x 2(K+V) x num_kv_heads_per_rank x head_dim x dtype_bytes
-
-num_gpu_blocks = available_kv_memory / block_size_bytes
+```math
+\begin{aligned}
+\mathtt{block\_size\_bytes}
+={}&\mathtt{block\_size}\times\mathtt{num\_layers}\\
+&\times2_{(K+V)}\times\mathtt{num\_kv\_heads\_per\_rank}\\
+&\times\mathtt{head\_dim}\times\mathtt{dtype\_bytes}\\
+\mathtt{num\_gpu\_blocks}
+&=\frac{\mathtt{available\_kv\_memory}}{\mathtt{block\_size\_bytes}}
+\end{aligned}
 ```
 
 ### 4.3 Worked Example
@@ -314,18 +319,21 @@ curl http://localhost:8000/metrics | grep -i block
 
 ### Key Formula Summary
 
-```
-KV Cache per token (standard GQA):
-  = num_layers x 2 x num_kv_heads x head_dim x dtype_bytes
-
-KV Cache per token (MLA):
-  = num_layers x (d_c + d_rope) x dtype_bytes
-
-Num GPU blocks:
-  = available_kv_memory / (block_size x kv_per_token)
-
-Total capacity (with CP):
-  = num_blocks x block_size x context_parallel_size
+```math
+\begin{aligned}
+\text{GQA KV bytes/token}
+={}&\mathtt{num\_layers}\times2\\
+&\times\mathtt{num\_kv\_heads}\\
+&\times\mathtt{head\_dim}\times\mathtt{dtype\_bytes}\\[0.4em]
+\text{MLA KV bytes/token}
+={}&\mathtt{num\_layers}\times(d_c+d_{\mathrm{rope}})\\
+&\times\mathtt{dtype\_bytes}\\[0.4em]
+\text{GPU blocks}
+&=\frac{\mathtt{available\_kv\_memory}}{\mathtt{block\_size}\times\mathtt{kv\_per\_token}}\\
+\text{Capacity with CP}
+={}&\mathtt{num\_blocks}\times\mathtt{block\_size}\\
+&\times\mathtt{context\_parallel\_size}
+\end{aligned}
 ```
 
 ---

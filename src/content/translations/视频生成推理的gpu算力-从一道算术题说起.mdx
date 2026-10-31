@@ -5,7 +5,7 @@ tags: [系统与工程]
 summary: "1,600 H100s doing video generation inference can only handle 42 QPS online — starting from a simple division problem, we break down why video generation is the most compute-dense task in AI inference today."
 draft: false
 sourceFile: "视频生成推理的gpu算力-从一道算术题说起.mdx"
-sourceHash: "be22033899ad1976b11d9ca9695189497a457d7d6b26e680d01c25e3f188b26e"
+sourceHash: "71591daed4e494fd59b4681ccdd59807350f0823765f058c70dd061bf7383776"
 ---
 
 import TechGraph from '../../components/blog/TechGraph.astro'
@@ -16,8 +16,8 @@ Someone did the math: **1,600 H100s doing video generation inference can only ha
 
 How? The formula is simple:
 
-```
-300 / 8 * 43 / 1600 = 1.0
+```math
+\frac{300}{8}\times\frac{43}{1600}=1.0
 ```
 
 What do these four numbers represent? Why can 1,600 top-tier GPUs "only" serve 42 concurrent requests? This article breaks it down from scratch.
@@ -63,8 +63,8 @@ So: **H100 single-card time to generate a 10-second video = 300 / 8 = 37.5 secon
 
 Each GPU takes 37.5 seconds to process one request; 1,600 GPUs working in parallel:
 
-```
-QPS = 1600 / 37.5 = 42.7
+```math
+\mathrm{QPS}=\frac{1600}{37.5}=42.7
 ```
 
 **Conclusion: With all 1,600 H100s fully saturated, you can just barely support 42–43 QPS of 10-second video generation.**
@@ -110,16 +110,16 @@ The fundamental difference between video and images: **the time dimension**.
 
 Total tokens = spatial tokens × temporal tokens. If an image has 1,024 tokens, a 10-second video has:
 
-```
-1024 * 40 = 40,960 tokens (compressed)
+```math
+1024\times40=40{,}960\ \text{tokens (compressed)}
 ```
 
 And the self-attention cost of a Transformer is **O(N²)** — double the token count, quadruple the compute.
 
 Going from an image (1 frame) to a video (160 frames), even with 4x temporal compression by the VAE:
 
-```
-40^2 / 1^2 = 1,600x
+```math
+\frac{40^2}{1^2}=1600
 ```
 
 **This is the fundamental reason video generation is expensive: it's not that the frame count grows linearly — it's that the attention cost grows quadratically.**
@@ -208,9 +208,11 @@ But there's a tradeoff here: using 8 GPUs to accelerate a single request doesn't
 
 Back to the original formula:
 
+```math
+\frac{300}{8}\times\frac{43}{1600}=1.0
 ```
-300(H20 latency) / 8(performance ratio) * 43(concurrency) / 1600(GPUs) = 1.0(fully saturated)
-```
+
+The four numbers are H20 latency, the performance ratio, concurrency and GPU count; 1.0 means full utilization.
 
 The fundamental reasons:
 
@@ -236,8 +238,12 @@ Video generation is the **most compute-dense task** in current AI inference, bar
 
 Transforms uniform temporal attention (T²) into a pyramid structure:
 
-```
-Total cost = 1/3 * (T² + (T/2)² + (T/4)²) = 0.44 * T²
+```math
+\begin{aligned}
+\text{Total cost}
+&=\frac13\left[T^2+\left(\frac T2\right)^2+\left(\frac T4\right)^2\right]\\
+&=0.44\,T^2
+\end{aligned}
 ```
 
 This halves the compute cost and is one of the main directions for efficiency optimization in current video generation.
@@ -275,8 +281,13 @@ Even after 48x compression, the latent tensor remains enormous: 40 × 90 × 160 
 
 DiT slices the latent tensor into fixed-size patches, with each patch becoming a token:
 
-```
-Latent [40, 90, 160] -> Patch (2x2 spatial) -> [40, 45, 80] = 144,000 tokens
+```math
+\begin{aligned}
+\text{Latent shape:}\quad&[40,90,160]\\
+\text{Patch:}\quad&2\times2\text{ spatial}\\
+\text{Token grid:}\quad&[40,45,80]\\
+\text{Token count:}\quad&144{,}000
+\end{aligned}
 ```
 
 Each token is linearly projected into a hidden_dim-dimensional vector (typically 1536–4096), then fed into Transformer blocks.

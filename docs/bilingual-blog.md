@@ -27,6 +27,16 @@ Author-created diagrams can have translated labels: keep the Chinese SVG at its 
 
 Every new published post must have a complete English counterpart in the same change. The build checks this automatically, including pinned posts. Unfinished originals may remain drafts. `legacy-untranslated-posts.json` freezes the older published posts that did not have an English edition when this rule began; it must not be extended to exempt new work. This guard checks completeness signals and source freshness; the author still translates and reviews both versions before publication.
 
+## Math authoring
+
+Use a fenced block with the language `math` for display equations, and double dollars for inline math, for example `$$\gamma_j$$`. Single dollars stay literal so prices such as `$1.00` are not interpreted as formulas. Keep executable code, JSON, diagrams and explanatory ledgers in their existing code fences.
+
+Use TeX subscripts, superscripts, fractions and `aligned` environments instead of manually spaced plaintext equations. Move long explanations out of the formula so they can wrap in the article body. Apply the same mathematical change to both editions, then refresh the English source hash.
+
+Formulas render at build time with local KaTeX styles and fonts, including MathML for accessibility. Invalid TeX fails the build. Check equations and long inline identifiers on mobile, including after switching languages.
+
+Keep each Markdown table row on one physical line; use `<br />` for intentional breaks within a cell. Escape literal pipes as `\|`, including in inline code, or use TeX commands such as `\lvert` inside math to prevent formulas from being split across columns. The test suite checks table row delimiters and the bilingual metric-table regression.
+
 ## Validation
 
 ```sh

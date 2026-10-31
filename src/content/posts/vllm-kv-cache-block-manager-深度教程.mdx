@@ -133,10 +133,15 @@ available_kv_memory = total_gpu_memory x gpu_memory_utilization - model_weights 
 
 ### 4.2 Block 大小计算
 
-```
-block_size_bytes = block_size x num_layers x 2(K+V) x num_kv_heads_per_rank x head_dim x dtype_bytes
-
-num_gpu_blocks = available_kv_memory / block_size_bytes
+```math
+\begin{aligned}
+\mathtt{block\_size\_bytes}
+={}&\mathtt{block\_size}\times\mathtt{num\_layers}\\
+&\times2_{(K+V)}\times\mathtt{num\_kv\_heads\_per\_rank}\\
+&\times\mathtt{head\_dim}\times\mathtt{dtype\_bytes}\\
+\mathtt{num\_gpu\_blocks}
+&=\frac{\mathtt{available\_kv\_memory}}{\mathtt{block\_size\_bytes}}
+\end{aligned}
 ```
 
 ### 4.3 计算实例
@@ -312,18 +317,21 @@ curl http://localhost:8000/metrics | grep -i block
 
 ### 关键公式汇总
 
-```
-KV Cache per token (标准 GQA):
-  = num_layers x 2 x num_kv_heads x head_dim x dtype_bytes
-
-KV Cache per token (MLA):
-  = num_layers x (d_c + d_rope) x dtype_bytes
-
-Num GPU blocks:
-  = available_kv_memory / (block_size x kv_per_token)
-
-Total capacity (with CP):
-  = num_blocks x block_size x context_parallel_size
+```math
+\begin{aligned}
+\text{GQA KV bytes/token}
+={}&\mathtt{num\_layers}\times2\\
+&\times\mathtt{num\_kv\_heads}\\
+&\times\mathtt{head\_dim}\times\mathtt{dtype\_bytes}\\[0.4em]
+\text{MLA KV bytes/token}
+={}&\mathtt{num\_layers}\times(d_c+d_{\mathrm{rope}})\\
+&\times\mathtt{dtype\_bytes}\\[0.4em]
+\text{GPU blocks}
+&=\frac{\mathtt{available\_kv\_memory}}{\mathtt{block\_size}\times\mathtt{kv\_per\_token}}\\
+\text{Capacity with CP}
+={}&\mathtt{num\_blocks}\times\mathtt{block\_size}\\
+&\times\mathtt{context\_parallel\_size}
+\end{aligned}
 ```
 
 ---

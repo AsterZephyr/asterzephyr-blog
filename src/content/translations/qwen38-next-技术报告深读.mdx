@@ -8,7 +8,7 @@ category: "技术分享"
 summary: "Qwen3.8-Flash-Next activates only 6B parameters per token, leads the previous 397B-A17B flagship on 8 of 14 pretraining benchmarks, and uses roughly one-ninth of its training FLOPs. The more useful part of the report is how the architecture was chosen: loss, benchmarks, per-phase costs and training stability often point in different directions, some shortcuts look harmless in pretraining and fail only after post-training, and once the architecture changes, the optimizer, learning rate and stability tests all have to be redone."
 draft: false
 sourceFile: "qwen38-next-技术报告深读.mdx"
-sourceHash: "c5625e57e3e5c6f5a45773b12578c791dc66a4d6513b8d99d98d95de1d97dc92"
+sourceHash: "c6b5f76b75b0484c58236ac33b0c405845baf658ef04f186a135b02baa2fc912"
 ---
 
 import Figure from '../../components/blog/Figure.astro'
@@ -47,12 +47,16 @@ The token mixer decides which earlier information a position can reach. Full att
 
 Each GDN head keeps a state matrix `S` of shape `d_k × d_v`, whose size does not depend on how many tokens have been read. When token t arrives, the input first produces a query `q_t`, a key `k_t` (both L2-normalized) and a value `v_t`, and the state is updated by the report's Eq. 1 to 4:
 
-```text
-S̃_{t-1} = α_t · S_{t-1}              global decay, α_t ∈ (0, 1)
-e_t     = v_t − S̃_{t-1}ᵀ k_t         read the old value with k_t, compute the error
-S_t     = S̃_{t-1} + β_t · k_t e_tᵀ    write back only the error, β_t ∈ (0, 1)
-y_t     = S_tᵀ q_t                   read this step's output with q_t
+```math
+\begin{aligned}
+\tilde S_{t-1}&=\alpha_t S_{t-1},\quad \alpha_t\in(0,1)\\
+e_t&=v_t-\tilde S_{t-1}^{\top}k_t\\
+S_t&=\tilde S_{t-1}+\beta_t k_t e_t^\top,\quad\beta_t\in(0,1)\\
+y_t&=S_t^\top q_t
+\end{aligned}
 ```
+
+The four rows apply global decay, read the old value with the key to compute the error, write back only the error, and read the current output with the query.
 
 Both `α_t` and `β_t` are computed from the current input: `α_t` controls how long old memory survives as a whole, and `β_t` controls how much this step rewrites. What separates GDN from ordinary linear attention is the second line: before writing, it uses `k_t` to check what the state already holds, and writes only the prediction error.
 
@@ -85,12 +89,18 @@ Follow one query at position `i`; the report numbers positions from 0. The index
 
 Only blocks that have fully appeared are scored: block `b` takes part only if its last token `4b + 3` is not later than `i`, and its score is the sum over the 4 heads of the query-key inner products after ReLU. With a token budget of `K = 2048`, each query keeps the `2048 / 4 = 512` highest-scoring blocks and expands them back to the original token indices; the 0 to 3 tokens that have already appeared in the block not yet filled are always added. Core attention finally reads the K/V of these original tokens; the compressed blocks are used only for scoring.
 
-```text
-k̄_b  = RoPE(RMSNorm(mean(k_{4b}, …, k_{4b+3})), position 4b)
-I_ib = Σ_h ReLU(q_{i,h} · k̄_b)      computed only for complete blocks (4b + 3 ≤ i)
-B_i  = the 512 highest-scoring blocks  K = 2048, r = 4
-S_i  = original tokens expanded from B_i ∪ {4⌊(i+1)/4⌋, …, i}
+```math
+\begin{aligned}
+\bar k_b=\operatorname{RoPE}\bigl(&\operatorname{RMSNorm}(\\
+&\operatorname{mean}(k_{4b},\ldots,k_{4b+3})),4b\bigr)\\
+I_{ib}&=\sum_h\operatorname{ReLU}(q_{i,h}\cdot\bar k_b)\\
+B_i&=\operatorname{Top512}(I_{i,\cdot})\\
+S_i&=\operatorname{expand}(B_i)\\
+&\quad\cup\{4\lfloor(i+1)/4\rfloor,\ldots,i\}
+\end{aligned}
 ```
+
+RoPE uses position $$4b$$. Scores are computed only for complete blocks satisfying $$4b+3\le i$$. $$B_i$$ contains the 512 highest-scoring blocks, with $$K=2048$$ and $$r=4$$. Their original tokens are expanded and combined with the current incomplete block.
 
 <TechGraph src="/images/posts/qwen38-flash-next/qsa-token-strip.svg" title="SCORE BLOCKS, READ TOKENS" alt="A strip of token positions 0 to 11 with the query at position 9. Positions 0 to 3 and 4 to 7 are two complete blocks, each compressed into one block key that is scored; positions 8 and 9 are the visible tail of the block not yet filled, which is not scored but always read; positions 10 and 11 have not been generated. Selected blocks expand back to the original tokens, and core attention reads the original K/V of positions 0 to 9. Lower panels note that at long context only 512 of about n/4 complete blocks are kept, and that index keys use average pooling while the Stage 1 training target uses max pooling." caption="Author-created diagram of how a query at position 9 decides which tokens to read, based on §2.1.2, Eq. 12 to 19 of the report. Only 12 positions are drawn, for illustration." />
 
@@ -162,14 +172,19 @@ For the remaining findings the report gives only text. Read granularity matters 
 
 The final Gated Residual (GR) spends almost all of its expressiveness on the read. It has the same form as GatedNorm, which the team proposed in separate work: a lightweight elementwise self-gate after RMSNorm (Eq. 29). On the read, each of the 4 branches is RMS-normalized separately; the normalized branches are concatenated and passed through a low-rank bottleneck of rank `d/8` (`d` is the hidden size) and a sigmoid, giving one gate value for every channel of every branch; the gated branches are averaged to form the sublayer input. On the write, each branch gets just one scalar `s_i = 2σ(·)` between 0 and 2, and the sublayer output, multiplied by it, is added back to that branch. The attention sublayer and the MLP sublayer each have their own GR module.
 
-```text
-R̂_i  = RMSNorm(R_i)                            i = 1, …, 4, each branch normalized on its own
-G    = σ(W_u · SiLU(W_d · [R̂_1; …; R̂_4] / 4))   4 × d gate values
-x    = (1/4) · Σ_i G_i ⊙ R̂_i                   sublayer input
-y    = F(x)                                    F is GDN, QSA or MoE
-s    = 2σ(W_w · [R̂_1; …; R̂_4] / 4)              4 scalars
-R_i' = R_i + s_i · y                           written back to each unnormalized branch
+```math
+\begin{aligned}
+\hat R_i&=\operatorname{RMSNorm}(R_i),\quad i=1,\ldots,4\\
+G&=\sigma\Bigl(W_u\operatorname{SiLU}\bigl(\\
+&\qquad W_d[\hat R_1;\ldots;\hat R_4]/4\bigr)\Bigr)\\
+x&=\frac14\sum_i G_i\odot\hat R_i\\
+y&=F(x)\\
+s&=2\sigma\bigl(W_w[\hat R_1;\ldots;\hat R_4]/4\bigr)\\
+R_i'&=R_i+s_i y
+\end{aligned}
 ```
+
+Each branch is normalized separately. $$G$$ produces $$4\times d$$ gate values and $$x$$ is the sublayer input. $$F$$ is GDN, QSA or MoE; $$s$$ produces four scalars, and the output is written back to each unnormalized branch.
 
 <TechGraph src="/images/posts/qwen38-flash-next/gr-read-write.svg" title="RICH READ, SCALAR WRITE" alt="One GR read and write. Each of the four residual branches is RMS-normalized separately; 4 by d elementwise gate values are computed from all branches, and the gated normalized branches are averaged into the sublayer input; the output of the GDN, QSA or MoE sublayer is multiplied by one scalar per branch and added back to the four unnormalized branches. The 4 by 4 mixing matrix H_res on the identity path is removed, and branches still exchange information through the read, the sublayer and the write; residual branches are stored in FP8, and the read and the write are each fused into one kernel." caption="Author-created diagram of one GR read and one GR write, based on §2.2, Eq. 30 to 34 of the report. The read is gated elementwise per branch and channel, while the write has only one scalar per branch; there is no explicit branch-mixing matrix, so information is exchanged through the read, the sublayer and the write." />
 

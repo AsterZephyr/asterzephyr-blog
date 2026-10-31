@@ -89,10 +89,14 @@ CED 延续了 [YoCo](https://arxiv.org/abs/2405.05254) 的跨层 KV 复用与 pr
 
 下面是 decoder 全局 KV 来源的简化表达；实际存储还受 CSA2 的跨层共享规则约束，并非每层都保存独立副本：
 
+```math
+\begin{aligned}
+C_l&=H_{L/2}W_l^{\mathrm{KV}}\\
+Z_l&=H_{L/2}W_l^Z
+\end{aligned}
 ```
-C_l = H_{L/2} * W_l^{KV}    // 全局 KV 从 encoder 最后一层投影
-Z_l = H_{L/2} * W_l^{Z}     // 压缩权重也从 encoder 投影
-```
+
+全局 KV 和压缩权重均由 encoder 最后一层的表示投影得到。
 
 这意味着：
 - **Prefill**：encoder 处理输入并生成 decoder 全局 KV 所需的表示；decoder 不再完整处理全部 prompt，但仍回放末尾窗口以初始化自己的 SWA。
@@ -381,8 +385,11 @@ V4.1-Flash 在 45T 多模态数据上训练，序列长度最长 1M token。这�
 
 **Balanced image sharding**：单个超长的 image-dense 序列可能耗尽一个节点的 I/O 和 CPU 资源。解法是把每个序列的图片按 CP rank 做负载均衡分片，每张图只读取一次。关键的判断条件是一个简单的不等式：
 
-```
-N × ρ / B_IO < N × C / B_GPU  ⟺  ρ < (B_IO / B_GPU) × C
+```math
+\begin{aligned}
+\frac{N\rho}{B_{\mathrm{IO}}}&<\frac{NC}{B_{\mathrm{GPU}}}\\
+\Longleftrightarrow\quad\rho&<\frac{B_{\mathrm{IO}}}{B_{\mathrm{GPU}}}C
+\end{aligned}
 ```
 
 其中 N 是 token 数，ρ 是每 token 的原始字节数，C 是每 token 的计算量，B_IO 是文件系统吞吐（bytes/s），B_GPU 在这个式子中表示 GPU 计算吞吐（FLOPs/s），不是显存带宽。因为 N 可以约掉，这个判断只取决于 per-token 的 IO 量和计算量的比值。对于 ρ 较大的 vision-module 配置（高分辨率、大 patch），存储吞吐才会成为瓶颈；对于生产规模的模型，通常是 compute-bound 的。
@@ -440,9 +447,11 @@ V4.1-Flash 在 RL 阶段引入了一个 scalar effort level b（范围 1-100）�
 
 核心机制是一个与 effort level 相关的 **指数 token penalty**：
 
-```
-r_len = -min(C_max, k(b) * l / L_norm)
-k(b) = k_0 * exp(-(b - b_min) / tau)
+```math
+\begin{aligned}
+r_{\mathrm{len}}&=-\min\left(C_{\max},\frac{k(b)l}{L_{\mathrm{norm}}}\right)\\
+k(b)&=k_0\exp\left(-\frac{b-b_{\min}}{\tau}\right)
+\end{aligned}
 ```
 
 effort 越高，token penalty 系数 k(b) 越小（指数衰减），同等长度的惩罚更小，允许模型选择更长的推理链。反之，低 effort 会对长输出施加重惩罚，迫使模型精简回答。

@@ -7,7 +7,7 @@ tags:
 summary: "Frames a real-time video has already shown cannot be redone, so a character taking a new instruction has to keep its existing state and must not drift over a long stream. Vidu S2 relies on a VLM agent that maintains state explicitly and on Self-Replay Forcing, which trains the model to continue from its own output; its evaluation shows stable video and leading task-board scores, but the report publishes no figure for how long a new instruction takes to show up on screen."
 draft: false
 sourceFile: "vidu-s2-realtime.mdx"
-sourceHash: "2fd2eb49873ab64e9f78d0fc5a87af59f973bea39287615d9238982726aaa6d4"
+sourceHash: "cfd1332d4aea9d6cdbe723b8d99520a91bf6403e76876cc70021a12cd7ebc9b5"
 ---
 
 import Figure from '../../components/blog/Figure.astro'
@@ -55,8 +55,12 @@ The descriptions are written differently as well. S1 used structured description
 
 The agent controls what the prompts say; it cannot stop errors in the picture from accumulating. Back to the opening constraint: the history that segment i sees is what the model itself just generated. Eq. 3 of the report writes one causal denoising step as:
 
-```text
-x̂₀ⁱ = fθ(xⁱ_tᵢ, tᵢ, r, cⁱ, x<ⁱ_τᵢ, τᵢ)
+```math
+\begin{aligned}
+\hat x_0^i=f_\theta\bigl(
+&x_{t_i}^i,t_i,r,c^i,\\
+&x_{\tau_i}^{<i},\tau_i\bigr)
+\end{aligned}
 ```
 
 `xⁱ_tᵢ` is the noisy audiovisual latent of segment i, and `tᵢ` the diffusion timestep it is currently at. `r` is the reference image and `cⁱ` the segment's condition. `x<ⁱ_τᵢ` is the history left by earlier segments, at noise level `τᵢ`. The model outputs `x̂₀ⁱ`, an estimate of the segment's clean latent, which still has to be decoded into playable frames and sound. A latent is a compressed numerical representation, not pixels.
@@ -81,8 +85,11 @@ Take three blocks, A, B and C, as an illustration rather than a measured traject
 
 The errors in the trajectory do not thereby become a training target. The report defines SRF as an on-policy form of Distribution Matching Distillation (DMD). The self-generated trajectory decides which states training happens in, while the supervision comes from a teacher model and moves the student's output distribution in those states toward the teacher's. The report also reuses the perceptual loss from Vidu S1 to reduce mode collapse and keep generation diverse. The objective is summarized as:
 
-```text
-L_SRF = L_DMD(replayed outputs) + L_perc(replayed outputs)
+```math
+\begin{aligned}
+L_{\mathrm{SRF}}={}&L_{\mathrm{DMD}}(\text{replayed outputs})\\
+&+L_{\mathrm{perc}}(\text{replayed outputs})
+\end{aligned}
 ```
 
 `replayed outputs` are the student's predictions on the re-noised self-generated trajectory. The objective does not ask the student to reproduce its own flawed video pixel by pixel, and it does not guarantee that every trajectory converges to one reference answer. The teacher distribution and the perceptual constraint set the direction of optimization; the self-generated history makes those constraints apply to states that actually occur at inference.
@@ -95,8 +102,11 @@ S1 produced real-time output at 540p; S2-Avatar raises the real-time resolution 
 
 At inference, the causal backbone keeps running at low resolution, followed by a one-step super-resolution Refiner that works in latent space. It upsamples the backbone's low-resolution latent, adds noise at a fixed timestep `t_r`, and predicts the corresponding high-resolution latent. (§2.2, Eq. 5, PDF p.7.)
 
-```text
-zⁱ_tr = (1 − t_r) · U(x̂ⁱ₀,LR) + t_r · εⁱ,   εⁱ ~ N(0, I)
+```math
+\begin{aligned}
+z_{\mathrm{tr}}^i&=(1-t_r)U(\hat x_{0,\mathrm{LR}}^i)+t_r\varepsilon^i\\
+\varepsilon^i&\sim\mathcal N(0,I)
+\end{aligned}
 ```
 
 `U` is spatial upsampling in latent space, and `x̂ⁱ₀,LR` is the backbone's low-resolution result for segment i. The two modules also read different histories. The backbone reads a history cache with higher noise, and the Refiner reads a high-resolution history cache with lower noise, written as `τB > τR` in the report; the idea comes from the TwinCache design in S1.

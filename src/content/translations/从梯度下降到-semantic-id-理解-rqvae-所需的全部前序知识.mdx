@@ -5,7 +5,7 @@ tags: [广告与推荐]
 category: "技术分享"
 summary: "A comprehensive guide connecting machine learning foundations, deep learning, the evolution of embeddings, Transformers and LLMs, search and recommendation architectures, CTR models, two-tower and ANN retrieval, contrastive learning, vector quantization, and generative recommendation—everything you need before training RQ-VAE semantic IDs."
 sourceFile: "从梯度下降到-semantic-id-理解-rqvae-所需的全部前序知识.mdx"
-sourceHash: "12bcad450e54722a3299a26d9542c676852a58bb7dea652d315201bd55b13996"
+sourceHash: "1fe530ba1b66b16cfa682067464968100f02c3bed3125266fb132760ad75f2a4"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -124,8 +124,8 @@ The model predicts a value ŷ, and the true value is y. The **Loss Function** me
 
 #### Mean Squared Error (MSE) — Regression Tasks
 
-```
-MSE = (1/N) * sum((y_i - y_hat_i)^2)
+```math
+\mathrm{MSE}=\frac1N\sum_i(y_i-\hat y_i)^2
 ```
 
 Intuition: the farther the predicted value is from the true value, the heavier the penalty (because it's squared).
@@ -145,8 +145,12 @@ mse = ((100-110)^2 + (200-180)^2 + (150-160)^2) / 3
 
 Binary cross-entropy:
 
-```
-BCE = -(1/N) * sum(y_i * log(y_hat_i) + (1-y_i) * log(1-y_hat_i))
+```math
+\begin{aligned}
+\mathrm{BCE}=-\frac1N\sum_i\bigl[
+&y_i\log\hat y_i\\
+&+(1-y_i)\log(1-\hat y_i)\bigr]
+\end{aligned}
 ```
 
 Intuition: if the true label is 1 (clicked), the closer the model's predicted probability is to 1, the smaller the loss. If the prediction is 0.01 (almost certain no click) but the user actually clicked, the penalty is −log(0.01) = 4.6, which is very large.
@@ -170,8 +174,8 @@ Cross-entropy + sigmoid output layer is the standard configuration, ensuring the
 
 #### Reconstruction Loss — Autoencoders / VQ-VAE
 
-```
-L_reconstruct = ||x - Decoder(Encoder(x))||^2
+```math
+L_{\mathrm{reconstruct}}=\|x-\operatorname{Decoder}(\operatorname{Encoder}(x))\|^2
 ```
 
 Intuition: compress the input and then reconstruct it; see how similar the reconstruction is to the original. In VQ-VAE, this loss determines whether the codebook has preserved enough information.
@@ -184,8 +188,8 @@ Imagine you are standing on a mountain (your current loss value), blindfolded (y
 
 The **gradient** tells you "which direction is the steepest uphill from where you're standing right now." **Gradient descent** is simply "take a step in the opposite direction of the gradient"—always walk downhill.
 
-```
-param_new = param_old - learning_rate * gradient
+```math
+\mathrm{Parameters}_{\mathrm{new}}=\mathrm{Parameters}_{\mathrm{old}}-\mathrm{learning\ rate}\times\mathrm{gradient}
 ```
 
 #### Learning Rate
@@ -314,16 +318,16 @@ Intuition: each training step uses only "part of the network," which is equivale
 
 Penalizes large parameter values, encouraging the model to use "simple" rules.
 
-```
-Total_Loss = Original_Loss + lambda * sum(w_i^2)
+```math
+L_{\mathrm{total}}=L_{\mathrm{original}}+\lambda\sum_i w_i^2
 ```
 
 When lambda = 0.01, if a weight w = 10, the additional penalty is 0.01 * 100 = 1.0. This forces the model to prefer many small weights rather than a few large ones, reducing model complexity.
 
 #### L1 Regularization (Lasso)
 
-```
-Total_Loss = Original_Loss + lambda * sum(|w_i|)
+```math
+L_{\mathrm{total}}=L_{\mathrm{original}}+\lambda\sum_i|w_i|
 ```
 
 The difference from L2: L1 tends to drive parameters to exactly 0 (sparsity), while L2 tends to make parameters small but not zero. L1 naturally performs feature selection—weights corresponding to unimportant features get "killed off."
@@ -436,8 +440,8 @@ AUC = 1.0  → Perfect (all positive samples score higher than all negative samp
 
 #### GAUC — More Commonly Used in Industrial Recommendation Systems
 
-```
-GAUC = sum(AUC_user_i * impression_user_i) / sum(impression_user_i)
+```math
+\mathrm{GAUC}=\frac{\sum_i\mathrm{AUC}_{\mathrm{user},i}\,\mathrm{impression}_{\mathrm{user},i}}{\sum_i\mathrm{impression}_{\mathrm{user},i}}
 ```
 
 Compute AUC per user group and then take a weighted average. Because different users have different CTR baselines (heavy users have high CTR, light users have low CTR), GAUC eliminates this discrepancy.
@@ -507,10 +511,14 @@ Each layer does two things:
 **Why is nonlinear activation needed?**
 
 Without activation functions, the composition of multiple linear transformations is still a linear transformation:
+```math
+\begin{aligned}
+z_2&=W_2(W_1x+b_1)+b_2\\
+&=(W_2W_1)x+(W_2b_1+b_2)
+\end{aligned}
 ```
-z2 = W2 * (W1 * x + b1) + b2 = (W2*W1) * x + (W2*b1 + b2)
-# This is equivalent to a single linear transformation! Multiple layers are pointless.
-```
+
+This is equivalent to one linear transformation; stacking layers without nonlinear activations still gives a linear transformation.
 
 Activation functions break this linear superposition, enabling multi-layer networks to express nonlinear relationships.
 
@@ -551,16 +559,27 @@ Given a loss function and a multi-layer network, how do we know how to adjust th
 
 **Full derivation using a two-layer network as an example**:
 
+```math
+\begin{aligned}
+z_1&=W_1x+b_1,\quad a_1=\operatorname{ReLU}(z_1)\\
+z_2&=W_2a_1+b_2,\quad\hat y=\operatorname{sigmoid}(z_2)\\
+\frac{\partial L}{\partial W_2}
+&=\frac{\partial L}{\partial\hat y}
+\frac{\partial\hat y}{\partial z_2}
+\frac{\partial z_2}{\partial W_2}\\
+&=(\hat y-y)\operatorname{sigmoid}'(z_2)a_1\\
+\frac{\partial L}{\partial W_1}
+&=\frac{\partial L}{\partial\hat y}
+\frac{\partial\hat y}{\partial z_2}
+\frac{\partial z_2}{\partial a_1}
+\frac{\partial a_1}{\partial z_1}
+\frac{\partial z_1}{\partial W_1}\\
+&=(\hat y-y)\operatorname{sigmoid}'(z_2)\\
+&\qquad W_2\operatorname{ReLU}'(z_1)x
+\end{aligned}
 ```
-Forward: x → z1=W1*x+b1 → a1=relu(z1) → z2=W2*a1+b2 → y_hat=sigmoid(z2) → Loss
 
-Backward (chain rule):
-dL/dW2 = dL/dy_hat * dy_hat/dz2 * dz2/dW2
-       = (y_hat - y) * sigmoid'(z2) * a1
-
-dL/dW1 = dL/dy_hat * dy_hat/dz2 * dz2/da1 * da1/dz1 * dz1/dW1
-       = (y_hat - y) * sigmoid'(z2) * W2 * relu'(z1) * x
-```
+The first two rows give the forward path from input to prediction, followed by the loss. The remaining rows show backpropagation through the chain rule.
 
 This is essentially the chain rule from high-school calculus `f(g(h(x)))' = f' * g' * h'` applied to multi-layer function composition.
 
@@ -1441,13 +1460,11 @@ Models can only process discrete IDs from a fixed-size vocabulary. Mapping arbit
 
 **LLM Scaling Laws (Kaplan 2020, Chinchilla 2022)**:
 
+```math
+L=aN^{-\alpha}+bD^{-\beta}+c
 ```
-Loss = a * N^(-alpha) + b * D^(-beta) + c
-# N: number of model parameters
-# D: amount of training data
-# Loss: cross-entropy loss on the validation set
-# alpha ≈ 0.076, beta ≈ 0.095 (Chinchilla)
-```
+
+$$N$$ is parameter count, $$D$$ is training data size, and $$L$$ is validation cross-entropy loss. For Chinchilla, $$\alpha\approx0.076$$ and $$\beta\approx0.095$$.
 
 Core finding: increasing both the number of parameters and the amount of data predictably reduces loss, with no ceiling (within the observed range).
 
@@ -1544,9 +1561,11 @@ class VAE:
 This is VAE's most critical innovation. The problem: the sampling operation `z ~ N(mu, sigma)` is not differentiable—gradients cannot propagate back through "sampling."
 
 Solution: separate the randomness from the computation graph:
+```math
+z=\mu+\sigma\epsilon,\qquad\epsilon\sim\mathcal N(0,1)
 ```
-z = mu + sigma * epsilon  (epsilon ~ N(0,1) is external noise)
-```
+
+$$\epsilon$$ is external noise.
 
 Now the gradient of z with respect to mu is 1, and the gradient with respect to sigma is epsilon—both are computable!
 
@@ -5046,18 +5065,20 @@ The core idea behind adaptive learning rates: **automatically slow down paramete
 
 Adam combines Momentum and RMSProp (adaptive step-size scaling) and is currently the most widely used optimizer.
 
+```math
+\begin{aligned}
+m_0&=0,\quad v_0=0,\quad t=0\\
+t&\leftarrow t+1\\
+g_t&=\nabla_\theta L\\
+m_t&=\beta_1m_{t-1}+(1-\beta_1)g_t\\
+v_t&=\beta_2v_{t-1}+(1-\beta_2)g_t^2\\
+\hat m_t&=\frac{m_t}{1-\beta_1^t},\quad
+\hat v_t=\frac{v_t}{1-\beta_2^t}\\
+\theta_t&=\theta_{t-1}-\frac{\mathrm{lr}\,\hat m_t}{\sqrt{\hat v_t}+\epsilon}
+\end{aligned}
 ```
-Initialize: m_0 = 0 (first moment), v_0 = 0 (second moment), t = 0
 
-Each update step:
-  t = t + 1
-  g_t = gradient(loss, theta)
-  m_t = beta1 * m_{t-1} + (1 - beta1) * g_t       # Exponential moving average of gradients
-  v_t = beta2 * v_{t-1} + (1 - beta2) * g_t^2     # Exponential moving average of squared gradients
-  m_hat = m_t / (1 - beta1^t)                      # Bias correction
-  v_hat = v_t / (1 - beta2^t)                      # Bias correction
-  theta_t = theta_{t-1} - lr * m_hat / (sqrt(v_hat) + epsilon)
-```
+$$m_t$$ and $$v_t$$ track exponential moving averages of the gradient and its square. $$\hat m_t$$ and $$\hat v_t$$ are bias-corrected values.
 
 Intuitive interpretation: m_hat tells you "which direction to go" (with inertia, not swayed by single-step noise); v_hat tells you "how steep the terrain is in that direction" (the steeper it is, the smaller the step). Net effect: take large steps in flat directions, small steps in steep directions—automatically adapting to the terrain of different parameters.
 
@@ -5071,10 +5092,15 @@ Wrong approach (Adam + L2): adding the regularization term lambda * ||theta||^2 
 
 Correct approach (AdamW): independently subtract a decay term after the Adam update:
 
+```math
+\begin{aligned}
+\theta_t=\theta_{t-1}-\mathrm{lr}\Bigl(
+&\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon}\\
+&+\mathrm{wd}\,\theta_{t-1}\Bigr)
+\end{aligned}
 ```
-theta_t = theta_{t-1} - lr * (m_hat / (sqrt(v_hat) + eps) + wd * theta_{t-1})
-                               ↑ Adam update term                ↑ Independent decay term
-```
+
+The first term is the Adam update; the second is decoupled weight decay.
 
 Practical advice: PyTorch's `torch.optim.Adam` implements L2 by default (the wrong way), while `torch.optim.AdamW` is the correct Weight Decay. Modern deep learning training should always use AdamW.
 
@@ -9698,57 +9724,57 @@ Dual-version hot swap: after the new RQ-VAE finishes training, generate a new SI
 
 | Symbol | Meaning | Typical Value/Range |
 |------|------|-------------|
-| x | Input data (raw features) | R^(d_in) |
-| z_e | Encoder output (continuous representation) | R^d |
-| z_q | Quantized representation (discrete) | R^d |
-| x_hat | Decoder-reconstructed output | R^(d_in) |
-| e_k | The k-th codeword in the codebook | R^d |
-| K | Codebook size per layer | 256–8192 |
-| L | Number of RQ layers | 2–8 |
-| $d$ | Codeword dimension | 16–128 |
-| $B$ | Batch Size | 512–8192 |
-| $N$ | Total number of items | $10^6$–$10^9$ |
+| $$x$$ | Input data (raw features) | $$\mathbb R^{d_{\mathrm{in}}}$$ |
+| $$z_e$$ | Encoder output (continuous representation) | $$\mathbb R^d$$ |
+| $$z_q$$ | Quantized representation (discrete) | $$\mathbb R^d$$ |
+| $$\hat x$$ | Decoder-reconstructed output | $$\mathbb R^{d_{\mathrm{in}}}$$ |
+| $$e_k$$ | The k-th codeword in the codebook | $$\mathbb R^d$$ |
+| $$K$$ | Codebook size per layer | 256–8192 |
+| $$L$$ | Number of RQ layers | 2–8 |
+| $$d$$ | Codeword dimension | 16–128 |
+| $$B$$ | Batch Size | 512–8192 |
+| $$N$$ | Total number of items | $$10^6$$–$$10^9$$ |
 
 ### 67.2 Loss Function Symbols
 
 | Symbol | Meaning | Formula |
 |------|------|------|
-| L_recon | Reconstruction loss | ‖x - x_hat‖² |
-| L_VQ | Codebook loss | ‖sg(z_e) - z_q‖² |
-| L_commit | Commitment loss | ‖z_e - sg(z_q)‖² |
-| sg(·) | Stop Gradient | Passes through in forward; gradient is 0 in backward |
-| $\alpha, \beta$ | Loss weights | $\alpha=1, \beta=0.25$ |
+| $$L_{\mathrm{recon}}$$ | Reconstruction loss | $$\lVert x-\hat x\rVert^2$$ |
+| $$L_{\mathrm{VQ}}$$ | Codebook loss | $$\lVert\operatorname{sg}(z_e)-z_q\rVert^2$$ |
+| $$L_{\mathrm{commit}}$$ | Commitment loss | $$\lVert z_e-\operatorname{sg}(z_q)\rVert^2$$ |
+| $$\operatorname{sg}(\cdot)$$ | Stop Gradient | Passes through in forward; gradient is 0 in backward |
+| $$\alpha, \beta$$ | Loss weights | $$\alpha=1, \beta=0.25$$ |
 
 ### 67.3 Transformer Symbols
 
 | Symbol | Meaning | Formula |
 |------|------|------|
-| $Q, K, V$ | Query/Key/Value | $Q=XW_Q, K=XW_K, V=XW_V$ |
-| $d_k$ | Key dimension | $d / H$ (H = number of heads) |
-| $H$ | Number of attention heads | 4–32 |
-| Attn | Attention output | softmax(QK^T/√d_k) · V |
-| FFN | Feed-forward network | max(0, xW1+b1)W2+b2 |
+| $$Q, K, V$$ | Query/Key/Value | $$Q=XW_Q, K=XW_K, V=XW_V$$ |
+| $$d_k$$ | Key dimension | $$d / H$$ (H = number of heads) |
+| $$H$$ | Number of attention heads | 4–32 |
+| $$\mathrm{Attn}$$ | Attention output | $$\operatorname{softmax}(QK^\top/\sqrt{d_k})V$$ |
+| $$\mathrm{FFN}$$ | Feed-forward network | $$\max(0,xW_1+b_1)W_2+b_2$$ |
 
 ### 67.4 Training-Related Symbols
 
 | Symbol | Meaning | Formula |
 |------|------|------|
-| η | Learning rate | 1e-4 ~ 1e-3 |
-| γ | EMA decay rate | 0.99-0.999 |
-| $\theta$ | Model parameters | — |
-| ∇θL | Gradient | ∂L/∂θ |
-| $T$ | Temperature | 0.01-1.0 |
-| $\epsilon$ | Sinkhorn regularization coefficient | 0.01-0.1 |
+| $$\eta$$ | Learning rate | 1e-4 ~ 1e-3 |
+| $$\gamma$$ | EMA decay rate | 0.99-0.999 |
+| $$\theta$$ | Model parameters | — |
+| $$\nabla_\theta L$$ | Gradient | $$\partial L/\partial\theta$$ |
+| $$T$$ | Temperature | 0.01-1.0 |
+| $$\epsilon$$ | Sinkhorn regularization coefficient | 0.01-0.1 |
 
 ### 67.5 Evaluation Metric Symbols
 
 | Symbol | Meaning | Formula |
 |------|------|------|
-| Util | Codebook utilization | |&#123;k: N_k > 0&#125;| / K |
-| Coll | Collision rate | 1 - |unique SIDs| / N |
-| Recall@K | Recall | |S ∩ G| / |G| |
-| NDCG@K | Ranking quality | DCG@K / IDCG@K |
-| MSE | Mean squared error | (1/N)Σ‖x_i - x_hat_i‖² |
+| Util | Codebook utilization | $$\frac{\lvert\{k:N_k>0\}\rvert}{K}$$ |
+| Coll | Collision rate | $$1-\frac{\lvert\text{unique SIDs}\rvert}{N}$$ |
+| Recall@K | Recall | $$\frac{\lvert S\cap G\rvert}{\lvert G\rvert}$$ |
+| NDCG@K | Ranking quality | $$\mathrm{DCG@K}/\mathrm{IDCG@K}$$ |
+| MSE | Mean squared error | $$\frac1N\sum_i\lVert x_i-\hat x_i\rVert^2$$ |
 
 ---
 
@@ -9807,8 +9833,8 @@ OneRec / OneSearch are early industrial practices in this direction: they unify 
 
 Temperature appears across various scenarios in deep learning, but its mathematical essence is singular: controlling the sharpness of the softmax output distribution.
 
-```
-P(i) = exp(z_i / T) / sum(exp(z_j / T))
+```math
+P(i)=\frac{\exp(z_i/T)}{\sum_j\exp(z_j/T)}
 ```
 
 As T approaches 0, the distribution degenerates to one-hot (selecting only the largest), at T = 1 it is the standard softmax, and as T approaches infinity the distribution tends toward uniform (completely random).
@@ -11519,71 +11545,70 @@ Technology evolves rapidly, but foundational principles remain unchanged. Master
 
 ### B.1 Attention Mechanism
 
-```text
-Self-Attention:
-  Attention(Q, K, V) = softmax(QK^T / sqrt(d_k)) V
-
-Multi-Head:
-  MultiHead(Q, K, V) = Concat(head_1, ..., head_h) W_O
-  head_i = Attention(QW_Q^i, KW_K^i, VW_V^i)
-
-Causal Mask (SID generation):
-  mask[i][j] = 0 if j <= i else -inf
-  (Can only see preceding codewords, cannot peek at future ones)
+```math
+\begin{aligned}
+\operatorname{Attention}(Q,K,V)
+&=\operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right)V\\
+\operatorname{MultiHead}(Q,K,V)
+&=\operatorname{Concat}(\mathrm{head}_1,\ldots,\mathrm{head}_h)W_O\\
+\mathrm{head}_i
+&=\operatorname{Attention}(QW_Q^i,KW_K^i,VW_V^i)\\
+\mathrm{mask}_{ij}&=\begin{cases}
+0,&j\le i\\
+-\infty,&j>i
+\end{cases}
+\end{aligned}
 ```
+
+The first three rows give self-attention, multi-head attention and one head. SID generation uses the causal mask below, which only exposes preceding codewords.
 
 ### B.2 Vector Quantization
 
-```text
-VQ Quantization:
-  z_q = argmin_k ||z_e - e_k||^2  (find nearest codeword)
-
-VQ-VAE Loss:
-  L = ||x - D(z_q)||^2 + ||sg[z_e] - z_q||^2 + beta * ||z_e - sg[z_q]||^2
-
-RQ (multi-level):
-  r_0 = z_e
-  z_q^l = argmin_k ||r_(l-1) - e_k^l||^2
-  r_l = r_(l-1) - z_q^l
-  z_final = sum(z_q^l)
-
-EMA codebook update:
-  N_k = gamma * N_k + (1-gamma) * n_k         (assignment count)
-  m_k = gamma * m_k + (1-gamma) * sum(z_e_i)  (assigned vector sum)
-  e_k = m_k / N_k                              (codeword = mean)
-
-Sinkhorn (optimal transport):
-  Q = exp(-dist / tau)
-  repeat: Q = normalize_rows(normalize_cols(Q))
+```math
+\begin{aligned}
+z_q&=\operatorname*{arg\,min}_k\|z_e-e_k\|^2\\
+L={}&\|x-D(z_q)\|^2\\
+&+\|\operatorname{sg}[z_e]-z_q\|^2\\
+&+\beta\|z_e-\operatorname{sg}[z_q]\|^2\\[0.4em]
+r_0&=z_e\\
+z_q^l&=\operatorname*{arg\,min}_k\|r_{l-1}-e_k^l\|^2\\
+r_l&=r_{l-1}-z_q^l,\quad z_{\mathrm{final}}=\sum_l z_q^l\\[0.4em]
+N_k&\leftarrow\gamma N_k+(1-\gamma)n_k\\
+m_k&\leftarrow\gamma m_k+(1-\gamma)\sum_i z_{e,i}\\
+e_k&=\frac{m_k}{N_k}\\[0.4em]
+Q&=\exp(-\mathrm{dist}/\tau)\\
+Q&\leftarrow\operatorname{normalizeRows}
+(\operatorname{normalizeCols}(Q))
+\end{aligned}
 ```
+
+The rows give nearest-codeword VQ, the VQ-VAE loss, multi-layer RQ, EMA codebook updates and Sinkhorn optimal transport. EMA accumulates assignment counts and assigned-vector sums in N and m, then uses their ratio as the codeword. Sinkhorn repeats column and row normalization.
 
 ### B.3 Contrastive Learning
 
-```text
-InfoNCE:
-  L = -log(exp(sim(z_i, z_j)/tau) / sum_k(exp(sim(z_i, z_k)/tau)))
-
-Cosine Similarity:
-  sim(a, b) = a dot b / (||a|| * ||b||)
-
-Temperature scaling:
-  tau -> 0: distribution -> one-hot (hard)
-  tau -> inf: distribution -> uniform (soft)
+```math
+\begin{aligned}
+L&=-\log\frac{\exp(\operatorname{sim}(z_i,z_j)/\tau)}
+{\sum_k\exp(\operatorname{sim}(z_i,z_k)/\tau)}\\
+\operatorname{sim}(a,b)&=\frac{a\cdot b}{\|a\|\|b\|}
+\end{aligned}
 ```
+
+The first equation is InfoNCE; the second is cosine similarity. As $$\tau\to0$$ the distribution approaches one-hot (hard); as $$\tau\to\infty$$ it approaches uniform (soft).
 
 ### B.4 Recommendation Metrics
 
-```text
-CTR = clicks / impressions
-
-Recall@K = |relevant intersect top-K| / |relevant|
-
-NDCG@K = DCG@K / IDCG@K
-  DCG@K = sum_i (2^rel_i - 1) / log2(i+1)
-
-AUC = P(score(pos) > score(neg))
-  (Randomly draw one positive and one negative; probability that the positive scores higher)
+```math
+\begin{aligned}
+\mathrm{CTR}&=\frac{\mathrm{clicks}}{\mathrm{impressions}}\\
+\mathrm{Recall@K}&=\frac{|\mathrm{relevant}\cap\mathrm{top\text{-}K}|}{|\mathrm{relevant}|}\\
+\mathrm{NDCG@K}&=\frac{\mathrm{DCG@K}}{\mathrm{IDCG@K}}\\
+\mathrm{DCG@K}&=\sum_i\frac{2^{\mathrm{rel}_i}-1}{\log_2(i+1)}\\
+\mathrm{AUC}&=P(\mathrm{score(pos)}>\mathrm{score(neg)})
+\end{aligned}
 ```
+
+AUC is the probability that a randomly chosen positive example scores higher than a randomly chosen negative example.
 
 ---
 

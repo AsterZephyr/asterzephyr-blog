@@ -24,10 +24,11 @@ import TechGraph from '../../components/blog/TechGraph.astro'
 
 这时至少有两个不同的比率：
 
-```text
-广告主 ROAS = V / R
-平台毛利率 m = (R − C) / R
+```math
+\mathrm{ROAS}=\frac VR,\qquad m=\frac{R-C}{R}
 ```
+
+前者是广告主 ROAS，后者是平台毛利率。
 
 毛利率以收入为分母。如果某个业务把利润除以成本，或把返点、服务费计入收入，就必须先换算口径。下面的教学算例忽略税费、返点、基础设施成本，也不把毛利当作净利润。
 
@@ -54,11 +55,15 @@ import TechGraph from '../../components/blog/TechGraph.astro'
 
 广告主希望最大化总价值，同时遵守预算和 ROS 要求。把 ROS 目标归一化为 1 后，问题写成：
 
-```text
-最大化   Σ vₜ xₜ(bₜ)
-满足     Σ pₜ(bₜ) ≤ Σ vₜ xₜ(bₜ)    ROS 约束
-         Σ pₜ(bₜ) ≤ B                预算约束
+```math
+\begin{aligned}
+\max_{\{b_t\}}\quad&\sum_t v_t x_t(b_t)\\
+\text{s.t.}\quad&\sum_t p_t(b_t)\le\sum_t v_t x_t(b_t)\\
+&\sum_t p_t(b_t)\le B
+\end{aligned}
 ```
+
+两个不等式分别是 ROS 约束和预算约束。
 
 如果原目标是“每花 1 元至少获得 τ 元价值”，可以把原始价值除以 τ，再使用上式。这个归一化不改变最大化价值的方向，但改变了符号的数值尺度。
 
@@ -68,16 +73,23 @@ import TechGraph from '../../components/blog/TechGraph.astro'
 
 引入两个非负变量：λ 对应 ROS，μ 对应预算。把违反约束的代价放进目标函数，得到拉格朗日式：
 
-```text
-L = Σvₜxₜ − λ(Σpₜ − Σvₜxₜ) − μ(Σpₜ − B)
-  = μB + Σ[(1 + λ)vₜxₜ − (μ + λ)pₜ]
+```math
+\begin{aligned}
+L={}&\sum_t v_t x_t
+-\lambda\Bigl(\sum_t p_t-\sum_t v_t x_t\Bigr)\\
+&-\mu\Bigl(\sum_t p_t-B\Bigr)\\
+={}&\mu B+\sum_t\bigl[(1+\lambda)v_t x_t\\
+&\qquad-(\mu+\lambda)p_t\bigr]
+\end{aligned}
 ```
 
 于是，原本跨很多次拍卖的问题，在给定 λ、μ 时，可以拆成每次拍卖的选择。把本轮项除以正数 μ+λ，它等价于：
 
-```text
-最大化   k vₜ xₜ(b) − pₜ(b)
-其中     k = (1 + λ) / (μ + λ)
+```math
+\begin{aligned}
+\max_b\quad&k v_t x_t(b)-p_t(b)\\
+k&=\frac{1+\lambda}{\mu+\lambda}
+\end{aligned}
 ```
 
 <TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g3-duality.svg" title="约束 → 拉格朗日式 → 出价" alt="最大化价值并限制预算和 ROS，推导出出价乘数 k 等于一加 λ 除以 μ 加 λ" caption="博主自绘，基于 Field Guide §2.1、式 (2)-(3)。λ、μ 是状态；k 才是送往出价环节的乘数。" />
@@ -90,16 +102,20 @@ L = Σvₜxₜ − λ(Σpₜ − Σvₜxₜ) − μ(Σpₜ − B)
 
 用 ρ=B/T 表示平均每轮预算。两个最直接的反馈量是：
 
-```text
-ROS 缺口 = pₜ − vₜxₜ
-预算缺口 = pₜ − ρ
+```math
+\begin{aligned}
+\text{ROS 缺口}&=p_t-v_t x_t\\
+\text{预算缺口}&=p_t-\rho
+\end{aligned}
 ```
 
 缺口为正，说明这一轮加重了相应约束的压力。一个用于解释的投影梯度更新为：
 
-```text
-λₜ₊₁ = max(0, λₜ + ηλ × ROS 缺口)
-μₜ₊₁ = max(0, μₜ + ημ × 预算缺口)
+```math
+\begin{aligned}
+\lambda_{t+1}&=\max(0,\lambda_t+\eta_\lambda\,\text{ROS 缺口})\\
+\mu_{t+1}&=\max(0,\mu_t+\eta_\mu\,\text{预算缺口})
+\end{aligned}
 ```
 
 这是教学用更新式；论文主要使用乘法更新，不是这段伪代码。乘法更新与加法更新共享“利用约束残差调整状态”的思路，但初始化、学习率和理论条件不能混用。
@@ -152,10 +168,8 @@ Table 2 给出了一个值得保留的差异：在**零 ROS 违约**的桶里，
 
 切回平台侧。若“提消耗”指增加客户实际支付 R，平台要守住收入分母的毛利率 m，那么：
 
-```text
-(R − C) / R ≥ m
-等价于
-C ≤ (1 − m)R
+```math
+\frac{R-C}{R}\ge m\quad\Longleftrightarrow\quad C\le(1-m)R
 ```
 
 <TechGraph src="/images/posts/pacing-ros-dynamic-take-rate/g7-margin.svg" title="利润率约束的映射" alt="毛利率下限改写为成本不超过一减毛利率乘收入，再区分客户预算和采购预算" caption="博主推导。比率必须是同一窗口的汇总收入与汇总成本之比，不是每笔毛利率的简单平均。" />
@@ -168,30 +182,34 @@ C ≤ (1 − m)R
 
 若客户预算为 B，平台模型可以写成：
 
-```text
-max R
-s.t. C − (1−m)R ≤ 0
-     R ≤ B
-
-L = [1 + λ(1−m) − μ]R − λC + μB
+```math
+\begin{aligned}
+\max\quad&R\\
+\text{s.t.}\quad&C-(1-m)R\le0\\
+&R\le B\\[0.5em]
+L={}&[1+\lambda(1-m)-\mu]R\\
+&-\lambda C+\mu B
+\end{aligned}
 ```
 
 若预算限制媒体采购成本 C，则变成：
 
-```text
-max R
-s.t. C − (1−m)R ≤ 0
-     C ≤ B
-
-L = [1 + λ(1−m)]R − (λ+μ)C + μB
+```math
+\begin{aligned}
+\max\quad&R\\
+\text{s.t.}\quad&C-(1-m)R\le0\\
+&C\le B\\[0.5em]
+L={}&[1+\lambda(1-m)]R\\
+&-(\lambda+\mu)C+\mu B
+\end{aligned}
 ```
 
 这是根据上面的简化业务定义做出的推导，不是 Field Guide 原文给平台的现成公式。前者的 μ 作用在收入系数上，后者的 μ 作用在成本系数上；不能因为都叫“预算”，就继续套用同一个出价乘数和同一个 min-pacing 保证。
 
 进一步假设：一次成交带来的平台收入 r 固定，不随平台提交给媒体的出价变化；采购是一个真实拍卖，且 λ>0。那么客户预算模型对应的有效采购价值为：
 
-```text
-r × [1 + λ(1−m) − μ] / λ
+```math
+r\,\frac{1+\lambda(1-m)-\mu}{\lambda}
 ```
 
 当有效价值不为正、采购付款非负时，可以不参与。这条式子展示了业务约束如何进入出价。若 r 本身随出价改变，就必须把 R(b) 保留在优化问题里；若采购是一价拍卖，也仍需要单次竞价优化。
@@ -224,9 +242,11 @@ r × [1 + λ(1−m) − μ] / λ
 
 假设当前 R₀=100、C₀=80，毛利 Π₀=20，毛利率 20%。如果放量后整体毛利率降到 18%，想保持毛利金额不下降，需要：
 
-```text
-0.18 × R₁ ≥ 20
-R₁ ≥ 111.11…
+```math
+\begin{aligned}
+0.18R_1&\ge20\\
+R_1&\ge111.11\ldots
+\end{aligned}
 ```
 
 收入至少增长约 11.11%，才抵得过毛利率下降。若收入只是从 100 增到 105，毛利就只有 18.9，即使消耗增长，利润仍然下降。

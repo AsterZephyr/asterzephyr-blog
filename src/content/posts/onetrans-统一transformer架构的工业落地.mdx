@@ -48,12 +48,19 @@ OneTrans 的解法是：**把所有输入统一编码为 token 序列，然后�
 - **S-tokens（序列 token）** 共享一套 Q/K/V 和 FFN 参数。理由：行为序列 token 天然同质（都是"用户做了某事"），共享参数能让模型学到通用的行为演化模式。
 - **NS-tokens（非序列 token）** 每个 token 有独立的参数。理由：年龄、城市、广告品类这些特征语义截然不同，独立参数让模型能对每种特征做专门的变换。
 
-```
-Transformer Block:
-  S-tokens:  Q = W_q^shared × x,  K = W_k^shared × x,  V = W_v^shared × x
-  NS-token₁: Q = W_q^1 × x,     K = W_k^1 × x,     V = W_v^1 × x
-  NS-token₂: Q = W_q^2 × x,     K = W_k^2 × x,     V = W_v^2 × x
-  ...
+```math
+\begin{aligned}
+\text{S-tokens:}\quad
+Q&=W_q^{\mathrm{shared}}x\\
+K&=W_k^{\mathrm{shared}}x,\quad V=W_v^{\mathrm{shared}}x\\[0.4em]
+\text{NS-token}_1:\quad
+Q&=W_q^1 x\\
+K&=W_k^1 x,\quad V=W_v^1 x\\[0.4em]
+\text{NS-token}_2:\quad
+Q&=W_q^2 x\\
+K&=W_k^2 x,\quad V=W_v^2 x\\
+&\vdots
+\end{aligned}
 ```
 
 ### Causal Attention Mask

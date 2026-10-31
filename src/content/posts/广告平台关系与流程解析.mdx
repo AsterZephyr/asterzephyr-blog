@@ -104,9 +104,11 @@ DSP 的大脑是竞价引擎（Bidder）。它必须在极短的时间内完成�
 
 出价公式通常为：
 
-$$Bid Price = pCTR \times pCVR \times Target CPA \times \alpha$$
+```math
+\mathrm{Bid\ Price}=\mathrm{pCTR}\times\mathrm{pCVR}\times\mathrm{Target\ CPA}\times\alpha
+```
 
-其中 $$\alph$$ 是平滑系数，用于控制预算消耗速度（Pacing）。
+其中 $$\alpha$$ 是平滑系数，用于控制预算消耗速度（Pacing）。
 
 如果我们的 ADX 能够通过数据增强（如传递更准确的设备 ID 或内容标签）来帮助 DSP 提升 pCTR 或 pCVR 的预测准确性，那么 DSP 就敢于在我们的 ADX 上出更高的价格，从而提升我们 ADX 的整体收益 (1)。
 

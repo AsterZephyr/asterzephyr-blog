@@ -6,7 +6,7 @@ category: "技术分享"
 summary: "Following a long-horizon development task, we dissect KDA, AttnRes, Stable LatentMoE, long-trajectory reinforcement learning, and dual-state caching, then examine what the benchmarks actually prove."
 draft: false
 sourceFile: "kimi-k3-技术报告深读.mdx"
-sourceHash: "2a54ffb6c5db2bb6c3957231984165936fb493b38796445df4134ee874d18316"
+sourceHash: "d5892f49c923d5d99b17f64cf1b303b13bfcccda025e57cff5f98a3bbb9bf10b"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -66,13 +66,17 @@ But fixed capacity means you must choose how to overwrite existing content. The 
 
 Rewriting Equation 1 from the report into an equivalent computation order makes it easier to follow. `α` is a retention gate of length `d_k`, with each component between 0 and 1; `β` is a scalar controlling the strength of the current write. Both are generated from the current input.
 
-```text
-S_bar = Diag(α) · S_old       # Decay key channels independently
-v_hat = S_barᵀ · k           # Old state's prediction for the current content
-error = v − v_hat            # Residual that needs to be corrected this step
-S_new = S_bar + β · k · errorᵀ
-output = S_newᵀ · q
+```math
+\begin{aligned}
+\bar S&=\operatorname{Diag}(\alpha)S_{\mathrm{old}}\\
+\hat v&=\bar S^\top k\\
+\mathrm{error}&=v-\hat v\\
+S_{\mathrm{new}}&=\bar S+\beta k\,\mathrm{error}^\top\\
+\mathrm{output}&=S_{\mathrm{new}}^\top q
+\end{aligned}
 ```
+
+The first two rows decay the old state independently along key channels and read its prediction; the next row computes the difference to correct.
 
 This is what the delta rule means here. Naively adding `k vᵀ` into the state repeatedly could double-count information that is already there; subtracting the prediction recenters the update around "how much is the old state still missing." `α` lets different channels forget at different rates, and `β` determines how much to trust this new observation.
 
@@ -373,9 +377,11 @@ When reading this kind of chart, you should first look at the x-axis—active ho
 
 K3's AttnRes case goes from 283.6ms down to 114.4ms. Let's redo the numbers:
 
-```text
-Latency reduction = (283.6 − 114.4) / 283.6 ≈ 59.7%
-Speedup factor = 283.6 / 114.4 ≈ 2.48×
+```math
+\begin{aligned}
+\text{Latency reduction}&=\frac{283.6-114.4}{283.6}\approx59.7\%\\
+\text{Speedup factor}&=\frac{283.6}{114.4}\approx2.48
+\end{aligned}
 ```
 
 The original chart's y-axis is labeled Speedup and marks 59.7%; matched against the latency numbers in the text, the accurate statement in proper units is that latency decreased by approximately 59.7%. It does not mean "speed became 1.597×," and it certainly does not mean K3's own inference is 59.7% faster. The optimization target is the measured result of a single kernel.
