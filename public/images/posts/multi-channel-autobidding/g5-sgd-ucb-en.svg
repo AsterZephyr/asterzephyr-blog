@@ -1,1 +1,129 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="720" height="535" viewBox="0 0 720 535" role="img" aria-label="SGD-UCB: dual prices plus a multi-armed bandit"><defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#c3bbab"/></marker></defs><g font-family="PingFang SC, Noto Sans CJK SC, Hiragino Sans GB, sans-serif"><rect width="720" height="535" rx="18" fill="#faf8f3"/><text x="36" y="46" fill="#282c35" font-size="28" font-weight="600" text-anchor="start">SGD-UCB: dual prices plus a multi-armed bandit</text><text x="36" y="74" fill="#6b7280" font-size="17" font-weight="400" text-anchor="start">Algorithm 1, one loop per period</text><rect x="36" y="82" width="317.0" height="149" rx="12" fill="#fdf0d9" stroke="#ded8cc" stroke-width="1"/><text x="56" y="112" fill="#282c35" font-size="21" font-weight="600" text-anchor="start">1  Pick budgets</text><text x="56" y="142" fill="#3f4450" font-size="17" font-weight="400" text-anchor="start">K budget arms, spacing δ</text><text x="56" y="169" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">each channel takes the argmax of</text><text x="56" y="196" fill="#282c35" font-size="19" font-weight="500" text-anchor="start" letter-spacing="0.3">mean + UCB − (λγ+μ)a/(1+λ)</text><rect x="367.0" y="82" width="317.0" height="149" rx="12" fill="#dcf1ec" stroke="#ded8cc" stroke-width="1"/><text x="387.0" y="112" fill="#282c35" font-size="21" font-weight="600" text-anchor="start">2  Observe</text><text x="387.0" y="142" fill="#3f4450" font-size="17" font-weight="400" text-anchor="start">budget fully spent (Asm. 4.1)</text><text x="387.0" y="169" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">only this period's Vj is seen</text><text x="387.0" y="196" fill="#282c35" font-size="19" font-weight="500" text-anchor="start" letter-spacing="0.3">update arm mean and count</text><path d="M360.0 249V285" fill="none" stroke="#c3bbab" stroke-width="1.5" marker-end="url(#ar)"/><text x="374.0" y="276.0" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">compute two constraint gaps</text><rect x="36" y="295" width="317.0" height="176" rx="12" fill="#ece7fb" stroke="#ded8cc" stroke-width="1"/><text x="56" y="325" fill="#282c35" font-size="21" font-weight="600" text-anchor="start">3  Update dual prices</text><text x="56" y="355" fill="#282c35" font-size="19" font-weight="500" text-anchor="start" letter-spacing="0.3">g1 = Σ(Vj − γρj)   ROI slack</text><text x="56" y="382" fill="#282c35" font-size="19" font-weight="500" text-anchor="start" letter-spacing="0.3">g2 = ρ − Σρj       budget slack</text><text x="56" y="409" fill="#282c35" font-size="19" font-weight="500" text-anchor="start" letter-spacing="0.3">λ ← Π(λ − η g1)</text><text x="56" y="436" fill="#282c35" font-size="19" font-weight="500" text-anchor="start" letter-spacing="0.3">μ ← Π(μ − η g2)</text><rect x="367.0" y="295" width="317.0" height="176" rx="12" fill="#fae3dc" stroke="#ded8cc" stroke-width="1"/><text x="387.0" y="325" fill="#282c35" font-size="21" font-weight="600" text-anchor="start">4  Safety valve</text><text x="387.0" y="355" fill="#3f4450" font-size="17" font-weight="400" text-anchor="start">cum. ROI or spend off track</text><text x="387.0" y="382" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">stop; tiny budgets after</text><text x="387.0" y="409" fill="#86663b" font-size="17" font-weight="600" text-anchor="start">keeps constraints in expectation</text><text x="36" y="501" fill="#86663b" font-size="16" font-weight="600" text-anchor="start">The output is the time-averaged budget ρ̄T over T periods, not the last round.</text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 660" width="960" height="660" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="6" data-visual-theme="Claude Official" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="showcase" data-max-bends-per-edge="2" data-max-total-bends="8" data-max-route-stretch="1.35" data-max-bridged-crossings="0" data-min-node-gap="40.0" data-min-container-gutter="20.0" data-min-label-clearance="4.0" data-min-segment-length="16.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#d97757"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7b8b5c"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8c6f5a"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#b45309"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9a6fb0"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c5c96"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8f8a80"/>
+    </marker>
+    <style>
+    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Microsoft JhengHei', 'SimHei', sans-serif; }
+    .title { font-size: 24px; font-weight: 700; fill: #141413; }
+    .subtitle { font-size: 13px; font-weight: 500; fill: #8f8a80; }
+    .section { font-size: 13px; font-weight: 700; fill: #8b7355; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #75695d; }
+    .node-title { font-weight: 700; fill: #141413; }
+    .node-sub { font-weight: 500; fill: #6b6257; }
+    .node-type { font-size: 11px; font-weight: 700; fill: #75695d; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #6b6257; }
+    .legend { font-size: 12px; font-weight: 500; fill: #6b6257; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #75695d; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #75695d; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #141413; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="960.0" height="660.0" fill="#f8f6f3"/>
+  <text x="48.0" y="48" text-anchor="start" class="title">SGD-UCB: one loop per period</text>
+  <text x="48.0" y="72" text-anchor="start" class="subtitle">Algorithm 1: dual prices set the threshold, a bandit finds budgets from black-box feedback</text>
+  <line x1="48" y1="100" x2="912.0" y2="100" stroke="#ded8cf" stroke-width="1"/>
+  <g id="loop" data-graph-role="container" data-container-id="loop" data-semantic-role="boundary" data-graph-bounds="40,120,920,420">
+  <rect data-graph-role="container" x="40.0" y="120.0" width="880.0" height="300.0" rx="16.0" fill="none" stroke="#ded8cf" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="58.0" y="144.0" class="section">LEARNING LOOP (WHILE THE VALVE HOLDS)</text>
+    <rect id="loop-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="126" width="291.04" height="30" fill="none" stroke="none"/>
+  </g>
+  <g id="exit" data-graph-role="container" data-container-id="exit" data-semantic-role="boundary" data-graph-bounds="40,460,920,580">
+  <rect data-graph-role="container" x="40.0" y="460.0" width="880.0" height="120.0" rx="16.0" fill="none" stroke="#ded8cf" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="58.0" y="484.0" class="section">EXIT</text>
+    <rect id="exit-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="466" width="56.78" height="30" fill="none" stroke="none"/>
+  </g>
+  <path id="send" data-graph-role="edge" data-edge-id="send" data-source="ucb" data-target="chan" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 300,212 L 370,212" fill="none" stroke="#d97757" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="obs" data-graph-role="edge" data-edge-id="obs" data-source="chan" data-target="stats" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 590,212 L 660,212" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="gap" data-graph-role="edge" data-edge-id="gap" data-source="stats" data-target="dual" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 770,244 L 770,320" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="check" data-graph-role="edge" data-edge-id="check" data-source="dual" data-target="valve" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 660,352 L 590,352" fill="none" stroke="#d97757" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="next" data-graph-role="edge" data-edge-id="next" data-source="valve" data-target="ucb" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 370,352 L 190,352 L 190,244" fill="none" stroke="#7c5c96" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <path id="halt" data-graph-role="edge" data-edge-id="halt" data-source="valve" data-target="stop" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 480,384 L 480,496" fill="none" stroke="#7b8b5c" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <g id="node-ucb" data-graph-role="node" data-node-id="ucb" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="80,180,300,244">
+  <rect x="80.0" y="180.0" width="220.0" height="64.0" rx="10.0" fill="#f7ecda" stroke="#d97757" stroke-width="2.0"/>
+  <rect x="86.0" y="186.0" width="208.0" height="52.0" rx="7.0" fill="none" stroke="#d97757" stroke-width="1.2" opacity="0.65"/>
+  <text data-text-role="title" data-full-text="1 UCB picks budgets" data-text-max-width="188.0" x="190.0" y="212.0" text-anchor="middle" class="node-title" font-size="17.23">1 UCB picks budgets</text>
+  <text data-text-role="subtitle" data-full-text="one arm ρj per channel" data-text-max-width="188.0" x="190.0" y="234.0" text-anchor="middle" class="node-sub" font-size="12">one arm ρj per channel</text>
+  </g>
+  <g id="node-chan" data-graph-role="node" data-node-id="chan" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="370,180,590,244">
+  <rect x="370.0" y="180.0" width="220.0" height="64.0" rx="10.0" fill="#efe8de" stroke="#d0c3b3" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="2 Channel black box" data-text-max-width="196.0" x="480.0" y="212.0" text-anchor="middle" class="node-title" font-size="18">2 Channel black box</text>
+  <text data-text-role="subtitle" data-full-text="spends ρj, returns Vj" data-text-max-width="196.0" x="480.0" y="234.0" text-anchor="middle" class="node-sub" font-size="12">spends ρj, returns Vj</text>
+  </g>
+  <g id="node-stats" data-graph-role="node" data-node-id="stats" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="660,180,880,244">
+  <rect x="660.0" y="180.0" width="220.0" height="64.0" rx="10.0" fill="#c8e4db" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="3 Update arm stats" data-text-max-width="196.0" x="770.0" y="212.0" text-anchor="middle" class="node-title" font-size="18">3 Update arm stats</text>
+  <text data-text-role="subtitle" data-full-text="arm mean and count" data-text-max-width="196.0" x="770.0" y="234.0" text-anchor="middle" class="node-sub" font-size="12">arm mean and count</text>
+  </g>
+  <g id="node-dual" data-graph-role="node" data-node-id="dual" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="660,320,880,384">
+  <rect x="660.0" y="320.0" width="220.0" height="64.0" rx="10.0" fill="#e9f1fb" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="4 Update dual prices" data-text-max-width="196.0" x="770.0" y="352.0" text-anchor="middle" class="node-title" font-size="17.41">4 Update dual prices</text>
+  <text data-text-role="subtitle" data-full-text="λ: ROI slack, μ: budget slack" data-text-max-width="196.0" x="770.0" y="374.0" text-anchor="middle" class="node-sub" font-size="12">λ: ROI slack, μ: budget slack</text>
+  </g>
+  <g id="node-valve" data-graph-role="node" data-node-id="valve" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="370,320,590,384">
+  <rect x="370.0" y="320.0" width="220.0" height="64.0" rx="10.0" fill="#f7e3dc" stroke="#d97757" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="5 Safety valve" data-text-max-width="196.0" x="480.0" y="352.0" text-anchor="middle" class="node-title" font-size="18">5 Safety valve</text>
+  <text data-text-role="subtitle" data-full-text="cumulative ROI and spend" data-text-max-width="196.0" x="480.0" y="374.0" text-anchor="middle" class="node-sub" font-size="12">cumulative ROI and spend</text>
+  </g>
+  <g id="node-stop" data-graph-role="node" data-node-id="stop" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="370,496,590,556">
+  <rect x="370.0" y="496.0" width="220.0" height="60.0" rx="10.0" fill="#efe8de" stroke="#d0c3b3" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Stop learning" data-text-max-width="196.0" x="480.0" y="526.0" text-anchor="middle" class="node-title" font-size="18">Stop learning</text>
+  <text data-text-role="subtitle" data-full-text="tiny budgets afterwards" data-text-max-width="196.0" x="480.0" y="548.0" text-anchor="middle" class="node-sub" font-size="12">tiny budgets afterwards</text>
+  </g>
+  <g id="send-label" data-graph-role="label" data-owner="send" data-graph-bounds="304.96,181,365.04,201">
+  <rect x="304.96" y="181.0" width="60.08" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="335.0" y="195.0" text-anchor="middle" class="arrow-label">send ρj</text>
+  </g>
+  <g id="obs-label" data-graph-role="label" data-owner="obs" data-graph-bounds="607,181,643,201">
+  <rect x="607.0" y="181.0" width="36.0" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="625.0" y="195.0" text-anchor="middle" class="arrow-label">Vj</text>
+  </g>
+  <g id="gap-label" data-graph-role="label" data-owner="gap" data-graph-bounds="717,268,767,288">
+  <rect x="717.0" y="268.0" width="50.0" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="742.0" y="282.0" text-anchor="middle" class="arrow-label">g1, g2</text>
+  </g>
+  <g id="check-label" data-graph-role="label" data-owner="check" data-graph-bounds="606.96,321,643.04,341">
+  <rect x="606.96" y="321.0" width="36.08" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="625.0" y="335.0" text-anchor="middle" class="arrow-label">λ, μ</text>
+  </g>
+  <g id="next-label" data-graph-role="label" data-owner="next" data-graph-bounds="219.6,321,340.4,341">
+  <rect x="219.6" y="321.0" width="120.80000000000001" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="280.0" y="335.0" text-anchor="middle" class="arrow-label">pass: next period</text>
+  </g>
+  <g id="halt-label" data-graph-role="label" data-owner="halt" data-graph-bounds="385.24,426,477,446">
+  <rect x="385.24" y="426.0" width="91.76" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="431.12" y="440.0" text-anchor="middle" class="arrow-label">breach: stop</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="586" width="492.4" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="48.0" y1="600.0" x2="78.0" y2="600.0" stroke="#d97757" stroke-width="2.0" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="88.0" y="604.0" class="legend">decision</text>
+    <line data-graph-role="decoration" x1="165.44" y1="600.0" x2="195.44" y2="600.0" stroke="#8c6f5a" stroke-width="2.0" marker-end="url(#arrowC)"/>
+    <text data-graph-role="decoration" x="205.44" y="604.0" class="legend">observation</text>
+    <line data-graph-role="decoration" x1="306.88" y1="600.0" x2="336.88" y2="600.0" stroke="#7c5c96" stroke-width="2.0" marker-end="url(#arrowG)"/>
+    <text data-graph-role="decoration" x="346.88" y="604.0" class="legend">next period</text>
+    <line data-graph-role="decoration" x1="445.68" y1="600.0" x2="475.68" y2="600.0" stroke="#7b8b5c" stroke-width="2.0" marker-end="url(#arrowB)"/>
+    <text data-graph-role="decoration" x="485.68" y="604.0" class="legend">Exit</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="600,628,894,644">
+  <text x="600.0" y="640.0" class="footnote">Drawn by the blogger, based on Algorithm 1</text>
+  </g>
+</svg>

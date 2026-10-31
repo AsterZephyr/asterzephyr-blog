@@ -1,1 +1,137 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="720" height="742" viewBox="0 0 720 742" role="img" aria-label="广告主看不见拍卖，只能拧两个旋钮"><defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#c3bbab"/></marker></defs><g font-family="PingFang SC, Noto Sans CJK SC, Hiragino Sans GB, sans-serif"><rect width="720" height="742" rx="18" fill="#faf8f3"/><text x="36" y="46" fill="#282c35" font-size="28" font-weight="600" text-anchor="start">广告主看不见拍卖，只能拧两个旋钮</text><text x="36" y="74" fill="#6b7280" font-size="17" font-weight="400" text-anchor="start">论文 Section 2 的建模：渠道代为竞价，只回传两个汇总数</text><rect x="36" y="82" width="648.0" height="200" rx="12" fill="#fdf0d9" stroke="#ded8cc" stroke-width="1"/><text x="56" y="112" fill="#6b7280" font-size="14" font-weight="600" text-anchor="start">决策方</text><text x="56" y="138" fill="#282c35" font-size="21" font-weight="600" text-anchor="start">广告主</text><text x="56" y="168" fill="#3f4450" font-size="17" font-weight="400" text-anchor="start">全局目标：总转化最大</text><text x="56" y="195" fill="#3f4450" font-size="17" font-weight="400" text-anchor="start">全局约束：总 ROI ≥ γ，总花费 ≤ ρ</text><text x="56" y="222" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">每个渠道只能设：</text><text x="56" y="249" fill="#86663b" font-size="18" font-weight="600" text-anchor="start">预算 ρj  ·  目标 ROI γj</text><path d="M360.0 300V336" fill="none" stroke="#c3bbab" stroke-width="1.5" marker-end="url(#ar)"/><text x="374.0" y="327.0" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">每个周期下发 (γj, ρj)</text><rect x="36" y="346" width="206.66666666666666" height="146" rx="12" fill="#ece7fb" stroke="#ded8cc" stroke-width="1"/><text x="56" y="376" fill="#6b7280" font-size="14" font-weight="600" text-anchor="start">如 Google Ads</text><text x="56" y="402" fill="#282c35" font-size="21" font-weight="600" text-anchor="start">渠道 1</text><text x="56" y="432" fill="#3f4450" font-size="17" font-weight="400" text-anchor="start">自己的 autobidding</text><text x="56" y="459" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">黑盒</text><rect x="256.66666666666663" y="346" width="206.66666666666666" height="146" rx="12" fill="#ece7fb" stroke="#ded8cc" stroke-width="1"/><text x="276.66666666666663" y="376" fill="#6b7280" font-size="14" font-weight="600" text-anchor="start">如 Meta</text><text x="276.66666666666663" y="402" fill="#282c35" font-size="21" font-weight="600" text-anchor="start">渠道 2</text><text x="276.66666666666663" y="432" fill="#3f4450" font-size="17" font-weight="400" text-anchor="start">自己的 autobidding</text><text x="276.66666666666663" y="459" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">黑盒</text><rect x="477.33333333333326" y="346" width="206.66666666666666" height="146" rx="12" fill="#ece7fb" stroke="#ded8cc" stroke-width="1"/><text x="497.33333333333326" y="376" fill="#6b7280" font-size="14" font-weight="600" text-anchor="start">…</text><text x="497.33333333333326" y="402" fill="#282c35" font-size="21" font-weight="600" text-anchor="start">渠道 M</text><text x="497.33333333333326" y="432" fill="#3f4450" font-size="17" font-weight="400" text-anchor="start">自己的 autobidding</text><text x="497.33333333333326" y="459" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">黑盒</text><path d="M360.0 510V546" fill="none" stroke="#c3bbab" stroke-width="1.5" marker-end="url(#ar)"/><text x="374.0" y="537.0" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">每个渠道在 mj 场拍卖里买量</text><rect x="36" y="556" width="648.0" height="122" rx="12" fill="#dcf1ec" stroke="#ded8cc" stroke-width="1"/><text x="56" y="586" fill="#282c35" font-size="21" font-weight="600" text-anchor="start">拍卖</text><text x="56" y="616" fill="#3f4450" font-size="17" font-weight="400" text-anchor="start">每场拍卖有价值 v 和成本 d（如最高竞争出价）</text><text x="56" y="643" fill="#6b7280" font-size="16" font-weight="400" text-anchor="start">(v, d) 每周期从未知分布 pj 中抽一次</text><text x="36" y="708" fill="#86663b" font-size="16" font-weight="600" text-anchor="start">回传给广告主的只有本周期总转化 Vj 和总花费 Dj，即 bandit feedback。</text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" width="960" height="720" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="6" data-visual-theme="Claude Official" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="showcase" data-max-bends-per-edge="2" data-max-total-bends="8" data-max-route-stretch="1.35" data-max-bridged-crossings="0" data-min-node-gap="40.0" data-min-container-gutter="20.0" data-min-label-clearance="4.0" data-min-segment-length="16.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#d97757"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7b8b5c"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8c6f5a"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#b45309"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9a6fb0"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c5c96"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8f8a80"/>
+    </marker>
+    <style>
+    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Microsoft JhengHei', 'SimHei', sans-serif; }
+    .title { font-size: 24px; font-weight: 700; fill: #141413; }
+    .subtitle { font-size: 13px; font-weight: 500; fill: #8f8a80; }
+    .section { font-size: 13px; font-weight: 700; fill: #8b7355; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #75695d; }
+    .node-title { font-weight: 700; fill: #141413; }
+    .node-sub { font-weight: 500; fill: #6b6257; }
+    .node-type { font-size: 11px; font-weight: 700; fill: #75695d; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #6b6257; }
+    .legend { font-size: 12px; font-weight: 500; fill: #6b6257; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #75695d; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #75695d; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #141413; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="960.0" height="720.0" fill="#f8f6f3"/>
+  <text x="48.0" y="48" text-anchor="start" class="title">广告主看不见拍卖，只能拧两个旋钮</text>
+  <text x="48.0" y="72" text-anchor="start" class="subtitle">论文 Section 2 的三层建模：渠道代为竞价，只回传两个汇总数</text>
+  <line x1="48" y1="100" x2="912.0" y2="100" stroke="#ded8cf" stroke-width="1"/>
+  <g id="adv" data-graph-role="container" data-container-id="adv" data-semantic-role="boundary" data-graph-bounds="40,120,920,240">
+  <rect data-graph-role="container" x="40.0" y="120.0" width="880.0" height="120.0" rx="16.0" fill="none" stroke="#ded8cf" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="58.0" y="144.0" class="section">广告主层</text>
+    <rect id="adv-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="126" width="82" height="30" fill="none" stroke="none"/>
+  </g>
+  <g id="ch" data-graph-role="container" data-container-id="ch" data-semantic-role="boundary" data-graph-bounds="40,290,920,420">
+  <rect data-graph-role="container" x="40.0" y="290.0" width="880.0" height="130.0" rx="16.0" fill="none" stroke="#ded8cf" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="58.0" y="314.0" class="section">渠道层</text>
+    <rect id="ch-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="296" width="69" height="30" fill="none" stroke="none"/>
+  </g>
+  <g id="auc" data-graph-role="container" data-container-id="auc" data-semantic-role="boundary" data-graph-bounds="40,470,920,600">
+  <rect data-graph-role="container" x="40.0" y="470.0" width="880.0" height="130.0" rx="16.0" fill="none" stroke="#ded8cf" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="58.0" y="494.0" class="section">拍卖层</text>
+    <rect id="auc-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="476" width="69" height="30" fill="none" stroke="none"/>
+  </g>
+  <path id="back" data-graph-role="edge" data-edge-id="back" data-source="cm" data-target="advertiser" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 770,336 L 770,188 L 630,188" fill="none" stroke="#7c5c96" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <path id="set1" data-graph-role="edge" data-edge-id="set1" data-source="advertiser" data-target="c1" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 330,188 L 190,188 L 190,336" fill="none" stroke="#d97757" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="set2" data-graph-role="edge" data-edge-id="set2" data-source="advertiser" data-target="c2" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 480,218 L 480,336" fill="none" stroke="#d97757" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="bid1" data-graph-role="edge" data-edge-id="bid1" data-source="c1" data-target="a1" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 190,396 L 190,510" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="bid2" data-graph-role="edge" data-edge-id="bid2" data-source="c2" data-target="a2" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 480,396 L 480,510" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="bidm" data-graph-role="edge" data-edge-id="bidm" data-source="cm" data-target="am" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 770,396 L 770,510" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <g id="node-advertiser" data-graph-role="node" data-node-id="advertiser" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="330,158,630,218">
+  <rect x="330.0" y="158.0" width="300.0" height="60.0" rx="10.0" fill="#f7ecda" stroke="#d97757" stroke-width="2.0"/>
+  <rect x="336.0" y="164.0" width="288.0" height="48.0" rx="7.0" fill="none" stroke="#d97757" stroke-width="1.2" opacity="0.65"/>
+  <text data-text-role="title" data-full-text="广告主" data-text-max-width="268.0" x="480.0" y="188.0" text-anchor="middle" class="node-title" font-size="18">广告主</text>
+  <text data-text-role="subtitle" data-full-text="全局：总 ROI ≥ γ，总花费 ≤ ρ" data-text-max-width="268.0" x="480.0" y="210.0" text-anchor="middle" class="node-sub" font-size="12">全局：总 ROI ≥ γ，总花费 ≤ ρ</text>
+  </g>
+  <g id="node-c1" data-graph-role="node" data-node-id="c1" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="90,336,290,396">
+  <rect x="90.0" y="336.0" width="200.0" height="60.0" rx="10.0" fill="#efe8de" stroke="#d0c3b3" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="渠道 1" data-text-max-width="176.0" x="190.0" y="366.0" text-anchor="middle" class="node-title" font-size="18">渠道 1</text>
+  <text data-text-role="subtitle" data-full-text="如 Google Ads" data-text-max-width="176.0" x="190.0" y="388.0" text-anchor="middle" class="node-sub" font-size="12">如 Google Ads</text>
+  </g>
+  <g id="node-c2" data-graph-role="node" data-node-id="c2" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="380,336,580,396">
+  <rect x="380.0" y="336.0" width="200.0" height="60.0" rx="10.0" fill="#efe8de" stroke="#d0c3b3" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="渠道 2" data-text-max-width="176.0" x="480.0" y="366.0" text-anchor="middle" class="node-title" font-size="18">渠道 2</text>
+  <text data-text-role="subtitle" data-full-text="如 Meta" data-text-max-width="176.0" x="480.0" y="388.0" text-anchor="middle" class="node-sub" font-size="12">如 Meta</text>
+  </g>
+  <g id="node-cm" data-graph-role="node" data-node-id="cm" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="670,336,870,396">
+  <rect x="670.0" y="336.0" width="200.0" height="60.0" rx="10.0" fill="#efe8de" stroke="#d0c3b3" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="渠道 M" data-text-max-width="176.0" x="770.0" y="366.0" text-anchor="middle" class="node-title" font-size="18">渠道 M</text>
+  <text data-text-role="subtitle" data-full-text="解 Eq. (4)" data-text-max-width="176.0" x="770.0" y="388.0" text-anchor="middle" class="node-sub" font-size="12">解 Eq. (4)</text>
+  </g>
+  <g id="node-a1" data-graph-role="node" data-node-id="a1" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="100,510,280,576">
+  <rect x="100.0" y="510.0" width="180.0" height="66.0" rx="10.0" fill="#c8e4db" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="m1 场拍卖" data-text-max-width="156.0" x="190.0" y="543.0" text-anchor="middle" class="node-title" font-size="18">m1 场拍卖</text>
+  <text data-text-role="subtitle" data-full-text="(v, d) ~ p1" data-text-max-width="156.0" x="190.0" y="565.0" text-anchor="middle" class="node-sub" font-size="12">(v, d) ~ p1</text>
+  </g>
+  <g id="node-a2" data-graph-role="node" data-node-id="a2" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="390,510,570,576">
+  <rect x="390.0" y="510.0" width="180.0" height="66.0" rx="10.0" fill="#c8e4db" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="m2 场拍卖" data-text-max-width="156.0" x="480.0" y="543.0" text-anchor="middle" class="node-title" font-size="18">m2 场拍卖</text>
+  <text data-text-role="subtitle" data-full-text="(v, d) ~ p2" data-text-max-width="156.0" x="480.0" y="565.0" text-anchor="middle" class="node-sub" font-size="12">(v, d) ~ p2</text>
+  </g>
+  <g id="node-am" data-graph-role="node" data-node-id="am" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="680,510,860,576">
+  <rect x="680.0" y="510.0" width="180.0" height="66.0" rx="10.0" fill="#c8e4db" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="mM 场拍卖" data-text-max-width="156.0" x="770.0" y="543.0" text-anchor="middle" class="node-title" font-size="18">mM 场拍卖</text>
+  <text data-text-role="subtitle" data-full-text="(v, d) ~ pM" data-text-max-width="156.0" x="770.0" y="565.0" text-anchor="middle" class="node-sub" font-size="12">(v, d) ~ pM</text>
+  </g>
+  <g id="set1-label" data-graph-role="label" data-owner="set1" data-graph-bounds="137,248,187,268">
+  <rect x="137.0" y="248.0" width="50.0" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="162.0" y="262.0" text-anchor="middle" class="arrow-label">γ1, ρ1</text>
+  </g>
+  <g id="set2-label" data-graph-role="label" data-owner="set2" data-graph-bounds="427,263,477,283">
+  <rect x="427.0" y="263.0" width="50.0" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="452.0" y="277.0" text-anchor="middle" class="arrow-label">γ2, ρ2</text>
+  </g>
+  <g id="back-label" data-graph-role="label" data-owner="back" data-graph-bounds="676.68,248,767,268">
+  <rect x="676.68" y="248.0" width="90.32000000000001" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="721.84" y="262.0" text-anchor="middle" class="arrow-label">只回传 Vj, Dj</text>
+  </g>
+  <g id="bid1-label" data-graph-role="label" data-owner="bid1" data-graph-bounds="125,439,187,459">
+  <rect x="125.0" y="439.0" width="62.0" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="156.0" y="453.0" text-anchor="middle" class="arrow-label">代为竞价</text>
+  </g>
+  <g id="bid2-label" data-graph-role="label" data-owner="bid2" data-graph-bounds="415,439,477,459">
+  <rect x="415.0" y="439.0" width="62.0" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="446.0" y="453.0" text-anchor="middle" class="arrow-label">代为竞价</text>
+  </g>
+  <g id="bidm-label" data-graph-role="label" data-owner="bidm" data-graph-bounds="705,439,767,459">
+  <rect x="705.0" y="439.0" width="62.0" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="736.0" y="453.0" text-anchor="middle" class="arrow-label">代为竞价</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="626" width="400.64" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="48.0" y1="640.0" x2="78.0" y2="640.0" stroke="#d97757" stroke-width="2.0" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="88.0" y="644.0" class="legend">下发旋钮</text>
+    <line data-graph-role="decoration" x1="164.0" y1="640.0" x2="194.0" y2="640.0" stroke="#8c6f5a" stroke-width="2.0" marker-end="url(#arrowC)"/>
+    <text data-graph-role="decoration" x="204.0" y="644.0" class="legend">拍卖买量</text>
+    <line data-graph-role="decoration" x1="280.0" y1="640.0" x2="310.0" y2="640.0" stroke="#7c5c96" stroke-width="2.0" marker-end="url(#arrowG)"/>
+    <text data-graph-role="decoration" x="320.0" y="644.0" class="legend">bandit feedback</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,683,188,699">
+  <text x="48.0" y="695.0" class="footnote">博主自绘，基于原论文 Section 2</text>
+  </g>
+</svg>

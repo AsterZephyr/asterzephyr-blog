@@ -122,8 +122,8 @@
   {
     "source": "/images/posts/multi-channel-autobidding/g1-setup.svg",
     "target": "/images/posts/multi-channel-autobidding/g1-setup-en.svg",
-    "sourceHash": "5e515087cacb4f2406aa5ae8d8640c41ea141f562bd22f65c39ccbc697664a95",
-    "targetHash": "b8350b9611a4a8675c451b221de494890c734ee75a62dd5ee3704dcb8c6a4223"
+    "sourceHash": "492bbb78c28aec05c2d9e402ff799682821fcb4b925777cdc79f0b24c4c0df6f",
+    "targetHash": "2b936965d4b632f19782a9bc3d002754f302cd964950452437624c298acc4de4"
   },
   {
     "source": "/images/posts/multi-channel-autobidding/g2-problems.svg",
@@ -146,8 +146,8 @@
   {
     "source": "/images/posts/multi-channel-autobidding/g5-sgd-ucb.svg",
     "target": "/images/posts/multi-channel-autobidding/g5-sgd-ucb-en.svg",
-    "sourceHash": "a821205e0c1315e9ac00edf4ca845e9f1e0905fb018b63d60c87a0a31580e1aa",
-    "targetHash": "c9de47ffbf130e3394be56e0ec92b1477fa26329b7ff18b176abebfad791e703"
+    "sourceHash": "233e3f53df1d4253f396d3ce2de88572f8ee58096f70d105398e4fcafbfd15ef",
+    "targetHash": "cb780ecab01fab83cc5d8840a735bb18c88e476cc1b5516aaf9b2a81cba1ea5f"
   },
   {
     "source": "/images/posts/multi-channel-autobidding/g6-rates.svg",
@@ -158,8 +158,8 @@
   {
     "source": "/images/posts/multi-channel-autobidding/g7-good-bad-day.svg",
     "target": "/images/posts/multi-channel-autobidding/g7-good-bad-day-en.svg",
-    "sourceHash": "4e891389d8e34ddedad4e4c23dbad4831a8a6a963d15548d04199a4e23a402fe",
-    "targetHash": "03d87ac520c143fba763bfe34398664c51e2ce790bf207d7156b8df04b9e1e6e"
+    "sourceHash": "ce9c67f1ed407070fbe7714c9f0ee2772dd77247e6007153661d6da59980825a",
+    "targetHash": "ff2938bfce763a58c10693eb43f46041c9814f41bbaaa1e8f264f73677098b1f"
   },
   {
     "source": "/images/posts/multi-channel-autobidding/g8-levers.svg",
