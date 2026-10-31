@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 820" width="680" height="820" role="img" aria-labelledby="t d">
+<title id="t">Reading an efficiency gain</title>
+<desc id="d">Schematic: a baseline ladder fit L = f(C); a candidate reaching loss L' at cost C'; the baseline cost f^-1(L') for the same loss; EG is their ratio. Curve shape is illustrative. The two EG values in the lower panel are from Table 2.</desc>
+<style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }</style>
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0, 10 5, 0 10" fill="#5a5a5a"/></marker></defs>
+<rect width="680" height="820" fill="#f8f6f3"/>
+<line x1="90" y1="420" x2="630" y2="420" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="90" y1="420" x2="90" y2="50" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<text x="355.0" y="464" font-size="19" font-weight="400" text-anchor="middle" fill="#6a6a6a">training cost C (log scale)</text>
+<text x="34" y="240.0" font-size="19" fill="#6a6a6a" text-anchor="middle" transform="rotate(-90 34 240.0)">eval loss L (lower is better)</text>
+<path id="baseline-curve" d="M120,90.0 L128,105.7 L136,120.6 L144,134.7 L152,148.1 L160,160.8 L168,172.8 L176,184.2 L184,195.0 L192,205.3 L200,215.0 L208,224.2 L216,232.9 L224,241.2 L232,249.0 L240,256.5 L248,263.5 L256,270.2 L264,276.6 L272,282.6 L280,288.3 L288,293.7 L296,298.8 L304,303.7 L312,308.3 L320,312.6 L328,316.8 L336,320.7 L344,324.4 L352,327.9 L360,331.3 L368,334.5 L376,337.5 L384,340.3 L392,343.0 L400,345.6 L408,348.0 L416,350.3 L424,352.5 L432,354.6 L440,356.5 L448,358.4 L456,360.1 L464,361.8 L472,363.4 L480,364.9 L488,366.3 L496,367.7 L504,369.0 L512,370.2 L520,371.3 L528,372.4 L536,373.4 L544,374.4 L552,375.4 L560,376.2 L568,377.1 L576,377.9 L584,378.6 L592,379.3 L600,380.0" fill="none" stroke="#4a4a4a" stroke-width="3"/>
+<text x="610" y="74" font-size="16" font-weight="400" text-anchor="end" fill="#6a6a6a" font-style="italic">schematic curve, not measured data</text>
+<text x="610" y="112" font-size="18" font-weight="600" text-anchor="end" fill="#1a1a1a">baseline ladder fit</text>
+<text x="610" y="140" font-size="18" font-weight="400" text-anchor="end" fill="#6a6a6a">L = f(C) = A·C^(−α) + E</text>
+<circle cx="150" cy="144.8" r="7" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2"/>
+<circle cx="210" cy="226.4" r="7" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2"/>
+<circle cx="280" cy="288.3" r="7" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2"/>
+<text x="206" y="148.801929016358" font-size="17" font-weight="400" text-anchor="start" fill="#6a6a6a">baseline runs</text>
+<line x1="330" y1="351.7713423752608" x2="415.4" y2="351.7713423752608" stroke="#5a5a5a" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arr)"/>
+<circle cx="421.4" cy="351.8" r="7" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2"/>
+<circle cx="330" cy="351.8" r="9" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="316" y="337.7713423752608" font-size="18" font-weight="600" text-anchor="end" fill="#1a1a1a">candidate (C′, L′)</text>
+<line x1="330" y1="361.7713423752608" x2="330" y2="420" stroke="#5a5a5a" stroke-width="1.5" stroke-dasharray="3,4"/>
+<line x1="421.4" y1="361.7713423752608" x2="421.4" y2="420" stroke="#5a5a5a" stroke-width="1.5" stroke-dasharray="3,4"/>
+<text x="330" y="442" font-size="18" font-weight="600" text-anchor="middle" fill="#1a1a1a">C′</text>
+<text x="429.4" y="442" font-size="18" font-weight="600" text-anchor="middle" fill="#1a1a1a">f⁻¹(L′)</text>
+<text x="375.7" y="381.7713423752608" font-size="16" font-weight="400" text-anchor="middle" fill="#6a6a6a">same loss</text>
+<rect x="90" y="488" width="530" height="92" rx="10" ry="10" fill="#ffffff" stroke="#4a4a4a" stroke-width="2"/>
+<text x="355" y="526" font-size="22" font-weight="700" text-anchor="middle" fill="#1a1a1a">EG = f⁻¹(L′) / C′</text>
+<text x="355" y="560" font-size="18" font-weight="400" text-anchor="middle" fill="#6a6a6a">EG = 1.3: the baseline needs 30% more cost for L′</text>
+<text x="355" y="626" font-size="17" font-weight="400" text-anchor="middle" fill="#6a6a6a">Same candidate, two cost units (Table 2, 7+1 shared-expert variant)</text>
+<rect id="unit0" x="90" y="646" width="255" height="140" rx="12" ry="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="217" y="682" font-size="20" font-weight="700" text-anchor="middle" fill="#1a1a1a">C = FLOPs</text>
+<text x="217" y="718" font-size="20" font-weight="400" text-anchor="middle" fill="#1a1a1a">EG_FLOPs = 1.03</text>
+<text x="217" y="752" font-size="17" font-weight="400" text-anchor="middle" fill="#3a3a3a">slightly ahead per FLOP</text>
+<rect id="unit1" x="365" y="646" width="255" height="140" rx="12" ry="12" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="492" y="682" font-size="20" font-weight="700" text-anchor="middle" fill="#1a1a1a">C = training time</text>
+<text x="492" y="718" font-size="20" font-weight="400" text-anchor="middle" fill="#1a1a1a">EG_Time = 0.82</text>
+<text x="492" y="752" font-size="17" font-weight="400" text-anchor="middle" fill="#3a3a3a">needs about 1.22× the time</text>
+</svg>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 1340" width="680" height="1340" role="img" aria-labelledby="t d">
+<title id="t">From raw data to MAI-Thinking-1</title>
+<desc id="d">Training stages of MAI-Thinking-1 and what each stage produces, drawn from Table 6, Sections 2.4 to 2.6, Section 3 and Figure 12 of the report.</desc>
+<style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; }</style>
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0, 10 5, 0 10" fill="#5a5a5a"/></marker></defs>
+<rect width="680" height="1340" fill="#f8f6f3"/>
+<text x="70" y="30" font-size="17" font-weight="700" text-anchor="start" fill="#6a6a6a">DATA</text>
+<rect id="raw" x="70" y="42" width="540" height="96" rx="12" ry="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="340.0" y="76" font-size="23" font-weight="700" text-anchor="middle" fill="#1a1a1a">Raw sources</text>
+<text x="340.0" y="106" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">Web HTML · Web PDFs · Books &amp; journals</text>
+<text x="340.0" y="133" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">Public GitHub code</text>
+<line x1="340.0" y1="138" x2="340.0" y2="190" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<text x="356.0" y="171.0" font-size="17" font-weight="400" text-anchor="start" fill="#6a6a6a">extract · dedup · filter · bucket</text>
+<rect id="corpus" x="70" y="192" width="540" height="96" rx="12" ry="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="340.0" y="226" font-size="23" font-weight="700" text-anchor="middle" fill="#1a1a1a">Processed corpus</text>
+<text x="340.0" y="256" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">29.2T unique tokens in data buckets</text>
+<text x="340.0" y="283" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">mixture weights chosen on the ladder</text>
+<text x="70" y="326" font-size="17" font-weight="700" text-anchor="start" fill="#6a6a6a">PRE- AND MID-TRAINING</text>
+<line x1="340.0" y1="288" x2="340.0" y2="338" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<rect id="pt" x="70" y="340" width="540" height="96" rx="12" ry="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="340.0" y="374" font-size="23" font-weight="700" text-anchor="middle" fill="#1a1a1a">Pre-training</text>
+<text x="340.0" y="404" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">30T tokens consumed · 16K context</text>
+<text x="340.0" y="431" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">8,192 GB200 · YOLO learner</text>
+<line x1="340.0" y1="436" x2="340.0" y2="474" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<rect id="mt1" x="70" y="476" width="540" height="96" rx="12" ry="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="340.0" y="510" font-size="23" font-weight="700" text-anchor="middle" fill="#1a1a1a">Mid-training 1</text>
+<text x="340.0" y="540" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">3.4T tokens · 64K context</text>
+<text x="340.0" y="567" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">same corpus, more STEM / math / code</text>
+<line x1="340.0" y1="572" x2="340.0" y2="610" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<rect id="mt2" x="70" y="612" width="540" height="96" rx="12" ry="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="340.0" y="646" font-size="23" font-weight="700" text-anchor="middle" fill="#1a1a1a">Mid-training 2</text>
+<text x="340.0" y="676" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">150B tokens · 256K context</text>
+<text x="340.0" y="703" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">Appendix C.5 text says 140B</text>
+<text x="70" y="746" font-size="17" font-weight="700" text-anchor="start" fill="#6a6a6a">RL ON ROCKET</text>
+<line x1="340.0" y1="708" x2="340.0" y2="758" stroke="#5a5a5a" stroke-width="2"/>
+<line x1="160" y1="758" x2="520" y2="758" stroke="#5a5a5a" stroke-width="2"/>
+<line x1="154.0" y1="758" x2="154.0" y2="784" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<rect id="climb0" x="70" y="786" width="168" height="118" rx="12" ry="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="154.0" y="820" font-size="21" font-weight="700" text-anchor="middle" fill="#1a1a1a">STEM &amp; code</text>
+<text x="154.0" y="850" font-size="17" font-weight="400" text-anchor="middle" fill="#1a1a1a">checkable answers</text>
+<text x="154.0" y="875" font-size="17" font-weight="400" text-anchor="middle" fill="#1a1a1a">and test cases</text>
+<line x1="154.0" y1="904" x2="154.0" y2="990" stroke="#5a5a5a" stroke-width="2"/>
+<line x1="340.0" y1="758" x2="340.0" y2="784" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<rect id="climb1" x="256" y="786" width="168" height="118" rx="12" ry="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="340.0" y="820" font-size="21" font-weight="700" text-anchor="middle" fill="#1a1a1a">Agentic</text>
+<text x="340.0" y="850" font-size="17" font-weight="400" text-anchor="middle" fill="#1a1a1a">SWE containers</text>
+<text x="340.0" y="875" font-size="17" font-weight="400" text-anchor="middle" fill="#1a1a1a">and tool calls</text>
+<line x1="340.0" y1="904" x2="340.0" y2="990" stroke="#5a5a5a" stroke-width="2"/>
+<line x1="526.0" y1="758" x2="526.0" y2="784" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<rect id="climb2" x="442" y="786" width="168" height="118" rx="12" ry="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="526.0" y="820" font-size="21" font-weight="700" text-anchor="middle" fill="#1a1a1a">Helpful &amp; safe</text>
+<text x="526.0" y="850" font-size="17" font-weight="400" text-anchor="middle" fill="#1a1a1a">reward model,</text>
+<text x="526.0" y="875" font-size="17" font-weight="400" text-anchor="middle" fill="#1a1a1a">judges, rules</text>
+<line x1="526.0" y1="904" x2="526.0" y2="990" stroke="#5a5a5a" stroke-width="2"/>
+<rect id="sd" x="70" y="924" width="540" height="46" rx="10" ry="10" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2" stroke-dasharray="6,4"/>
+<text x="340.0" y="954" font-size="16" font-weight="400" text-anchor="middle" fill="#3a3a3a">each climb restarts by self-distillation after a collapse or base change</text>
+<line x1="154.0" y1="990" x2="526.0" y2="990" stroke="#5a5a5a" stroke-width="2"/>
+<line x1="340.0" y1="990" x2="340.0" y2="1030" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<text x="356.0" y="1016" font-size="17" font-weight="400" text-anchor="start" fill="#6a6a6a">teacher traces</text>
+<text x="70" y="1014" font-size="17" font-weight="700" text-anchor="start" fill="#6a6a6a">CONSOLIDATION</text>
+<rect id="sft" x="70" y="1032" width="540" height="96" rx="12" ry="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="340.0" y="1066" font-size="23" font-weight="700" text-anchor="middle" fill="#1a1a1a">Consolidation SFT</text>
+<text x="340.0" y="1096" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">trace distillation from three teachers</text>
+<text x="340.0" y="1123" font-size="19" font-weight="400" text-anchor="middle" fill="#1a1a1a">sample mix 56% · 11% · 33% (order as above)</text>
+<line x1="340.0" y1="1128" x2="340.0" y2="1164" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<rect id="frl" x="70" y="1166" width="540" height="70" rx="12" ry="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="340.0" y="1200" font-size="23" font-weight="700" text-anchor="middle" fill="#1a1a1a">Final lightweight RL</text>
+<text x="340.0" y="1225" font-size="18" font-weight="400" text-anchor="middle" fill="#1a1a1a">128K · keeps some STEM and code</text>
+<line x1="340.0" y1="1236" x2="340.0" y2="1266" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+<rect id="out" x="190" y="1268" width="300" height="54" rx="12" ry="12" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="2.5"/>
+<text x="340.0" y="1303" font-size="23" font-weight="700" text-anchor="middle" fill="#1a1a1a">MAI-Thinking-1</text>
+</svg>
