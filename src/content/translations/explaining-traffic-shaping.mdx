@@ -1,0 +1,122 @@
+---
+title: "Explaining traffic shaping"
+summary: "Traffic shaping is the filtering of bid requests before they reach a buyer. How exchanges choose which impressions each DSP sees, and what the filter removes."
+sourceFile: "explaining-traffic-shaping.mdx"
+sourceHash: "0189fdaccb79d2840ac437ce03efa06adb59a7724a3740309cd925f5a51e430c"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+
+<Callout type="note" title="Authorized republication">
+This is not an original AsterZephyr article. The body is the English text Luis Rijo published on PPC Land on September 10, 2026, republished with authorization and left untranslated. The original illustration is omitted.
+</Callout>
+
+Traffic shaping is the filtering of bid requests before they reach a buyer. How exchanges choose which impressions each DSP sees, and what the filter removes.
+
+Traffic shaping is the practice of deciding which bid requests an exchange forwards to each buyer, and discarding the rest before any demand-side platform (DSP) evaluates them. A supply-side platform (SSP) could offer each ad opportunity to every connected bidder. It rarely does. Buyers cap the volume they accept, every request costs money to process, and most would be ignored anyway, so the seller sends a subset it expects to be bid on.
+
+The term exists because supply grows faster than the budgets and servers available to buy it. Shaping is the rationing mechanism between the two.
+
+## Where the filter sits
+
+The sequence starts when a page or app asks for an ad. A header bidding wrapper or ad server calls several SSPs at once, and each converts the opportunity into an OpenRTB bid request, the message format maintained by the IAB Tech Lab. Before sending it, the exchange passes the request through up to three gates for each buyer connection.
+
+The first is **eligibility**: hard rules on channel, format, country, device or publisher that the buyer has declared it does not want. The second is **volume**, the buyer's queries-per-second (QPS) limit on how many requests its servers will accept each second. The third is **prediction**, a model estimating how likely that buyer is to bid, or how much revenue the request should generate. Requests that clear all three go out. The rest are dropped unseen. A DSP then has [typically 100 to 150 milliseconds to evaluate and answer](https://ppc.land/bigabid-joins-aws-rtb-fabric-as-mobile-dsp-bets-on-ml-depth/), which is why each request carries a real compute cost.
+
+In a worked example, an SSP holding 50 billion impressions and connected to 100 DSPs would, without shaping, generate 5 trillion potential bid requests for auctions only one buyer can win, according to an April 2025 PubMatic blog post.
+
+The core OpenRTB specification has no field describing any of this. The closest standard is a community extension sponsored by Xandr, Magnite, CafeMedia and Media.net that lets exchanges report non-bids to publishers. Its status code 203, "Request Blocked - Optimized", is in effect the label for a shaped-out impression.
+
+## Caps, rules and models
+
+At Google's Authorized Buyers, the **Callout Quota System** enforces a QPS limit per bidder endpoint, with the effective ceiling also bounded by the bidder's recent spend, according to Google's developer documentation. Above 15,000 QPS the system generally holds within 10% of the limit; above 45,000, within 5%. When eligible traffic exceeds quota, Google may prioritise requests the bidder is likely to answer using publisher IDs, environment type and ad format. Programmatic Guaranteed requests always pass.
+
+Bidders pre-filter with up to 10 **pretargeting** groups, each able to carry its own maximum QPS. Google's help centre describes an account with 50,000 QPS capping two groups at a combined 40,000 to hold 10,000 in reserve for video. Once an endpoint reaches its limit, **Smart Throttling** uses machine learning to remove requests with a lower predicted bid likelihood, drawing on URL, format, device type, location and whether a deal is present.
+
+The platform built by AppNexus, now documented by Microsoft, shows the move from sampling to prediction. Its legacy bidder profiles offered a passthrough_percent field, set in increments of 0.1, that forwarded a random share of matching traffic. A migration to Enhanced Bidder Profiles, due before May 21, 2019, replaced it with a per-data-centre qps_limit and an optional Optimized Bid Stream that cuts low-priority traffic based on buying behaviour rather than at random, according to Microsoft's documentation.
+
+Amazon's **Dynamic Traffic Engine** (DTE) changes who writes the model. The buyer publishes signal files to cloud storage. An evaluator library inside the SSP, available in Java and Go, pulls them every five minutes and builds a tuple from each incoming request, such as app|banner|537075271|MEX|320x50|a|4, combining channel, format, publisher ID, country, size, position and device type. [The library returns 1.0 to forward a request or 0.0 to filter it, in under a millisecond](https://ppc.land/amazon-gives-away-the-tool-that-fixes-programmatics-qps-waste-problem/), while a control group flagged learning=1 is always forwarded so the buyer keeps seeing unfiltered traffic.
+
+## From networks to bidstreams
+
+The name was borrowed. RFC 2475, the December 1998 Internet Engineering Task Force document on differentiated services, defined shaping as delaying packets so that a stream conforms to a traffic profile.
+
+OpenRTB 2.3, dated November 2014, listed traffic control among interactions that were candidates for future initiatives. It never entered the core protocol. Header bidding, adopted by publishers in the mid-2010s, then multiplied the volume, because the same impression reached buyers through several exchanges simultaneously.
+
+A dedicated business followed. nToggle, based in Boston, used machine learning to remove impressions a DSP was unlikely to bid on. Rubicon Project, renamed Magnite in 2020, completed its acquisition on July 14, 2017, for aggregate cash consideration of $38.5 million, according to the company's press release. Adam Soroca, nToggle's founder, called the practice "toggling".
+
+Duplication kept rising. PubMatic processed 56 trillion impressions in the third quarter of 2022, up 33% on the year, according to AdExchanger. BidSwitch, the Criteo-owned exchange, wrote in February 2024 that DSPs may see one impression 20 to 50 times, an estimate from a company that sells shaping tools.
+
+Authorship of the filter has since moved toward buyers. DTE version 1.1 opened as a closed beta on January 14, 2025. [TripleLift disclosed its participation on February 4, 2025](https://ppc.land/triplelift-joins-amazons-traffic-engine-to-optimize-ad-requests/), replacing predictive modelling of Amazon's demand with direct signals. Version 2.0 added a deals model on July 1, 2025, and version 2.1 added revenue-per-million-requests data for sellers on September 24, 2025. [OpenX integrated the engine in December 2025](https://ppc.land/openx-integrates-amazons-machine-learning-to-filter-low-value-impressions/).
+
+## Why it matters
+
+Shaping fixes the opportunity set before targeting runs. A campaign cannot bid on inventory its DSP was never shown, and no report lists what was withheld. Will Doherty of The Trade Desk [described SSPs sending "30% of the publisher's traffic" three times over](https://ppc.land/publishers-deploy-bid-throttling-to-tackle-programmatic-waste/). Lindsay Rowntree [observed that smaller DSPs cannot access everything they need to analyse](https://ppc.land/index-cloud-meta-ctv-and-synthetic-audiences-what-ad-tech-needs-to-know/)because the QPS load is too great.
+
+Cost drives the urgency. The Trade Desk spent $264 million on platform operations in the first nine months of 2023. [PubMatic began charging publishers in April 2026 for request volume above their allocations](https://ppc.land/pubmatic-is-now-charging-publishers-for-sending-too-much-inventory/), turning QPS into a line item. DataBeat's June 11, 2026 Sellers Report [measured a 46% duplicated-domain rate at established SSPs](https://ppc.land/same-ad-slot-bid-twice-databeat-finds-46-auction-duplication-at-top-ssps/). And [transaction IDs, present in 59% of bid requests, lost much of their use for spotting duplicates after a Prebid modification](https://ppc.land/ad-buyers-lose-key-tool-as-prebid-breaks-auction-tracking-system/).
+
+## Where it fails
+
+The main criticism is circularity. Models trained on past bids send more of what was bought before, so the view narrows. Chris Kane, founder of Jounce Media, has argued that every exchange ends up choosing the same impression because each ranks by expected revenue. Niche supply is filtered first: Emily Kennedy of Dentsu Media US said minority-owned publishers often lack the bid volume to survive such filters.
+
+Incentives are mixed. SSPs are paid on what clears, and BidSwitch has acknowledged that sending the same request to one DSP several times raises the chance of it being monetised. A seller's model optimises the seller's yield, which need not match a buyer's objective, and [such systems can drop valuable inventory while keeping low-quality impressions](https://ppc.land/openx-integrates-amazons-machine-learning-to-filter-low-value-impressions/).
+
+The evidence base is thin and largely commercial. Benjamin Hansz of Rivr, a shaping vendor, put unanswered requests above 90% of most bidstreams, according to a 2023 AdMonsters interview produced with Rivr's support. TripleLift did not publish metrics from its DTE integration.
+
+Where the filter should live is disputed. Keith Petri, writing in April 2026, argued that "the filter belongs in front of the bidder, not inside it", with buyers setting the rules. PubMatic's counter-argument is that [models running before traffic shaping see a materially larger pool of users and inventory](https://ppc.land/pubmatic-puts-partner-ai-models-inside-the-auction-with-decision-fabric/) than any DSP receives.
+
+## Not the same as
+
+**Network traffic shaping** delays packets to fit a profile; dropping them is policing. Because ad tech shaping discards requests, the networking definition would classify it closer to policing.
+
+**Bid throttling** is a publisher decision to stop calling demand partners. Chegg halts requests once a slot is called 20 or more times with zero bids.
+
+**A QPS cap** is the constraint; shaping is the selection made under it. Google applies Smart Throttling only once a cap is reached.
+
+**Supply-path optimisation** is a buyer choosing which exchanges and resellers to trade through, often using the [SupplyChain object](https://ppc.land/supplychain-object/). Shaping acts earlier, deciding whether a request arrives at all.
+
+## Recent developments
+
+The IAB Tech Lab accepted DTE into its open source programme on April 15, 2026, with initial proposals to update DTE components through the [Agentic Real-Time Framework](https://ppc.land/artf/), the container standard for partner code inside auctions. Pieter de Zwart of Amazon Ads described the aim as moving sellers "from guessing to knowing".
+
+A second approach removes the constraint instead of refining it. [Bedrock Platform ran its DSP bidder inside Index Exchange infrastructure on April 21, 2026](https://ppc.land/bedrock-becomes-first-dsp-to-run-its-bidder-inside-an-exchange/); Damian Naglak, its head of engineering, said the per-request cost that made throttling necessary falls to near zero inside the cluster. [Mediavine and SWYM extended sell-side decisioning across 18,000 publishers](https://ppc.land/mediavine-and-swym-expand-ai-supply-shaping-across-18-000-publishers/) in June, and [Magnite set out two routes for partner models to run inside its auction on August 6, 2026](https://ppc.land/magnite-offers-two-ways-to-run-partner-ai-models-inside-its-auction/). On PubMatic's second-quarter call, [Rajeev Goel presented Decision Fabric as removing traffic shaping and latency constraints](https://ppc.land/pubmatic-revenue-gains-11-after-three-quarters-of-decline/).
+
+Streaming is changing the unit being shaped. [StackAdapt reported a 71% average QPS reduction after bidding on whole ad pods through Index Exchange](https://ppc.land/stackadapt-achieves-71-qps-reduction-with-index-exchange-podding/), a figure supplied by the companies. As of September 2026, the DTE integrations disclosed in PPC Land coverage remain TripleLift and OpenX.
+
+## Timeline
+
+- December 1998: RFC 2475 defines shaping as delaying packets to conform to a traffic profile, separate from policing
+- November 2014: OpenRTB 2.3 lists traffic control as a candidate for future initiatives
+- July 14, 2017: Rubicon Project completes its acquisition of nToggle, a traffic-shaping company, for $38.5 million
+- May 2019: Deadline for AppNexus bidders to migrate from percentage-based passthrough to QPS caps with Optimized Bid Stream
+- Q3 2022: PubMatic processes 56 trillion impressions, a 33% annual increase
+- February 2024: BidSwitch estimates DSPs may receive the same impression 20 to 50 times
+- January 14, 2025: Amazon Ads opens Dynamic Traffic Engine version 1.1 as a closed beta
+- February 4, 2025: TripleLift discloses participation in the DTE beta
+- July 1, 2025: DTE version 2.0 adds a deals model; StackAdapt and Index Exchange implement ad podding
+- September 24, 2025: DTE version 2.1 adds revenue-per-million-requests insights for sellers
+- December 22, 2025: OpenX integrates the Dynamic Traffic Engine
+- February 5, 2026: DTE version 2.3 released
+- April 15, 2026: Amazon Ads donates DTE to the IAB Tech Lab as an open source project
+- April 2026: PubMatic starts charging publishers for excess bid request volume
+- April 21, 2026: Bedrock Platform runs a DSP bidder inside Index Exchange infrastructure
+- June 1, 2026: PubMatic launches Decision Fabric
+- June 11, 2026: DataBeat reports a 46% duplicated-domain rate at established SSPs
+- August 6, 2026: Magnite publishes two deployment routes for partner models inside its auction
+
+## Summary
+
+**Who.** SSPs and exchanges apply traffic shaping to outbound bid requests; DSPs set the QPS limits and, increasingly, the rules. Google's Authorized Buyers, Microsoft's former AppNexus platform, Amazon Ads, TripleLift, OpenX and PubMatic all operate or document versions of it, and the IAB Tech Lab now governs Amazon's Dynamic Traffic Engine.
+
+**What.** The selection of which bid requests reach which buyer, using eligibility rules, volume caps and predictive models, with the remainder discarded before any bid is considered.
+
+**When.** The term comes from network engineering, formalised in December 1998. It entered ad tech as header bidding multiplied requests in the mid-2010s, became an acquisition target in July 2017, and moved toward buyer-authored rules between January 2025 and April 2026.
+
+**Where.** Between the exchange and the bidder, inside SSP infrastructure, exchange quota systems and DSP pretargeting settings, across display, mobile and streaming television.
+
+**Why.** Every request costs money to process and most go unanswered. Shaping cuts that cost, but it also decides what buyers are able to see, a choice that remains largely invisible to advertisers.
+
+<Callout type="note" title="Source">
+[Explaining traffic shaping](https://ppc.land/traffic-shaping/) · Luis Rijo · [PPC Land](https://ppc.land/) · September 10, 2026. Republished with authorization.
+</Callout>
