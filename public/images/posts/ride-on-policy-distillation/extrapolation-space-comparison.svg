@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 840" width="960" height="840" role="img" aria-labelledby="title desc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+<title id="title">Output-space extrapolation (ExOPD) versus hidden-state extrapolation (RIDE)</title>
+<desc id="desc">Both methods read the same student prefix with a frozen pre-RL base and a frozen RL teacher. ExOPD extrapolates after the language-model head and meets two obstacles: the head attenuates the RL residual, and sampled-token noise grows with (lambda minus 1) squared. RIDE extrapolates the layerwise hidden-state residual before the head, giving a deterministic regression target.</desc>
+<defs><marker id="arrow-2c6b5a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2c6b5a"/></marker><marker id="arrow-5b554d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#5b554d"/></marker><marker id="arrow-b1462f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#b1462f"/></marker></defs>
+<rect width="960" height="840" fill="#faf7f2"/>
+<rect x="40" y="24" width="880" height="78" rx="12" fill="#efebe4" stroke="#5b554d" stroke-width="1.6"/>
+<text x="480" y="54" font-size="17" font-weight="700" fill="#1f1d1a" text-anchor="middle">One student rollout, three models reading the same prefix (x, ŷ<tspan font-size="72%" dy="4">&lt;t</tspan><tspan dy="-4">​</tspan>)</text>
+<text x="480" y="82" font-size="14" font-weight="400" fill="#57524b" text-anchor="middle">Frozen base π<tspan font-size="72%" dy="4">B</tspan><tspan dy="-4">​</tspan> (pre-RL)  ·  frozen teacher π<tspan font-size="72%" dy="4">T</tspan><tspan dy="-4">​</tspan> = RL(π<tspan font-size="72%" dy="4">B</tspan><tspan dy="-4">​</tspan>)  ·  trainable student π<tspan font-size="72%" dy="4">θ</tspan><tspan dy="-4">​</tspan>, initialized at π<tspan font-size="72%" dy="4">B</tspan><tspan dy="-4">​</tspan></text>
+<line x1="252.5" y1="102" x2="252.5" y2="126" stroke="#5b554d" stroke-width="1.8" marker-end="url(#arrow-5b554d)"/>
+<line x1="707.5" y1="102" x2="707.5" y2="126" stroke="#5b554d" stroke-width="1.8" marker-end="url(#arrow-5b554d)"/>
+<rect x="40" y="128" width="425" height="46" rx="10" fill="#f3cfc3" stroke="#b1462f" stroke-width="1.6"/>
+<text x="252.5" y="157" font-size="16" font-weight="700" fill="#1f1d1a" text-anchor="middle">ExOPD · extrapolate in output space</text>
+<line x1="252.5" y1="174" x2="252.5" y2="194" stroke="#b1462f" stroke-width="1.8" marker-end="url(#arrow-b1462f)"/>
+<rect x="58" y="196" width="389" height="80" rx="10" fill="#fbebe5" stroke="#b1462f" stroke-width="1.6"/>
+<text x="252.5" y="222" font-size="15" font-weight="700" fill="#b1462f" text-anchor="middle">Target after the LM head</text>
+<text x="252.5" y="246" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">p* ∝ π<tspan font-size="72%" dy="4">T</tspan><tspan dy="-4">​</tspan><tspan font-size="72%" dy="-6">λ</tspan><tspan dy="6">​</tspan>·π<tspan font-size="72%" dy="4">B</tspan><tspan dy="-4">​</tspan><tspan font-size="72%" dy="-6">1−λ</tspan><tspan dy="6">​</tspan></text>
+<text x="252.5" y="267" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Supervised through sampled-token log-ratios</text>
+<line x1="252.5" y1="276" x2="252.5" y2="298" stroke="#b1462f" stroke-width="1.8" marker-end="url(#arrow-b1462f)"/>
+<rect x="58" y="300" width="389" height="102" rx="10" fill="#fbebe5" stroke="#b1462f" stroke-width="1.6"/>
+<text x="252.5" y="326" font-size="15" font-weight="700" fill="#b1462f" text-anchor="middle">Wall 1 · the head attenuates the residual</text>
+<text x="252.5" y="350" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Residual energy in the 512 weakest directions:</text>
+<text x="252.5" y="371" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">79.8% before the head → 30.0% after it</text>
+<text x="252.5" y="392" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Head gain 0.59 · lower layers unconstrained</text>
+<line x1="252.5" y1="402" x2="252.5" y2="424" stroke="#b1462f" stroke-width="1.8" marker-end="url(#arrow-b1462f)"/>
+<rect x="58" y="426" width="389" height="102" rx="10" fill="#fbebe5" stroke="#b1462f" stroke-width="1.6"/>
+<text x="252.5" y="452" font-size="15" font-weight="700" fill="#b1462f" text-anchor="middle">Wall 2 · sampled-token noise is amplified</text>
+<text x="252.5" y="476" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">A(v) = ℓ(v) − (λ−1)·ρ(v) at one sampled token v</text>
+<text x="252.5" y="497" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">(λ−1)<tspan font-size="72%" dy="-6">2</tspan><tspan dy="6">​</tspan>·Var[ρ] persists even as π<tspan font-size="72%" dy="4">θ</tspan><tspan dy="-4">​</tspan> → π<tspan font-size="72%" dy="4">T</tspan><tspan dy="-4">​</tspan></text>
+<text x="252.5" y="518" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Conditional variance ×12.6 from λ = 1 to λ = 2</text>
+<line x1="252.5" y1="528" x2="252.5" y2="550" stroke="#b1462f" stroke-width="1.8" marker-end="url(#arrow-b1462f)"/>
+<rect x="58" y="552" width="389" height="80" rx="10" fill="#fbebe5" stroke="#b1462f" stroke-width="1.6"/>
+<text x="252.5" y="578" font-size="15" font-weight="700" fill="#b1462f" text-anchor="middle">Result at λ = 1.25</text>
+<text x="252.5" y="602" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Below its teacher on all four model pairs</text>
+<text x="252.5" y="623" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Qwen3-4B: 48.75 vs untouched student 62.82</text>
+<rect x="495" y="128" width="425" height="46" rx="10" fill="#c6e2d8" stroke="#2c6b5a" stroke-width="1.6"/>
+<text x="707.5" y="157" font-size="16" font-weight="700" fill="#1f1d1a" text-anchor="middle">RIDE · extrapolate in hidden states</text>
+<line x1="707.5" y1="174" x2="707.5" y2="194" stroke="#2c6b5a" stroke-width="1.8" marker-end="url(#arrow-2c6b5a)"/>
+<rect x="513" y="196" width="389" height="80" rx="10" fill="#e7f2ee" stroke="#2c6b5a" stroke-width="1.6"/>
+<text x="707.5" y="222" font-size="15" font-weight="700" fill="#2c6b5a" text-anchor="middle">Target before the head, at every layer</text>
+<text x="707.5" y="246" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Δ = h<tspan font-size="72%" dy="4">T</tspan><tspan dy="-4">​</tspan> − h<tspan font-size="72%" dy="4">B</tspan><tspan dy="-4">​</tspan> per layer l and position t</text>
+<text x="707.5" y="267" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Same tokens, so Δ isolates what RL changed</text>
+<line x1="707.5" y1="276" x2="707.5" y2="298" stroke="#2c6b5a" stroke-width="1.8" marker-end="url(#arrow-2c6b5a)"/>
+<rect x="513" y="300" width="389" height="102" rx="10" fill="#e7f2ee" stroke="#2c6b5a" stroke-width="1.6"/>
+<text x="707.5" y="326" font-size="15" font-weight="700" fill="#2c6b5a" text-anchor="middle">The target is computed, not sampled</text>
+<text x="707.5" y="350" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">h* = h<tspan font-size="72%" dy="4">T</tspan><tspan dy="-4">​</tspan> + (λ−1)·Δ = λ·h<tspan font-size="72%" dy="4">T</tspan><tspan dy="-4">​</tspan> + (1−λ)·h<tspan font-size="72%" dy="4">B</tspan><tspan dy="-4">​</tspan></text>
+<text x="707.5" y="371" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">A full d-dimensional target at every layer</text>
+<text x="707.5" y="392" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Weakest 512 directions get 73.0% of the gradient</text>
+<line x1="707.5" y1="402" x2="707.5" y2="424" stroke="#2c6b5a" stroke-width="1.8" marker-end="url(#arrow-2c6b5a)"/>
+<rect x="513" y="426" width="389" height="102" rx="10" fill="#e7f2ee" stroke="#2c6b5a" stroke-width="1.6"/>
+<text x="707.5" y="452" font-size="15" font-weight="700" fill="#2c6b5a" text-anchor="middle">Deterministic regression</text>
+<text x="707.5" y="476" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Loss (1/d)·‖h<tspan font-size="72%" dy="4">θ</tspan><tspan dy="-4">​</tspan> − h*‖<tspan font-size="72%" dy="-6">2</tspan><tspan dy="6">​</tspan>, coefficient × λ<tspan font-size="72%" dy="-6">−2</tspan><tspan dy="6">​</tspan></text>
+<text x="707.5" y="497" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">≡ max (λ−1)·⟨h − h<tspan font-size="72%" dy="4">T</tspan><tspan dy="-4">​</tspan>, Δ⟩ − ½·‖h − h<tspan font-size="72%" dy="4">T</tspan><tspan dy="-4">​</tspan>‖<tspan font-size="72%" dy="-6">2</tspan><tspan dy="6">​</tspan></text>
+<text x="707.5" y="518" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Zero next-token conditional variance, any λ</text>
+<line x1="707.5" y1="528" x2="707.5" y2="550" stroke="#2c6b5a" stroke-width="1.8" marker-end="url(#arrow-2c6b5a)"/>
+<rect x="513" y="552" width="389" height="80" rx="10" fill="#e7f2ee" stroke="#2c6b5a" stroke-width="1.6"/>
+<text x="707.5" y="578" font-size="15" font-weight="700" fill="#2c6b5a" text-anchor="middle">Result at λ = 1.25</text>
+<text x="707.5" y="602" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Mean above its teacher on all four model pairs</text>
+<text x="707.5" y="623" font-size="13.5" font-weight="400" fill="#1f1d1a" text-anchor="middle">Qwen3-4B: 66.07 vs teacher 65.59, OPRD 62.01</text>
+<rect x="40" y="664" width="880" height="140" rx="12" fill="#efebe4" stroke="#5b554d" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="480" y="692" font-size="15" font-weight="700" fill="#5b554d" text-anchor="middle">Eq. 8 · the two targets are linked by the head, in one direction only</text>
+<text x="480" y="720" font-size="15" font-weight="400" fill="#1f1d1a" text-anchor="middle">W<tspan font-size="72%" dy="4">head</tspan><tspan dy="-4">​</tspan>(h̃<tspan font-size="72%" dy="4">T</tspan><tspan dy="-4">​</tspan> + (λ−1)·Δ̃) = λ·z<tspan font-size="72%" dy="4">T</tspan><tspan dy="-4">​</tspan> + (1−λ)·z<tspan font-size="72%" dy="4">B</tspan><tspan dy="-4">​</tspan></text>
+<text x="480" y="746" font-size="13.5" font-weight="400" fill="#57524b" text-anchor="middle">Projecting the RIDE target through the head reproduces the ExOPD logit target (relative error 6.5×10<tspan font-size="72%" dy="-6">−7</tspan><tspan dy="6">​</tspan>).</text>
+<text x="480" y="768" font-size="13.5" font-weight="400" fill="#57524b" text-anchor="middle">The converse fails: a logit target barely constrains the weak head directions and says nothing about lower layers.</text>
+<text x="480" y="790" font-size="12" font-weight="400" fill="#57524b" text-anchor="middle" font-style="italic">Numbers: R1-Distill-1.5B pair unless a model is named; arXiv:2609.36484, Figs. 1 and 5, Table 1, Remark G.1, Appendices E–F.</text>
+</svg>

@@ -1,0 +1,314 @@
+---
+title: "The Teacher Is a Direction, Not a Destination: RIDE Moves Distillation Extrapolation from Outputs into Hidden States"
+date: 2026-11-18
+tags:
+  - 技术报告解读
+  - AI 与机器学习
+summary: "In same-initialization on-policy distillation, students can keep moving along the change RL made to the teacher relative to its base. Done in output space (ExOPD), every one of four model pairs lands below its teacher, and on Qwen3-4B the student ends 14 points below its untrained self. RIDE applies the same extrapolation to the hidden states of every layer before the LM head, and its mean edges past the teacher on all four pairs. This piece takes apart the two causes, the LM head's anisotropic attenuation and the conditional variance of sampled tokens, and then asks how far the evidence actually reaches."
+draft: false
+sourceFile: "ride-on-policy-distillation.mdx"
+sourceHash: "8ec7246d7fc6164a8a75a8df3107851f15a58e73ca193ad9e5e85e6398fbdb5e"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+> Paper: *The Teacher Is a Direction, Not a Destination: Extrapolating RL-Induced Representation Residuals in On-Policy Distillation*, Hao Li, MeiJia Chen, Weijie Ren, et al., arXiv:2609.36484v1, 2026-09-29. [arXiv](https://arxiv.org/abs/2609.36484) · [Project page](https://github.com/xixixixixxxx/RIDE)
+
+After RL, Qwen3-4B's average Avg@16 on three math benchmarks (AIME24, AIME25 and AIMO) rises from 62.82 to 65.59, a gain of under 3 points. To distill this RL teacher back into its own pre-RL checkpoint, a natural idea suggests itself: RL has already pushed the model some distance in a certain direction, so why not let the student go a little further the same way and pass the teacher? [ExOPD](https://arxiv.org/abs/2602.12125) does exactly that, scaling the teacher-to-base log-probability ratio by a factor λ on the output distribution. With λ = 1.25 on this pair, the student finishes at 48.75: 16.84 points below the teacher, and 14.07 points below a student that was never trained at all.
+
+RIDE (RL-Induced Direction Extrapolation) uses the same extrapolation coefficient and the same base checkpoint, and changes only where the displacement is applied: from the log-probabilities after the LM head to the hidden states of every layer before it. The student reaches 66.07, 0.48 above the teacher. The two approaches are separated by nothing more than a linear vocabulary projection, yet their results differ by 17 points. The paper gives two reasons. First, the head amplifies different directions by factors that differ by up to about 40×, and the change RL makes is concentrated in the directions it amplifies least. Second, output-space extrapolation relies on the log-probability ratio of a single sampled token, and the extrapolation coefficient scales this sampling noise by $$(\lambda-1)^2$$; the hidden-state target is computed directly from two forward passes and carries no such noise.
+
+<TechGraph src="/images/posts/ride-on-policy-distillation/extrapolation-space-comparison.svg" title="OUTPUT SPACE VS HIDDEN STATES" caption="On the same student prefix, ExOPD extrapolates after the LM head and runs into two obstacles, head attenuation and sampling noise; RIDE extrapolates layer by layer before the head with a deterministic target. Numbers are from the paper's Fig. 1, Fig. 5, Table 1, Remark G.1 and Appendices E–F; unless a model is named they refer to the R1-Distill-1.5B pair." />
+
+## Two axes of on-policy distillation
+
+### OPD was always a form of RL
+
+Classical distillation has the student imitate the teacher's outputs or sequences sampled from the teacher. During training the student sees the teacher's prefixes, but at inference it must continue its own; this mismatch is exposure bias. On-policy distillation (OPD) reverses the roles: the student $$\pi_\theta$$ samples its own responses $$\hat y\sim\pi_\theta(\cdot\mid x)$$, and the frozen teacher $$\pi_T$$ scores every prefix $$(x,\hat y_{\lt t})$$ the student actually visits, minimizing the reverse KL token by token:
+
+```math
+\mathcal L_{\mathrm{OPD}}(\theta)=\mathbb E_{x,\hat y\sim\pi_\theta}\Bigl[\sum_{t=1}^{T}D_{\mathrm{KL}}\bigl(\pi_\theta(\cdot\mid x,\hat y_{\lt t})\,\Vert\,\pi_T(\cdot\mid x,\hat y_{\lt t})\bigr)\Bigr]
+```
+
+In practice the common form is the sampled-token estimator: compute $$r_t=\log\pi_\theta(\hat y_t\mid\cdot)-\log\pi_T(\hat y_t\mid\cdot)$$ only on the token that was actually sampled, treat $$-r_t$$ as a dense per-token advantage, and multiply it by $$\nabla_\theta\log\pi_\theta(\hat y_t\mid\cdot)$$. This form is now a routine stage of LLM post-training; Thinking Machines' [On-Policy Distillation](https://thinkingmachines.ai/blog/on-policy-distillation/) gives a full introduction.
+
+Appendix A.1 of the paper rewrites this as RL. Fix a prefix, write $$p=\pi_\theta$$ and $$q=\pi_T$$, take any reference policy $$\pi_{\mathrm{ref}}$$ with full support, and add and subtract $$\log\pi_{\mathrm{ref}}$$ inside the KL:
+
+```math
+D_{\mathrm{KL}}(p\Vert q)=D_{\mathrm{KL}}(p\Vert\pi_{\mathrm{ref}})-\mathbb E_{v\sim p}\bigl[\log q(v)-\log\pi_{\mathrm{ref}}(v)\bigr]
+```
+
+Minimizing the OPD loss is KL-constrained RL with the implicit reward $$\log q-\log\pi_{\mathrm{ref}}$$, where the reward and the KL regularizer carry equal weight. Change the reward's weight from 1 to λ and the optimum of the local objective becomes:
+
+```math
+\log p^\star=\lambda\log q+(1-\lambda)\log\pi_{\mathrm{ref}}-\log Z
+```
+
+With $$\pi_{\mathrm{ref}}=\pi_B$$ (the base checkpoint before RL), this is the approach of [Yang et al. 2026b](https://arxiv.org/abs/2602.12125): they generalize OPD with a reward weight, and the RIDE paper calls the extrapolating setting with λ > 1 ExOPD. λ = 1 recovers ordinary OPD; for λ > 1 the target lies beyond the teacher, continuing along the base-to-teacher direction. Readers of the [RL for LLM post](/blog/rl-for-llm-为什么强化学习训练大模型这么难) will recognize the structure: reward maximization under a KL regularizer, except that the reward is the log-probability ratio of two frozen models.
+
+### Four methods in one table
+
+The paper places every method in a single "target matching" template (Eq. 3): on trajectories sampled by the student, a model quantity $$s_{\theta,t}$$ is pushed toward a target $$\tau_t$$, with no gradient flowing through the target. Output-space matching uses the next-token distribution and the reverse KL; representation matching uses the layer-$$l$$ residual-stream hidden state $$h^{(l)}_{\theta,t}$$ and a dimension-normalized squared error:
+
+```math
+\ell\bigl(h^{(l)}_{\theta,t},\tau^{(l)}_t\bigr)=\frac{1}{d}\bigl\lVert h^{(l)}_{\theta,t}-\tau^{(l)}_t\bigr\rVert_2^2
+```
+
+The latter is the approach of [OPRD](https://arxiv.org/abs/2606.06021) (On-Policy Representation Distillation): given a rollout, the gradient is deterministic and does not depend on which token was sampled. OPD and OPRD both set $$\tau_t=s_{T,t}$$, so the teacher is where learning ends.
+
+Crossing the two dimensions gives each of the four methods its own cell:
+
+| Supervision space | Match the teacher (λ = 1) | Extrapolate along the RL direction (λ > 1) |
+| --- | --- | --- |
+| Output distribution (after the LM head) | OPD | ExOPD |
+| Hidden states (before the LM head, every layer) | OPRD | RIDE |
+
+Comparing within a row isolates extrapolation itself; comparing within a column isolates the space in which extrapolation happens. At λ = 1, RIDE is exactly OPRD and ExOPD is exactly OPD, and the experiments below are designed around this table.
+
+The whole discussion is restricted to **same initialization**: the teacher comes from RL on the base, $$\pi_T=\mathrm{RL}(\pi_B)$$, and the student starts from the same base, $$\pi_{\theta_0}=\pi_B$$. All three models share the architecture, tokenizer and LM head. This setting arises in two situations: distilling an expensive RL run back into its base, or merging several domain RL experts trained from the same base into one model. [MAI-Thinking-1](/blog/mai-thinking-1) combined three same-base RL specialists into one model, which belongs to the second case, although it did so with trajectory-distillation SFT rather than on-policy distillation.
+
+## The first wall: the LM head flattens what RL changed
+
+The LM head is linear. Write $$\tilde h$$ for the representation fed into the head and $$z=W_{\mathrm{head}}\tilde h$$ for the logits. Moving the head input along the RL residual moves the logits along the corresponding logit residual (Eq. 8):
+
+```math
+W_{\mathrm{head}}\bigl(\tilde h_T+(\lambda-1)\tilde\Delta\bigr)=z_T+(\lambda-1)(z_T-z_B)=\lambda z_T+(1-\lambda)z_B
+```
+
+Softmax removes the log-partition constant, so the right-hand side is exactly ExOPD's log-probability target. In other words, with a shared head, the output-space extrapolation target is the projection of RIDE's hidden-state target through the head. The paper measures that projecting the RIDE target through the fixed $$W_B$$ matches $$\lambda z_T+(1-\lambda)z_B$$ to a relative error of only $$6.5\times10^{-7}$$.
+
+The converse does not hold, for two reasons. First, a logit target constrains $$\tilde h$$ only weakly along the directions the head amplifies least. Second, a logit target concerns only the final layer and places no constraint at all on the layers below. RIDE's target specifies the full d-dimensional vector at every supervised layer.
+
+What matters is where the RL residual lies. On the R1-Distill-1.5B pair the paper takes 292,864 positions (143 problems, 16 rollouts per problem, 128 positions per rollout drawn from the last 2,000 response tokens, at step 500) and measures the student's centered LM head:
+
+- The head is full rank, with singular values falling from 71.70 to 1.78. Along the dominant directions the residual is attenuated by up to about 40×, but it is not erased.
+- The 512 weakest singular directions carry **79.8%** of the hidden-state energy of the teacher-to-base residual. If the residual's direction were isotropic, that share would be only 33.3%.
+- After projection to centered logits, those 512 directions keep only **30.0%** of the energy.
+- Relative to an isotropic direction of equal norm, the residual's normalized head gain is only 0.59 (95% CI [0.585, 0.596]).
+
+The 33.3% baseline comes from counting dimensions: the legend of Figure 1(b) splits directions into "top 1024" and "weakest 512", 1536 in total, which is exactly the hidden width of this 1.5B student, so 512/1536 is one third. The RL residual puts 2.4 times the baseline share of its energy into the weakest third of directions.
+
+<Figure src="/images/posts/ride-on-policy-distillation/fig1-lm-head-bottleneck.png" alt="Paper Figure 1: (a) residual extrapolation in hidden-state space and in logit space, with the head scaling each direction by its singular value; (b) energy shares of the hidden-state residual and the centered-logit residual in the head's top 1024 and weakest 512 directions" caption="Paper Figure 1. (a) The head scales each direction by its singular value, so the low-gain component of the RL residual is shortened in logit space; (b) the weakest 512 directions hold 79.8% of the residual's energy in hidden states and only 30.0% after the head." />
+
+This attenuation reaches the gradients as well. Across training, the weakest 512 directions receive 73.0% of the gradient of RIDE's representation loss, but only 48.6% of the output-KL gradient (measured at the head input). An output-space objective is not blind to what RL changed; it simply sees that change at a discount.
+
+The paper cites several works to support the premise that RL updates are small, structured and consistent across runs; among them, Zhu et al. 2025 discusses how RLVR updates fall outside the principal directions of the weights. The RL residual concentrating in the head's weak directions points the same way as that observation. But one concerns the weights and the other the head's singular directions, and the paper does not measure the two together, so this is circumstantial support only.
+
+There is one more easily overlooked detail: the teacher's head also moves during RL. The paper measures a relative Frobenius-norm drift of $$W_T$$ from $$W_B$$ of only 1.65%, but the resulting term $$(W_T-W_B)\tilde h_T$$ reaches 50% of the norm of the teacher's native logit change (the representation term reaches 94%), and the two have cosine −0.23. Logit targets built with the fixed head and with the teacher's own head differ by 18.70% in mean relative error, while the corresponding distributions have a mean KL of only 0.0058 and 96.90% top-1 agreement. A 1.65% change in weights contributes, in the logits, a component of half the magnitude that partly points the opposite way. When ExOPD uses the teacher's native logits, it extrapolates this term too; RIDE's hidden-state target contains no head-drift term.
+
+## The second wall: extrapolation squares the sampling noise
+
+Fix a rollout and a position t, write $$p=\pi_\theta$$, $$q=\pi_T$$ and $$b=\pi_B$$ for the next-token distributions at that prefix, and let $$v\sim p$$ be the sampled token. Define:
+
+```math
+\ell(v)=\log p(v)-\log q(v),\qquad \rho(v)=\log q(v)-\log b(v)
+```
+
+The advantage ExOPD uses in its tokenwise update is $$A_\lambda(v)=\ell(v)-(\lambda-1)\rho(v)$$ (Eq. 13 in Appendix A.1; the constant $$\log Z$$ multiplies a zero-mean score function and can be dropped). Both terms are evaluated at a single sampled token. Proposition 4.1 gives its conditional variance for a fixed prefix:
+
+```math
+\mathrm{Var}_{v\sim p}[A_\lambda]=\mathrm{Var}_{v\sim p}[\ell]+(\lambda-1)^2\,\mathrm{Var}_{v\sim p}[\rho]-2(\lambda-1)\,\mathrm{Cov}_{v\sim p}[\ell,\rho]
+```
+
+The second term is the problem. Both q and b are frozen, so ρ does not depend on θ; as the student converges to the teacher (p → q), $$\mathrm{Var}_p[\rho]$$ approaches $$\mathrm{Var}_q[\rho]$$, which vanishes only if $$\log q-\log b$$ is constant on the support of q, that is, only if RL left the next-token distribution at this prefix entirely unchanged. However well the student learns, the sampling noise of the extrapolated term keeps entering the gradient, scaled by $$(\lambda-1)^2$$.
+
+On the RIDE side, the student's hidden state $$h^{(l)}_{\theta,t}$$ is a deterministic function of θ and the prefix, and the target $$h^{\star(l)}_t$$ is a deterministic function of the prefix and the two frozen models. Neither depends on which token is sampled at position t. Resampling that token leaves the per-position loss and its gradient unchanged, so the conditional variance is exactly 0.
+
+Appendix F measures this decomposition. On the R1-Distill-1.5B pair, it takes 9,152 fixed prefixes (143 problems × 4 rollouts × 16 positions, drawn uniformly from the last 2,000 response tokens) and sums exactly over the 151,936-token vocabulary to obtain exact values of $$\mathrm{Var}[\ell]$$, $$\mathrm{Var}[\rho]$$ and $$\mathrm{Cov}[\ell,\rho]$$; resampling the next token 8,192 times per prefix reproduces the exact values to within 0.38%. Averaging over prefixes gives the fit:
+
+```math
+\mathrm{Var}[A_\lambda]=0.0096-0.0421\,(\lambda-1)+0.153\,(\lambda-1)^2
+```
+
+The three coefficients are $$\mathrm{Var}[\ell]=0.0096$$, $$-2\,\mathrm{Cov}[\ell,\rho]=-0.0421$$ and $$\mathrm{Var}[\rho]=0.153$$. $$\mathrm{Var}[\rho]$$ is 16 times $$\mathrm{Var}[\ell]$$: by step 500 the mismatch noise between student and teacher is already small, but the log-ratio noise between teacher and base is large, and the extrapolation weight multiplies exactly this large term. The negative covariance term gives the curve a shallow minimum of 0.0067 at λ ≈ 1.14; beyond λ ≈ 1.30 the quadratic term accounts for all the growth: at λ = 1.5 the variance is 2.80 times its λ = 1 value, and at λ = 2 it is 12.60 times (0.121 versus 0.0096).
+
+<Figure src="/images/posts/ride-on-policy-distillation/fig5-mechanistic-analysis.png" alt="Paper Figure 5: (a) hidden-state and logit energy of the RL residual outside the head's top-r right-singular directions; (b) two-dimensional histogram of the student's realized change against the target change; (c) conditional variance of the ExOPD advantage across λ, with RIDE's zero drawn at the bottom of the axis" caption="Paper Figure 5 (R1-Distill-1.5B, λ = 1.25, step 500, final layer). (a) The residual's energy in weak directions stays above the isotropic baseline throughout; (b) the student's realized displacement aligns with the extrapolated target; (c) ExOPD's conditional variance bottoms out near λ ≈ 1.14 and is then dominated by (λ−1)²·Var[ρ], while RIDE's stays at zero." />
+
+<Callout type="warning" title="Variance does not explain λ = 1.25">
+Plug λ = 1.25 into Appendix F's fit: 0.0096 − 0.0421 × 0.25 + 0.153 × 0.0625 ≈ 0.0086, about 0.90 times the value at λ = 1. In other words, on the same prefixes, the advantage variance at the λ actually used in the main table is about a tenth lower than at λ = 1. Yet in the λ sweep on the same pair, ExOPD scores 49.9 at λ = 1.25, 3 points below the 52.9 at λ = 1. Conditional variance can explain the collapse at λ = 2, but not the regression at λ = 1.25. In the same paragraph, the paper first says the negative covariance explains why ExOPD tolerates coefficients slightly above one, then says the variance decomposition "matches the sweep in Section 5.3, where ExOPD degrades at λ = 1.25 and collapses at λ = 2". The two sentences pull against each other, and the second claims more than the data show. The regression at λ = 1.25 more likely comes from the target itself: directions distorted by head attenuation, the head-drift term, and the length bias and overoptimization of log-ratio rewards mentioned in the paper's related work. Also, Appendix F measures only the R1-Distill-1.5B pair; the 14-point collapse on Qwen3-4B has no corresponding variance measurement.
+</Callout>
+
+## How RIDE builds its target
+
+### Why the residual must be computed on the same prefix
+
+Given a student rollout, the frozen $$\pi_T$$ and $$\pi_B$$ each run one forward pass on the identical prefix $$(x,\hat y_{\lt t})$$, and the RL residual at layer $$l$$ and position $$t$$ is:
+
+```math
+\Delta^{(l)}_t=h^{(l)}_{T,t}-h^{(l)}_{B,t}
+```
+
+Both models read the same string of tokens, so $$\Delta$$ reflects only how RL changed the way the model processes this context, without mixing in differences between two different trajectories. It lives in the student's hidden space (all three share an origin), is defined at every layer, and is computed deterministically from two forward passes with no sampling. Applying the general extrapolation $$\tau_t(\lambda)=s_{T,t}+(\lambda-1)(s_{T,t}-s_{B,t})$$ to hidden states gives the RIDE target (Eq. 6):
+
+```math
+h^{\star(l)}_t=h^{(l)}_{T,t}+(\lambda-1)\,\Delta^{(l)}_t=\lambda\,h^{(l)}_{T,t}+(1-\lambda)\,h^{(l)}_{B,t}
+```
+
+Training regresses the student's representations toward this target (Eq. 7), where $$m_t$$ is a position mask and $$M=\sum_t m_t$$:
+
+```math
+\mathcal L_\lambda(\theta)=\mathbb E_{x,\hat y\sim\pi_\theta}\Bigl[\frac{1}{\lvert\mathcal L_{\mathrm{layer}}\rvert}\sum_{l\in\mathcal L_{\mathrm{layer}}}\frac{1}{M}\sum_{t=1}^{T}m_t\,\frac{1}{d}\bigl\lVert h^{(l)}_{\theta,t}-\operatorname{sg}\bigl(h^{\star(l)}_t\bigr)\bigr\rVert_2^2\Bigr]
+```
+
+Unlike the log-probability version, there is no partition function here. RIDE supervises all L layers and the last k = 2,000 response positions, following OPRD's observation that student–teacher disagreement concentrates in the later part of long responses. Relative to OPRD only the target changes; at λ = 1 the two coincide exactly, so any difference between them can come only from the residual term.
+
+<Figure src="/images/posts/ride-on-policy-distillation/fig2-ride-overview.png" alt="Paper Figure 2: the student generates a rollout, the frozen base and teacher compute layerwise residuals on the same prefix, targets are extrapolated along the residuals, and the student performs masked regression; the right side shows target geometry at a single layer and position" caption="Paper Figure 2. Left: on-policy sampling by the student. Middle: base and teacher give the residual Δ layer by layer on the same prefix, and the target h★ extends past the teacher along it. Right: geometry at a single layer and position, with the student h_θ regressing toward h★." />
+
+### Regression equals a directional reward with a quadratic penalty
+
+Fix a rollout, a layer and a position, and write $$h=h^{(l)}_{\theta,t}$$, $$h_T=h^{(l)}_{T,t}$$ and $$\Delta=\Delta^{(l)}_t$$. Expand the squared distance to the target (Eq. 14 in Appendix A.3):
+
+```math
+\bigl\lVert h-h_T-(\lambda-1)\Delta\bigr\rVert_2^2=\lVert h-h_T\rVert_2^2-2(\lambda-1)\langle h-h_T,\Delta\rangle+(\lambda-1)^2\lVert\Delta\rVert_2^2
+```
+
+The last term does not depend on θ. Multiplying by −1/2 gives Proposition 4.2: minimizing $$\mathcal L_\lambda$$ is equivalent to maximizing
+
+```math
+(\lambda-1)\,r(h)-\frac12\lVert h-h_T\rVert_2^2,\qquad r(h)=\langle h-h_T,\Delta\rangle
+```
+
+The reward $$r(h)$$ measures how well the student's displacement from the teacher aligns with the RL residual, the penalty is a quadratic in the same displacement, and λ − 1 sets the reward's weight. The objective is strictly concave in h; its gradient $$(\lambda-1)\Delta-(h-h_T)$$ vanishes at $$h^\star=h_T+(\lambda-1)\Delta$$, and differentiating the per-position loss gives $$\nabla_h\mathcal L_\lambda=\tfrac{2}{d}(h-h^\star)$$.
+
+This derivation is just completing the square and is not evidence that the method works. Its value is interpretive: in output space the objective is "implicit reward + KL regularizer", in hidden states it is "directional reward + quadratic proximity penalty". Both routes are the same kind of reward extrapolation, with the KL replaced by a Euclidean distance centered on the teacher.
+
+λ specifies the target, not the distance the student actually travels. Measurements behind Figure 5(b) show the student's update aligning closely with the residual (cosine 0.954, 95% CI [0.949, 0.958]), with a mean projection along the residual of 1.69 (CI [1.65, 1.73]), above the target coefficient of 1.25: the student continues past the target in the same direction. So λ behaves more like a knob for direction and strength than a precise displacement scale. This measurement was made only at the final layer and at step 500.
+
+### Engineering: λ⁻² scaling and in-place synthesis
+
+**Loss scale (Remark G.1).** At initialization the student is the base, $$h_{\theta_0}=h_B$$, so $$h_{\theta_0}-h^\star=-\lambda\Delta$$ and the initial per-position loss is $$\lambda^2\lVert\Delta\rVert_2^2/d$$, λ² times OPRD's $$\lVert\Delta\rVert_2^2/d$$. Because the loss is unnormalized, changing λ also changes the effective step size. To keep λ = 1 exactly equal to OPRD, the authors retain the unnormalized form and instead multiply the loss coefficient by $$\lambda^{-2}$$, making every λ's initial loss match OPRD's; loss values at different λ are compared after this rescaling.
+
+One point deserves a question here. The optimizer is AdamW, and if RIDE is the only loss term, multiplying it by a constant is largely cancelled by the second-moment normalization; where $$\lambda^{-2}$$ really bites is more likely gradient clipping and Adam's ε. The paper's configuration table (Table 5) lists no gradient-clipping threshold and reports no unscaled control, so the actual effect of this term cannot be judged.
+
+**What to monitor during training.** The paper logs the cosine between $$h_B$$ and $$h_T$$, the residual norm ratio $$\lVert\Delta\rVert_2/\lVert h_T\rVert_2$$ (overall and per layer), and the target norm ratio $$\lVert h^\star\rVert_2/\lVert h_T\rVert_2$$. The last one directly monitors the scale sensitivity described in Remark G.1 and is worth copying in any reproduction.
+
+**In-place synthesis (Appendix G).** The implementation is built on verl + FSDP. The frozen base is loaded into the worker that already hosts the teacher; for each rollout this worker runs one extra $$\pi_B$$ forward pass, forms $$h^\star$$ in place according to Eq. 6, and sends a single hidden-state tensor to the trainer, so the transfer volume equals OPRD's. Positions outside the mask or beyond the response length are zero-padded in both tensors, so $$h^\star$$ is zero there too and the masked loss is unaffected. With λ = 1 or no base provided, the base is neither loaded nor evaluated, and training is OPRD.
+
+| Method | Frozen-model forward passes | Needs base | Tensor sent to trainer | Where the target is computed |
+| --- | --- | --- | --- | --- |
+| OPD top-1 / top-16 | 1 (teacher) | No | T × 1 / T × 16 log-probs | trainer |
+| OPRD | 1 (teacher) | No | T × L × d hidden states | teacher worker |
+| ExOPD | 2 (teacher, base) | Yes | T × 1 log-ratios | trainer |
+| RIDE | 2 (teacher, base) | Yes | T × L × d hidden states | teacher worker |
+
+"No extra communication" is relative to OPRD. Compared with output-space methods, hidden-state distillation needs bandwidth of a different order of magnitude. A rough estimate: R1-Distill-1.5B follows the Qwen2.5-1.5B architecture; assuming 28 layers, hidden width 1536 and bf16, sending only the last 2,000 supervised positions already comes to about 172 MB per rollout, and with 8 prompts × 2 responses, 16 rollouts per step, about 2.75 GB per step. If the zero-padded tensor the paper describes is sent at full length, a single response at the 16,384-token maximum comes to about 1.4 GB. Both numbers are estimates from the public model architecture; the paper gives only tensor shapes, with no measured bandwidth or wall-clock time.
+
+## Experimental results
+
+**Setup.** Four base / RL-teacher pairs: DeepSeek-R1-Distill-Qwen-1.5B → JustRL-DeepSeek-1.5B; and Qwen3-4B, Llama-3.2-3B and Phi-4-mini, each trained with the same JustRL recipe into Just-Qwen3-4B, Just-Llama-3.2-3B and Just-Phi-4-mini. Within a pair the three models share architecture, tokenizer and LM head; across pairs, depth, width, vocabulary and pre-training lineage all differ. Training prompts come from DAPO-Math-17K, with 8 prompts per step and 2 responses each, sampling temperature 1.0, a maximum response length of 16,384 tokens, a uniform 500 steps, AdamW with peak learning rate 1e-5 (3% linear warm-up, cosine decay), bf16 + FSDP, on 4 H200s. Evaluation uses Avg@16 (temperature 0.7) on AIME24 (30 problems), AIME25 (30 problems) and AIMO (83 problems, AMC 2022–2023), averaged without weighting. Each trained method is run with 3 seeds (14, 42, 2027), and the main table reports means. Baselines are OPD top-1, top-16 OPD, OPRD, and ExOPD with the same λ and the same base; weight-space extrapolation is omitted on the grounds that ExOPD was stronger in the same setting.
+
+### Four model pairs
+
+| Pair (base → RL teacher) | Teacher | Untrained student | OPD top-1 | OPD top-16 | OPRD | ExOPD | RIDE |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R1-Distill-1.5B → JustRL-1.5B | 55.30 | 39.00 | 52.90 | 52.53 | 54.50 | 49.87 | **56.38** |
+| Qwen3-4B → Just-Qwen3-4B | 65.59 | 62.82 | 59.24 | 59.74 | 62.01 | 48.75 | **66.07** |
+| Llama-3.2-3B → Just-Llama-3.2-3B | 13.01 | 6.99 | 1.08 | 5.97 | 10.94 | 6.95 | **13.33** |
+| Phi-4-mini → Just-Phi-4-mini | 17.96 | 15.13 | 12.90 | 16.76 | 17.33 | 12.22 | **18.30** |
+
+Average Avg@16 (%) across the three benchmarks; trained methods are means over 3 seeds (paper Table 1).
+
+<Figure src="/images/posts/ride-on-policy-distillation/fig3-main-results.png" alt="Paper Figure 3: bar chart of each method's Avg@16 relative to the teacher on four model pairs; only RIDE sits slightly above the teacher on all four" caption="Paper Figure 3. The horizontal line is the RL teacher, and bars show each method's difference from it. RIDE is the only method above the line on all four pairs (+1.08, +0.48, +0.32, +0.34)." />
+
+What the data show directly:
+
+- RIDE's mean is slightly above the teacher on all four pairs, by 0.32 to 1.08 points; it beats OPRD by 0.97 to 4.06 points and ExOPD by 9.1 points on average. RIDE and OPRD differ only in their target, and on that basis the paper argues this gap isolates the benefit of residual extrapolation; note, though, that the 0.97 points on Phi-4-mini are within the across-seed standard deviation (see Table 4 below).
+- ExOPD is below the teacher on all four pairs. On the R1-Distill pair, where RL lifted the teacher 16.3 points above its base, ExOPD (49.87) still trails the non-extrapolating OPD top-1 (52.90). On the other three pairs, where the teacher–base gap is only 2.8 to 6.0 points, ExOPD also falls below the untrained student: by 14.07 points on Qwen3-4B, 2.91 on Phi-4-mini and 0.04 on Llama-3.2-3B (essentially level).
+- On the Llama-3.2-3B pair the AIME scores sit near the evaluation floor (the teacher scores only 0.42 on AIME25), so the evidence for this pair comes mainly from AIMO, as the paper acknowledges.
+
+The table holds one more point the paper does not develop: on the three small-gap pairs, **the non-extrapolating OPD top-1 is also below the untrained student** (59.24 versus 62.82 on Qwen3-4B, 1.08 versus 6.99 on Llama-3.2-3B, 12.90 versus 15.13 on Phi-4-mini). On the Qwen3-4B pair, apart from RIDE, even OPRD (62.01) fails to return to the starting point. The paper attributes ExOPD's regression on small-gap pairs to the $$(\lambda-1)^2$$ noise of Proposition 4.1, but sampled-token OPD at λ = 1 has no such term and still drops below its starting point. On small-gap pairs, then, sampled-token output-space distillation tends to hurt the student within 500 steps on its own, and extrapolation adds further damage on top. The main table cannot separate how much of the regression belongs to extrapolation.
+
+### The λ sweep
+
+On the R1-Distill-1.5B pair, each method is swept over six to eight values of λ (one run per setting). At λ = 1, RIDE is OPRD and ExOPD is OPD, so each row isolates extrapolation within a single space.
+
+| λ | RIDE Avg@16 | RIDE format | RIDE length | ExOPD Avg@16 | ExOPD format | ExOPD length |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0.5 | 48.2 | 85.3 | 7,430 | 50.2 | 92.1 | 7,032 |
+| 0.75 | 53.9 | 96.0 | 6,789 | 52.9 | 84.7 | 6,816 |
+| 1 | 54.3 | 97.2 | 5,726 | 52.9 | 80.9 | 6,998 |
+| 1.15 | 55.2 | 96.4 | 5,663 | not run | not run | not run |
+| 1.25 | 55.4 | 96.6 | 5,569 | 49.9 | 76.0 | 7,404 |
+| 1.35 | 55.3 | 94.2 | 5,570 | not run | not run | not run |
+| 1.5 | 52.3 | 77.1 | 5,514 | 50.5 | 83.7 | 6,300 |
+| 2 | 52.4 | 86.4 | 5,325 | 46.2 | 64.4 | 8,704 |
+
+Final validation Avg@16, format score (%) and mean response length over the last 50 steps (tokens), from paper Table 2.
+
+<Figure src="/images/posts/ride-on-policy-distillation/fig4-lambda-sweep.png" alt="Paper Figure 4: validation Avg@16, training response length and format score over training steps for ExOPD (top) and RIDE (bottom) at six extrapolation coefficients" caption="Paper Figure 4 (R1-Distill-1.5B, one run per λ). Top row, ExOPD: the λ = 1.25 and 1.5 runs peak around step 150 and then decline; at λ = 2 response length surges to around 9,000 tokens and the format score drops to 64%. Bottom row, RIDE: the plotted runs with 0.75 ≤ λ ≤ 1.25 climb steadily, with format scores held at 96–97%." />
+
+RIDE's Avg@16 rises with λ, from 48.2 at λ = 0.5 to 54.3 at λ = 1, peaking at 55.4 at 1.25; 1.15 and 1.35 give 55.2 and 55.3, so the whole interval [1.15, 1.35] beats OPRD. Runs with 0.75 ≤ λ ≤ 1.35 improve steadily over the whole training budget with format scores of 94–97%. Beyond 1.35 performance starts to regress, but gently: λ = 1.5 and 2 finish at 52.3 and 52.4, and at λ = 1.5 the format score falls to 77.1%. The pattern in response length is clear: pushing beyond the teacher (λ ≥ 1) shortens responses to 5.3k–5.7k tokens, while pushing toward the base (λ &lt; 1) lengthens them to 6.8k–7.4k.
+
+ExOPD is best at λ ≤ 1 (52.9 at both λ = 0.75 and 1), and every λ > 1 hurts. The λ = 1.25 and 1.5 runs peak around step 150 and then decline (λ = 1.25 finishes at 49.9, λ = 2 at 46.2); the format score falls from 92% at λ = 0.5 to 64% at λ = 2, and response length grows to 8,704 tokens.
+
+Each point in the sweep is a single run. OPRD's standard deviation across three seeds in the main table is about 1 point, so the differences among 1.15, 1.25 and 1.35 (0.1 to 0.2 points) mean nothing. ExOPD at λ = 1.5 (50.5) even edges past λ = 1.25 (49.9), another sign that single runs are noisy. What can be read reliably is the trend: RIDE forms a plateau from around 1 to 1.35, while ExOPD heads down as soon as λ passes 1.
+
+### Direction controls: does the gain come from the RL direction, or just from pushing the target further?
+
+Could extrapolation be merely a regularizer, for instance by moving the target away from the teacher and giving the student some extra push? The paper runs four controls on the R1-Distill-1.5B pair. Each keeps the training protocol, the displacement magnitude $$\lvert\lambda-1\rvert\,\lVert\Delta^{(l)}_t\rVert$$, and the supervised layers and positions fixed, and changes only the direction of the displacement:
+
+| Target construction | Avg@16 |
+| --- | --- |
+| Match the teacher (OPRD, λ = 1) | 54.50 |
+| Random direction, same norm | 55.04 |
+| Reversed direction (λ = 0.75, pushed toward the base) | 53.90 |
+| Mismatched origin: residual computed against Qwen2.5-Math-1.5B-Instruct | 54.75 |
+| Trajectory mismatch: teacher and base evaluated on separately generated trajectories | 55.12 |
+| RIDE (RL residual on the same prefix) | 56.38 |
+
+From paper Table 3, λ = 1.25 unless stated otherwise.
+
+The paper describes the mismatched-origin row this way: Qwen2.5-Math-1.5B-Instruct shares the student's architecture but not its training lineage, so $$h_T-h_{B'}$$ reflects the difference between two unrelated models rather than what RL changed. That description needs a discount. According to [DeepSeek's model card](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B), R1-Distill-Qwen-1.5B was itself fine-tuned from Qwen2.5-Math-1.5B, the same base as Qwen2.5-Math-1.5B-Instruct. What this control actually tests is "a different post-training of the same base", not "an unrelated model"; it still shows the residual has to come from this particular RL run, but less forcefully than the paper suggests. The trajectory-mismatch row directly tests the claim that the shared prefix is what gives the residual its meaning. All four controls land within 1 point of OPRD, while RIDE is 1.88 points higher. On this basis the paper argues that the gain comes from the RL residual itself.
+
+<Callout type="note" title="This table mixes two kinds of numbers">
+The OPRD and RIDE rows (54.50, 56.38) are identical to the three-seed means in the main table, while the reversed-direction row, 53.90, matches the single λ = 0.75 run in the sweep table. The paper does not say how many seeds each control used. If the controls were run once, the more comparable figure is a single RIDE run on the same basis: 55.4 at λ = 1.25 in the sweep table, only about 0.3 points above the random direction (55.04) and the trajectory mismatch (55.12), within the across-seed standard deviation. The direction-control conclusion points the right way, but on the basis disclosed so far it is much weaker than the headline 1.88 points suggests.
+</Callout>
+
+## How far the evidence reaches
+
+**The margin over the teacher is at noise level.** Paper Table 4 gives the three-seed standard deviations for OPRD and RIDE:
+
+| Pair | Teacher | OPRD | RIDE |
+| --- | --- | --- | --- |
+| R1-Distill-1.5B | 55.30 | 54.50 ± 1.04 | 56.38 ± 0.97 |
+| Qwen3-4B | 65.59 | 62.01 ± 0.96 | 66.07 ± 0.88 |
+| Llama-3.2-3B | 13.01 | 10.94 ± 0.90 | 13.33 ± 1.13 |
+| Phi-4-mini | 17.96 | 17.33 ± 1.06 | 18.30 ± 1.05 |
+
+Only the R1-Distill pair's margin (1.08) barely exceeds one standard deviation (0.97); the other three are within one standard deviation. The teacher itself is a single evaluation of a single checkpoint, and its uncertainty is not counted. AIME24 and AIME25 have only 30 problems each, so one problem is worth 3.3 points on that benchmark. The paper's own wording is "approaches or exceeds the teacher", which fits the data; a headline-style "surpasses the teacher" says too much. What holds up are the two relative comparisons: RIDE beats OPRD by 0.97 to 4.06 points (4.06 on Qwen3-4B is well beyond the standard deviation; 0.97 on Phi-4-mini is within it), and beats ExOPD by 9.1 points on average.
+
+**The mechanism explains only part of the regression.** Conditional variance can explain the collapse at large λ, but as computed above, on the same prefixes the variance at the main table's λ = 1.25 is slightly lower than at λ = 1, and the non-extrapolating OPD top-1 also falls below its starting point on the three small-gap pairs. The conclusion that output-space extrapolation fails is supported by the data, but the paper does not separate how much of it belongs to the $$(\lambda-1)^2$$ noise and how much to head attenuation and the bias of the log-ratio reward itself.
+
+**Same initialization is a hard constraint.** RIDE needs the pre-RL checkpoint, and needs base, teacher and student to share a hidden space. The most common industrial distillation, from a large teacher into a small model of another family and size, is out of scope. The other motivating scenario the paper mentions, merging several domain RL experts from the same base, would require handling several residuals at once and was not tested.
+
+**Coverage is narrow.** The limits the paper's conclusion lists itself are: it needs the pre-RL checkpoint and a shared representation space, uses a single global λ, evaluates only mathematical reasoning, and uses one RL recipe (JustRL); "the safety and calibration of students trained on hidden-state targets" is left to future work. The experimental setup has two more limits the conclusion does not mention: models go up to 4B, and each run trains for only 500 steps at 16 rollouts per step, 8,000 rollouts in total. The constructed hidden-state target $$h^\star$$ does not correspond to the state of any real model, which is especially worth validating on tasks beyond math.
+
+**Reproduction materials are not yet out.** As of 2026-11-18, the [project repository](https://github.com/xixixixixxxx/RIDE) contains only a README and an assets directory, with no training code or checkpoints. There is also one number in the paper that does not line up: the cosine annotated inside Figure 5(b) is 0.9150, while the text and Appendix E give 0.895 for the head-visible cosine.
+
+## What it means in practice
+
+<Callout type="tip" title="If what you have is same-initialization distillation">
+If you already run hidden-state distillation in the style of OPRD, RIDE is a small change: replace the regression target $$h_T$$ with $$h_T+(\lambda-1)(h_T-h_B)$$, multiply the loss coefficient by $$\lambda^{-2}$$, and load one more base model on the teacher worker for one extra forward pass. Going by the sweep on the R1-Distill pair, λ can start between 1.15 and 1.35, while watching $$\lVert h^\star\rVert/\lVert h_T\rVert$$, the per-layer $$\lVert\Delta\rVert/\lVert h_T\rVert$$, and the format score.
+</Callout>
+
+Some more general conclusions:
+
+1. **Evaluate the untrained student first.** On the Qwen3-4B pair, every distillation method except RIDE ends below its starting point after 500 steps. When the base is already strong, "match the teacher" is not a neutral operation either.
+2. **Before amplifying a log-ratio reward in output space, run the variance decomposition on your own prefixes.** $$\mathrm{Var}[\ell]$$, $$\mathrm{Var}[\rho]$$ and $$\mathrm{Cov}[\ell,\rho]$$ can all be computed exactly over the full vocabulary at fixed prefixes, at low cost. If $$\mathrm{Var}[\rho]$$ is far larger than $$\mathrm{Var}[\ell]$$ (16 times in the paper's measurement), even a slightly larger λ lets the noise of the extrapolated term dominate the gradient.
+3. **Output-space extrapolation is riskiest when the teacher–base gap is small.** On the three pairs with gaps of 2.8 to 6.0 points, ExOPD ends below the untrained student every time.
+4. **Plan hidden-state distillation around bandwidth.** A T × L × d tensor is several orders of magnitude larger than T × 1 log-probabilities; synthesizing the target in place only keeps RIDE from costing more than OPRD, not as little as output-space methods.
+5. **When reading "beats the teacher" results, look at seed standard deviation and benchmark size together.** A gap under one point is hard to tell apart from noise on a 30-problem AIME.
+
+## References
+
+- Hao Li, MeiJia Chen, Weijie Ren, et al. *The Teacher Is a Direction, Not a Destination: Extrapolating RL-Induced Representation Residuals in On-Policy Distillation*. arXiv:2609.36484, 2026. [arXiv](https://arxiv.org/abs/2609.36484) · [GitHub](https://github.com/xixixixixxxx/RIDE)
+- Wenkai Yang, Weijie Liu, Ruobing Xie, et al. *Learning Beyond Teacher: Generalized On-Policy Distillation with Reward Extrapolation*. arXiv:2602.12125, 2026. [arXiv](https://arxiv.org/abs/2602.12125)
+- Yang et al. *OPRD: On-Policy Representation Distillation*. arXiv:2606.06021, 2026. [arXiv](https://arxiv.org/abs/2606.06021)
+- Rishabh Agarwal, Nino Vieillard, Yongchao Zhou, et al. *On-Policy Distillation of Language Models: Learning from Self-Generated Mistakes*. ICLR 2024. [arXiv](https://arxiv.org/abs/2306.13649)
+- Kevin Lu and Thinking Machines Lab. *On-Policy Distillation*. Connectionism, 2025. [Blog](https://thinkingmachines.ai/blog/on-policy-distillation/)
+- Hanqing Zhu, Zhenyu Zhang, et al. *The Path Not Taken: RLVR Provably Learns Off the Principals*. arXiv:2511.08567, 2025. [arXiv](https://arxiv.org/abs/2511.08567)
+- DeepSeek-AI. *DeepSeek-R1-Distill-Qwen-1.5B* model card. [Hugging Face](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B)
+
+All numbers in the text come from the paper's body, Tables 1–6 and Appendices E–G. The variance value at λ = 1.25, the bandwidth estimates for the hidden-state tensors, the inference about the basis of Table 3, and the point that the mismatched-origin control shares a base with the student were calculated or cross-checked separately from the paper's published numbers or the public model card; they are not the paper's conclusions.

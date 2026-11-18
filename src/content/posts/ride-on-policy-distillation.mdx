@@ -1,0 +1,312 @@
+---
+title: "老师是方向，不是终点：RIDE 把蒸馏外推从输出空间挪进隐藏态"
+date: 2026-11-18
+tags:
+  - 技术报告解读
+  - AI 与机器学习
+summary: "同源初始化的 on-policy 蒸馏里，沿 RL teacher 相对 base 的变化继续外推：放在输出空间（ExOPD），四组模型全部落到 teacher 以下，Qwen3-4B 上比没训练的学生还低 14 分；RIDE 把同一个外推公式搬到 LM head 之前的每层隐藏态，四组均值都略高于 teacher。拆开 LM head 的各向异性衰减和采样 token 的条件方差这两处原因，再看这份证据能撑到哪里。"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+> 原论文：*The Teacher Is a Direction, Not a Destination: Extrapolating RL-Induced Representation Residuals in On-Policy Distillation*，Hao Li、MeiJia Chen、Weijie Ren 等，arXiv:2609.36484v1，2026-09-29。[arXiv](https://arxiv.org/abs/2609.36484) · [项目页](https://github.com/xixixixixxxx/RIDE)
+
+Qwen3-4B 做完 RL 以后，在 AIME24、AIME25、AIMO 三个数学 benchmark 上的平均 Avg@16 从 62.82 升到 65.59，涨了不到 3 分。要把这个 RL teacher 蒸馏回它自己的 RL 前 checkpoint，有个很自然的想法：RL 已经把模型往某个方向推了一段，学生何不沿同一方向再多走一点，走过 teacher？[ExOPD](https://arxiv.org/abs/2602.12125) 就是这么做的，它在输出概率上把 teacher 相对 base 的对数概率比放大 λ 倍。在这组模型上取 λ = 1.25，学生最后只有 48.75，比 teacher 低 16.84 分，比完全没训练的学生还低 14.07 分。
+
+RIDE（RL-Induced Direction Extrapolation）用同样的外推系数、同一个 base checkpoint，只把位移从 LM head 之后的对数概率挪到 head 之前每一层的隐藏态，学生做到 66.07，比 teacher 高 0.48。两种做法之间只隔着一个线性的词表投影头，结果差了 17 分。论文给出的原因有两处。第一，head 对不同方向的放大倍数最多相差约 40 倍，RL 带来的改变恰好集中在放大最少的那些方向。第二，输出空间外推依赖单个采样 token 的对数概率比，外推系数会把这部分采样噪声按 $$(\lambda-1)^2$$ 放大；隐藏态目标由两次前向直接算出，不含这部分噪声。
+
+<TechGraph src="/images/posts/ride-on-policy-distillation/extrapolation-space-comparison.svg" title="OUTPUT SPACE VS HIDDEN STATES" caption="同一条学生前缀上，ExOPD 在 LM head 之后外推，碰上 head 衰减和采样噪声两处障碍；RIDE 在 head 之前逐层外推，目标确定。数字来自论文 Fig. 1、Fig. 5、Table 1、Remark G.1 与附录 E–F，未注明模型的均为 R1-Distill-1.5B 模型对。" />
+
+## On-policy 蒸馏的两条坐标轴
+
+### OPD 本来就是一种 RL
+
+经典蒸馏让学生模仿 teacher 的输出或 teacher 采出来的序列。学生训练时看的是 teacher 的前缀，推理时却要接着自己的前缀往下写，两者分布不一致，就是 exposure bias。On-policy 蒸馏（OPD）反过来：学生 $$\pi_\theta$$ 自己采样回答 $$\hat y\sim\pi_\theta(\cdot\mid x)$$，冻结的 teacher $$\pi_T$$ 在学生真正走到的每个前缀 $$(x,\hat y_{\lt t})$$ 上打分，逐 token 最小化反向 KL：
+
+```math
+\mathcal L_{\mathrm{OPD}}(\theta)=\mathbb E_{x,\hat y\sim\pi_\theta}\Bigl[\sum_{t=1}^{T}D_{\mathrm{KL}}\bigl(\pi_\theta(\cdot\mid x,\hat y_{\lt t})\,\Vert\,\pi_T(\cdot\mid x,\hat y_{\lt t})\bigr)\Bigr]
+```
+
+工程上常用的是采样 token 估计：只在实际采到的 token 上计算 $$r_t=\log\pi_\theta(\hat y_t\mid\cdot)-\log\pi_T(\hat y_t\mid\cdot)$$，把 $$-r_t$$ 当作稠密的逐 token advantage，乘上 $$\nabla_\theta\log\pi_\theta(\hat y_t\mid\cdot)$$。这种形式如今是大模型后训练的常规阶段之一，Thinking Machines 的 [On-Policy Distillation](https://thinkingmachines.ai/blog/on-policy-distillation/) 一文有完整介绍。
+
+论文附录 A.1 把这件事改写成 RL。固定前缀，记 $$p=\pi_\theta$$、$$q=\pi_T$$，任取一个全支撑的参考策略 $$\pi_{\mathrm{ref}}$$，在 KL 里加减一项 $$\log\pi_{\mathrm{ref}}$$：
+
+```math
+D_{\mathrm{KL}}(p\Vert q)=D_{\mathrm{KL}}(p\Vert\pi_{\mathrm{ref}})-\mathbb E_{v\sim p}\bigl[\log q(v)-\log\pi_{\mathrm{ref}}(v)\bigr]
+```
+
+最小化 OPD 损失，等于以 $$\log q-\log\pi_{\mathrm{ref}}$$ 为隐式奖励、奖励和 KL 正则权重相等的 KL 约束 RL。把奖励的权重从 1 换成 λ，局部目标的最优解变成：
+
+```math
+\log p^\star=\lambda\log q+(1-\lambda)\log\pi_{\mathrm{ref}}-\log Z
+```
+
+取 $$\pi_{\mathrm{ref}}=\pi_B$$（RL 之前的 base checkpoint），就是 [Yang et al. 2026b](https://arxiv.org/abs/2602.12125) 的做法：他们把 OPD 推广成带奖励权重的 generalized OPD，λ > 1 的外推设置在 RIDE 论文里称为 ExOPD。λ = 1 退回普通 OPD；λ > 1 时目标落在 teacher 之外，沿着“base 到 teacher”的方向继续走。读过 [RL for LLM 那篇](/blog/rl-for-llm-为什么强化学习训练大模型这么难) 的读者会认出这个结构：KL 正则下的奖励最大化，只是奖励由两个冻结模型的对数概率比给出。
+
+### 四种方法落在同一张表里
+
+论文用一个统一的“目标匹配”模板（Eq. 3）摆放所有方法：在学生采样的轨迹上，让某个模型量 $$s_{\theta,t}$$ 去逼近目标 $$\tau_t$$，梯度不穿过目标。输出空间匹配取下一 token 分布、用反向 KL；表征匹配取第 $$l$$ 层残差流隐藏态 $$h^{(l)}_{\theta,t}$$、用按维度归一化的平方误差：
+
+```math
+\ell\bigl(h^{(l)}_{\theta,t},\tau^{(l)}_t\bigr)=\frac{1}{d}\bigl\lVert h^{(l)}_{\theta,t}-\tau^{(l)}_t\bigr\rVert_2^2
+```
+
+后者是 [OPRD](https://arxiv.org/abs/2606.06021)（On-Policy Representation Distillation）的做法：给定一条 rollout，梯度是确定的，不依赖采到哪个 token。OPD 和 OPRD 都取 $$\tau_t=s_{T,t}$$，teacher 就是学习的终点。
+
+两个维度一交叉，四种方法各占一格：
+
+| 监督空间 | 匹配 teacher（λ = 1） | 沿 RL 方向外推（λ > 1） |
+| --- | --- | --- |
+| 输出分布（LM head 之后） | OPD | ExOPD |
+| 隐藏态（LM head 之前，每层） | OPRD | RIDE |
+
+同一行内比较，隔离的是“外推”本身；同一列内比较，隔离的是“在哪个空间外推”。RIDE 在 λ = 1 时严格等于 OPRD，ExOPD 在 λ = 1 时等于 OPD，后面的实验就是按这张表设计的。
+
+整个讨论限定在**同源初始化**：teacher 由 base RL 得来，$$\pi_T=\mathrm{RL}(\pi_B)$$，学生也从同一个 base 出发，$$\pi_{\theta_0}=\pi_B$$。三个模型共享架构、tokenizer 和 LM head。这种设定出现在两类场景：把一次昂贵的 RL 结果蒸馏回 base，或者把同一底座上训出的多个领域 RL 专家合并成一个模型。[MAI-Thinking-1](/blog/mai-thinking-1) 把三个同底座的 RL 专科模型合成一个，就属于后一类，只是它用的是轨迹蒸馏 SFT，不是 on-policy 蒸馏。
+
+## 第一堵墙：LM head 把 RL 的改变压扁了
+
+LM head 是线性的。记送进 head 的表征为 $$\tilde h$$，logits 为 $$z=W_{\mathrm{head}}\tilde h$$。把 head 输入沿 RL 残差移动，logits 也会沿对应的 logit 残差移动（Eq. 8）：
+
+```math
+W_{\mathrm{head}}\bigl(\tilde h_T+(\lambda-1)\tilde\Delta\bigr)=z_T+(\lambda-1)(z_T-z_B)=\lambda z_T+(1-\lambda)z_B
+```
+
+softmax 会消掉对数配分常数，右边正是 ExOPD 的对数概率目标。换句话说，在共享 head 的前提下，输出空间的外推目标就是 RIDE 隐藏态目标经过 head 的投影。论文实测，用固定的 $$W_B$$ 投影 RIDE 目标，与 $$\lambda z_T+(1-\lambda)z_B$$ 的相对误差只有 $$6.5\times10^{-7}$$。
+
+反过来不成立，原因有两个。其一，logit 目标对 $$\tilde h$$ 在 head 放大最少的方向上约束很弱；其二，logit 目标只管最后一层，对下面所有层没有任何约束。RIDE 的目标在每个被监督的层上都给出完整的 d 维向量。
+
+关键在于 RL 残差落在哪些方向上。论文在 R1-Distill-1.5B 模型对上取了 292,864 个位置（143 道题、每题 16 条 rollout、每条从最后 2,000 个回答 token 里取 128 个位置，第 500 步），测量中心化后的学生 LM head：
+
+- head 满秩，奇异值从 71.70 一路降到 1.78。沿主方向，残差被衰减的倍数最高约 40 倍，但没有被抹掉。
+- 最弱的 512 个奇异方向承载了 teacher 相对 base 残差 **79.8%** 的隐藏态能量。如果残差方向各向同性，这个比例只应是 33.3%。
+- 投影到中心化 logits 以后，这 512 个方向只剩 **30.0%** 的能量。
+- 与同范数的各向同性方向相比，残差的归一化 head 增益只有 0.59（95% CI [0.585, 0.596]）。
+
+33.3% 这个基准来自维度计数：Figure 1(b) 的图例把方向分成“前 1024 个”和“最弱 512 个”，合计 1536，正是这个 1.5B 学生的隐藏维度，512/1536 恰好是三分之一。RL 残差在最弱三分之一方向上的能量占比是基准的 2.4 倍。
+
+<Figure src="/images/posts/ride-on-policy-distillation/fig1-lm-head-bottleneck.png" alt="论文 Figure 1：(a) 隐藏态空间与 logit 空间中的残差外推示意，head 按奇异值缩放各方向；(b) 隐藏态残差与中心化 logit 残差在 head 前 1024 个方向和最弱 512 个方向上的能量占比" caption="论文 Figure 1。(a) head 按奇异值缩放每个方向，RL 残差的低增益分量在 logit 空间里被压短；(b) 最弱 512 个方向在隐藏态里占残差能量的 79.8%，过了 head 只剩 30.0%。" />
+
+这种衰减也传到了梯度里。整个训练过程中，最弱的 512 个方向拿到 RIDE 表征损失梯度的 73.0%，却只拿到输出 KL 梯度（在 head 输入处测量）的 48.6%。输出空间目标并非看不见 RL 带来的改变，只是看到的权重打了折扣。
+
+论文引用了几项工作来支撑“RL 更新小、有结构、跨 run 一致”的前提，其中 Zhu et al. 2025 讨论的是 RLVR 的更新落在权重主方向之外。RL 残差集中在 head 的弱方向上，与那项观察的方向一致；不过两者一个看权重、一个看 head 的奇异方向，论文没有把它们放在一起测量，只能算旁证。
+
+还有一个容易忽略的细节：teacher 的 head 在 RL 过程中也会动。论文测得 $$W_T$$ 相对 $$W_B$$ 的相对 Frobenius 范数漂移只有 1.65%，但由此产生的 $$(W_T-W_B)\tilde h_T$$ 一项，范数达到 teacher 原生 logit 变化的 50%（表征项是 94%），两者余弦为 −0.23。用固定 head 和用 teacher 自己的 head 构造的 logit 目标，平均相对误差 18.70%，对应分布的平均 KL 只有 0.0058，top-1 一致率 96.90%。权重上 1.65% 的改动，在 logits 上贡献了一半幅度、而且方向部分相反的分量。ExOPD 用 teacher 原生 logits 时会把这一项一起外推，RIDE 的隐藏态目标不含 head 漂移项。
+
+## 第二堵墙：外推把采样噪声按平方放大
+
+固定一条 rollout 和位置 t，记 $$p=\pi_\theta$$、$$q=\pi_T$$、$$b=\pi_B$$ 在该前缀上的下一 token 分布，采到的 token 为 $$v\sim p$$。定义：
+
+```math
+\ell(v)=\log p(v)-\log q(v),\qquad \rho(v)=\log q(v)-\log b(v)
+```
+
+ExOPD 在逐 token 更新里使用的 advantage 是 $$A_\lambda(v)=\ell(v)-(\lambda-1)\rho(v)$$（附录 A.1 的 Eq. 13，常数 $$\log Z$$ 乘的是零均值的 score function，可以丢掉）。两项都只在一个采样 token 上取值。Proposition 4.1 给出它在固定前缀下的条件方差：
+
+```math
+\mathrm{Var}_{v\sim p}[A_\lambda]=\mathrm{Var}_{v\sim p}[\ell]+(\lambda-1)^2\,\mathrm{Var}_{v\sim p}[\rho]-2(\lambda-1)\,\mathrm{Cov}_{v\sim p}[\ell,\rho]
+```
+
+第二项是问题所在。q 和 b 都冻结，ρ 与 θ 无关；学生收敛到 teacher（p → q）时，$$\mathrm{Var}_p[\rho]$$ 趋向 $$\mathrm{Var}_q[\rho]$$，只有当 $$\log q-\log b$$ 在 q 的支撑上是常数时才会消失，也就是 RL 完全没改变这个前缀上的下一 token 分布。学生学得再好，外推项的采样噪声也一直按 $$(\lambda-1)^2$$ 加进梯度。
+
+RIDE 这边，学生隐藏态 $$h^{(l)}_{\theta,t}$$ 是 θ 和前缀的确定函数，目标 $$h^{\star(l)}_t$$ 是前缀和两个冻结模型的确定函数，两者都不依赖位置 t 上采到哪个 token。对这个 token 重采样，单位置损失和梯度都不变，条件方差恒为 0。
+
+附录 F 把这个分解实际测了出来。在 R1-Distill-1.5B 模型对上取 9,152 个固定前缀（143 道题 × 4 条 rollout × 16 个位置，位置从最后 2,000 个回答 token 中均匀抽取），对 151,936 个词表 token 精确求和，得到 $$\mathrm{Var}[\ell]$$、$$\mathrm{Var}[\rho]$$、$$\mathrm{Cov}[\ell,\rho]$$ 的精确值；每个前缀再重采样 8,192 次下一 token，蒙特卡洛结果与精确值相差不到 0.38%。对前缀取平均，拟合出：
+
+```math
+\mathrm{Var}[A_\lambda]=0.0096-0.0421\,(\lambda-1)+0.153\,(\lambda-1)^2
+```
+
+三个系数分别是 $$\mathrm{Var}[\ell]=0.0096$$、$$-2\,\mathrm{Cov}[\ell,\rho]=-0.0421$$、$$\mathrm{Var}[\rho]=0.153$$。$$\mathrm{Var}[\rho]$$ 是 $$\mathrm{Var}[\ell]$$ 的 16 倍：训练到第 500 步，学生与 teacher 之间的失配噪声已经很小，teacher 与 base 之间的对数比噪声却很大，外推权重乘上的正是这个大项。负的协方差项让曲线在 λ ≈ 1.14 处有一个浅极小值 0.0067；过了 λ ≈ 1.30，二次项接管全部增长：λ = 1.5 时方差是 λ = 1 的 2.80 倍，λ = 2 时是 12.60 倍（0.121 对 0.0096）。
+
+<Figure src="/images/posts/ride-on-policy-distillation/fig5-mechanistic-analysis.png" alt="论文 Figure 5：(a) RL 残差在 head 前 r 个右奇异方向之外的隐藏态能量与 logit 能量；(b) 学生实际变化与目标变化的二维直方图；(c) ExOPD advantage 条件方差随 λ 的变化，RIDE 为零画在坐标轴底部" caption="论文 Figure 5（R1-Distill-1.5B，λ = 1.25，第 500 步，最后一层）。(a) 残差能量在弱方向上一直高于各向同性基准；(b) 学生实际位移与外推目标对齐；(c) ExOPD 条件方差在 λ ≈ 1.14 处触底，之后被 (λ−1)²·Var[ρ] 主导，RIDE 恒为零。" />
+
+<Callout type="warning" title="方差解释覆盖不了 λ = 1.25">
+把 λ = 1.25 代入附录 F 的拟合式：0.0096 − 0.0421 × 0.25 + 0.153 × 0.0625 ≈ 0.0086，约为 λ = 1 时的 0.90 倍。也就是说，在同一批前缀上，主表实际使用的 λ 对应的 advantage 方差比 λ = 1 还低一成。可在同一模型对的 λ 扫描里，ExOPD 在 λ = 1.25 得到 49.9，比 λ = 1 的 52.9 低 3 分。条件方差能解释 λ = 2 的崩塌，解释不了 λ = 1.25 的退步。论文正文同一段先说负协方差解释了 ExOPD 为什么能容忍略大于 1 的系数，接着又说方差分解“与扫描结果吻合，ExOPD 在 λ = 1.25 退步、λ = 2 崩塌”，两句话之间本身就有张力，后一句比数据说得满。λ = 1.25 的退步更可能来自目标本身：被 head 衰减扭曲的方向、head 漂移项，以及论文相关工作里提到的对数比奖励的长度偏置和过优化。另外，附录 F 只测了 R1-Distill-1.5B 这一组，Qwen3-4B 上那次 14 分的崩塌没有对应的方差测量。
+</Callout>
+
+## RIDE 怎样构造目标
+
+### 残差为什么必须在同一个前缀上算
+
+给定一条学生 rollout，冻结的 $$\pi_T$$ 和 $$\pi_B$$ 在完全相同的前缀 $$(x,\hat y_{\lt t})$$ 上各跑一次前向，第 $$l$$ 层、位置 $$t$$ 的 RL 残差为：
+
+```math
+\Delta^{(l)}_t=h^{(l)}_{T,t}-h^{(l)}_{B,t}
+```
+
+两个模型读的是同一串 token，所以 $$\Delta$$ 只反映 RL 改变了模型处理这段上下文的方式，不混入两条不同轨迹的差异。它活在学生的隐藏空间里（三者同源），每一层都有定义，由两次前向确定地算出，不需要采样。把通用外推式 $$\tau_t(\lambda)=s_{T,t}+(\lambda-1)(s_{T,t}-s_{B,t})$$ 用在隐藏态上，得到 RIDE 的目标（Eq. 6）：
+
+```math
+h^{\star(l)}_t=h^{(l)}_{T,t}+(\lambda-1)\,\Delta^{(l)}_t=\lambda\,h^{(l)}_{T,t}+(1-\lambda)\,h^{(l)}_{B,t}
+```
+
+训练目标是向这个目标做表征回归（Eq. 7），$$m_t$$ 是位置掩码，$$M=\sum_t m_t$$：
+
+```math
+\mathcal L_\lambda(\theta)=\mathbb E_{x,\hat y\sim\pi_\theta}\Bigl[\frac{1}{\lvert\mathcal L_{\mathrm{layer}}\rvert}\sum_{l\in\mathcal L_{\mathrm{layer}}}\frac{1}{M}\sum_{t=1}^{T}m_t\,\frac{1}{d}\bigl\lVert h^{(l)}_{\theta,t}-\operatorname{sg}\bigl(h^{\star(l)}_t\bigr)\bigr\rVert_2^2\Bigr]
+```
+
+和对数概率版本不同，这里没有配分函数。RIDE 监督全部 L 层和最后 k = 2,000 个回答位置；沿用 OPRD 的观察，学生与 teacher 的分歧集中在长回答的后段。相对 OPRD 只改了目标，λ = 1 时两者完全一致，两者的任何差异都只能来自残差项。
+
+<Figure src="/images/posts/ride-on-policy-distillation/fig2-ride-overview.png" alt="论文 Figure 2：学生生成 rollout，冻结的 base 与 teacher 在同一前缀上逐层计算残差，目标沿残差外推，学生做带掩码的回归；右侧为单层单位置的目标几何" caption="论文 Figure 2。左：学生 on-policy 采样；中：base 和 teacher 在同一前缀上逐层给出残差 Δ，目标 h★ 沿残差越过 teacher；右：单层单位置的几何，学生 h_θ 向 h★ 回归。" />
+
+### 回归等于带二次惩罚的方向奖励
+
+固定一条 rollout、一层、一个位置，记 $$h=h^{(l)}_{\theta,t}$$、$$h_T=h^{(l)}_{T,t}$$、$$\Delta=\Delta^{(l)}_t$$。把到目标的平方距离展开（附录 A.3 的 Eq. 14）：
+
+```math
+\bigl\lVert h-h_T-(\lambda-1)\Delta\bigr\rVert_2^2=\lVert h-h_T\rVert_2^2-2(\lambda-1)\langle h-h_T,\Delta\rangle+(\lambda-1)^2\lVert\Delta\rVert_2^2
+```
+
+最后一项与 θ 无关。乘以 −1/2 就得到 Proposition 4.2：最小化 $$\mathcal L_\lambda$$ 等价于最大化
+
+```math
+(\lambda-1)\,r(h)-\frac12\lVert h-h_T\rVert_2^2,\qquad r(h)=\langle h-h_T,\Delta\rangle
+```
+
+奖励 $$r(h)$$ 衡量学生相对 teacher 的位移与 RL 残差对齐的程度，惩罚项是同一位移的二次型，λ − 1 决定奖励的权重。这个目标对 h 严格凹，梯度 $$(\lambda-1)\Delta-(h-h_T)$$ 在 $$h^\star=h_T+(\lambda-1)\Delta$$ 处为零；对单位置损失求导得 $$\nabla_h\mathcal L_\lambda=\tfrac{2}{d}(h-h^\star)$$。
+
+这组推导就是配平方，本身不构成方法有效的证据。它的价值在解释层面：输出空间里是“隐式奖励 + KL 正则”，隐藏态里是“方向奖励 + 二次邻近惩罚”，两条路线属于同一种“奖励外推”，只是把 KL 换成了以 teacher 为中心的欧氏距离。
+
+λ 规定的是目标，并不等于学生实际走出的距离。Figure 5(b) 的测量显示，学生更新与残差方向高度对齐（余弦 0.954，95% CI [0.949, 0.958]），沿残差的平均投影是 1.69（CI [1.65, 1.73]），超过了目标系数 1.25：学生沿同一方向越过了目标。所以 λ 更像方向和力度的旋钮，不能当作精确的位移刻度。这个测量只在最后一层、第 500 步做过。
+
+### 工程实现：λ⁻² 缩放与原地合成
+
+**损失尺度（Remark G.1）。** 初始化时学生就是 base，$$h_{\theta_0}=h_B$$，所以 $$h_{\theta_0}-h^\star=-\lambda\Delta$$，单位置初始损失是 $$\lambda^2\lVert\Delta\rVert_2^2/d$$，是 OPRD（$$\lVert\Delta\rVert_2^2/d$$）的 λ² 倍。损失没有归一化，改 λ 就等于顺带改了有效步长。为了让 λ = 1 严格退回 OPRD，作者保留未归一化的形式，转而把损失系数乘上 $$\lambda^{-2}$$，使每个 λ 的初始损失与 OPRD 相同；不同 λ 之间的损失值都在这个缩放之后比较。
+
+这里有一点值得追问。优化器是 AdamW，如果 RIDE 是唯一的损失项，给它乘一个常数大体会被二阶矩归一化抵消，$$\lambda^{-2}$$ 真正起作用的地方更可能是梯度裁剪和 Adam 的 ε。论文的配置表（Table 5）没有列出梯度裁剪阈值，也没有报告不加缩放的对照，这一项的实际影响无法判断。
+
+**训练中的监控项。** 论文记录 $$h_B$$ 与 $$h_T$$ 的余弦、残差范数比 $$\lVert\Delta\rVert_2/\lVert h_T\rVert_2$$（整体和逐层）、目标范数比 $$\lVert h^\star\rVert_2/\lVert h_T\rVert_2$$。最后一个直接监控 Remark G.1 描述的尺度敏感性，复现时值得照抄。
+
+**原地合成（附录 G）。** 实现基于 verl + FSDP。冻结的 base 加载到已经承载 teacher 的那个 worker 上；每条 rollout，这个 worker 多跑一次 $$\pi_B$$ 前向，按 Eq. 6 原地合成 $$h^\star$$，只向 trainer 发送一个隐藏态张量，传输量与 OPRD 相同。掩码之外和超出回答长度的位置在两个张量里都补零，$$h^\star$$ 在那里也为零，不影响带掩码的损失。λ = 1 或不提供 base 时，base 不加载也不计算，训练就是 OPRD。
+
+| 方法 | 冻结模型前向 | 需要 base | 发给 trainer 的张量 | 目标在哪算 |
+| --- | --- | --- | --- | --- |
+| OPD top-1 / top-16 | 1（teacher） | 否 | T × 1 / T × 16 对数概率 | trainer |
+| OPRD | 1（teacher） | 否 | T × L × d 隐藏态 | teacher worker |
+| ExOPD | 2（teacher、base） | 是 | T × 1 对数比 | trainer |
+| RIDE | 2（teacher、base） | 是 | T × L × d 隐藏态 | teacher worker |
+
+“没有额外通信”是相对 OPRD 说的。和输出空间方法比，隐藏态蒸馏的带宽是另一个量级。粗算一下：R1-Distill-1.5B 沿用 Qwen2.5-1.5B 的结构，按 28 层、隐藏维 1536、bf16 计，只传被监督的最后 2,000 个位置，一条 rollout 就约 172 MB；每步 8 个 prompt × 2 条回答共 16 条 rollout，约 2.75 GB。如果按论文描述的补零张量传满长度，最长 16,384 token 的回答单条约 1.4 GB。这两个数是按公开模型结构的估算，论文只给了张量形状，没有给实际带宽或 wall-clock。
+
+## 实验结果
+
+**设置。** 四组 base / RL teacher 模型对：DeepSeek-R1-Distill-Qwen-1.5B → JustRL-DeepSeek-1.5B；Qwen3-4B、Llama-3.2-3B、Phi-4-mini 分别用同一套 JustRL 配方训出 Just-Qwen3-4B、Just-Llama-3.2-3B、Just-Phi-4-mini。组内三个模型共享架构、tokenizer 和 LM head；组间深度、宽度、词表和预训练血统都不同。训练 prompt 来自 DAPO-Math-17K，每步 8 个 prompt、每个 2 条回答，采样温度 1.0，最长回答 16,384 token，统一 500 步，AdamW 峰值学习率 1e-5（3% 线性 warm-up，cosine 衰减），bf16 + FSDP，4 张 H200。评测用 Avg@16（温度 0.7）：AIME24（30 题）、AIME25（30 题）、AIMO（83 题，AMC 2022–2023），三者不加权平均。每个训练方法跑 3 个种子（14、42、2027），主表报告均值。基线是 OPD top-1、top-16 OPD、OPRD，以及用同一个 λ 和同一个 base 的 ExOPD；权重空间外推被省略，理由是在相同设定下 ExOPD 更强。
+
+### 四组模型对
+
+| 模型对（base → RL teacher） | Teacher | 未训练学生 | OPD top-1 | OPD top-16 | OPRD | ExOPD | RIDE |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R1-Distill-1.5B → JustRL-1.5B | 55.30 | 39.00 | 52.90 | 52.53 | 54.50 | 49.87 | **56.38** |
+| Qwen3-4B → Just-Qwen3-4B | 65.59 | 62.82 | 59.24 | 59.74 | 62.01 | 48.75 | **66.07** |
+| Llama-3.2-3B → Just-Llama-3.2-3B | 13.01 | 6.99 | 1.08 | 5.97 | 10.94 | 6.95 | **13.33** |
+| Phi-4-mini → Just-Phi-4-mini | 17.96 | 15.13 | 12.90 | 16.76 | 17.33 | 12.22 | **18.30** |
+
+三个 benchmark 的平均 Avg@16（%），训练方法为 3 个种子的均值（论文 Table 1）。
+
+<Figure src="/images/posts/ride-on-policy-distillation/fig3-main-results.png" alt="论文 Figure 3：四组模型对上各方法相对 teacher 的 Avg@16 差值柱状图，只有 RIDE 在四组上都略高于 teacher" caption="论文 Figure 3。横线是 RL teacher，柱子是各方法与 teacher 的差值。RIDE 是唯一四组都在线上的方法（+1.08、+0.48、+0.32、+0.34）。" />
+
+数据直接显示的几件事：
+
+- RIDE 的均值在四组上都略高于 teacher，高出 0.32 到 1.08 分；比 OPRD 高 0.97 到 4.06 分，比 ExOPD 平均高 9.1 分。RIDE 和 OPRD 只差一个目标，论文据此认为这段差距隔离出了残差外推的收益；不过 Phi-4-mini 上的 0.97 分在种子标准差以内（见后文 Table 4）。
+- ExOPD 四组都低于 teacher。在 R1-Distill 组，RL 让 teacher 比 base 高了 16.3 分，ExOPD（49.87）仍然低于不外推的 OPD top-1（52.90）。在 teacher 与 base 差距只有 2.8 到 6.0 分的另外三组，ExOPD 还低于未训练的学生：Qwen3-4B 低 14.07 分，Phi-4-mini 低 2.91 分，Llama-3.2-3B 低 0.04 分（基本持平）。
+- Llama-3.2-3B 组的 AIME 分数贴近评测下限（teacher 在 AIME25 上只有 0.42），这一组的证据主要来自 AIMO，论文也承认这一点。
+
+表里还有一处论文没有展开：在差距小的三组上，**不外推的 OPD top-1 也低于未训练的学生**（Qwen3-4B 59.24 对 62.82，Llama-3.2-3B 1.08 对 6.99，Phi-4-mini 12.90 对 15.13）。Qwen3-4B 组上除 RIDE 之外，连 OPRD（62.01）也没回到起点。论文把 ExOPD 在小差距模型对上的退步归于 Proposition 4.1 的 $$(\lambda-1)^2$$ 噪声，但 λ = 1 的采样 token OPD 没有这一项，照样掉到了起点以下。可见小差距模型对上，采样 token 的输出空间蒸馏在 500 步内本身就容易伤到学生，外推只是在此之上再加一层伤害。这部分退步有多少该归给外推，主表分不出来。
+
+### λ 扫描
+
+在 R1-Distill-1.5B 组上，两种方法各扫六到八个 λ（每个设置只跑一次）。λ = 1 时 RIDE 就是 OPRD，ExOPD 就是 OPD，所以每一行都只隔离了“在同一空间里外推”。
+
+| λ | RIDE Avg@16 | RIDE 格式分 | RIDE 长度 | ExOPD Avg@16 | ExOPD 格式分 | ExOPD 长度 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0.5 | 48.2 | 85.3 | 7,430 | 50.2 | 92.1 | 7,032 |
+| 0.75 | 53.9 | 96.0 | 6,789 | 52.9 | 84.7 | 6,816 |
+| 1 | 54.3 | 97.2 | 5,726 | 52.9 | 80.9 | 6,998 |
+| 1.15 | 55.2 | 96.4 | 5,663 | 未测 | 未测 | 未测 |
+| 1.25 | 55.4 | 96.6 | 5,569 | 49.9 | 76.0 | 7,404 |
+| 1.35 | 55.3 | 94.2 | 5,570 | 未测 | 未测 | 未测 |
+| 1.5 | 52.3 | 77.1 | 5,514 | 50.5 | 83.7 | 6,300 |
+| 2 | 52.4 | 86.4 | 5,325 | 46.2 | 64.4 | 8,704 |
+
+最终验证 Avg@16、格式分（%）和最后 50 步的平均回答长度（token），来自论文 Table 2。
+
+<Figure src="/images/posts/ride-on-policy-distillation/fig4-lambda-sweep.png" alt="论文 Figure 4：ExOPD（上）与 RIDE（下）在六个外推系数下的验证 Avg@16、训练回答长度和格式分随训练步数的变化" caption="论文 Figure 4（R1-Distill-1.5B，每个 λ 跑一次）。上排 ExOPD：λ = 1.25 和 1.5 的 run 在第 150 步前后见顶后下滑，λ = 2 的回答长度冲到 9,000 token 附近，格式分跌到 64%。下排 RIDE：图中 0.75 ≤ λ ≤ 1.25 的 run 稳步上升，格式分保持在 96–97%。" />
+
+RIDE 的 Avg@16 随 λ 上升，从 λ = 0.5 的 48.2 到 λ = 1 的 54.3，在 1.25 处达到峰值 55.4；1.15 和 1.35 分别是 55.2 和 55.3，整个 [1.15, 1.35] 区间都高于 OPRD。0.75 ≤ λ ≤ 1.35 的 run 在整个训练预算内稳步上升，格式分 94–97%。超过 1.35 以后开始退步，但退得平缓：λ = 1.5 和 2 分别收在 52.3 和 52.4，λ = 1.5 的格式分降到 77.1%。回答长度的规律很清楚：往 teacher 之外推（λ ≥ 1），回答缩短到 5.3k–5.7k token；往 base 方向推（λ &lt; 1），回答变长到 6.8k–7.4k。
+
+ExOPD 在 λ ≤ 1 时最好（λ = 0.75 和 1 都是 52.9），任何 λ > 1 都有害。λ = 1.25 和 1.5 的 run 在第 150 步左右就见顶，随后下滑（λ = 1.25 收在 49.9，λ = 2 收在 46.2）；格式分从 λ = 0.5 的 92% 跌到 λ = 2 的 64%，回答长度涨到 8,704 token。
+
+扫描表每个点只有一次 run。主表里 OPRD 三种子的标准差约 1 分，所以 1.15、1.25、1.35 三个点之间的差别（0.1 到 0.2 分）没有意义。ExOPD 在 λ = 1.5（50.5）反而略高于 λ = 1.25（49.9），也说明单次 run 有噪声。能可靠读出的是趋势：RIDE 在 1 附近到 1.35 一段是平台，ExOPD 一过 1 就往下走。
+
+### 方向控制：增益来自 RL 方向，还是只来自“把目标推远”
+
+外推会不会只是某种正则，比如让目标偏离 teacher、给学生一点额外的推力？论文在 R1-Distill-1.5B 组上做了四个对照。每个对照保持训练协议、位移幅度 $$\lvert\lambda-1\rvert\,\lVert\Delta^{(l)}_t\rVert$$、监督的层和位置不变，只改变位移的方向：
+
+| 目标构造 | Avg@16 |
+| --- | --- |
+| 匹配 teacher（OPRD，λ = 1） | 54.50 |
+| 随机方向，同范数 | 55.04 |
+| 反方向（λ = 0.75，朝 base 推） | 53.90 |
+| 错配原点：残差相对 Qwen2.5-Math-1.5B-Instruct 计算 | 54.75 |
+| 轨迹错配：teacher 与 base 在各自生成的轨迹上计算 | 55.12 |
+| RIDE（同一前缀上的 RL 残差） | 56.38 |
+
+来自论文 Table 3，λ = 1.25（另有注明的除外）。
+
+论文对错配原点一行的说法是：Qwen2.5-Math-1.5B-Instruct 与学生同架构但没有训练血缘，$$h_T-h_{B'}$$ 反映的是两个无关模型的差异，不是 RL 带来的改变。这个说法要打折扣。按 [DeepSeek 的模型卡](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B)，R1-Distill-Qwen-1.5B 本身是从 Qwen2.5-Math-1.5B 微调来的，与 Qwen2.5-Math-1.5B-Instruct 出自同一个底座。这个对照检验的其实是“同一底座的另一种后训练”，不是“无关模型”；它仍能说明残差要来自这一次 RL，但力度比论文描述的弱。轨迹错配那一行直接检验了“同一前缀让残差有意义”的说法。四个对照都落在 OPRD 上下 1 分以内，RIDE 高出 1.88 分。论文据此认为增益来自 RL 残差本身。
+
+<Callout type="note" title="这张表混用了两种口径">
+OPRD 和 RIDE 两行（54.50、56.38）与主表的三种子均值完全相同；反方向一行 53.90 则与扫描表里 λ = 0.75 的单次 run 一致。论文没有说明各对照跑了几个种子。如果对照只跑了一次，更可比的应该是同口径单次 run 的 RIDE：扫描表 λ = 1.25 为 55.4，只比随机方向（55.04）和轨迹错配（55.12）高约 0.3 分，落在种子间标准差以内。方向控制的结论方向是对的，但按目前披露的口径，它比表面上的 1.88 分弱得多。
+</Callout>
+
+## 证据能撑到哪里
+
+**“超过 teacher”的幅度在噪声量级。** 论文 Table 4 给出 OPRD 和 RIDE 的三种子标准差：
+
+| 模型对 | Teacher | OPRD | RIDE |
+| --- | --- | --- | --- |
+| R1-Distill-1.5B | 55.30 | 54.50 ± 1.04 | 56.38 ± 0.97 |
+| Qwen3-4B | 65.59 | 62.01 ± 0.96 | 66.07 ± 0.88 |
+| Llama-3.2-3B | 13.01 | 10.94 ± 0.90 | 13.33 ± 1.13 |
+| Phi-4-mini | 17.96 | 17.33 ± 1.06 | 18.30 ± 1.05 |
+
+只有 R1-Distill 一组的超出幅度（1.08）勉强大于一个标准差（0.97），另外三组都在一个标准差以内。teacher 本身是单个 checkpoint 的一次评测，它的不确定性没有计入。AIME24 和 AIME25 各只有 30 题，一道题就是该 benchmark 上 3.3 分。论文自己的措辞是“接近或超过 teacher”，这个说法与数据相符；标题式的“超越 teacher”则说多了。站得住的是两组相对比较：RIDE 比 OPRD 高 0.97 到 4.06 分（Qwen3-4B 上 4.06 分远超标准差，Phi-4-mini 上 0.97 分在标准差以内），比 ExOPD 平均高 9.1 分。
+
+**机制解释只覆盖了一部分退步。** 条件方差能解释大 λ 下的崩塌，但前文已经算过，在同一批前缀上，主表用的 λ = 1.25 对应的方差反而比 λ = 1 略低；不外推的 OPD top-1 在三组小差距模型对上同样掉到起点以下。“输出空间外推不行”这个结论有数据支撑，但其中多少要归给 $$(\lambda-1)^2$$ 噪声，多少要归给 head 衰减和对数比奖励本身的偏置，论文没有拆开。
+
+**同源同构是硬约束。** RIDE 需要持有 RL 之前的 checkpoint，需要 base、teacher、学生共享隐藏空间。最常见的工业蒸馏，把大 teacher 蒸到另一个家族、另一个尺寸的小模型，不在适用范围内。论文提到的另一个动机场景，合并同底座的多个领域 RL 专家，需要同时处理多条残差，也没有做实验。
+
+**覆盖面窄。** 论文结论部分自己列出的限制是：需要 RL 前的 checkpoint 和共享的表征空间，只用一个全局 λ，只评了数学推理，只用了一套 RL 配方（JustRL）；“用隐藏态目标训出来的学生在校准和安全上会怎样”留作未来工作。实验设置里还有两点结论没提：模型最大 4B；每个 run 只训 500 步、每步 16 条 rollout，总共 8,000 条 rollout。人为构造的隐藏态目标 $$h^\star$$ 并不对应任何真实模型的状态，这一点对数学之外的任务尤其值得验证。
+
+**复现材料还没放出。** 截至 2026-11-18，[项目仓库](https://github.com/xixixixixxxx/RIDE) 只有 README 和 assets 目录，没有训练代码和 checkpoint。论文内部也有一处数字没对上：Figure 5(b) 图内标注的余弦是 0.9150，正文和附录 E 写的 head 可见分量余弦是 0.895。
+
+## 对实践的含义
+
+<Callout type="tip" title="如果手上正好是同源蒸馏">
+已经在跑 OPRD 一类的隐藏态蒸馏，RIDE 的改动量很小：把回归目标从 $$h_T$$ 换成 $$h_T+(\lambda-1)(h_T-h_B)$$，损失系数乘 $$\lambda^{-2}$$，在 teacher worker 上多加载一个 base 并多跑一次前向。按 R1-Distill 组的扫描，λ 可以从 1.15 到 1.35 之间起步，同时盯住 $$\lVert h^\star\rVert/\lVert h_T\rVert$$、逐层的 $$\lVert\Delta\rVert/\lVert h_T\rVert$$ 和格式分。
+</Callout>
+
+几条更一般的结论：
+
+1. **先评一次未训练的学生。** Qwen3-4B 组上，除 RIDE 以外的每种蒸馏方法 500 步后都低于起点。base 本身已经很强时，“匹配 teacher”也不是中性操作。
+2. **在输出空间放大对数比奖励之前，先在自己的前缀上做方差分解。** $$\mathrm{Var}[\ell]$$、$$\mathrm{Var}[\rho]$$、$$\mathrm{Cov}[\ell,\rho]$$ 都可以在固定前缀上对全词表精确求和，成本很低。如果 $$\mathrm{Var}[\rho]$$ 远大于 $$\mathrm{Var}[\ell]$$（论文的测量是 16 倍），λ 稍大一点就会让外推项的噪声主导梯度。
+3. **teacher 与 base 差距小时，输出空间外推风险最大。** 三组差距 2.8 到 6.0 分的模型对上，ExOPD 全部低于未训练的学生。
+4. **隐藏态蒸馏要按带宽来规划。** T × L × d 的张量比 T × 1 的对数概率大好几个数量级，原地合成目标只是让 RIDE 不比 OPRD 更贵，并没有让它和输出空间方法一样便宜。
+5. **读“超越 teacher”类结果时，把种子标准差和 benchmark 题量放在一起看。** 一分以内的差距，在 30 题的 AIME 上很难和噪声区分开。
+
+## 参考资料
+
+- Hao Li, MeiJia Chen, Weijie Ren, et al. *The Teacher Is a Direction, Not a Destination: Extrapolating RL-Induced Representation Residuals in On-Policy Distillation*. arXiv:2609.36484, 2026. [arXiv](https://arxiv.org/abs/2609.36484) · [GitHub](https://github.com/xixixixixxxx/RIDE)
+- Wenkai Yang, Weijie Liu, Ruobing Xie, et al. *Learning Beyond Teacher: Generalized On-Policy Distillation with Reward Extrapolation*. arXiv:2602.12125, 2026. [arXiv](https://arxiv.org/abs/2602.12125)
+- Yang et al. *OPRD: On-Policy Representation Distillation*. arXiv:2606.06021, 2026. [arXiv](https://arxiv.org/abs/2606.06021)
+- Rishabh Agarwal, Nino Vieillard, Yongchao Zhou, et al. *On-Policy Distillation of Language Models: Learning from Self-Generated Mistakes*. ICLR 2024. [arXiv](https://arxiv.org/abs/2306.13649)
+- Kevin Lu and Thinking Machines Lab. *On-Policy Distillation*. Connectionism, 2025. [Blog](https://thinkingmachines.ai/blog/on-policy-distillation/)
+- Hanqing Zhu, Zhenyu Zhang, et al. *The Path Not Taken: RLVR Provably Learns Off the Principals*. arXiv:2511.08567, 2025. [arXiv](https://arxiv.org/abs/2511.08567)
+- DeepSeek-AI. *DeepSeek-R1-Distill-Qwen-1.5B* model card. [Hugging Face](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B)
+
+正文里的数字均出自论文正文、Table 1–6 和附录 E–G。λ = 1.25 处的方差值、隐藏态张量的带宽估算、对 Table 3 口径的推断，以及错配原点对照与学生同出一个底座这一点，是依据论文公布的数字或公开模型卡另行计算、比对得到的，不是论文的结论。
