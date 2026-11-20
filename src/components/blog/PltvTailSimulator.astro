@@ -1,0 +1,352 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式分布实验 · ZILN 重尾与洛伦兹曲线',
+      title: '零膨胀对数正态分布参数如何决定鲸鱼集中度与基尼系数',
+      subtitle: '拖动付费率 p 与对数方差 σ（固定对数均值 μ = 2.0），观察重尾拉长后 Top 1% 鲸鱼的流水占比与整体 Gini 系数如何跃升。',
+      pLabel: '付费转化率 p',
+      sigmaLabel: '对数离散度 σ',
+      meanLabel: '理论期望 E[LTV]',
+      top1Label: 'Top 1% 用户流水占比',
+      giniLabel: '总体基尼系数 (Gini)',
+      mseNote: '重尾风险提示',
+      chartTitle: '洛伦兹累计收益曲线（按真实 LTV 降序排列）',
+      xAxis: '累计用户占比',
+      yAxis: '累计收入占比',
+      perfect: '理论最优排序 (Ideal)',
+      random: '随机排序基准 (Random)',
+    }
+  : {
+      eyebrow: 'INTERACTIVE DISTRIBUTION LAB · ZILN TAIL & LORENZ CURVE',
+      title: 'How Paying Rate p and Tail Dispersion σ Drive Whale Concentration',
+      subtitle: 'Adjust paying rate p and log-scale dispersion σ (holding μ = 2.0 fixed) to observe expected LTV, Top-1% whale revenue share, and population Gini.',
+      pLabel: 'Paying Rate p',
+      sigmaLabel: 'Log Dispersion σ',
+      meanLabel: 'Expected E[LTV]',
+      top1Label: 'Top 1% Revenue Share',
+      giniLabel: 'Population Gini',
+      mseNote: 'Tail Stress Signal',
+      chartTitle: 'Cumulative Gain / Lorenz Curve (Sorted by True LTV Descending)',
+      xAxis: 'Cumulative Share of Users',
+      yAxis: 'Cumulative Revenue Share',
+      perfect: 'Ideal Ranking Curve',
+      random: 'Random Baseline',
+    };
+
+const payload = JSON.stringify({ isZh });
+---
+
+<section class="pltv-sim not-prose" data-widget="pltv-sim" data-payload={payload}>
+  <header class="pltv-head">
+    <p class="pltv-eyebrow">{copy.eyebrow}</p>
+    <h4 class="pltv-title">{copy.title}</h4>
+    <p class="pltv-subtitle">{copy.subtitle}</p>
+  </header>
+
+  <div class="pltv-controls">
+    <label class="pltv-control">
+      <span class="pltv-control-top">
+        <span>{copy.pLabel}</span>
+        <strong data-out-p>5.0%</strong>
+      </span>
+      <input type="range" min="1" max="25" step="0.5" value="5" data-in-p />
+    </label>
+    <label class="pltv-control">
+      <span class="pltv-control-top">
+        <span>{copy.sigmaLabel}</span>
+        <strong data-out-sigma>1.50</strong>
+      </span>
+      <input type="range" min="0.5" max="2.2" step="0.05" value="1.5" data-in-sigma />
+    </label>
+  </div>
+
+  <div class="pltv-grid">
+    <div class="pltv-chart-box">
+      <p class="pltv-chart-title">{copy.chartTitle}</p>
+      <svg viewBox="0 0 460 245" class="pltv-svg" role="img" aria-label={copy.chartTitle}>
+        <line x1="50" y1="20" x2="50" y2="200" stroke="#d8d1c4" stroke-width="1" />
+        <line x1="50" y1="200" x2="430" y2="200" stroke="#d8d1c4" stroke-width="1" />
+        <line x1="50" y1="200" x2="430" y2="20" stroke="#a19b8f" stroke-width="1.2" stroke-dasharray="4 4" />
+        <path data-gain-area d="" fill="rgba(134, 102, 59, 0.14)" />
+        <path data-gain-line d="" fill="none" stroke="#86663b" stroke-width="2.5" stroke-linejoin="round" />
+        <circle data-top1-dot cx="54" cy="60" r="4.5" fill="#a44a3f" stroke="#fbf9f5" stroke-width="1.8" />
+        <text x="44" y="204" text-anchor="end" fill="#716d63" font-size="10.5" font-family="ui-monospace, monospace">0%</text>
+        <text x="44" y="114" text-anchor="end" fill="#716d63" font-size="10.5" font-family="ui-monospace, monospace">50%</text>
+        <text x="44" y="24" text-anchor="end" fill="#716d63" font-size="10.5" font-family="ui-monospace, monospace">100%</text>
+        <text x="50" y="218" text-anchor="middle" fill="#716d63" font-size="10.5" font-family="ui-monospace, monospace">0%</text>
+        <text x="240" y="218" text-anchor="middle" fill="#716d63" font-size="10.5" font-family="ui-monospace, monospace">50%</text>
+        <text x="430" y="218" text-anchor="middle" fill="#716d63" font-size="10.5" font-family="ui-monospace, monospace">100%</text>
+        <text x="240" y="238" text-anchor="middle" fill="#716d63" font-size="11">{copy.xAxis}</text>
+        <text x="424" y="190" text-anchor="end" fill="#716d63" font-size="10.5">{copy.random}</text>
+        <text x="64" y="34" text-anchor="start" fill="#86663b" font-size="10.5" font-weight="600">{copy.perfect}</text>
+      </svg>
+    </div>
+
+    <dl class="pltv-stats">
+      <div class="pltv-stat">
+        <dt>{copy.meanLabel}</dt>
+        <dd data-stat-mean>$1.14</dd>
+      </div>
+      <div class="pltv-stat">
+        <dt>{copy.top1Label}</dt>
+        <dd data-stat-top1>71.8%</dd>
+      </div>
+      <div class="pltv-stat">
+        <dt>{copy.giniLabel}</dt>
+        <dd data-stat-gini>0.985</dd>
+      </div>
+      <div class="pltv-stat">
+        <dt>{copy.mseNote}</dt>
+        <dd data-stat-note class="pltv-note"></dd>
+      </div>
+    </dl>
+  </div>
+</section>
+
+<script>
+  function erf(x: number): number {
+    const sign = x >= 0 ? 1 : -1;
+    const a = Math.abs(x);
+    const t = 1 / (1 + 0.3275911 * a);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t) * Math.exp(-a * a);
+    return sign * y;
+  }
+
+  function normCdf(z: number): number {
+    return 0.5 * (1 + erf(z / Math.SQRT2));
+  }
+
+  function invNorm(p: number): number {
+    // Rational approximation (Acklam)
+    const clamped = Math.min(Math.max(p, 1e-6), 1 - 1e-6);
+    const a = [-3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2, -3.066479806614716e1, 2.506628277459239];
+    const b = [-5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1, -1.328068155288572e1];
+    const c = [-7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+    const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
+    const plow = 0.02425;
+    const phigh = 1 - plow;
+    if (clamped < plow) {
+      const q = Math.sqrt(-2 * Math.log(clamped));
+      return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+    }
+    if (clamped <= phigh) {
+      const q = clamped - 0.5;
+      const r = q * q;
+      return ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+    }
+    const q = Math.sqrt(-2 * Math.log(1 - clamped));
+    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+
+  function initPltvSims() {
+    document.querySelectorAll<HTMLElement>('[data-widget="pltv-sim"]').forEach((root) => {
+      if (root.dataset.bound === '1') return;
+      root.dataset.bound = '1';
+      const { isZh } = JSON.parse(root.dataset.payload || '{"isZh":true}');
+      const inP = root.querySelector<HTMLInputElement>('[data-in-p]');
+      const inS = root.querySelector<HTMLInputElement>('[data-in-sigma]');
+      const outP = root.querySelector<HTMLElement>('[data-out-p]');
+      const outS = root.querySelector<HTMLElement>('[data-out-sigma]');
+      const statMean = root.querySelector<HTMLElement>('[data-stat-mean]');
+      const statTop1 = root.querySelector<HTMLElement>('[data-stat-top1]');
+      const statGini = root.querySelector<HTMLElement>('[data-stat-gini]');
+      const statNote = root.querySelector<HTMLElement>('[data-stat-note]');
+      const gainLine = root.querySelector<SVGPathElement>('[data-gain-line]');
+      const gainArea = root.querySelector<SVGPathElement>('[data-gain-area]');
+      const top1Dot = root.querySelector<SVGCircleElement>('[data-top1-dot]');
+
+      const mu = 2.0;
+
+      function gainAt(u: number, p: number, sigma: number): number {
+        if (u <= 0) return 0;
+        if (u >= p) return 1;
+        // Top fraction u of all users = top fraction (u / p) of payers
+        const q = u / p;
+        const z = invNorm(1 - q);
+        return 1 - normCdf(z - sigma);
+      }
+
+      function update() {
+        const p = parseFloat(inP?.value || '5') / 100;
+        const sigma = parseFloat(inS?.value || '1.5');
+        if (outP) outP.textContent = `${(p * 100).toFixed(1)}%`;
+        if (outS) outS.textContent = sigma.toFixed(2);
+
+        const mean = p * Math.exp(mu + 0.5 * sigma * sigma);
+        const top1 = gainAt(0.01, p, sigma);
+        // Population Gini of ZILN = 1 - p * (1 - Gini_LN), where Gini_LN = erf(sigma / 2)
+        const giniLn = erf(sigma / 2);
+        const giniPop = 1 - p * (1 - giniLn);
+
+        if (statMean) statMean.textContent = `$${mean.toFixed(2)}`;
+        if (statTop1) statTop1.textContent = `${(top1 * 100).toFixed(1)}%`;
+        if (statGini) statGini.textContent = giniPop.toFixed(3);
+        if (statNote) {
+          if (sigma >= 1.6) {
+            statNote.textContent = isZh
+              ? '极度重尾：单笔极端鲸鱼样本即可令 MSE 梯度失真，必须使用对数似然或分桶专家。'
+              : 'Extreme tail: single whale outliers corrupt MSE gradients; log-likelihood or multi-experts required.';
+          } else if (sigma >= 1.1) {
+            statNote.textContent = isZh
+              ? '典型手游重尾区：头部 1% 玩家贡献超半数流水，评估需聚焦 Normalized Gini。'
+              : 'Typical game heavy tail: top 1% drives most revenue; evaluate with Normalized Gini.';
+          } else {
+            statNote.textContent = isZh
+              ? '温和分布区：常见于订阅制或轻度混变，均值偏差压力显著低于重度内购。'
+              : 'Moderate dispersion: typical of subscription or light hybrid games with lower outlier stress.';
+          }
+        }
+
+        const steps = 40;
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= steps; i++) {
+          const u = i === 0 ? 0 : Math.pow(i / steps, 1.8);
+          const g = gainAt(u, p, sigma);
+          const x = 50 + u * 380;
+          const y = 200 - g * 180;
+          pts.push([x, y]);
+        }
+        const dLine = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+        const dArea = `${dLine} L430,200 L50,200 Z`;
+        if (gainLine) gainLine.setAttribute('d', dLine);
+        if (gainArea) gainArea.setAttribute('d', dArea);
+        if (top1Dot) {
+          top1Dot.setAttribute('cx', (50 + 0.01 * 380).toFixed(1));
+          top1Dot.setAttribute('cy', (200 - top1 * 180).toFixed(1));
+        }
+      }
+
+      inP?.addEventListener('input', update);
+      inS?.addEventListener('input', update);
+      update();
+    });
+  }
+
+  initPltvSims();
+  document.addEventListener('astro:after-swap', initPltvSims);
+  document.addEventListener('languagechange', initPltvSims);
+</script>
+
+<style>
+  .pltv-sim {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--color-field);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .pltv-head {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .pltv-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .pltv-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    color: var(--color-heading);
+  }
+  .pltv-subtitle {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .pltv-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin: 1.1rem 0 1.25rem;
+  }
+  .pltv-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    font-size: 0.85rem;
+    color: var(--color-body);
+  }
+  .pltv-control-top {
+    display: flex;
+    justify-content: space-between;
+    font-variant-numeric: tabular-nums;
+  }
+  .pltv-control-top strong {
+    color: var(--color-accent);
+    font-family: ui-monospace, SFMono-Regular, monospace;
+  }
+  .pltv-control input[type='range'] {
+    accent-color: var(--color-accent);
+    cursor: pointer;
+  }
+  .pltv-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  .pltv-chart-box {
+    padding: 0.85rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+  }
+  .pltv-chart-title {
+    margin: 0 0 0.5rem;
+    font-size: 12px;
+    color: var(--color-muted);
+  }
+  .pltv-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .pltv-stats {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  .pltv-stat {
+    padding: 0.7rem 0.85rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+  }
+  .pltv-stat dt {
+    font-size: 11px;
+    color: var(--color-muted);
+    margin-bottom: 0.25rem;
+  }
+  .pltv-stat dd {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    font-variant-numeric: tabular-nums;
+  }
+  .pltv-stat dd.pltv-note {
+    font-size: 0.84rem;
+    font-weight: 400;
+    line-height: 1.55;
+    color: var(--color-body);
+  }
+  @media (max-width: 767px) {
+    .pltv-controls,
+    .pltv-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

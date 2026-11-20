@@ -37,4 +37,15 @@ export const SERIES = [
       '一份历史千个候选-四篇工业推荐论文里的计算复用.mdx',
     ],
   },
+  {
+    id: 'mobile-game-ua-algorithms',
+    title: 'Mobile game user acquisition algorithms',
+    description: 'From game unit economics and ad networks to heavy-tail pLTV modeling, delayed-feedback bidding, and privacy-era incrementality.',
+    posts: [
+      'mobile-game-ua-business-and-ecosystem.mdx',
+      'mobile-game-ua-pltv-heavy-tail-modeling.mdx',
+      'mobile-game-ua-delayed-feedback-and-bidding.mdx',
+      'mobile-game-ua-skan4-and-incrementality.mdx',
+    ],
+  },
 ];

@@ -1,0 +1,421 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式商业模型 · 单位经济学与回本曲线',
+      title: '不同游戏品类的买量现金流与 ROAS 回本轨迹',
+      subtitle: '切换品类，观察 CPI、D1 到 D90 的累计 ROAS 爬坡速度，以及媒体侧主攻的出价目标。',
+      breakeven: '100% 回本线',
+      metrics: {
+        cpi: '典型 CPI 区间',
+        payback: '目标回本周期',
+        d7: 'D7 累计 ROAS',
+        d90: 'D90 累计 ROAS',
+        goal: '媒体主攻出价目标',
+        risk: '核心算法痛点',
+      },
+      genres: [
+        {
+          id: 'iaa',
+          tab: '超休闲 IAA',
+          summary: '靠激励视频与插屏广告变现，单用户天花板低但回本极快，核心看素材吸量与 eCPM 变现效率。',
+          cpi: '$0.30 - $1.20',
+          payback: 'D3 - D7',
+          d7: '112%',
+          d90: '138%',
+          goal: 'AdROAS / CPI',
+          risk: '素材生命周期仅 3-7 天，冷启动探索速度决定起量上限',
+          points: [
+            { day: 'D1', roas: 58 },
+            { day: 'D3', roas: 92 },
+            { day: 'D7', roas: 112 },
+            { day: 'D14', roas: 124 },
+            { day: 'D30', roas: 132 },
+            { day: 'D90', roas: 138 },
+          ],
+        },
+        {
+          id: 'hybrid',
+          tab: '混合变现 Hybrid',
+          summary: 'IAA 广告托底回本速度，IAP 内购拉高长期天花板，需要双口径汇总 LTV 并向媒体回传混合价值。',
+          cpi: '$2.00 - $5.50',
+          payback: 'D21 - D45',
+          d7: '44%',
+          d90: '132%',
+          goal: 'Hybrid tROAS / VBO',
+          risk: 'IAA 即时回传与 IAP 延迟付费混杂，早期信号对齐难度高',
+          points: [
+            { day: 'D1', roas: 18 },
+            { day: 'D3', roas: 31 },
+            { day: 'D7', roas: 44 },
+            { day: 'D14', roas: 65 },
+            { day: 'D30', roas: 96 },
+            { day: 'D90', roas: 132 },
+          ],
+        },
+        {
+          id: 'iap',
+          tab: '重度 SLG / RPG (IAP)',
+          summary: '95% 以上用户零付费，极少数鲸鱼玩家贡献大部分流水；前期深度垫资，完全依赖高精度 pLTV 预估。',
+          cpi: '$12.00 - $35.00',
+          payback: 'D90 - D180',
+          d7: '19%',
+          d90: '98%',
+          goal: 'VBO / D7 tROAS (pLTV)',
+          risk: '零膨胀重尾 + 转化严重延迟 + SKAN 4.0 隐私量化截断',
+          points: [
+            { day: 'D1', roas: 6 },
+            { day: 'D3', roas: 12 },
+            { day: 'D7', roas: 19 },
+            { day: 'D14', roas: 33 },
+            { day: 'D30', roas: 54 },
+            { day: 'D90', roas: 98 },
+          ],
+        },
+      ],
+    }
+  : {
+      eyebrow: 'INTERACTIVE UNIT ECONOMICS · PAYBACK TRAJECTORY',
+      title: 'Cashflow & Cumulative ROAS Curves Across Game Genres',
+      subtitle: 'Switch monetization regimes to inspect CPI bands, D1-D90 ROAS ramp speed, payback horizons, and bidding objectives.',
+      breakeven: '100% Breakeven',
+      metrics: {
+        cpi: 'Typical CPI Band',
+        payback: 'Target Payback',
+        d7: 'D7 Cum. ROAS',
+        d90: 'D90 Cum. ROAS',
+        goal: 'Primary Bid Goal',
+        risk: 'Dominant Modeling Bottleneck',
+      },
+      genres: [
+        {
+          id: 'iaa',
+          tab: 'Hyper-Casual (IAA)',
+          summary: 'Monetizes via rewarded video and interstitials. Low ARPU ceiling but rapid cash recovery; creative throughput drives scale.',
+          cpi: '$0.30 - $1.20',
+          payback: 'D3 - D7',
+          d7: '112%',
+          d90: '138%',
+          goal: 'AdROAS / CPI',
+          risk: 'Creatives decay in 3-7 days; exploration speed caps daily spend',
+          points: [
+            { day: 'D1', roas: 58 },
+            { day: 'D3', roas: 92 },
+            { day: 'D7', roas: 112 },
+            { day: 'D14', roas: 124 },
+            { day: 'D30', roas: 132 },
+            { day: 'D90', roas: 138 },
+          ],
+        },
+        {
+          id: 'hybrid',
+          tab: 'Hybrid-Casual',
+          summary: 'Ad revenue floors early cashflow while in-app purchases lift the long-term ceiling; requires unified IAA+IAP value backfeed.',
+          cpi: '$2.00 - $5.50',
+          payback: 'D21 - D45',
+          d7: '44%',
+          d90: '132%',
+          goal: 'Hybrid tROAS / VBO',
+          risk: 'Mixing immediate ad impressions with delayed IAP conversions',
+          points: [
+            { day: 'D1', roas: 18 },
+            { day: 'D3', roas: 31 },
+            { day: 'D7', roas: 44 },
+            { day: 'D14', roas: 65 },
+            { day: 'D30', roas: 96 },
+            { day: 'D90', roas: 132 },
+          ],
+        },
+        {
+          id: 'iap',
+          tab: 'Heavy SLG / RPG (IAP)',
+          summary: 'Over 95% of installers pay zero while a thin whale tail carries revenue. Heavy upfront financing depends on accurate pLTV.',
+          cpi: '$12.00 - $35.00',
+          payback: 'D90 - D180',
+          d7: '19%',
+          d90: '98%',
+          goal: 'VBO / D7 tROAS (pLTV)',
+          risk: 'Zero-inflated heavy tails, long conversion delays, and SKAN loss',
+          points: [
+            { day: 'D1', roas: 6 },
+            { day: 'D3', roas: 12 },
+            { day: 'D7', roas: 19 },
+            { day: 'D14', roas: 33 },
+            { day: 'D30', roas: 54 },
+            { day: 'D90', roas: 98 },
+          ],
+        },
+      ],
+    };
+
+const payload = JSON.stringify(copy);
+---
+
+<section class="ua-econ-panel not-prose" data-widget="ua-econ" data-payload={payload}>
+  <header class="ua-panel-head">
+    <div>
+      <p class="ua-eyebrow">{copy.eyebrow}</p>
+      <h4 class="ua-title">{copy.title}</h4>
+      <p class="ua-subtitle">{copy.subtitle}</p>
+    </div>
+    <div class="ua-tabs" role="tablist">
+      {copy.genres.map((g, idx) => (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={idx === 2 ? 'true' : 'false'}
+          data-genre-btn={g.id}
+          class:list={['ua-tab', idx === 2 && 'is-active']}
+        >
+          {g.tab}
+        </button>
+      ))}
+    </div>
+  </header>
+
+  <p class="ua-summary" data-genre-summary>{copy.genres[2].summary}</p>
+
+  <div class="ua-body">
+    <div class="ua-chart-wrap">
+      <svg viewBox="0 0 540 230" class="ua-svg" role="img" aria-label={copy.title}>
+        <line x1="48" y1="24" x2="48" y2="192" stroke="#d8d1c4" stroke-width="1" />
+        <line x1="48" y1="192" x2="516" y2="192" stroke="#d8d1c4" stroke-width="1" />
+        <line x1="48" y1="78" x2="516" y2="78" stroke="#a44a3f" stroke-width="1.2" stroke-dasharray="5 4" />
+        <text x="514" y="72" text-anchor="end" fill="#a44a3f" font-size="11" font-family="ui-monospace, SFMono-Regular, monospace">{copy.breakeven}</text>
+        <text x="40" y="196" text-anchor="end" fill="#716d63" font-size="11" font-family="ui-monospace, SFMono-Regular, monospace">0%</text>
+        <text x="40" y="139" text-anchor="end" fill="#716d63" font-size="11" font-family="ui-monospace, SFMono-Regular, monospace">50%</text>
+        <text x="40" y="82" text-anchor="end" fill="#716d63" font-size="11" font-family="ui-monospace, SFMono-Regular, monospace">100%</text>
+        <text x="40" y="28" text-anchor="end" fill="#716d63" font-size="11" font-family="ui-monospace, SFMono-Regular, monospace">150%</text>
+        <path data-area-path d="" fill="rgba(134, 102, 59, 0.12)" />
+        <path data-line-path d="" fill="none" stroke="#86663b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+        <g data-points-layer></g>
+      </svg>
+    </div>
+
+    <dl class="ua-metrics">
+      <div class="ua-metric">
+        <dt>{copy.metrics.cpi}</dt>
+        <dd data-m-cpi>{copy.genres[2].cpi}</dd>
+      </div>
+      <div class="ua-metric">
+        <dt>{copy.metrics.payback}</dt>
+        <dd data-m-payback>{copy.genres[2].payback}</dd>
+      </div>
+      <div class="ua-metric">
+        <dt>{copy.metrics.d7}</dt>
+        <dd data-m-d7>{copy.genres[2].d7}</dd>
+      </div>
+      <div class="ua-metric">
+        <dt>{copy.metrics.d90}</dt>
+        <dd data-m-d90>{copy.genres[2].d90}</dd>
+      </div>
+      <div class="ua-metric ua-metric-wide">
+        <dt>{copy.metrics.goal}</dt>
+        <dd data-m-goal>{copy.genres[2].goal}</dd>
+      </div>
+      <div class="ua-metric ua-metric-wide">
+        <dt>{copy.metrics.risk}</dt>
+        <dd data-m-risk>{copy.genres[2].risk}</dd>
+      </div>
+    </dl>
+  </div>
+</section>
+
+<script>
+  function initUaEconWidgets() {
+    document.querySelectorAll<HTMLElement>('[data-widget="ua-econ"]').forEach((root) => {
+      if (root.dataset.bound === '1') return;
+      root.dataset.bound = '1';
+      const data = JSON.parse(root.dataset.payload || '{}');
+      const genres = data.genres || [];
+      const buttons = root.querySelectorAll<HTMLButtonElement>('[data-genre-btn]');
+      const summaryEl = root.querySelector<HTMLElement>('[data-genre-summary]');
+      const linePath = root.querySelector<SVGPathElement>('[data-line-path]');
+      const areaPath = root.querySelector<SVGPathElement>('[data-area-path]');
+      const pointsLayer = root.querySelector<SVGGElement>('[data-points-layer]');
+
+      const mCpi = root.querySelector<HTMLElement>('[data-m-cpi]');
+      const mPayback = root.querySelector<HTMLElement>('[data-m-payback]');
+      const mD7 = root.querySelector<HTMLElement>('[data-m-d7]');
+      const mD90 = root.querySelector<HTMLElement>('[data-m-d90]');
+      const mGoal = root.querySelector<HTMLElement>('[data-m-goal]');
+      const mRisk = root.querySelector<HTMLElement>('[data-m-risk]');
+
+      function renderGenre(id: string) {
+        const g = genres.find((item: any) => item.id === id) || genres[0];
+        if (!g) return;
+        buttons.forEach((btn) => {
+          const active = btn.dataset.genreBtn === g.id;
+          btn.classList.toggle('is-active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        if (summaryEl) summaryEl.textContent = g.summary;
+        if (mCpi) mCpi.textContent = g.cpi;
+        if (mPayback) mPayback.textContent = g.payback;
+        if (mD7) mD7.textContent = g.d7;
+        if (mD90) mD90.textContent = g.d90;
+        if (mGoal) mGoal.textContent = g.goal;
+        if (mRisk) mRisk.textContent = g.risk;
+
+        const xs = [68, 154, 240, 326, 412, 498];
+        const yOf = (roas: number) => 192 - (roas / 150) * 168;
+        const coords = g.points.map((pt: any, i: number) => ({
+          x: xs[i],
+          y: yOf(pt.roas),
+          day: pt.day,
+          roas: pt.roas,
+        }));
+        const dLine = coords.map((c: any, i: number) => `${i === 0 ? 'M' : 'L'}${c.x},${c.y.toFixed(1)}`).join(' ');
+        const dArea = `${dLine} L${coords[coords.length - 1].x},192 L${coords[0].x},192 Z`;
+        if (linePath) linePath.setAttribute('d', dLine);
+        if (areaPath) areaPath.setAttribute('d', dArea);
+        if (pointsLayer) {
+          pointsLayer.innerHTML = coords
+            .map(
+              (c: any) => `
+              <circle cx="${c.x}" cy="${c.y.toFixed(1)}" r="4.2" fill="#fbf9f5" stroke="#86663b" stroke-width="2.2" />
+              <text x="${c.x}" y="${(c.y - 10).toFixed(1)}" text-anchor="middle" fill="#262722" font-size="11" font-weight="600" font-family="ui-monospace, SFMono-Regular, monospace">${c.roas}%</text>
+              <text x="${c.x}" y="212" text-anchor="middle" fill="#716d63" font-size="11" font-family="ui-monospace, SFMono-Regular, monospace">${c.day}</text>
+            `
+            )
+            .join('');
+        }
+      }
+
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => renderGenre(btn.dataset.genreBtn || 'iap'));
+      });
+      renderGenre('iap');
+    });
+  }
+
+  initUaEconWidgets();
+  document.addEventListener('astro:after-swap', initUaEconWidgets);
+  document.addEventListener('languagechange', initUaEconWidgets);
+</script>
+
+<style>
+  .ua-econ-panel {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--color-field);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .ua-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .ua-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .ua-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    color: var(--color-heading);
+  }
+  .ua-subtitle {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .ua-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .ua-tab {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+  }
+  .ua-tab:hover {
+    border-color: var(--color-accent-glow);
+  }
+  .ua-tab.is-active {
+    background: var(--color-heading);
+    color: var(--color-surface);
+    border-color: var(--color-heading);
+  }
+  .ua-summary {
+    margin: 1rem 0 1.25rem;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--color-body);
+  }
+  .ua-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+  .ua-chart-wrap {
+    padding: 0.75rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+  }
+  .ua-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .ua-metrics {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+  .ua-metric {
+    padding: 0.7rem 0.8rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+  }
+  .ua-metric-wide {
+    grid-column: span 2;
+  }
+  .ua-metric dt {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+    margin-bottom: 0.25rem;
+  }
+  .ua-metric dd {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--color-heading);
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 767px) {
+    .ua-body {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

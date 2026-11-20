@@ -1,0 +1,154 @@
+---
+title: "Mobile Game UA Algorithms (4): SKAN 4.0 Privacy Black Boxes, Attribution Bias, and Causal Triangulation"
+date: 2026-11-19
+tags: [广告与推荐, 技术报告解读]
+summary: "Breaking down Apple ATT and SKAdNetwork 4.0 crowd-anonymity quantization, optimal 64-bin pLTV encoding, and measurement triangulation combining Ghost Ads, Geo-Lift, Bayesian MMM, and experiment-calibrated attribution papers from TikTok, Amazon, and Meta."
+draft: false
+sourceFile: "mobile-game-ua-skan4-and-incrementality.mdx"
+sourceHash: "fd3482781387b0ecd6a9f2bb055625b861e4e705a1c7895b1fed5e7b9683710e"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import Skan4WindowMatrix from '../../components/blog/Skan4WindowMatrix.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+Every pLTV model and streaming debiaser in the previous parts rests on a quiet assumption: attribution can tell you which campaign acquired a specific player and their revenue.
+
+When Apple enforced App Tracking Transparency (ATT) in iOS 14.5 in April 2021, that assumption fractured across the highest-spending mobile market. Most players declined tracking prompts, zeroing out device-level IDFAs at scale. Third-party Mobile Measurement Partners (MMPs such as AppsFlyer and Adjust), previously built on deterministic IDFA matching, had to pivot iOS reporting onto Apple's privacy-preserving black box, **SKAdNetwork (SKAN)**.
+
+A deeper problem sits underneath privacy restrictions: even on Android where device IDs still exist, last-touch attribution systematically misleads budget decisions. Post-IDFA measurement is therefore two battles fought at once: **extracting maximum signal inside device-side quantization limits**, and **anchoring distorted attribution reports back to causal incrementality**.
+
+## 1. SKAdNetwork 4.0 Protocol: Three Windows, Random Delays, and Crowd Anonymity
+
+According to [Apple's official SKAdNetwork documentation](https://developer.apple.com/documentation/storekit/skadnetwork) and [multiple conversion window specification](https://developer.apple.com/documentation/storekit/receiving-postbacks-in-multiple-conversion-windows), SKAN 4.0 removes user-level device identifiers entirely and allows iOS to send only coarse, delayed, anonymous postbacks to ad networks.
+
+The protocol enforces three structural constraints:
+
+1. **Three fixed activity windows plus random delivery delays**: installs now trigger up to three postbacks covering Window 1 (Day 0 to Day 2), Window 2 (Day 3 to Day 7), and Window 3 (Day 8 to Day 35). Postbacks never ship immediately when a window closes; Apple adds a random delay of 24 to 48 hours for Window 1 and 24 to 144 hours for Windows 2 and 3. Developers can call `lockWindow` to close a window early and receive feedback sooner, trading away any remaining behavioral updates in that window.
+2. **Aggressive conversion-value quantization**: only Window 1 can carry a 6-bit Fine Conversion Value (integers 0 through 63). Even at peak scale, Windows 2 and 3 only return a 3-level Coarse Conversion Value (low, medium, or high).
+3. **Crowd Anonymity Tiers (0 through 3)**: this mechanism reshaped iOS campaign structure more than any other rule. Apple evaluates install concentration per campaign dynamically. When volume fragments too thinly, iOS truncates the 4-digit hierarchical Source Identifier down to 3 or 2 digits and degrades conversion values from Fine to Coarse or omits them as Null.
+
+Toggle Crowd Anonymity tiers and `lockWindow` in the interactive matrix below to inspect exact payload degradation across all three postback windows.
+
+<Skan4WindowMatrix lang="en" />
+
+This rule killed the legacy playbook of splitting budgets into hundreds of granular test ad sets. If daily iOS installs per campaign fall into Tier 0 or Tier 1, ad networks receive mostly Null or coarse postbacks and VBO delivery goes blind. Modern iOS UA consolidates campaigns aggressively to keep daily volume safely above Tier 2 or Tier 3 thresholds.
+
+## 2. The Core Encoding Problem: Packing Continuous pLTV Into 64 Fine Bins
+
+The 64 integer slots inside Window 1 (0 through 63, typically reserving 0 for no purchase or no key event and leaving 63 active bins) form a narrow communication channel on iOS.
+
+Mapping continuous predicted spend ranging from $0 to $5,000 into 63 discrete buckets is a **lossy rate-distortion quantization problem**. Equal-width bins (such as $80 per bucket) cram 98% of small payers into bin 1 while leaving bins 2 through 63 nearly empty with near-zero entropy. Encoding only realized D0 to D2 revenue marks future whales who have not paid in the first 48 hours as zero.
+
+Mature UA engineering teams solve this in two layers:
+
+1. **Encode predicted pLTV rather than realized receipts alone**: within 24 to 48 hours post-install, on-device or server-side scoring combines tutorial completion, session length, level progress, alliance membership, and early spend into a continuous D30/D90 pLTV estimate $$\hat{y}$$, then maps $$\hat{y}$$ into bins 1 through 63. High-intent players who have not yet opened their wallets still occupy upper bins and steer network delivery early.
+2. **Optimize bin boundaries for minimal quantization error**: given the empirical pLTV distribution, selecting optimal bin edges $$0 = c_0 < c_1 < \dots < c_K$$ reduces to 1D optimal scalar quantization (equivalent to 1D K-Means or Lloyd-Max quantization):
+
+```math
+\min_{c_1, \dots, c_{K-1}} \sum_{k=1}^{K} \int_{c_{k-1}}^{c_k} \big(y - \mu_k\big)^2 \, dF(y), \qquad \mu_k = \mathbb{E}\big[Y \mid c_{k-1} \le Y < c_k\big]
+```
+
+On heavy-tailed game spend, optimal boundaries automatically pack tightly in the low-value range (giving $0.99, $2.99, and $4.99 dedicated bins) and widen logarithmically in the upper tail (doubling step sizes above $200), minimizing value-variance loss for ad-network bidding within the 6-bit cap.
+
+## 3. Why Attribution Reports Always Mislead: Credit Is Not Causality
+
+Even after solving SKAN encoding, a harder reality remains: **attribution assigns credit across touchpoints, whereas finance cares about whether revenue would have happened without the ad spend**.
+
+Three structural biases distort attribution dashboards:
+
+- **Organic cannibalization**: a returning player gets a new phone or decides to search the App Store after watching a creator stream, then glances at a feed ad two hours before downloading. Under a 24-hour view-through attribution window, the ad network claims 100% credit for an install and spend that was already organic.
+- **Cross-channel double counting**: a player views an ad on TikTok in the morning, clicks a Meta ad in the afternoon, and downloads after searching the brand name on Google at night. Each platform claims full conversion credit in its own console, pushing summed platform revenue more than 30% above actual bank receipts.
+- **Retargeting selection bias**: retargeting campaigns naturally target active users already poised to return and spend. Dashboard ROAS routinely exceeds 500%, yet pausing those ads reveals that 80% of those players still log in and pay on their own.
+
+In June 2026, TikTok published [arXiv:2606.26690](https://arxiv.org/abs/2606.26690) at ADKDD 2026 (*Attributed, But Not Incremental: Cannibalization-Corrected Attribution for Large-Scale Advertising*), formalizing this **attribution-cannibalization mismatch** (Figure 1). Paid-attributed daily new users (DNU) absorb substantial non-incremental organic overlap $$H_t$$; allocating budgets on uncorrected attribution funnels spend toward the highest-cannibalization channels instead of the highest-incrementality ones. By using sparse lift experiments as causal anchors and projecting calibrated corrections down business hierarchies daily, TikTok reported roughly a 15-percentage-point reduction in measured cannibalization after global deployment.
+
+<Figure
+  src="/images/posts/mobile-game-ua-skan4-and-incrementality/paper-tiktok-cannibalization.png"
+  alt="Attribution-cannibalization mismatch and correction from TikTok ADKDD 2026 arXiv:2606.26690 Figure 1"
+  caption="Figure 1: TikTok ADKDD 2026 paper Figure 1 showing attribution-cannibalization mismatch (non-incremental excess Ht) and experiment-anchored daily correction (source: Li et al., arXiv:2606.26690)."
+  width="82%"
+/>
+
+Meta's empirical evidence is even starker. In [arXiv:2304.06828](https://arxiv.org/abs/2304.06828) (*Predicted Incrementality by Experimentation (PIE) for Ad Measurement*, revised April 2026), Gordon, Moakler, and Zettelmeyer analyzed **2,226 randomized controlled trials (RCTs) on Meta**. As Figure 2 shows, industry-standard 7-day last-click attribution achieved an out-of-sample $$R^2 = 0.19$$ for predicting incremental conversions per dollar, whereas PIE trained on historical RCTs reached $$R^2 = 0.88$$ and disagreed with RCT-based decisions in only 8% to 12% of campaigns.
+
+<Figure
+  src="/images/posts/mobile-game-ua-skan4-and-incrementality/paper-pie-incrementality.png"
+  alt="PIE model performance versus 7-day last-click attribution across 2226 Meta RCTs from arXiv:2304.06828 Figure 2"
+  caption="Figure 2: PIE paper Figure 2 comparing out-of-sample incrementality accuracy across 2,226 Meta RCTs: 7-day last-click attribution (R² = 0.19) versus experiment-trained PIE (R² = 0.88) (source: Gordon et al., arXiv:2304.06828)."
+  width="92%"
+/>
+
+## 4. Three Pillars of Incrementality: Ghost Ads, Geo-Lift, and Calibrated MMM
+
+Because attribution is biased while running randomized trials on every campaign every day is prohibitively expensive, industrial measurement has converged on **Measurement Triangulation**: combining high-frequency but biased attribution, full-funnel Bayesian Marketing Mix Modeling (MMM), and periodic unbiased causal anchors (Ghost Ads and Geo-Lift).
+
+<TechGraph
+  src="/images/posts/mobile-game-ua-skan4-and-incrementality/privacy-triangulation-style9-en.svg"
+  title="MEASUREMENT TRIANGULATION C4"
+  caption="Post-IDFA Measurement Triangulation C4 architecture isolating device-side privacy boundaries while unifying MMP/SKAN ingestion, Ghost Ads and Geo-Lift RCTs, and Bayesian MMM calibration."
+/>
+
+Each leg compensates for what the other two cannot measure:
+
+### 1. User-Level Trials: Ghost Ads
+
+Early incrementality tests either served Public Service Announcements (PSAs) to the control group, wasting real media spend, or used intent-to-treat holdouts where most control users never even entered an auction, diluting statistical power.
+
+Johnson, Lewis, and Nubbemeyer introduced **Ghost Ads** in the *Journal of Marketing Research* (2017, [doi:10.1509/jmr.15.0297](https://doi.org/10.1509/jmr.15.0297)), cutting experimental variance by an order of magnitude. The bidding engine runs normal auctions for all eligible users; whenever a control user wins the auction, the platform suppresses the commercial ad (serving the runner-up or default creative at zero advertiser cost) and writes a logged "Ghost Ad Impression." Both treatment and control groups restrict analysis to identical auction-winning users with zero wasted media spend and dramatically smaller sample requirements.
+
+### 2. Regional Trials: Geo-Lift (Synthetic Control)
+
+When iOS hides device IDs or external networks do not expose Ghost Ads infrastructure, teams run **Geo-Lift experiments** at the regional level. Countries, states, or metro markets are partitioned into treatment and control regions, spend is paused or scaled up by 50% in treatment markets, and **Synthetic Control** builds a weighted linear combination of control markets matching pre-test revenue trends to estimate the counterfactual baseline:
+
+```math
+\widehat{\text{Lift}}_t = Y_{\text{treat}, t} - \sum_{j \in \mathcal{C}} w_j^* Y_{j, t}, \qquad \text{iROAS} = \frac{\sum_{t \in \text{test}} \widehat{\text{Lift}}_t}{\Delta \text{Spend}}
+```
+
+Geo-Lift uses zero personal identifiers, stays completely immune to ATT and cookie deprecation, and captures cross-device revenue (such as mobile ads driving PC web-store purchases) plus organic spillover. The tradeoff is duration and cadence: each test needs 2 to 4 weeks and remains sensitive to regional holidays, limiting most studios to 2 to 4 tests per core channel each year.
+
+### 3. Macro Modeling Anchored by Experiments: Bayesian MMM and Calibrated MTA
+
+**Marketing Mix Modeling (MMM)** regresses aggregated daily revenue on aggregated channel spend, organic baselines, and seasonality without any user-level tracking. Modern Bayesian MMMs (such as Google Meridian and Meta Robyn) apply two nonlinear transformations to channel spend $$x_{c, t}$$: **Adstock decay** to model carryover effects and a **Hill saturation curve** to capture diminishing marginal returns:
+
+```math
+\text{Adstock}(x_{c, t}) = \sum_{l=0}^{L} \alpha_c^l \, x_{c, t-l}, \qquad f_{\text{Hill}}(z) = \frac{z^{S_c}}{K_c^{S_c} + z^{S_c}}
+```
+
+Pure observational MMM still suffers from collinearity and endogeneity: studios raise budgets across all channels together during major launches and anniversary events, making it easy for regression to misattribute organic surges to paid channels.
+
+The remedy is feeding unbiased iROAS intervals from Ghost Ads or Geo-Lift directly into MMM likelihoods as **informative Bayesian priors**, or adopting the three-tier pattern published by Amazon Ads in [arXiv:2508.08209](https://arxiv.org/abs/2508.08209) (*Amazon Ads Multi-Touch Attribution*, 2025) (Figure 3): maintain randomized experiments as a foundational **Ground Truth System**, calibrate scalable machine learning attribution models (**Attribution System**) against that ground truth, and feed incremental credit into the **Decision System** governing budgets and bids.
+
+<Figure
+  src="/images/posts/mobile-game-ua-skan4-and-incrementality/paper-amazon-mta-system.png"
+  alt="Amazon Multi-Touch Attribution three-tier architecture linking RCTs to attribution and decision systems from arXiv:2508.08209 Figure 4"
+  caption="Figure 3: Amazon Ads MTA paper Figure 4 showing the three-tier architecture linking a Ground Truth RCT system to scalable Attribution and Decision systems (source: Lewis et al., arXiv:2508.08209)."
+  width="92%"
+/>
+
+Putting all three tools on one operating desk clarifies how they divide the workload:
+
+| Measurement Tool | Granularity & Cadence | IDFA Dependency | Core Strength | Limitation & Role in Stack |
+| --- | --- | --- | --- | --- |
+| MMP / SKAN 4.0 Attribution | Campaign and creative level, daily | Android yes; iOS via SKAN aggregate | Fastest signal for daily creative pruning and bid tuning | Biased by cannibalization and double counting; apply lift multipliers |
+| Ghost Ads / Geo-Lift | Channel or strategy level, monthly/quarterly | Ghost Ads platform-bound; Geo-Lift none | Causally unbiased iROAS gold standard | Slow, expensive, coarse; serves as periodic ground-truth anchor |
+| Calibrated Bayesian MMM | Channel level, weekly/monthly | None; aggregate time series only | Covers organic, cross-device, and offline effects with saturation curves | Observational collinearity; must be anchored by lift-test priors |
+
+<Callout type="info" title="Series Wrap-Up: Four Loops as One Machine">
+Stepping back across all four parts, mobile game UA algorithms operate as one interconnected capital and signal machine:
+
+1. **Commercial mechanics** (Part 1) set monetization structure, payback horizons, and black-box network boundaries.
+2. **Heavy-tail pLTV modeling** (Part 2) turns noisy early telemetry into calibrated long-horizon whale valuations.
+3. **Delayed feedback and bidding control** (Part 3) remove fake-negative drift, equalize marginal cross-channel return, and fund cold-start exploration.
+4. **Privacy quantization and causal triangulation** (Part 4) guard the underlying scoreboard so none of the upstream models optimize blindly against inflated attribution numbers.
+</Callout>
+
+## References
+
+- Apple Developer Documentation. *SKAdNetwork*. [developer.apple.com](https://developer.apple.com/documentation/storekit/skadnetwork)
+- Apple Developer Documentation. *Receiving postbacks in multiple conversion windows*. [developer.apple.com](https://developer.apple.com/documentation/storekit/receiving-postbacks-in-multiple-conversion-windows)
+- Johnson, G. A., Lewis, R. A., & Nubbemeyer, E. I. (2017). *Ghost Ads: Improving the Economics of Measuring Online Ad Effectiveness*. Journal of Marketing Research, 54(6), 867-884. [doi:10.1509/jmr.15.0297](https://doi.org/10.1509/jmr.15.0297)
+- Gordon, B. R., Moakler, R., & Zettelmeyer, F. (2026). *Predicted Incrementality by Experimentation (PIE) for Ad Measurement*. Meta Ads Research & Northwestern University. [arXiv:2304.06828](https://arxiv.org/abs/2304.06828)
+- Lewis, R., Zettelmeyer, F., Gordon, B. R., Garib, C., Hermle, J., Perry, M., Romero, H., & Schnaidt, G. (2025). *Amazon Ads Multi-Touch Attribution*. Amazon. [arXiv:2508.08209](https://arxiv.org/abs/2508.08209)
+- Li, D., Yuan, B., Yang, Z., Chen, Q., & Song, L. (2026). *Attributed, But Not Incremental: Cannibalization-Corrected Attribution for Large-Scale Advertising*. ADKDD 2026, TikTok. [arXiv:2606.26690](https://arxiv.org/abs/2606.26690)

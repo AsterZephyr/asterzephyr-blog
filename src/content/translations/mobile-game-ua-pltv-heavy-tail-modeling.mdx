@@ -1,0 +1,171 @@
+---
+title: "Mobile Game UA Algorithms (2): Zero-Inflated Heavy Tails and pLTV Modeling from ZILN to OptDist"
+date: 2026-11-09
+tags: [广告与推荐, 技术报告解读]
+summary: "Why standard MSE regression breaks on mobile game LTV, tracing four industrial papers from Google ZILN and Kuaishou MDME/ODMN to Tencent ExpLTV and OptDist alongside original paper figures, tail math, and Normalized Gini evaluation."
+draft: false
+sourceFile: "mobile-game-ua-pltv-heavy-tail-modeling.mdx"
+sourceHash: "a9c69922664e27d4394ab8a0ac45f35e69420e186dc951cb8be34fd85ce4179b"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import PltvTailSimulator from '../../components/blog/PltvTailSimulator.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+The fastest way to break a mobile game UA modeling project is to train a pLTV (Predicted Lifetime Value) predictor with standard regression loss.
+
+Given a dataset of 30-day cumulative player spend, the natural engineering reflex is to build a deep neural network (MLP, DeepFM, or DCN), attach a linear output head, and train with Mean Squared Error (MSE). Offline RMSE may look like it is steadily dropping, yet the moment the model ranks the top 1% of players or feeds values into ad-network VBO bidding, campaign return collapses.
+
+The failure has nothing to do with network depth. Mobile game LTV violates the Gaussian symmetry assumption baked into MSE.
+
+## 1. Why Naive MSE Regression Fails on Game LTV
+
+In-app purchase spend in mobile games exhibits two extreme properties at the same time: **severe zero-inflation** and **heavy right tails**.
+
+In a typical heavy-IAP day-30 cohort, more than 95% of installers have exact zero spend. Among the fewer than 5% who pay, most buy a $0.99 starter pack or a $4.99 monthly card, while the top 0.1% whale players spend $500 to over $5,000 apiece.
+
+Training on this distribution with $$\mathcal{L}_{\text{MSE}} = (y - \hat{y})^2$$ creates two destructive effects:
+
+1. **Gradients are hijacked by extreme whale outliers.** MSE gradients scale linearly as $$2(\hat{y} - y)$$ while loss scales quadratically. Underestimating a $5,000 whale at $1,000 creates a single-sample squared error of $1.6 \times 10^7$, outweighing 1.6 million zero-payers mispredicted by $1. To appease a handful of extreme observations, the network drags predictions upward across ordinary low-spenders and non-payers, inflating mid-tier and bottom-tier estimates.
+2. **Symmetric penalties contradict heavy-tail risk.** As shown in Figure 1 (from Google's ZILN paper), for a single observation $$x = 20$$, MSE imposes an identical quadratic penalty on overestimation and underestimation. Under a heavy-tailed lognormal distribution, right-tail probability mass decays much more slowly than a Gaussian, so the negative log-likelihood is sharply asymmetric around the observed value.
+
+<Figure
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/paper-ziln-loss.png"
+  alt="MSE loss versus lognormal loss as a function of the mean parameter from Google ZILN paper Figure 2"
+  caption="Figure 1: Google ZILN paper Figure 2 comparing symmetric MSE loss against asymmetric lognormal negative log-likelihood for a single observation x = 20 (source: Wang et al., arXiv:1912.07753)."
+  width="88%"
+/>
+
+Many teams try a quick patch: log-transforming the label to $$\log(y + 1)$$ and running MSE in log space. That tames gradient explosions, but back-transforming predictions via $$\exp(\hat{z}) - 1$$ runs straight into Jensen's inequality. It recovers the conditional median instead of the conditional expectation. On heavy-tailed game spend, the median can sit at half or a third of the true mean, causing systematic underbidding in tROAS auctions and starving campaigns of volume.
+
+## 2. The Industrial Baseline: Google ZILN (Zero-Inflated Lognormal)
+
+In 2019, Google researchers published **ZILN (Zero-Inflated Lognormal)** in [arXiv:1912.07753](https://arxiv.org/abs/1912.07753), offering a minimal parametric likelihood that solves zero-inflation, heavy-tail gradient distortion, and unbiased mean recovery in one stroke. It remains the standard first production baseline across most mobile game UA stacks.
+
+ZILN splits lifetime value $$Y$$ into two generative steps: first, a Bernoulli gate determines whether the user pays with probability $$p \in (0, 1)$$; conditioned on paying ($$Y > 0$$), spend follows a lognormal distribution $$\text{Lognormal}(\mu, \sigma^2)$$. Its mixture density is:
+
+```math
+f_{\text{ZILN}}(y \mid p, \mu, \sigma) = (1 - p)\cdot \mathbb{I}(y = 0) + p \cdot \frac{\mathbb{I}(y > 0)}{y \sigma \sqrt{2\pi}} \exp\left( -\frac{(\ln y - \mu)^2}{2\sigma^2} \right)
+```
+
+Minimizing the negative log-likelihood yields an end-to-end differentiable objective:
+
+```math
+\mathcal{L}_{\text{ZILN}}(y; p, \mu, \sigma) = \underbrace{-\mathbb{I}(y > 0)\ln p - \mathbb{I}(y = 0)\ln(1 - p)}_{\text{payer classification cross-entropy}} + \underbrace{\mathbb{I}(y > 0)\left[ \ln(y \sigma \sqrt{2\pi}) + \frac{(\ln y - \mu)^2}{2\sigma^2} \right]}_{\text{lognormal NLL active only on positive samples}}
+```
+
+Implementation is lightweight (Figure 2): any backbone (DNN, DeepFM, or DCN) outputs just three scalar logits at its final layer, passed through sigmoid for paying probability $$p$$, identity for log-mean $$\mu$$, and softplus for positive dispersion $$\sigma$$.
+
+<Figure
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/paper-ziln-arch.png"
+  alt="DNN network structure with ZILN loss outputting p, mu, and sigma from Google ZILN paper Figure 3"
+  caption="Figure 2: Google ZILN paper Figure 3 showing the three final pre-activation logits mapping to paying probability p, log-mean μ, and log-scale σ (source: Wang et al., arXiv:1912.07753)."
+  width="86%"
+/>
+
+At serving time, the closed-form lognormal expectation returns an unbiased pLTV point estimate directly:
+
+```math
+\mathbb{E}[Y \mid x] = p(x) \cdot \exp\left( \mu(x) + \frac{\sigma(x)^2}{2} \right)
+```
+
+Production deployment requires one non-negotiable safety guard: **clip $$\sigma(x)$$ to a strict upper bound** (typically $$[0.1, 2.0]$$ or $$[0.1, 2.5]$$). Because the expectation contains the quadratic exponential $$\exp(\sigma^2 / 2)$$, a single out-of-distribution cold-start feature producing $$\sigma = 4.5$$ blows up the predicted LTV by $$e^{10.1} \approx 24,000\times$$ and drains an entire campaign budget in minutes.
+
+Use the interactive lab below to vary paying rate $$p$$ and log-dispersion $$\sigma$$ and see how tail stretching shifts Top-1% whale revenue share and the population Gini coefficient.
+
+<PltvTailSimulator lang="en" />
+
+## 3. Beyond Unimodal Tails: Three Industrial Generations (2022 to 2024)
+
+ZILN is easy to deploy, yet live game telemetry quickly exposes its structural ceiling: **real game monetization is never a smooth unimodal lognormal curve**.
+
+Open any mature card battler or SLG economy and spending clusters around discrete price anchors: $0.99 starter bundles, $4.99 monthly passes, $19.99 battle passes, followed by a gap before mid-to-high spenders cluster around $99.99 event packs and recurring gacha pulls. Forcing a single unimodal $$(\mu, \sigma)$$ to cover all of these distinct tiers underfits low-tier modes while distorting the extreme tail.
+
+Between 2022 and 2024, Kuaishou and Tencent published three landmark industrial papers that moved pLTV modeling through multi-distribution experts, explicit whale isolation, and instance-level adaptive alignment.
+
+<TechGraph
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/pltv-evolution-style1-en.svg"
+  title="INDUSTRIAL PLTV EVOLUTION"
+  caption="Industrial pLTV evolution roadmap: from Google ZILN baseline to Kuaishou MDME/ODMN multi-experts, Tencent ExpLTV explicit whale detection, and OptDist adaptive alignment."
+/>
+
+### 1. Kuaishou MDME / ODMN (CIKM 2022): Splitting Complex Tails Across Sub-Experts
+
+In CIKM 2022, Kuaishou published [arXiv:2208.13358](https://arxiv.org/abs/2208.13358) (*Billion-user Customer Lifetime Value Prediction: An Industrial-scale Solution from Kuaishou*), tackling two failure modes at once: unimodal ZILN cannot represent multimodal heavy tails, and cumulative D1, D7, and D30 horizons follow a strict monotonic order dependency.
+
+To address multimodality, the paper introduces **MDME (Multi-Distribution Multi-Experts)** (Figure 3). A Distribution Segmentation Module (DSM) partitions the LTV range into buckets (such as zero, low, medium, and high spend), a classifier predicts bucket probabilities, and dedicated sub-experts regress conditional expectations inside each bucket before probability-weighted aggregation. To address horizon order, **ODMN (Order Dependency Modeling Network)** chains MDME modules sequentially across time spans so D1 representations constrain D7 and D30 predictions, preventing logical inversions where predicted D7 exceeds D30. Across Kuaishou's offline and online tests, MDME/ODMN raised Normalized Gini substantially over a single ZILN baseline and lifted live revenue.
+
+<Figure
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/paper-mdme-arch.png"
+  alt="Structure details of the MDME module showing DSM and multi-experts from Kuaishou CIKM 2022 Figure 3"
+  caption="Figure 3: Kuaishou CIKM 2022 paper Figure 3 detailing the MDME module, where DSM segments the heavy tail into sub-distributions learned jointly by dedicated experts (source: Li et al., arXiv:2208.13358)."
+  width="94%"
+/>
+
+### 2. Tencent ExpLTV (CIKM 2023): Elevating Whale Detection Into an Explicit Task
+
+In CIKM 2023, Tencent's game team published [arXiv:2308.12729](https://arxiv.org/abs/2308.12729) (*Out of the Box Thinking: Improving Customer Lifetime Value Modelling via Expert Routing and Game Whale Detection*), confronting mobile gaming's harshest imbalance: when whales share one regression head with ordinary small payers, even under ZILN, whale gradients are drowned out by millions of non-payers and starter-pack buyers.
+
+ExpLTV takes a direct approach (Figure 4). It partitions players into non-payers, regular payers, and **Game Whales (GWs)**, adding an explicit **Game Whale Detection** head inside an expert-routing backbone to push high-potential whale embeddings apart from ordinary players. The paper's latent embedding visualizations show distinct whale clusters emerging once the detection head is enabled, boosting both global Gini and top-whale recall across multiple production mobile game datasets.
+
+<Figure
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/paper-expltv-arch.png"
+  alt="Overview of ExpLTV architecture with explicit game whale detection from Tencent CIKM 2023 Figure 2"
+  caption="Figure 4: Tencent CIKM 2023 paper Figure 2 showing ExpLTV's expert-routing backbone paired with an explicit Game Whale Detection branch (source: Zhang et al., arXiv:2308.12729)."
+  width="90%"
+/>
+
+### 3. Tencent OptDist (CIKM 2024): Dropping Static Buckets for Adaptive Alignment
+
+Bucketed experts beat unimodal ZILN, but they create a new operational headache: choosing bucket boundaries. A heavy SLG and a casual puzzle title have completely different spending cliffs, and static boundaries break whenever an anniversary gacha event shifts the spend distribution.
+
+In CIKM 2024, Tencent FiT published [arXiv:2408.08585](https://arxiv.org/abs/2408.08585) (*OptDist: Learning Optimal Distribution for Customer Lifetime Value Prediction*), decoupling distribution selection (DSM) from distribution learning (DLM) via an explicit alignment mechanism (Figure 5). Rather than hard-coding which user belongs in which bucket, OptDist maintains a bank of candidate Sub-Distribution Networks (SDNs) and dynamically routes each instance to the sub-distribution achieving minimal fitting loss, while aligning selector and learner convergence.
+
+<Figure
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/paper-optdist-arch.png"
+  alt="Overall framework of OptDist with DSM and DLM alignment from Tencent CIKM 2024 Figure 2"
+  caption="Figure 5: Tencent CIKM 2024 paper Figure 2 illustrating OptDist's alignment between the Distribution Selection Module (DSM) and Distribution Learning Module (DLM) (source: Weng et al., arXiv:2408.08585)."
+  width="92%"
+/>
+
+Placing all four milestones side by side clarifies the engineering tradeoff at each step:
+
+| Method & Venue | Core Mechanism | Bottleneck Solved | Practical Tradeoff & Best Fit |
+| --- | --- | --- | --- |
+| ZILN (Google, 2019) | Unimodal zero-inflated lognormal, 3 logits | Replaces broken MSE with unbiased closed-form mean | Lowest engineering cost; ideal first baseline across genres |
+| MDME / ODMN (Kuaishou, CIKM 2022) | Bucketed multi-experts + sequential horizons | Captures multimodal spend and prevents D7 > D30 inversion | Requires tuning bucket counts and thresholds per game economy |
+| ExpLTV (Tencent, CIKM 2023) | Expert routing + explicit Game Whale head | Stops sparse whale gradients from being drowned out | Highest lift on heavy SLG, RPG, and gacha IAP titles |
+| OptDist (Tencent, CIKM 2024) | Candidate SDNs + instance-level aligned routing | Eliminates static buckets and adapts to spend drift | Higher training complexity; suited for multi-game platforms |
+
+## 4. Offline Evaluation for pLTV: Why AUC and RMSE Are Not Enough
+
+Many pLTV iterations fail not because the architecture is weak, but because offline evaluation measures the wrong thing.
+
+Binary AUC only checks whether the model separates payers from non-payers; it cannot distinguish a $0.99 buyer from a $1,000 whale. Global RMSE or MAE falls right back into the outlier trap, where noise on a single whale masks ranking degradation across 99% of users.
+
+Production launch gates typically lock three complementary metrics together (standardized in Google's ZILN paper):
+
+1. **Normalized Gini**: sort test users by predicted $$\hat{y}$$ descending, plot the cumulative actual revenue gain curve, compute the area between the model curve and the random diagonal, and divide by the maximum theoretical area achieved by sorting on true LTV:
+
+```math
+\text{Norm-Gini} = \frac{\text{Gini}(\hat{y}, y)}{\text{Gini}(y, y)} \in [0, 1]
+```
+
+Normalized Gini isolates **high-value ranking discrimination**. It is scale-invariant: even if every prediction is scaled down by 20%, Normalized Gini stays high as long as whales sit at the top of the ranking.
+
+2. **Decile Calibration Charts and Bucket Bias**: good ranking alone is not safe for bidding. Partition users into ten equal-frequency deciles by $$\hat{y}$$ (splitting the top decile further into Top 1% and Top 5% for heavy IAP games) and compare mean predicted value $$\overline{\hat{y}}_k$$ against realized mean $$\overline{y}_k$$ in each bucket. If overall average bias looks zero while the Top 1% is underestimated by 40% and the bottom 50% is overestimated by 20%, VBO bidding will lose whale auctions while overpaying for low-value traffic.
+3. **Top-K Whale Revenue Capture (Whale Recall@K%)**: measure what fraction of total game revenue comes from the top 1% or 5% of users ranked by the model. In heavy IAP games, this metric tracks live tROAS attainment far more closely than global RMSE.
+
+<Callout type="tip" title="Production Rule: Lock Ranking and Tail Calibration Before Value Backfeed">
+Never approve a pLTV model on global mean ratio (PCOC) alone. Lock whale ordering with Normalized Gini first, bring Top-1% through Top-10% bucket bias within ±10% via isotonic or piecewise calibration, and only then wire the output into ad-network VBO backfeed or SKAN 4.0 64-bin encoders.
+</Callout>
+
+These models solve how to fit heavy tails once labels are complete. In live production, however, another constraint hits just as hard: players installed today will not reveal their true 7-day or 30-day spend until weeks later. Part 3 turns to delayed feedback survival modeling, streaming importance weighting, cross-channel budget allocation, and cold-start exploration.
+
+## References
+
+- Wang, X., Liu, T., & Miao, J. (2019). *A Deep Probabilistic Model for Customer Lifetime Value Prediction* (ZILN). Google. [arXiv:1912.07753](https://arxiv.org/abs/1912.07753)
+- Li, K., Shao, G., Yang, N., Fang, X., & Song, Y. (2022). *Billion-user Customer Lifetime Value Prediction: An Industrial-scale Solution from Kuaishou* (MDME/ODMN). CIKM 2022, Kuaishou. [arXiv:2208.13358](https://arxiv.org/abs/2208.13358)
+- Zhang, S., Yan, X., Yang, X., Jia, B., & Wang, S. (2023). *Out of the Box Thinking: Improving Customer Lifetime Value Modelling via Expert Routing and Game Whale Detection* (ExpLTV). CIKM 2023, Tencent. [arXiv:2308.12729](https://arxiv.org/abs/2308.12729)
+- Weng, Y., Tang, X., Xu, Z., Lyu, F., & Liu, D. (2024). *OptDist: Learning Optimal Distribution for Customer Lifetime Value Prediction*. CIKM 2024, FiT, Tencent. [arXiv:2408.08585](https://arxiv.org/abs/2408.08585)

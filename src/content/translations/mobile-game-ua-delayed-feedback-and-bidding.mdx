@@ -1,0 +1,185 @@
+---
+title: "Mobile Game UA Algorithms (3): Delayed Feedback Debiasing, Cross-Channel Budgets, and Exploration"
+date: 2026-11-14
+tags: [广告与推荐, 技术报告解读]
+summary: "Tracing delayed feedback modeling from DFM, FNW/FNC, and FSIW to Alibaba ES-DFM and DEFUSE, this article covers Kafka/Flink streaming debiasing architectures, marginal cross-channel budget allocation, and cold-start E&E exploration."
+draft: false
+sourceFile: "mobile-game-ua-delayed-feedback-and-bidding.mdx"
+sourceHash: "87abad58abd05058b431c588b227d97194da41c54380497bbfc1c163cfac277a"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Comparison from '../../components/blog/Comparison.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+Click-through rate (CTR) models receive clear labels within seconds, but in-game purchase conversions do not happen on the spot.
+
+A player who installs an SLG title at noon today might finish the tutorial on day three and make a first purchase during an alliance war on day seven. If an online streaming trainer updates model weights every hour, every afternoon installer who has not paid yet gets labeled as a negative ($$y = 0$$) and pushed into gradient descent.
+
+That forces an immediate tradeoff. Optimizing for **freshness** by training on the last few hours floods the pipeline with fake negatives, driving predicted conversion rates down until bids collapse and campaigns stall. Optimizing for **accuracy** by waiting 7 or 30 days for the attribution window to close trains on stale creative and event distributions, missing breakout creatives while they are hot.
+
+Resolving this freshness-accuracy tension is the central job of Delayed Feedback Modeling (DFM).
+
+## 1. The Math of Right-Censoring: Five Generations from DFM to DEFUSE
+
+Denote click or install time by $$t_c$$, true conversion time by $$t_v$$, conversion delay by $$d = t_v - t_c$$, and elapsed observation time by $$e = t_{\text{now}} - t_c$$ (Figure 1). At observation time $$t_{\text{now}}$$, the observed binary label is $$v \in \{0, 1\}$$, while the eventual ground-truth label after the full attribution window (such as 7 or 30 days) is $$y \in \{0, 1\}$$.
+
+<Figure
+  src="/images/posts/mobile-game-ua-delayed-feedback-and-bidding/paper-esdfm-timeline.png"
+  alt="Illustration of click time, conversion time, and elapsed observation time from ES-DFM AAAI 2021 Figure 1"
+  caption="Figure 1: ES-DFM paper Figure 1 illustrating click time, conversion time, elapsed observation time, and the right-censoring gap (source: Yang et al., arXiv:2012.03245)."
+  width="68%"
+/>
+
+Whenever $$v = 1$$, the true label is guaranteed to be $$y = 1$$. When $$v = 0$$ and elapsed time $$e$$ is still shorter than the attribution window, however, the sample could either be a true non-converter or an in-flight converter whose purchase has not arrived yet. Statistically, this is **right-censoring**.
+
+Over the past decade, industrial delayed feedback systems evolved through survival analysis, streaming duplication, importance weighting, and four-case label decomposition:
+
+| Paper & Venue | Core Mechanism | Key Bottleneck Solved | Operational Cost & Best Fit |
+| --- | --- | --- | --- |
+| DFM (Chapelle, KDD 2014) | Joint conversion and exponential delay model via EM | Established survival-analysis formulation for right-censoring | Strong exponential delay assumption; awkward for streaming DNNs |
+| FNW / FNC (Twitter, RecSys 2019) | Ingest as negative immediately, duplicate as positive on arrival with weighting | Enabled continuous online neural training | Fake negatives get consumed twice; high gradient variance under heavy delay |
+| FSIW (Yasui et al., WWW 2020) | Treats delay as distribution shift via importance weighting | Removes rigid parametric delay density assumptions | Sensitive to delay-distribution estimation error |
+| ES-DFM (NJU & Alibaba, AAAI 2021) | Fixed short observation window $$e$$ + delayed positive replay + importance weights | Balances waiting cost against fake-negative noise; streaming standard | Window $$e$$ must be tuned to game conversion curve (often 1h to 24h) |
+| DEFUSE (Alibaba, WWW 2022) | Decomposes 4 sample types and applies separate unbiased corrections | Removes residual bias from conflating fake and real negatives | Requires maintaining dual-distribution estimators; strongest on long delays |
+
+### 1. Survival Analysis Origin: Chapelle DFM (KDD 2014)
+
+In [KDD 2014](https://dl.acm.org/doi/10.1145/2623330.2623634), Criteo researcher Olivier Chapelle introduced two coupled latent models: true conversion probability $$p(y = 1 \mid x)$$ and conditional delay density $$p(d \mid x, y = 1)$$ parameterized as an exponential distribution $$\lambda(x) e^{-\lambda(x) d}$$.
+
+For a sample still unobserved after elapsed time $$e$$ ($$v = 0$$), two mutually exclusive paths produce that outcome: either it will never convert (probability $$1 - p$$), or it will convert after time $$e$$ (probability $$p \cdot e^{-\lambda e}$$). The likelihood of observing $$v = 0$$ is therefore:
+
+```math
+P(v = 0 \mid x, e) = \big(1 - p(x)\big) + p(x)\cdot \exp\big(-\lambda(x) e\big)
+```
+
+DFM alternates updates between conversion and delay models via EM. Its math is clean, yet full-batch EM and monotonic exponential delay assumptions became too rigid once deep networks and continuous streaming updates took over production stacks.
+
+### 2. The Streaming Shift: FNW / FNC, FSIW, and ES-DFM
+
+In RecSys 2019 ([arXiv:1907.06558](https://arxiv.org/abs/1907.06558)), Twitter introduced **FNW (Fake Negative Weighted)** and **FNC (Fake Negative Calibration)**. The engineering idea is straightforward: feed samples into the trainer immediately as negatives instead of waiting, and once a real conversion arrives days later, duplicate that sample as a positive and reweight the loss to cancel out the earlier false negative gradient.
+
+Soon after, Yasui et al. ([arXiv:2002.02068](https://arxiv.org/abs/2002.02068), WWW 2020) proposed **FSIW (Feedback Shift Importance Weighting)**, casting the gap between the observed distribution $$q(x, v)$$ and the true distribution $$p(x, y)$$ directly as an importance sampling problem.
+
+The framework that became the streaming industrial default came from Nanjing University and Alibaba in AAAI 2021: **ES-DFM (Elapsed-Time Sampling Delayed Feedback Modeling, [arXiv:2012.03245](https://arxiv.org/abs/2012.03245))**. Zero waiting ($$e = 0$$) maximizes freshness, but it mislabels almost every fast converter as a fake negative and inflates training variance. ES-DFM inserts a short controllable observation window $$e$$ (such as 1 hour or 6 hours). Conversions inside the window enter directly as positives; remaining clicks enter as observed negatives at time $$e$$, with a delayed positive replayed if conversion occurs later. To correct fake-negative contamination, ES-DFM assigns each observed negative the importance weight:
+
+```math
+w_{\text{neg}}(x) = \frac{1 - p(y = 1 \mid x)}{1 - p(y = 1 \mid x) + p(y = 1 \mid x)\cdot p(d > e \mid x, y = 1)}
+```
+
+The intuition is clear: if a sample has high conversion probability and a large chance of converting after window $$e$$, its unobserved state at time $$e$$ likely reflects waiting rather than rejection, so its negative gradient weight gets scaled down to avoid suppressing high-value segments.
+
+### 3. Four-Case Label Decomposition: Alibaba DEFUSE (WWW 2022)
+
+In WWW 2022 ([arXiv:2202.06472](https://arxiv.org/abs/2202.06472)), Alibaba's **DEFUSE** pinpointed residual bias left inside earlier streaming methods. As illustrated in Figures 2 and 3, once an observation window $$w_0$$ cuts the timeline, live data actually contains four distinct sample groups: Immediate Positives (IP), Delayed Positives (DP), Real Negatives (RN), and Fake Negatives (FN).
+
+<Figure
+  src="/images/posts/mobile-game-ua-delayed-feedback-and-bidding/paper-defuse-labels.png"
+  alt="Four label types in delayed feedback modeling from DEFUSE WWW 2022 Figure 1"
+  caption="Figure 2: DEFUSE paper Figure 1 partitioning Immediate Positive, Delayed Positive, Real Negative, and Fake Negative regions around observation window w0 (source: Chen et al., arXiv:2202.06472)."
+  width="72%"
+/>
+
+DEFUSE proves that explicitly modeling immediate conversion probability $$p_{\text{ip}}(x)$$ and delayed conversion probability $$p_{\text{dp}}(x)$$ via a Bi-Distribution network enables asymptotically unbiased importance weights for both observed negatives and arriving delayed positives. In mobile games with 7-day or 30-day first purchases, separating first-hour impulse buyers from multi-day progression buyers matches player behavior far better than a single delay curve.
+
+<Figure
+  src="/images/posts/mobile-game-ua-delayed-feedback-and-bidding/paper-defuse-dist.png"
+  alt="Data distribution comparison across online delayed feedback methods from DEFUSE WWW 2022 Figure 2"
+  caption="Figure 3: DEFUSE paper Figure 2 comparing true underlying data distributions against training stream distributions across online delayed feedback methods (source: Chen et al., arXiv:2202.06472)."
+  width="72%"
+/>
+
+## 2. Streaming Training Architecture (Kafka + Flink)
+
+Moving ES-DFM or DEFUSE into production is less about loss equations and more about **preventing feature leakage** and **aligning dual event streams**.
+
+The Event Transit diagram below outlines a production streaming pipeline for delayed feedback training and live bidding sync:
+
+<TechGraph
+  src="/images/posts/mobile-game-ua-delayed-feedback-and-bidding/delayed-feedback-metro-style11-en.svg"
+  title="DELAYED FEEDBACK STREAMING RAIL"
+  caption="Kafka and Flink streaming topology for delayed feedback training: clicks flow through an elapsed window gate and importance weighter into live training, while 7-30 day late conversions join frozen click-time feature snapshots."
+/>
+
+The single component most likely to cause a silent production outage is the **Feature Snapshot Store (RocksDB / KV Store)** at the bottom right.
+
+When a player makes a $99.99 purchase on day 12 post-install and the delayed replay stream fires back, the pipeline must never join that conversion with the player's day-12 profile. It has to look up the **exact feature snapshot frozen at click or install time** keyed by `click_id` or `install_id`. Leaking day-12 account level, combat power, or cumulative playtime into an install-time training row drives offline AUC to a mirage of 0.99 and blows up live auctions on release.
+
+For continuous D30 or D90 pLTV targets rather than binary conversions, production teams usually layer three practical patches on top of streaming updates:
+
+- **Retention-depth decomposition or horizon multipliers**: scale fresh 3-day cohorts using historical D3-to-D30 curves to react quickly to creative or channel shifts.
+- **Short-horizon proxy targets**: share a multi-task backbone across D1 retention, D1 spend, D3 retention, and D30 LTV so fast tasks keep shared embeddings fresh while mature cohorts anchor the long-horizon head.
+- **Horizon-aware sample weighting**: downweight immature cohorts or mask their long-horizon loss head until the target window matures, preventing premature zeros from dragging down long-term estimates.
+
+## 3. From Valuation to Spend: Black-Box Steering and Marginal Budget Allocation
+
+Once valuation models estimate what each player is worth, control moves to spending decisions. Mobile game bidding spans two distinct environments:
+
+<Comparison
+  left={{
+    title: "Walled-Garden Black Boxes (Meta / Google / AppLovin)",
+    items: [
+      "Ad networks control every impression auction; buyers see no request-level logs",
+      "Primary levers are pLTV value backfeed (VBO) and tROAS target floors",
+      "Engineering prioritizes high-discrimination value signals within 24 hours",
+      "Outer control focuses on cross-channel budgets, campaign consolidation, and creative churn"
+    ]
+  }}
+  right={{
+    title: "Open White-Box Auctions (In-House DSP / OpenRTB)",
+    items: [
+      "Buyers receive each Bid Request directly and return a bid within 50ms",
+      "Core pricing runs CTR × CVR × pLTV into eCPM, then applies bid shading",
+      "Buyers maintain censored win-rate surfaces and real-time spend pacing",
+      "Margin comes from request-level pricing precision and first-price surplus capture"
+    ]
+  }}
+  leftLabel="Walled Gardens"
+  rightLabel="OpenRTB / In-House DSP"
+/>
+
+In either world, any studio buying across five or more channels hits the same classic cross-channel budget allocation trap: **allocating money by average ROAS**.
+
+Suppose daily budget is $100,000, Channel A shows 140% average ROAS, and Channel B shows 110% average ROAS. Intuition says to push the entire budget into Channel A. Yet real ad auctions follow strictly concave diminishing returns: early budget captures the highest-converting impressions first, and scaling spend buys progressively pricier, lower-intent inventory. Channel A may average 140% ROAS overall while its **Marginal ROAS** on the last dollar has already dropped to 75%, whereas under-scaled Channel B still delivers 105% marginal ROAS.
+
+Formulating cross-channel allocation under total budget $$B$$, where $$R_i(b_i)$$ denotes expected total revenue from spending $$b_i$$ on channel $$i$$:
+
+```math
+\max_{b_1, \dots, b_K \ge 0} \sum_{i=1}^{K} R_i(b_i) \quad \text{s.t.} \quad \sum_{i=1}^{K} b_i \le B
+```
+
+When each response curve is concave and differentiable, KKT optimality yields the core capital allocation rule: **optimal allocation never equalizes average ROAS; it equalizes marginal return across every active channel**:
+
+```math
+\frac{\partial R_1(b_1^*)}{\partial b_1} = \frac{\partial R_2(b_2^*)}{\partial b_2} = \dots = \frac{\partial R_K(b_K^*)}{\partial b_K} = \lambda^*
+```
+
+The Lagrange multiplier $$\lambda^*$$ is the global shadow price of budget, translating directly into a unified marginal ROI floor. For a deeper treatment of hard ROI constraints, intraday budget pacing, and dual or PID online controllers across platforms, see [Multi-Channel Joint Auto-Bidding: From Single-Channel Constraints to Cross-Platform Budget Allocation](/blog/multi-channel-autobidding/).
+
+## 4. Cold-Start E&E (Exploration vs. Exploitation): Why Pure Greedy Allocation Stalls
+
+If an allocator relies purely on historical marginal ROI, the acquisition engine stalls within weeks from a feedback lock-in.
+
+Mobile game UA constantly spawns cold-start entities: daily batches of fresh video creatives, newly opened regional servers, and seasonal content updates. New items have almost zero historical impressions and huge mean uncertainty. Pure greedy allocation hands every dollar to aging legacy creatives until they decay completely, starving new winners of the test impressions needed to prove themselves.
+
+Production systems embed Multi-Armed Bandit exploration directly into creative routing and channel testing by paying an explicit exploration bonus for uncertainty:
+
+1. **UCB / LinUCB (Upper Confidence Bound)**: rank candidates by predicted mean plus a confidence radius $$\hat{\mu}_a + \alpha \sqrt{x^\top A_a^{-1} x}$$. Untested creatives carry a wide variance term and automatically receive test spend; as observations accumulate, the radius shrinks and weak creatives drop out.
+2. **Thompson Sampling**: maintain a posterior distribution per creative or campaign (Beta posteriors for install rates, Normal-Inverse-Gamma or ZILN posteriors for spend depth) and allocate share according to sampled draws. Under delayed feedback, Thompson Sampling is more resilient to batching resonance than deterministic UCB because stochastic draws naturally diversify exploration.
+3. **Budget-Capped Exploration Pools**: in practice, teams rarely hand 100% of spend to an unconstrained bandit. They carve out a dedicated 10% to 20% exploration budget backed by hard stop-loss guardrails (such as killing any creative that spends 3x target CPI with zero conversions) to cap financial downside.
+
+<Callout type="warning" title="Common Trap When Combining Delayed Feedback With E&E">
+Never wire raw D30 ROAS directly as the bandit reward for new game creatives, or testing will take a month to converge. Split exploration rewards into fast proxy signals (IPM installs per mille plus day-one retention or early pLTV score) for rapid pruning, promoting only surviving winners into long-horizon scaling pools.
+</Callout>
+
+Valuation, debiasing, bidding, and exploration now form a tight control loop, except for one hidden assumption: knowing which ad actually brought the player in. Part 4 tackles the hardest layer of modern mobile UA, unpacking Apple SKAdNetwork 4.0 privacy quantization, attribution cannibalization, and causal measurement triangulation.
+
+## References
+
+- Chapelle, O. (2014). *Modeling Delayed Feedback in Display Advertising*. KDD 2014. [doi:10.1145/2623330.2623634](https://dl.acm.org/doi/10.1145/2623330.2623634)
+- Ktena, S. I., Tejani, A., Theis, L., Myana, P. K., Dilipkumar, D., Huszár, F., Yoo, S., & Shi, W. (2019). *Addressing Delayed Feedback for Continuous Training with Neural Networks in CTR prediction* (FNW/FNC). RecSys 2019, Twitter. [arXiv:1907.06558](https://arxiv.org/abs/1907.06558)
+- Yasui, S., Morishita, G., Fujita, K., & Shibata, M. (2020). *A Feedback Shift Correction in Predicting Conversion Rates under Delayed Feedback* (FSIW). WWW 2020. [arXiv:2002.02068](https://arxiv.org/abs/2002.02068)
+- Yang, J.-Q., Li, X., Han, S., Zhuang, T., Zhan, D.-C., Zeng, X., & Tong, B. (2021). *Capturing Delayed Feedback in Conversion Rate Prediction via Elapsed-Time Sampling* (ES-DFM). AAAI 2021, Nanjing University & Alibaba Group. [arXiv:2012.03245](https://arxiv.org/abs/2012.03245)
+- Chen, Y., Jin, J., Zhao, H., Wang, P., Liu, G., Xu, J., & Zheng, B. (2022). *Asymptotically Unbiased Estimation for Delayed Feedback Modeling via Label Correction* (DEFUSE). WWW 2022, Alibaba Group. [arXiv:2202.06472](https://arxiv.org/abs/2202.06472)
+- Related on this blog: [Multi-Channel Joint Auto-Bidding: From Single-Channel Constraints to Cross-Platform Budget Allocation](/blog/multi-channel-autobidding/)

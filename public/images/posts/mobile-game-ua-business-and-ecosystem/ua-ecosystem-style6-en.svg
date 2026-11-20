@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 700" width="980" height="700" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="6" data-visual-theme="Claude Official" data-diagram-type="architecture" data-motion-scene="governed-runtime" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="showcase" data-max-bends-per-edge="2" data-max-total-bends="8" data-max-route-stretch="1.35" data-max-bridged-crossings="0" data-min-node-gap="40.0" data-min-container-gutter="20.0" data-min-label-clearance="4.0" data-min-segment-length="16.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#d97757"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7b8b5c"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8c6f5a"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#b45309"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9a6fb0"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c5c96"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8f8a80"/>
+    </marker>
+    <style>
+    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Microsoft JhengHei', 'SimHei', sans-serif; }
+    .title { font-size: 24px; font-weight: 700; fill: #141413; }
+    .subtitle { font-size: 13px; font-weight: 500; fill: #8f8a80; }
+    .section { font-size: 13px; font-weight: 700; fill: #8b7355; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #75695d; }
+    .node-title { font-weight: 700; fill: #141413; }
+    .node-sub { font-weight: 500; fill: #6b6257; }
+    .node-type { font-size: 11px; font-weight: 700; fill: #75695d; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #6b6257; }
+    .legend { font-size: 12px; font-weight: 500; fill: #6b6257; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #75695d; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #75695d; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #141413; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="980.0" height="700.0" fill="#f8f6f3"/>
+  <text x="48.0" y="48" text-anchor="start" class="title">Mobile Game UA Ecosystem &amp; Commercial Loop</text>
+  <text x="48.0" y="72" text-anchor="start" class="subtitle">End-to-end loop across ad networks, attribution, monetization, and algorithm engines</text>
+  <line x1="48" y1="100" x2="932.0" y2="100" stroke="#ded8cf" stroke-width="1"/>
+  <g id="supply" data-graph-role="container" data-container-id="supply" data-semantic-role="boundary" data-graph-bounds="40,118,940,232">
+  <rect data-graph-role="container" x="40.0" y="118.0" width="900.0" height="114.0" rx="16.0" fill="none" stroke="#ded8cf" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="58.0" y="142.0" class="section">ACQUISITION</text>
+    <rect id="supply-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="124" width="102.8" height="30" fill="none" stroke="none"/>
+  </g>
+  <g id="game" data-graph-role="container" data-container-id="game" data-semantic-role="boundary" data-graph-bounds="40,276,940,408">
+  <rect data-graph-role="container" x="40.0" y="276.0" width="900.0" height="132.0" rx="16.0" fill="none" stroke="#ded8cf" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="58.0" y="300.0" class="section">MONETIZATION</text>
+    <rect id="game-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="282" width="116.84" height="30" fill="none" stroke="none"/>
+  </g>
+  <g id="algo" data-graph-role="container" data-container-id="algo" data-semantic-role="boundary" data-graph-bounds="40,452,940,596">
+  <rect data-graph-role="container" x="40.0" y="452.0" width="900.0" height="144.0" rx="16.0" fill="none" stroke="#ded8cf" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text x="58.0" y="476.0" class="section">ALGORITHMS</text>
+    <rect id="algo-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="458" width="105.14" height="30" fill="none" stroke="none"/>
+  </g>
+  <path id="a1" data-graph-role="edge" data-edge-id="a1" data-source="networks" data-target="bidding" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 272,181 L 360,181" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="a2" data-graph-role="edge" data-edge-id="a2" data-source="creative" data-target="bidding" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 680,181 L 584,181" fill="none" stroke="#d97757" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="a3" data-graph-role="edge" data-edge-id="a3" data-source="bidding" data-target="gamecore" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 472,208 L 472,334" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="a4" data-graph-role="edge" data-edge-id="a4" data-source="gamecore" data-target="mmp" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 360,361 L 276,361" fill="none" stroke="#7b8b5c" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="a5" data-graph-role="edge" data-edge-id="a5" data-source="gamecore" data-target="finance" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 584,361 L 724,361" fill="none" stroke="#7c5c96" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <path id="a6" data-graph-role="edge" data-edge-id="a6" data-source="mmp" data-target="pltv" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 188,388 L 188,510" fill="none" stroke="#7b8b5c" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="a7" data-graph-role="edge" data-edge-id="a7" data-source="pltv" data-target="dfm" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 268,540 L 310,540" fill="none" stroke="#d97757" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="a8" data-graph-role="edge" data-edge-id="a8" data-source="dfm" data-target="budget" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 478,540 L 520,540" fill="none" stroke="#d97757" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="a9" data-graph-role="edge" data-edge-id="a9" data-source="causal" data-target="budget" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 734,540 L 688,540" fill="none" stroke="#7c5c96" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <path id="a10" data-graph-role="edge" data-edge-id="a10" data-source="finance" data-target="causal" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 814,388 L 814,510" fill="none" stroke="#7c5c96" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <g id="node-networks" data-graph-role="node" data-node-id="networks" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="88,154,272,208">
+  <rect x="88.0" y="154.0" width="184.0" height="54.0" rx="10.0" fill="#e9f1fb" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Ad Networks" data-text-max-width="160.0" x="180.0" y="181.0" text-anchor="middle" class="node-title" font-size="18">Ad Networks</text>
+  <text data-text-role="subtitle" data-full-text="Meta / Google / AppLovin" data-text-max-width="160.0" x="180.0" y="203.0" text-anchor="middle" class="node-sub" font-size="11.61">Meta / Google / AppLovin</text>
+  </g>
+  <g id="node-bidding" data-graph-role="node" data-node-id="bidding" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="360,154,584,208">
+  <rect x="360.0" y="154.0" width="224.0" height="54.0" rx="10.0" fill="#f7ecda" stroke="#d97757" stroke-width="2.0"/>
+  <rect x="366.0" y="160.0" width="212.0" height="42.0" rx="7.0" fill="none" stroke="#d97757" stroke-width="1.2" opacity="0.65"/>
+  <text data-text-role="title" data-full-text="Black-Box Bidding" data-text-max-width="192.0" x="472.0" y="181.0" text-anchor="middle" class="node-title" font-size="18">Black-Box Bidding</text>
+  <text data-text-role="subtitle" data-full-text="UAC / AAA / VBO / tROAS" data-text-max-width="192.0" x="472.0" y="203.0" text-anchor="middle" class="node-sub" font-size="12">UAC / AAA / VBO / tROAS</text>
+  </g>
+  <g id="node-creative" data-graph-role="node" data-node-id="creative" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="680,154,904,208">
+  <rect x="680.0" y="154.0" width="224.0" height="54.0" rx="10.0" fill="#efe8de" stroke="#d0c3b3" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Creative &amp; E&amp;E" data-text-max-width="200.0" x="792.0" y="181.0" text-anchor="middle" class="node-title" font-size="18">Creative &amp; E&amp;E</text>
+  <text data-text-role="subtitle" data-full-text="fatigue + E&amp;E testing" data-text-max-width="200.0" x="792.0" y="203.0" text-anchor="middle" class="node-sub" font-size="12">fatigue + E&amp;E testing</text>
+  </g>
+  <g id="node-mmp" data-graph-role="node" data-node-id="mmp" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="100,334,276,388">
+  <rect x="100.0" y="334.0" width="176.0" height="54.0" rx="10.0" fill="#f7ecda" stroke="#d0b893" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="MMP &amp; SKAN 4.0" data-text-max-width="152.0" x="188.0" y="361.0" text-anchor="middle" class="node-title" font-size="17.77">MMP &amp; SKAN 4.0</text>
+  <text data-text-role="subtitle" data-full-text="AppsFlyer / Adjust / ATT" data-text-max-width="152.0" x="188.0" y="383.0" text-anchor="middle" class="node-sub" font-size="11.01">AppsFlyer / Adjust / ATT</text>
+  </g>
+  <g id="node-gamecore" data-graph-role="node" data-node-id="gamecore" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="360,334,584,388">
+  <rect x="360.0" y="334.0" width="224.0" height="54.0" rx="10.0" fill="#c8e4db" stroke="#8c6f5a" stroke-width="2.0"/>
+  <rect x="366.0" y="340.0" width="212.0" height="42.0" rx="7.0" fill="none" stroke="#8c6f5a" stroke-width="1.2" opacity="0.65"/>
+  <text data-text-role="title" data-full-text="Retention &amp; Revenue" data-text-max-width="192.0" x="472.0" y="361.0" text-anchor="middle" class="node-title" font-size="16.83">Retention &amp; Revenue</text>
+  <text data-text-role="subtitle" data-full-text="IAA ads + IAP whales" data-text-max-width="192.0" x="472.0" y="383.0" text-anchor="middle" class="node-sub" font-size="12">IAA ads + IAP whales</text>
+  </g>
+  <g id="node-finance" data-graph-role="node" data-node-id="finance" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="724,334,904,388">
+  <rect x="724.0" y="334.0" width="180.0" height="54.0" rx="10.0" fill="#efe8de" stroke="#d0c3b3" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Cashflow &amp; Payback" data-text-max-width="156.0" x="814.0" y="361.0" text-anchor="middle" class="node-title" font-size="14.47">Cashflow &amp; Payback</text>
+  <text data-text-role="subtitle" data-full-text="CPI / ROAS / Payback" data-text-max-width="156.0" x="814.0" y="383.0" text-anchor="middle" class="node-sub" font-size="12">CPI / ROAS / Payback</text>
+  </g>
+  <g id="node-pltv" data-graph-role="node" data-node-id="pltv" data-semantic-role="cylinder" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="108,510,268,570">
+  <ellipse cx="188.0" cy="517.5" rx="80.0" ry="7.5" fill="#e5e8df" stroke="#7b8b5c" stroke-width="2.2"/>
+  <rect x="108.0" y="517.5" width="160.0" height="45.0" fill="#e5e8df" stroke="#7b8b5c" stroke-width="2.2"/>
+  <ellipse cx="188.0" cy="562.5" rx="80.0" ry="7.5" fill="#e5e8df" stroke="#7b8b5c" stroke-width="2.2"/>
+  <ellipse cx="188.0" cy="532.8" rx="80.0" ry="7.5" fill="none" stroke="#7b8b5c" stroke-opacity="0.45" stroke-width="1.2"/>
+  <ellipse cx="188.0" cy="546.0" rx="80.0" ry="7.5" fill="none" stroke="#7b8b5c" stroke-opacity="0.25" stroke-width="1.2"/>
+  <text data-text-role="title" data-full-text="pLTV Modeling" data-text-max-width="136.0" x="188.0" y="534.0" text-anchor="middle" class="node-title" font-size="17.88">pLTV Modeling</text>
+  <text data-text-role="subtitle" data-full-text="ZILN / MDME / OptDist" data-text-max-width="136.0" x="188.0" y="558.0" text-anchor="middle" class="node-sub" font-size="11.18">ZILN / MDME / OptDist</text>
+  </g>
+  <g id="node-dfm" data-graph-role="node" data-node-id="dfm" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="310,510,478,570">
+  <rect x="310.0" y="510.0" width="168.0" height="60.0" rx="10.0" fill="#f7ecda" stroke="#d0b893" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Delayed Feedback" data-text-max-width="144.0" x="394.0" y="540.0" text-anchor="middle" class="node-title" font-size="15.15">Delayed Feedback</text>
+  <text data-text-role="subtitle" data-full-text="ES-DFM / DEFUSE" data-text-max-width="144.0" x="394.0" y="562.0" text-anchor="middle" class="node-sub" font-size="12">ES-DFM / DEFUSE</text>
+  </g>
+  <g id="node-budget" data-graph-role="node" data-node-id="budget" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="520,510,688,570">
+  <rect x="520.0" y="510.0" width="168.0" height="60.0" rx="10.0" fill="#e9f1fb" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Budget &amp; Pacing" data-text-max-width="144.0" x="604.0" y="540.0" text-anchor="middle" class="node-title" font-size="16.18">Budget &amp; Pacing</text>
+  <text data-text-role="subtitle" data-full-text="marginal ROI + PID" data-text-max-width="144.0" x="604.0" y="562.0" text-anchor="middle" class="node-sub" font-size="12">marginal ROI + PID</text>
+  </g>
+  <g id="node-causal" data-graph-role="node" data-node-id="causal" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="734,510,894,570">
+  <rect x="734.0" y="510.0" width="160.0" height="60.0" rx="10.0" fill="#efe8de" stroke="#d0c3b3" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Incrementality" data-text-max-width="136.0" x="814.0" y="540.0" text-anchor="middle" class="node-title" font-size="17.15">Incrementality</text>
+  <text data-text-role="subtitle" data-full-text="Ghost Ads / MMM" data-text-max-width="136.0" x="814.0" y="562.0" text-anchor="middle" class="node-sub" font-size="12">Ghost Ads / MMM</text>
+  </g>
+  <g id="a1-label" data-graph-role="label" data-owner="a1" data-graph-bounds="286.2,150,345.8,170">
+  <rect x="286.2" y="150.0" width="59.599999999999994" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="316.0" y="164.0" text-anchor="middle" class="arrow-label">auction</text>
+  </g>
+  <g id="a2-label" data-graph-role="label" data-owner="a2" data-graph-bounds="595.24,150,668.76,170">
+  <rect x="595.24" y="150.0" width="73.52" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="632.0" y="164.0" text-anchor="middle" class="arrow-label">creatives</text>
+  </g>
+  <g id="a3-label" data-graph-role="label" data-owner="a3" data-graph-bounds="408.68,257,469,277">
+  <rect x="408.68" y="257.0" width="60.32" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="438.84" y="271.0" text-anchor="middle" class="arrow-label">installs</text>
+  </g>
+  <g id="a4-label" data-graph-role="label" data-owner="a4" data-graph-bounds="279.68,307,356.32,327">
+  <rect x="279.68" y="307.0" width="76.64" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="318.0" y="321.0" text-anchor="middle" class="arrow-label">postbacks</text>
+  </g>
+  <g id="a5-label" data-graph-role="label" data-owner="a5" data-graph-bounds="622.64,330,685.36,350">
+  <rect x="622.64" y="330.0" width="62.72" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="654.0" y="344.0" text-anchor="middle" class="arrow-label">revenue</text>
+  </g>
+  <g id="a6-label" data-graph-role="label" data-owner="a6" data-graph-bounds="93.24,425,185,445">
+  <rect x="93.24" y="425.0" width="91.75999999999999" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="139.12" y="439.0" text-anchor="middle" class="arrow-label">early events</text>
+  </g>
+  <g id="a7-label" data-graph-role="label" data-owner="a7" data-graph-bounds="262.68,486,315.32,506">
+  <rect x="262.68" y="486.0" width="52.64" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="289.0" y="500.0" text-anchor="middle" class="arrow-label">debias</text>
+  </g>
+  <g id="a8-label" data-graph-role="label" data-owner="a8" data-graph-bounds="456.24,486,541.76,506">
+  <rect x="456.24" y="486.0" width="85.52" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="499.0" y="500.0" text-anchor="middle" class="arrow-label">value signal</text>
+  </g>
+  <g id="a9-label" data-graph-role="label" data-owner="a9" data-graph-bounds="657.44,486,764.56,506">
+  <rect x="657.44" y="486.0" width="107.12" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="711.0" y="500.0" text-anchor="middle" class="arrow-label">lift calibration</text>
+  </g>
+  <g id="a10-label" data-graph-role="label" data-owner="a10" data-graph-bounds="716.12,435,811,455">
+  <rect x="716.12" y="435.0" width="94.88" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="763.56" y="449.0" text-anchor="middle" class="arrow-label">ground truth</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="611" width="770.32" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="48.0" y1="625.0" x2="78.0" y2="625.0" stroke="#8c6f5a" stroke-width="2.0" marker-end="url(#arrowC)"/>
+    <text data-graph-role="decoration" x="88.0" y="629.0" class="legend">traffic &amp; bidding</text>
+    <line data-graph-role="decoration" x1="222.56" y1="625.0" x2="252.56" y2="625.0" stroke="#7b8b5c" stroke-width="2.0" marker-end="url(#arrowB)"/>
+    <text data-graph-role="decoration" x="262.56" y="629.0" class="legend">events &amp; attribution</text>
+    <line data-graph-role="decoration" x1="421.12" y1="625.0" x2="451.12" y2="625.0" stroke="#d97757" stroke-width="2.0" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="461.12" y="629.0" class="legend">modeling &amp; control</text>
+    <line data-graph-role="decoration" x1="602.64" y1="625.0" x2="632.64" y2="625.0" stroke="#7c5c96" stroke-width="2.0" marker-end="url(#arrowG)"/>
+    <text data-graph-role="decoration" x="642.64" y="629.0" class="legend">finance &amp; lift feedback</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,668,552,684">
+  <text x="48.0" y="680.0" class="footnote">Style 6 · Claude Official · Mobile Game UA Ecosystem &amp; Algorithmic Loops</text>
+  </g>
+</svg>

@@ -1,0 +1,137 @@
+---
+title: "Mobile Game UA Algorithms (1): Business Mechanics, Monetization Models, and Four System Loops"
+date: 2026-11-04
+tags: [广告与推荐, 技术报告解读]
+summary: "Starting from the unit economics of IAA, IAP, and hybrid monetization, this article breaks down the mobile game cashflow flywheel, the shift to black-box media bidding, and how heavy tails, delayed feedback, and privacy limits force four core algorithmic loops."
+draft: false
+sourceFile: "mobile-game-ua-business-and-ecosystem.mdx"
+sourceHash: "5841ae97d055459f8aa5982ba7350e65472e808ae6410b62a8efc10d823ad6fb"
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Comparison from '../../components/blog/Comparison.astro'
+import GameUaEconomicsPanel from '../../components/blog/GameUaEconomicsPanel.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+On the surface, mobile game user acquisition (UA) looks like paying for app installs. On the balance sheet, it is leveraged cashflow arbitrage.
+
+Every dollar a studio spends today on Meta, Google, AppLovin, or TikTok to buy an install (CPI) has to come back slowly over the next 7, 30, or 180 days through ad impressions and in-app purchases. As long as long-term Lifetime Value (LTV) stays reliably above acquisition cost after paying the 15% to 30% app-store cut, the studio can keep reinvesting profits to compound scale. If the valuation model overestimates LTV by 15%, however, millions of dollars fronted for a heavy strategy title can turn into an unrecoverable loss that only surfaces in financial reports three months later.
+
+Understanding the commercial mechanics explains why a mobile game UA algorithm stack looks nothing like a standard e-commerce ad stack.
+
+## 1. Three Monetization Models Shape Cashflow and Algorithmic Goals
+
+A hyper-casual puzzle game and a heavy 4X SLG title both buy traffic on the same ad networks, yet their underlying algorithm stacks are completely different species. The split starts with how each genre makes money.
+
+| Dimension | IAA (Ad-Driven) | Hybrid (IAA + IAP) | IAP (Purchase-Driven) |
+| --- | --- | --- | --- |
+| Typical genres | Hyper-casual, puzzle, mini-games | Hybrid-casual, card, simulation | SLG, MMORPG, gacha RPG |
+| Revenue streams | Rewarded video, interstitials, banners | Rewarded ads floor + battle pass and bundles | Packs, monthly passes, gacha, live-ops events |
+| Typical CPI | $0.30 to $1.20 | $2.00 to $5.50 | $12.00 to $35.00 |
+| Paying user share | No paywall (every viewer monetizes) | 3% to 8% payers, rest via ads | Often under 5%; top 1% drives over half of revenue |
+| Target payback | D3 to D7 | D21 to D45 | D90 to D180 |
+| Primary network bid | AdROAS / CPI | Hybrid tROAS / VBO | VBO / D7 tROAS (driven by pLTV backfeed) |
+
+Switch between monetization regimes in the interactive panel below to compare CPI ranges, cumulative ROAS trajectories from D1 to D90, and each genre's dominant modeling bottleneck.
+
+<GameUaEconomicsPanel lang="en" />
+
+Each regime carries a distinct risk profile.
+
+**IAA games compete on capital velocity and creative throughput.** Per-user revenue caps out at a few dollars, but monetization happens immediately. If a player watches eight rewarded videos on day one, mediation platforms such as AppLovin MAX or IronSource LevelPlay return Impression-Level Revenue Data (ILRD) in real time. Long-horizon forecasting is rarely the bottleneck here. The real constraint is creative fatigue: a winning video ad can lose half its click-through rate within a week, forcing high-frequency creative exploration to sustain spend.
+
+**Heavy IAP games compete on early whale identification.** In tier-one western markets, acquiring one SLG install can cost $20 while day-seven revenue recovers less than 20% of that spend. Over 95% of installers pay nothing, and a few hundred whale players spending thousands of dollars each determine whether the entire campaign turns a profit. Waiting 90 days for ground-truth payback before adjusting bids burns through the budget long before feedback arrives.
+
+**Hybrid-casual games occupy the fast-growing middle ground.** Ad revenue lifts day-seven ROAS toward 40% to relieve upfront financing pressure, while battle passes and starter bundles extend the long-term spending curve. The engineering cost is measurement complexity: attribution and valuation pipelines must stitch ad revenue and purchase receipts at the device level into one unified value signal for ad networks.
+
+## 2. Core Ledger Metrics: From CPI to Payback Day
+
+Before jumping into models, UA engineering teams align around a single unit-economics equation that governs every loss function, bid multiplier, and budget constraint:
+
+```math
+\text{Net Profit}_T = N \cdot \Big( (1 - \tau)\cdot \text{LTV}_{\text{IAP}}(T) + \text{LTV}_{\text{IAA}}(T) - \text{CPI} \Big)
+```
+
+Here $$N$$ is install volume, $$\tau$$ is the Apple App Store or Google Play platform fee (30% standard, or 15% under small-business and qualifying subscription tiers), and $$\text{LTV}(T)$$ is cumulative revenue per user through day $$T$$ post-install.
+
+In day-to-day operations, teams track three ratios rather than raw profit alone:
+
+1. **Cumulative ROAS (Return on Ad Spend)**: defined as $$\text{ROAS}(T) = \text{LTV}(T) / \text{CPI}$$. Finance teams typically track net ROI after store fees, whereas ad network dashboards (Meta, Google Ads) default to gross revenue before fees. Failing to reconcile gross versus net definitions across channels shifts bidding targets off by 30%.
+2. **Payback Period (Payback Day)**: the day $$T^*$$ when cumulative net revenue equals acquisition cost, satisfying $$\text{Net ROAS}(T^*) = 100\%$$. Payback speed directly sets a studio's working-capital ceiling. For the same 130% terminal ROI, a 30-day payback title turns capital 12 times per year, whereas a 180-day payback title turns capital only twice.
+3. **Retention and ARPDAU Decomposition**: writing day-$$t$$ retention as $$R(t)$$ and average revenue per daily active user as $$\text{ARPDAU}(t)$$, cumulative value expands as:
+
+```math
+\text{LTV}(T) = \sum_{t=0}^{T} R(t) \cdot \text{ARPDAU}(t)
+```
+
+This identity exposes two complementary forecasting paths: direct end-to-end regression on $$\text{LTV}(T)$$, or modeling retention $$R(t)$$ and spend depth $$\text{ARPDAU}(t)$$ separately and summing them. When a newly launched game only has three days of live history yet needs a day-90 projection, parametric retention extrapolation is often far more stable than end-to-end black-box regression.
+
+## 3. From Manual Media Buying to Black-Box Networks: Why Studios Still Build Algorithms
+
+Ten years ago, UA managers split audiences into hundreds of granular campaigns by device model, age, gender, interest tags, and placement, adjusting bids manually and pausing underperformers by hand.
+
+Over the past five years, Google UAC (Universal App Campaigns), Meta AAA / Advantage+ App Campaigns, AppLovin Axon 2.0, and TikTok Smart+ have taken over micro-level bidding. Backed by cross-app behavioral graphs, major networks have pulled targeting controls back and pushed advertisers to consolidate campaigns, feed broad audiences, and focus on two inputs: **diverse creative supply** and **accurate conversion value signals**.
+
+<Comparison
+  left={{
+    title: "Early Manual Campaign Buying",
+    items: [
+      "Split budgets across hundreds of narrow audience and placement ad sets",
+      "Relied on UA managers for manual bid tuning and campaign shutoffs",
+      "Fragmented traffic starved campaigns of samples and reset learning phases",
+      "Advertiser engineering focused on workflow tools and rule automation"
+    ]
+  }}
+  right={{
+    title: "Modern Black-Box Buying (UAC / AAA / VBO)",
+    items: [
+      "Consolidated broad campaigns hand user discovery to network models",
+      "Advertisers steer auctions via VBO and tROAS value thresholds",
+      "Networks own cross-app graphs but cannot read deep in-game economies",
+      "Advantage shifts to pLTV signal engineering, budget allocation, and lift calibration"
+    ]
+  }}
+  leftLabel="2015 - 2019 Paradigm"
+  rightLabel="2020 - Present Paradigm"
+/>
+
+This shift often leads to a misconception: if ad networks automate bidding, do game studios still need UA algorithm teams?
+
+They do, because optimization has moved from competing on single-channel micro-bids to three problems ad networks structurally cannot solve for an advertiser:
+
+First, **networks are blind to in-game behavior**. Meta and Google know which videos a user watched and which ads they clicked, but they do not know whether that player cleared tutorial chapter five on day one, joined an active alliance, or hit a core progression wall. In heavy IAP games, most future whales have not spent money within the first 24 hours. Sending only raw day-one receipts back to the network feeds mostly noise. Studios must score fine-grained first-day gameplay telemetry into a high-resolution pLTV estimate within 24 hours and send it back through Value-Based Optimization (VBO) to pull network delivery toward true high-value cohorts.
+
+Second, **each network maximizes its own attributed credit**. Every platform competes to claim last-click or view-through attribution. Summed across channels, self-reported network dashboards routinely overstate actual game revenue by more than 30%. No network will tell an advertiser how to split daily budgets across five to ten channels, where marginal returns are decaying, or which campaigns are cannibalizing organic installs.
+
+Third, **programmatic DSPs and mediation exchanges remain an open white-box auction**. Beyond walled gardens like Google and Meta, mobile gaming spends heavily across AppLovin, Unity, Moloco, Liftoff, and in-house DSPs connected to OpenRTB exchanges. In these auctions, the buyer runs its own CTR, CVR, and pLTV inference stack alongside win-rate modeling and bid shading in real time.
+
+## 4. Ecosystem Map: Four Algorithmic Loops Forced by Reality
+
+Placing traffic supply, attribution, monetization, and modeling engines onto one blueprint reveals how the full UA stack fits together.
+
+<TechGraph
+  src="/images/posts/mobile-game-ua-business-and-ecosystem/ua-ecosystem-style6-en.svg"
+  title="MOBILE GAME UA ECOSYSTEM"
+  caption="End-to-end mobile game UA architecture connecting black-box ad networks, MMP and SKAN 4.0 attribution, IAA/IAP monetization, and the four underlying algorithmic loops."
+/>
+
+The four engines at the bottom layer map directly to four mathematical and systems failures that break generic recommender or e-commerce ad stacks:
+
+1. **Heavy-Tail Valuation Loop (pLTV Modeling)**: over 95% of labels are exact zeros, while the remaining payers span four orders of magnitude. Naive MSE gets pulled off course by extreme outliers, forcing the industry toward Zero-Inflated Lognormal likelihoods (ZILN), multi-distribution experts (MDME/ODMN), explicit whale detection (ExpLTV), and adaptive alignment (OptDist).
+2. **Delayed Feedback Loop**: conversions and revenue arrive 1 to 30 days after install. Treating unconverted recent installs as negatives biases real-time models downward, while waiting for a 30-day attribution window to close leaves the model blind to fresh creatives and live-ops events.
+3. **Bidding, Budget Allocation, and E&E Loop**: teams simultaneously steer walled-garden black boxes via pLTV backfeed and tROAS gates, equalize marginal ROI rather than average ROAS across channels, pace daily spend with PID or dual controllers, and fund creative and geo cold starts via contextual bandits.
+4. **Privacy Black-Box and Incrementality Loop (SKAN 4.0 & Causal Lift)**: Apple ATT removed device-level IDFA on iOS, and SKAdNetwork 4.0 compresses continuous spend into 64 discrete bins or three coarse levels with random delays and crowd-anonymity cutoffs. Once deterministic dashboards lose ground truth, measurement requires triangulating MMP/SKAN logs, Bayesian MMM, and Ghost Ads or Geo-Lift experiments.
+
+<Callout type="note" title="Series Reading Path">
+With the commercial mechanics and system overview established, the next three parts go progressively deeper into primary industrial papers and production architecture:
+
+1. **Part 2 (Heavy-Tail Valuation)**: from Google ZILN to Kuaishou MDME/ODMN and Tencent ExpLTV and OptDist, covering zero-inflated likelihoods, multi-distribution experts, and Normalized Gini evaluation.
+2. **Part 3 (Delayed Feedback and Bidding Control)**: from DFM, FNW/FNC, and FSIW to Alibaba ES-DFM and DEFUSE, covering streaming importance weighting, cross-channel marginal budget allocation, and cold-start E&E.
+3. **Part 4 (Privacy Black Boxes and Incrementality)**: Apple SKAdNetwork 4.0 quantization, 64-bin optimal encoding, and experiment-calibrated attribution and MMM triangulation from TikTok, Amazon, and Meta papers.
+</Callout>
+
+## References
+
+- Wang, X., Liu, T., & Miao, J. (2019). *A Deep Probabilistic Model for Customer Lifetime Value Prediction* (ZILN). Google. [arXiv:1912.07753](https://arxiv.org/abs/1912.07753)
+- Apple Developer Documentation. *SKAdNetwork*. [developer.apple.com](https://developer.apple.com/documentation/storekit/skadnetwork)
+- Related on this blog: [Multi-Channel Joint Auto-Bidding: From Single-Channel Constraints to Cross-Platform Budget Allocation](/blog/multi-channel-autobidding/)

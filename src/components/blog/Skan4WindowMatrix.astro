@@ -1,0 +1,367 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式协议矩阵 · APPLE SKADNETWORK 4.0',
+      title: '人群匿名度分级（Crowd Anonymity）与三窗口回传衰减模拟器',
+      subtitle: '切换人群匿名度档位与 LockWindow 开关，查看三个回传窗口里 Source Identifier 与转化值的真实精度变化。',
+      lockLabel: '启用 lockWindow（提前锁窗）',
+      cols: {
+        window: '回传窗口',
+        measure: '行为度量期',
+        delay: '随机回传延迟',
+        sourceId: 'Source ID 位数',
+        cv: '转化值精度',
+      },
+      tiers: [
+        {
+          id: 't0',
+          label: 'Tier 0（极低量）',
+          desc: '安装量未过 Apple 隐私门槛：全窗口不返回转化值，Source ID 仅保留最基础的 2 位，计划几乎无法做精细化出价。',
+          sourceDigits: '2 位（00-99）',
+          w1: 'Null（无转化值）',
+          w2: 'Null（无转化值）',
+          w3: 'Null（无转化值）',
+        },
+        {
+          id: 't1',
+          label: 'Tier 1（低量）',
+          desc: '刚刚越过基础门槛：窗口 1 仅返回 3 档粗粒度（Low / Medium / High），窗口 2 与 3 仍无转化值，适合粗筛不适合 VBO。',
+          sourceDigits: '2 位（00-99）',
+          w1: 'Coarse（低 / 中 / 高）',
+          w2: 'Null（无转化值）',
+          w3: 'Null（无转化值）',
+        },
+        {
+          id: 't2',
+          label: 'Tier 2（中等放量）',
+          desc: '达到中等放量规模：窗口 1 解锁 64 档 Fine CV（0-63），窗口 2 与 3 返回 Coarse 粗粒度，Source ID 扩展至 3 位。',
+          sourceDigits: '3 位（000-999）',
+          w1: 'Fine 6-bit（0-63）',
+          w2: 'Coarse（低 / 中 / 高）',
+          w3: 'Coarse（低 / 中 / 高）',
+        },
+        {
+          id: 't3',
+          label: 'Tier 3（头部大计划）',
+          desc: '单计划集中放量达最高匿名度：窗口 1 完整 64 档 Fine CV，Source ID 解锁满血 4 位（支持拆分国家、素材组与出价策略）。',
+          sourceDigits: '4 位（0000-9999）',
+          w1: 'Fine 6-bit（0-63）',
+          w2: 'Coarse（低 / 中 / 高）',
+          w3: 'Coarse（低 / 中 / 高）',
+        },
+      ],
+      windows: [
+        { name: 'Postback 1', measure: 'Day 0 - Day 2', delayOpen: '24 - 48 小时', delayLocked: '锁窗后 24 - 48 小时（最快 D1+24h）' },
+        { name: 'Postback 2', measure: 'Day 3 - Day 7', delayOpen: '24 - 144 小时', delayLocked: '锁窗后 24 - 144 小时' },
+        { name: 'Postback 3', measure: 'Day 8 - Day 35', delayOpen: '24 - 144 小时', delayLocked: '锁窗后 24 - 144 小时' },
+      ],
+    }
+  : {
+      eyebrow: 'INTERACTIVE PROTOCOL MATRIX · APPLE SKADNETWORK 4.0',
+      title: 'Crowd Anonymity Tier & Three-Window Postback Degradation',
+      subtitle: 'Toggle Crowd Anonymity tiers and lockWindow to inspect exact Source Identifier digit length, conversion value resolution, and delay bounds.',
+      lockLabel: 'Enable lockWindow (early finalize)',
+      cols: {
+        window: 'Postback Window',
+        measure: 'Activity Window',
+        delay: 'Random Delay',
+        sourceId: 'Source ID Digits',
+        cv: 'Conversion Value',
+      },
+      tiers: [
+        {
+          id: 't0',
+          label: 'Tier 0 (Minimal)',
+          desc: 'Below Apple privacy threshold: conversion values are omitted across all three windows and Source ID drops to 2 digits.',
+          sourceDigits: '2 digits (00-99)',
+          w1: 'Null (omitted)',
+          w2: 'Null (omitted)',
+          w3: 'Null (omitted)',
+        },
+        {
+          id: 't1',
+          label: 'Tier 1 (Low)',
+          desc: 'Clears basic anonymity floor: Window 1 yields 3-level Coarse value (low / medium / high), while Windows 2 and 3 remain null.',
+          sourceDigits: '2 digits (00-99)',
+          w1: 'Coarse (Low / Med / High)',
+          w2: 'Null (omitted)',
+          w3: 'Null (omitted)',
+        },
+        {
+          id: 't2',
+          label: 'Tier 2 (Medium)',
+          desc: 'Moderate campaign concentration: Window 1 unlocks 6-bit Fine CV (0-63), Windows 2 and 3 carry Coarse values, and Source ID expands to 3 digits.',
+          sourceDigits: '3 digits (000-999)',
+          w1: 'Fine 6-bit (0-63)',
+          w2: 'Coarse (Low / Med / High)',
+          w3: 'Coarse (Low / Med / High)',
+        },
+        {
+          id: 't3',
+          label: 'Tier 3 (High Scale)',
+          desc: 'High campaign concentration: full 64-bin Fine CV in Window 1 plus 4-digit hierarchical Source ID for geo, creative, and bid granularity.',
+          sourceDigits: '4 digits (0000-9999)',
+          w1: 'Fine 6-bit (0-63)',
+          w2: 'Coarse (Low / Med / High)',
+          w3: 'Coarse (Low / Med / High)',
+        },
+      ],
+      windows: [
+        { name: 'Postback 1', measure: 'Day 0 - Day 2', delayOpen: '24 - 48 h', delayLocked: '24 - 48 h after lock (as early as D1+24h)' },
+        { name: 'Postback 2', measure: 'Day 3 - Day 7', delayOpen: '24 - 144 h', delayLocked: '24 - 144 h after lock' },
+        { name: 'Postback 3', measure: 'Day 8 - Day 35', delayOpen: '24 - 144 h', delayLocked: '24 - 144 h after lock' },
+      ],
+    };
+
+const payload = JSON.stringify(copy);
+---
+
+<section class="skan-panel not-prose" data-widget="skan4-matrix" data-payload={payload}>
+  <header class="skan-head">
+    <div>
+      <p class="skan-eyebrow">{copy.eyebrow}</p>
+      <h4 class="skan-title">{copy.title}</h4>
+      <p class="skan-subtitle">{copy.subtitle}</p>
+    </div>
+  </header>
+
+  <div class="skan-toolbar">
+    <div class="skan-tiers" role="tablist">
+      {copy.tiers.map((t, idx) => (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={idx === 2 ? 'true' : 'false'}
+          data-tier-btn={t.id}
+          class:list={['skan-tier-btn', idx === 2 && 'is-active']}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+    <label class="skan-lock">
+      <input type="checkbox" data-lock-toggle />
+      <span>{copy.lockLabel}</span>
+    </label>
+  </div>
+
+  <p class="skan-desc" data-tier-desc>{copy.tiers[2].desc}</p>
+
+  <div class="skan-table-wrap">
+    <table class="skan-table">
+      <thead>
+        <tr>
+          <th>{copy.cols.window}</th>
+          <th>{copy.cols.measure}</th>
+          <th>{copy.cols.delay}</th>
+          <th>{copy.cols.sourceId}</th>
+          <th>{copy.cols.cv}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {copy.windows.map((w, idx) => (
+          <tr data-win-row={idx}>
+            <td class="skan-mono">{w.name}</td>
+            <td class="skan-mono">{w.measure}</td>
+            <td data-cell-delay={idx}>{w.delayOpen}</td>
+            <td data-cell-source={idx} class="skan-mono">{copy.tiers[2].sourceDigits}</td>
+            <td><span class="skan-badge" data-cell-cv={idx}>{idx === 0 ? copy.tiers[2].w1 : idx === 1 ? copy.tiers[2].w2 : copy.tiers[2].w3}</span></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  function initSkan4Widgets() {
+    document.querySelectorAll<HTMLElement>('[data-widget="skan4-matrix"]').forEach((root) => {
+      if (root.dataset.bound === '1') return;
+      root.dataset.bound = '1';
+      const data = JSON.parse(root.dataset.payload || '{}');
+      const tiers = data.tiers || [];
+      const windows = data.windows || [];
+      let currentTier = 't2';
+
+      const buttons = root.querySelectorAll<HTMLButtonElement>('[data-tier-btn]');
+      const lockToggle = root.querySelector<HTMLInputElement>('[data-lock-toggle]');
+      const descEl = root.querySelector<HTMLElement>('[data-tier-desc]');
+
+      function badgeTone(text: string): string {
+        if (/Fine/i.test(text)) return 'is-fine';
+        if (/Coarse/i.test(text)) return 'is-coarse';
+        return 'is-null';
+      }
+
+      function render() {
+        const tier = tiers.find((t: any) => t.id === currentTier) || tiers[2];
+        const locked = Boolean(lockToggle?.checked);
+        buttons.forEach((btn) => {
+          const active = btn.dataset.tierBtn === tier.id;
+          btn.classList.toggle('is-active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        if (descEl) descEl.textContent = tier.desc;
+        const cvs = [tier.w1, tier.w2, tier.w3];
+        windows.forEach((w: any, idx: number) => {
+          const delayEl = root.querySelector<HTMLElement>(`[data-cell-delay="${idx}"]`);
+          const srcEl = root.querySelector<HTMLElement>(`[data-cell-source="${idx}"]`);
+          const cvEl = root.querySelector<HTMLElement>(`[data-cell-cv="${idx}"]`);
+          if (delayEl) delayEl.textContent = locked ? w.delayLocked : w.delayOpen;
+          if (srcEl) srcEl.textContent = tier.sourceDigits;
+          if (cvEl) {
+            cvEl.textContent = cvs[idx];
+            cvEl.className = `skan-badge ${badgeTone(cvs[idx])}`;
+          }
+        });
+      }
+
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          currentTier = btn.dataset.tierBtn || 't2';
+          render();
+        });
+      });
+      lockToggle?.addEventListener('change', render);
+      render();
+    });
+  }
+
+  initSkan4Widgets();
+  document.addEventListener('astro:after-swap', initSkan4Widgets);
+  document.addEventListener('languagechange', initSkan4Widgets);
+</script>
+
+<style>
+  .skan-panel {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--color-field);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .skan-head {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .skan-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .skan-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    color: var(--color-heading);
+  }
+  .skan-subtitle {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .skan-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.85rem;
+    margin: 1rem 0 0.75rem;
+  }
+  .skan-tiers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .skan-tier-btn {
+    padding: 0.38rem 0.7rem;
+    font-size: 0.8rem;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+  }
+  .skan-tier-btn.is-active {
+    background: var(--color-heading);
+    color: var(--color-surface);
+    border-color: var(--color-heading);
+  }
+  .skan-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    color: var(--color-body);
+    cursor: pointer;
+  }
+  .skan-lock input {
+    accent-color: var(--color-accent);
+  }
+  .skan-desc {
+    margin: 0 0 1rem;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: var(--color-body);
+  }
+  .skan-table-wrap {
+    overflow-x: auto;
+  }
+  .skan-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+  }
+  .skan-table th,
+  .skan-table td {
+    padding: 0.65rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+  }
+  .skan-table th {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+    background: var(--color-surface-alt);
+    font-weight: 600;
+  }
+  .skan-mono {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .skan-badge {
+    display: inline-block;
+    padding: 0.18rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .skan-badge.is-fine {
+    background: #e5efe9;
+    color: #1f5c3d;
+  }
+  .skan-badge.is-coarse {
+    background: #f5ebd8;
+    color: #7a5219;
+  }
+  .skan-badge.is-null {
+    background: #ebe6dd;
+    color: #716d63;
+  }
+</style>

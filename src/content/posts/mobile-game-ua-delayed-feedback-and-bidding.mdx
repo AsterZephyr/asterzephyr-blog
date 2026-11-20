@@ -1,0 +1,183 @@
+---
+title: "手游买量算法（三）：延迟反馈流式纠偏、跨渠道预算与冷启动探索"
+date: 2026-11-14
+tags: [广告与推荐, 技术报告解读]
+summary: "从 DFM、FNW/FNC、FSIW 到阿里 ES-DFM 与 DEFUSE，拆解游戏买量中转化延迟删失的数学纠偏与 Kafka/Flink 双流训练架构，并打通跨渠道边际预算分配、PID 控耗与冷启动 E&E 探索。"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Comparison from '../../components/blog/Comparison.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+点击预测（CTR）在几秒钟内就能拿到明确标签，但游戏付费转化（CVR / 付费事件）不会马上发生。
+
+一个玩家今天中午点广告安装了 SLG 游戏，可能过了三天才推完新手引导，第七天打公会战时才完成首充。如果线上流式训练系统每隔一小时更新一次模型，今天下午刚安装还没来得及付钱的玩家，都会被贴上“未转化（$$y = 0$$）”的假负标签喂进梯度下降。
+
+于是算法团队立刻陷入一对无解的矛盾：要**新鲜度（Freshness）**，马上用最近几小时的新样本训练，标签里掺了大量假负样本（Fake Negatives），模型会系统性低估转化率，出价越压越低，计划直接跑停；要**准确性（Accuracy）**，干等 7 天甚至 30 天归因窗口完全关闭再训练，模型学到的全是过期的素材和活动分布，新上线的爆款素材根本吃不到量。
+
+解决新鲜度与准确性的拉扯，就是工业界延迟反馈建模（Delayed Feedback Modeling, DFM）的核心战场。
+
+## 一、延迟删失的数学本质：从 DFM 到 DEFUSE 的五代演进
+
+把一个点击或安装事件的时间记为 $$t_c$$，真实转化发生时间为 $$t_v$$，转化延迟为 $$d = t_v - t_c$$，当前观测时刻距点击经过的时长为 $$e = t_{\text{now}} - t_c$$（图 1）。在时刻 $$t_{\text{now}}$$，我们观测到的二值标签记为 $$v \in \{0, 1\}$$，而归因窗口（比如 7 天或 30 天）结束后的最终真实标签记为 $$y \in \{0, 1\}$$。
+
+<Figure
+  src="/images/posts/mobile-game-ua-delayed-feedback-and-bidding/paper-esdfm-timeline.png"
+  alt="Illustration of click time, conversion time, and elapsed observation time from ES-DFM AAAI 2021 Figure 1"
+  caption="图 1：ES-DFM 原论文 Figure 1，清晰标出点击时间、转化时间、观测时间与延迟间隔之间的右删失关系（来源：Yang et al., arXiv:2012.03245）。"
+  width="68%"
+/>
+
+只要 $$v = 1$$，真实标签必然是 $$y = 1$$；但当 $$v = 0$$ 且经过时长 $$e$$ 仍小于归因窗口上限时，这条样本可能真的是永不转化的负样本，也可能只是还没来得及转化的“在途正样本”。在统计学上，这叫做**右删失（Right-Censoring）**。
+
+过去十年，工业界沿着“生存分析 -> 流式复制纠偏 -> 重要性采样 -> 四类样本解耦”的脉络，演化出五套经典解法：
+
+| 代表论文与出处 | 核心机制 | 解决的关键痛点 | 工程代价与适用场景 |
+| --- | --- | --- | --- |
+| DFM（Chapelle，KDD 2014） | 联合建模转化率与指数延迟密度，EM 极大似然 | 奠定生存分析建模框架，消除右删失偏置 | 指数分布假设偏强，对流式深度网络不够友好 |
+| FNW / FNC（Twitter，RecSys 2019） | 先当负样本训，延迟转化到达后复制为正样本再训并加权 | 首次打通深度学习连续在线训练（Continuous Training） | 假负样本被重复消费，高延迟比例下梯度方差偏大 |
+| FSIW（Yasui 等，WWW 2020） | 视延迟为样本分布偏移，引入重要性权重无偏估计 | 不再依赖强参数化延迟分布假设 | 对延迟分布估计误差较敏感 |
+| ES-DFM（南京大学 & 阿里，AAAI 2021） | 固定观测窗口 $$e$$ + 延迟归因补发 + 重要性采样权重 | 平衡等待成本与假负噪声，成为工业流式训练标准范式 | 窗口 $$e$$ 需要按游戏转化曲线调优（常见 1h 到 24h） |
+| DEFUSE（阿里，WWW 2022） | 精细拆解 4 类样本，对真负样本与延迟正样本分别无偏纠偏 | 解决 FNW/ES-DFM 对假负样本混叠加权造成的有偏估计 | 需要维护双分布估计模块，长延迟场景收益最明显 |
+
+### 1. 生存分析起点：Chapelle DFM（KDD 2014）
+
+Criteo 首席科学家 Olivier Chapelle 在 [KDD 2014](https://dl.acm.org/doi/10.1145/2623330.2623634) 中同时引入两个隐模型：一个是真实的转化概率 $$p(y = 1 \mid x)$$，另一个是条件延迟概率密度 $$p(d \mid x, y = 1)$$（论文采用指数分布 $$\lambda(x) e^{-\lambda(x) d}$$）。
+
+对于一条在经过时间 $$e$$ 后仍未观测到转化的样本（$$v = 0$$），它包含两种互斥可能：要么永远不会转化（概率 $$1 - p$$），要么会转化但延迟大于 $$e$$（概率 $$p \cdot e^{-\lambda e}$$）。因此未观测到转化的似然为：
+
+```math
+P(v = 0 \mid x, e) = \big(1 - p(x)\big) + p(x)\cdot \exp\big(-\lambda(x) e\big)
+```
+
+DFM 通过 EM 算法交替更新转化率模型与延迟率模型。它的理论极美，但在深度神经网络和流式实时训练全面普及后，全量重算 EM 和指数分布单调递减的假设显得太重。
+
+### 2. 流式在线训练的转折：FNW / FNC、FSIW 与 ES-DFM
+
+2019 年，Twitter 团队在 RecSys 2019（[arXiv:1907.06558](https://arxiv.org/abs/1907.06558)）提出 **FNW（Fake Negative Weighted）** 与 **FNC（Fake Negative Calibration）**。核心做法很工程化：流式样本一到就先当负样本喂给模型，绝不干等；一旦几天后真实转化回传，再把这条样本复制一份贴上正标签送进训练流，并在损失函数里通过重要性权重抵消掉之前那条假负样本带来的负梯度。
+
+紧接着，Yasui 等人在 WWW 2020（[arXiv:2002.02068](https://arxiv.org/abs/2002.02068)）提出 **FSIW（Feedback Shift Importance Weighting）**，明确把观测分布 $$q(x, v)$$ 与真实分布 $$p(x, y)$$ 之间的差异写成重要性采样问题。
+
+真正把这套框架打磨成工业流式标准的，是南京大学与阿里巴巴团队在 AAAI 2021 发表的 **ES-DFM（Elapsed-Time Sampling Delayed Feedback Modeling, [arXiv:2012.03245](https://arxiv.org/abs/2012.03245)）**。ES-DFM 发现完全不等待（$$e = 0$$）虽然最快，但绝大部分原本会在几十分钟内首充的用户都被标成了假负样本，白白放大了训练方差；因此它引入一个可控的短观测窗口 $$e$$（比如 1 小时或 6 小时），窗口内就转化的直接当正样本，超过窗口还没转化的先标为观测负样本进入训练，如果之后在归因窗口内发生转化再补发一条延迟正样本。为了纠正假负污染，ES-DFM 给观测负样本施加如下重要性权重：
+
+```math
+w_{\text{neg}}(x) = \frac{1 - p(y = 1 \mid x)}{1 - p(y = 1 \mid x) + p(y = 1 \mid x)\cdot p(d > e \mid x, y = 1)}
+```
+
+直觉很清楚：如果一个样本本身转化率高、且大概率会在窗口 $$e$$ 之后才延迟转化，那么它在窗口结束时没转化大概率只是“还没到时间”，给它的负样本权重就会被压低，避免错误打压高潜人群。
+
+### 3. 四类样本精细拆解：阿里 DEFUSE（WWW 2022）
+
+2022 年，阿里团队在 WWW 2022（[arXiv:2202.06472](https://arxiv.org/abs/2202.06472)）发表 **DEFUSE**，指出了之前流式方法在样本分布上残留的细微偏差。如图 2 和图 3 所示，在观测窗口 $$w_0$$ 截断后，真实数据流里其实同时混着四种不同性质的样本：即时正样本（Immediate Positive, IP）、延迟正样本（Delayed Positive, DP）、真实负样本（Real Negative, RN）和假负样本（Fake Negative, FN）。
+
+<Figure
+  src="/images/posts/mobile-game-ua-delayed-feedback-and-bidding/paper-defuse-labels.png"
+  alt="Four label types in delayed feedback modeling from DEFUSE WWW 2022 Figure 1"
+  caption="图 2：DEFUSE 原论文 Figure 1，按观测窗口 w0 切分即时正样本、延迟正样本、真实负样本与假负样本四类标签边界（来源：Chen et al., arXiv:2202.06472）。"
+  width="72%"
+/>
+
+DEFUSE 证明，只要分别估计即时转化概率 $$p_{\text{ip}}(x)$$ 与延迟转化概率 $$p_{\text{dp}}(x)$$（借助 Bi-Distribution 双分布网络），就能对未转化样本中的假负比例做精确重要性加权，并在延迟正样本到达后给出渐近无偏的梯度估计。对于手游 7 日甚至 30 日首充预测，这种把“首小时冲动付费”和“多日养成后付费”解耦的双分布视角，比单一延迟曲线更贴合玩家心理节奏。
+
+<Figure
+  src="/images/posts/mobile-game-ua-delayed-feedback-and-bidding/paper-defuse-dist.png"
+  alt="Data distribution comparison across online delayed feedback methods from DEFUSE WWW 2022 Figure 2"
+  caption="图 3：DEFUSE 原论文 Figure 2，对比不同在线延迟反馈方法在真实数据分布与流式训练样本分布上的偏移差异（来源：Chen et al., arXiv:2202.06472）。"
+  width="72%"
+/>
+
+## 二、流式训练与在线更新工程架构（Kafka + Flink）
+
+把 ES-DFM 和 DEFUSE 搬进生产集群，不能只写一个离线训练脚本，核心难点在**特征穿越防护**与**双流时间对齐**。
+
+下面的 Event Transit 拓扑图展示了手游买量延迟反馈流式训练的标准数据管道：
+
+<TechGraph
+  src="/images/posts/mobile-game-ua-delayed-feedback-and-bidding/delayed-feedback-metro-style11.svg"
+  title="DELAYED FEEDBACK STREAMING RAIL"
+  caption="Kafka + Flink 延迟反馈流式训练轨道：点击安装样本经短观测窗口门控与重要性加权进入实时训练，延迟 7-30 天回传的转化事件通过特征快照库回溯点击时刻上下文并补发正样本。"
+/>
+
+这条管道里最容易出线上事故的细节，是图右下方的**特征快照存储（RocksDB / KV Store）**。
+
+当一个玩家在安装第 12 天突然完成一笔 $99.99 充值，延迟正样本回放轨把这条转化事件发回来时，绝不能拿玩家第 12 天的最新画像去拼训练特征，必须按 `click_id` 或 `install_id` 从状态存储里精确取出**安装或竞价那一刻冻结的原始特征快照**。一旦把第 12 天的等级、战力或累计在线时长泄漏进了安装时刻的样本里，离线 AUC 会虚高到 0.99，推到线上竞价瞬间雪崩。
+
+至于重度游戏的 D30 或 D90 pLTV 预估，因为标签是连续金额而不是二值转化，工程上通常用三层补丁组合应对延迟：
+
+- **近期窗口做“留存+付费深度”分解或时间倍率校准**：拿近 3 天新样本按游戏历史 D3 到 D30 的累计曲线做分段放大，快速捕捉素材和渠道突变。
+- **辅助短周期代理目标（Proxy Target）**：多任务共享底座同时训 D1 活跃、D1 付费、D3 留存和 D30 LTV，短周期任务负责把最新特征表征拉鲜，长周期头靠历史完整样本保底无偏。
+- **分级样本权重**：对窗口尚未关闭的近期样本降权或只激活其已成熟的短周期任务头，避免未成熟的零值拖垮长周期回归头。
+
+## 三、从估值到花钱：媒体黑盒撬动与跨渠道边际预算分配
+
+预估模型把每个玩家值多少钱算清楚之后，算法就进入真正的花钱决策层。手游买量的出价战场天然分成两个世界：
+
+<Comparison
+  left={{
+    title: "媒体黑盒战场（Meta / Google / AppLovin）",
+    items: [
+      "媒体掌管底层每一次曝光竞价，广告主无法看到微观请求特征",
+      "广告主的核心杠杆是 pLTV 价值回传（VBO）与 tROAS 目标阈值",
+      "优化重点在于 24 小时内回传高区分度价值信号，喂准媒体模型",
+      "外层决策聚焦跨渠道预算分配、计划结构与素材淘汰"
+    ]
+  }}
+  right={{
+    title: "程序化白盒战场（自建 DSP / OpenRTB）",
+    items: [
+      "买方直接收到每次竞价请求（Bid Request），在 50ms 内返回出价",
+      "核心链路为 CTR × CVR × pLTV 算出 eCPM，再叠加 Bid Shading",
+      "需要自主维护胜率曲面估计（删失竞价日志）与实时预算平滑",
+      "收益来自微观请求级定价精度与一价竞价下的盈余截留"
+    ]
+  }}
+  leftLabel="Walled Gardens"
+  rightLabel="OpenRTB / In-House DSP"
+/>
+
+不管是在哪个战场，只要公司同时在 5 个以上渠道买量，跨渠道预算分配（Cross-Channel Budget Allocation）都会遇到一个经典陷阱：**拿平均 ROAS 分预算**。
+
+假设今天有 $100,000 预算，渠道 A 目前平均 ROAS 是 140%，渠道 B 平均 ROAS 是 110%。运营直觉往往是“把钱全砸给渠道 A”。但真实广告竞价池是严格收益递减的凹函数（Concave Response Curve）：你最先买到的永远是渠道里转化率最高的那一批流量，预算翻倍后，多买进来的增量流量成本飙升、质量下滑。渠道 A 的平均 ROAS 虽然高达 140%，但多花最后 $1 换回来的**边际 ROAS（Marginal ROAS）**可能已经掉到了 75%；而渠道 B 还没起量，边际 ROAS 仍有 105%。
+
+把跨渠道预算分配写成带总预算约束 $$B$$ 的优化问题，其中 $$R_i(b_i)$$ 是渠道 $$i$$ 在预算 $$b_i$$ 下带来的总预期收入：
+
+```math
+\max_{b_1, \dots, b_K \ge 0} \sum_{i=1}^{K} R_i(b_i) \quad \text{s.t.} \quad \sum_{i=1}^{K} b_i \le B
+```
+
+在各渠道响应曲线凹且可微的条件下，由 KKT 最优性条件可以立刻推出跨渠道资金分配的铁律：**最优分配点不是让各渠道平均 ROAS 相等，而是让所有活跃渠道的边际收益严格拉平**：
+
+```math
+\frac{\partial R_1(b_1^*)}{\partial b_1} = \frac{\partial R_2(b_2^*)}{\partial b_2} = \dots = \frac{\partial R_K(b_K^*)}{\partial b_K} = \lambda^*
+```
+
+这里的拉格朗日乘子 $$\lambda^*$$ 就是全局预算的影子价格（Shadow Price），在业务上直接对应统一的目标边际 ROI 底线。关于如何在真实多渠道联合自动出价中处理硬 ROI 约束、预算平滑（Budget Pacing）以及对偶/PID 在线反馈控制，可以参考站内专题文章[《多渠道联合自动出价：从单渠道约束到跨平台预算分配》](/blog/multi-channel-autobidding/)中的完整推导。
+
+## 四、冷启动 E&E（探索与利用）：新游戏、新素材为什么不能纯靠贪心
+
+如果系统完全按历史数据里的边际 ROI 分配预算，买量体系会在几周内死于“马太效应”。
+
+手游买量有三个高频冷启动场景：新素材每天批量上线、新地区/新国家刚开服、新版本资料片开启新卡池。这些新对象历史曝光极少，预估模型的均值不确定性极大；如果完全按保守估计的均值贪心分配，老素材会一直霸占预算直到彻底衰退，新爆款根本拿不到足够的测试样本去证明自己。
+
+工程上通常把多臂老虎机（Multi-Armed Bandit）框架嵌入到素材分配和渠道试探里，核心思路是给“不确定性”支付探索溢价：
+
+1. **UCB / LinUCB（置信上界）**：不只看预测均值 $$\hat{\mu}_a$$，而是按均值加上不确定度置信半径 $$\hat{\mu}_a + \alpha \sqrt{x^\top A_a^{-1} x}$$ 排序。一个新素材只要还没测够样本，方差项就很大，系统会主动拨给它探索预算；随着样本量增加，方差迅速收缩，真正差的素材自动出局。
+2. **Thompson Sampling（汤普森采样）**：为每个素材或计划维护后验分布（比如安装率用 Beta 分布，付费深度用正态逆伽马或 ZILN 后验），每次做预算切分时从后验里随机采样一个收益值，按采样结果分配份额。汤普森采样在延迟反馈环境里比确定性 UCB 更抗噪声，因为随机采样天然分散了批量探索的共振风险。
+3. **带止损护栏的探索池（Budget-Capped Exploration）**：在工业实战里，团队很少把 100% 预算交给纯 Bandit，而是划出固定比例（常见 10% 到 20%）的独立探索预算池，同时设硬止损规则（比如某素材花满 3 倍目标 CPI 仍零转化直接熔断），把探索成本锁在财务可承受的边界内。
+
+<Callout type="warning" title="延迟反馈叠加 E&E 时的常见坑">
+在重度手游素材测新时，绝不能用 D30 ROAS 直接做 Bandit 奖励信号，否则所有素材都要等一个月才能收敛。实践里通常把 Bandit 奖励拆成“短期代理指标（IPM 每千次展示安装数 + 首日留存/早期 pLTV 分数）”做快速淘汰，只有通过早期筛选的潜力素材才进入长周期放量池。
+</Callout>
+
+走到这里，估值、纠偏、出价和探索看起来已经严丝合缝。但这一切都有一个隐含前提：你得先知道“到底是谁带来了这个玩家”。下一篇进入手游买量最诡谲的一层，拆解 Apple ATT 与 SKAdNetwork 4.0 切断设备级追踪之后，行业如何重建归因量化与因果增量三角校准。
+
+## 参考资料
+
+- Chapelle, O. (2014). *Modeling Delayed Feedback in Display Advertising*. KDD 2014. [doi:10.1145/2623330.2623634](https://dl.acm.org/doi/10.1145/2623330.2623634)
+- Ktena, S. I., Tejani, A., Theis, L., Myana, P. K., Dilipkumar, D., Huszár, F., Yoo, S., & Shi, W. (2019). *Addressing Delayed Feedback for Continuous Training with Neural Networks in CTR prediction* (FNW/FNC). RecSys 2019, Twitter. [arXiv:1907.06558](https://arxiv.org/abs/1907.06558)
+- Yasui, S., Morishita, G., Fujita, K., & Shibata, M. (2020). *A Feedback Shift Correction in Predicting Conversion Rates under Delayed Feedback* (FSIW). WWW 2020. [arXiv:2002.02068](https://arxiv.org/abs/2002.02068)
+- Yang, J.-Q., Li, X., Han, S., Zhuang, T., Zhan, D.-C., Zeng, X., & Tong, B. (2021). *Capturing Delayed Feedback in Conversion Rate Prediction via Elapsed-Time Sampling* (ES-DFM). AAAI 2021, Nanjing University & Alibaba Group. [arXiv:2012.03245](https://arxiv.org/abs/2012.03245)
+- Chen, Y., Jin, J., Zhao, H., Wang, P., Liu, G., Xu, J., & Zheng, B. (2022). *Asymptotically Unbiased Estimation for Delayed Feedback Modeling via Label Correction* (DEFUSE). WWW 2022, Alibaba Group. [arXiv:2202.06472](https://arxiv.org/abs/2202.06472)
+- 站内关联阅读：[多渠道联合自动出价：从单渠道约束到跨平台预算分配](/blog/multi-channel-autobidding/)

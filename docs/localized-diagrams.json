@@ -166,5 +166,29 @@
     "target": "/images/posts/multi-channel-autobidding/g8-levers-en.svg",
     "sourceHash": "9cfd241c299835ee672fdc6cf35e952734c8159a77d8fc5a7ae8cd007eefe4cd",
     "targetHash": "1cbb9d2129c6fa6c33e77b7126e44bd624422a5695971e45d9b1fc7c51bc9bca"
+  },
+  {
+    "source": "/images/posts/mobile-game-ua-business-and-ecosystem/ua-ecosystem-style6.svg",
+    "target": "/images/posts/mobile-game-ua-business-and-ecosystem/ua-ecosystem-style6-en.svg",
+    "sourceHash": "95735f88889bb8fda7d68e6c8b2073f3c54d59e97234f254cbe46216884ac0b5",
+    "targetHash": "04e964a17e630a6d6d17711627259c01be97eaa0c35465f3bc11a2979ae818fb"
+  },
+  {
+    "source": "/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/pltv-evolution-style1.svg",
+    "target": "/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/pltv-evolution-style1-en.svg",
+    "sourceHash": "9aec330a7a7902234074b55625907644938a80602478a915ce79e85c08b25dcf",
+    "targetHash": "900761f559b5049dbfdc07fad26f45eca232646a2c1c8cc25f7d726c22983278"
+  },
+  {
+    "source": "/images/posts/mobile-game-ua-delayed-feedback-and-bidding/delayed-feedback-metro-style11.svg",
+    "target": "/images/posts/mobile-game-ua-delayed-feedback-and-bidding/delayed-feedback-metro-style11-en.svg",
+    "sourceHash": "c43781b40effad87cc82d957db1d9010e3b7753a73fc07fcc4543353246a22f7",
+    "targetHash": "7ae81b30a81dc3b4b4e18685fcde87af8ca7da1683e6768f75ba8f35854916f7"
+  },
+  {
+    "source": "/images/posts/mobile-game-ua-skan4-and-incrementality/privacy-triangulation-style9.svg",
+    "target": "/images/posts/mobile-game-ua-skan4-and-incrementality/privacy-triangulation-style9-en.svg",
+    "sourceHash": "cbc7eddcd9b97c0ea31fa7aba0ae5e6f57ff9913bd341ec5e43f272ebfbab1e3",
+    "targetHash": "b2865f8bf3d56054ff0f6dbc52fb400ff1d3714c5bef654bb6d379f455abc8ff"
   }
 ]

@@ -1,0 +1,169 @@
+---
+title: "手游买量算法（二）：零膨胀与重尾分布，从 ZILN 到 OptDist 的 pLTV 建模演进"
+date: 2026-11-09
+tags: [广告与推荐, 技术报告解读]
+summary: "拆解手游 pLTV 预估为什么不能直接用 MSE 回归，结合 Google ZILN、快手 MDME/ODMN、腾讯 ExpLTV 与 OptDist 四篇工业论文原图与数学推导，梳理重尾分布建模、鲸鱼识别与 Normalized Gini 评估体系。"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import PltvTailSimulator from '../../components/blog/PltvTailSimulator.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+手游买量算法里最容易让新手栽跟头的第一道坎，就是直接拿常规回归模型去训 pLTV（Predicted Lifetime Value）。
+
+拿到一份安装后 30 天累计充值数据集，很多工程师的第一反应是搭一个深度网络（MLP、DeepFM 或 DCN），最后接一个线性输出层，配一个均方误差损失（MSE）开始训练。跑完离线评估一看，RMSE 看着好像还在降，可一旦把预测分数排序后拉出头部 1% 的高潜用户，或者把分数回传给媒体做 VBO 出价，投放回报瞬间崩盘。
+
+问题不在网络深度，而在手游 LTV 的数据分布本身违背了 MSE 隐含的高斯对称假设。
+
+## 一、为什么普通 MSE 回归在游戏 LTV 上彻底失效
+
+重度内购游戏的用户付费分布同时具备两个极端特征：**极度零膨胀（Zero-Inflation）**与**极度重尾（Heavy-Tail）**。
+
+在一份典型的重度手游 D30 样本集里，95% 以上的玩家累计充值严格为 0；在剩下的不到 5% 付费玩家中，大多数人只买了 $0.99 的首充礼包或 $4.99 的月卡，而排在最顶端的 0.1% 鲸鱼玩家（Whales），单人充值可以冲到 $500 甚至 $5,000 以上。
+
+把这份样本喂给 MSE 损失 $$\mathcal{L}_{\text{MSE}} = (y - \hat{y})^2$$，会立刻触发两个致命副作用：
+
+1. **梯度被极少数离群鲸鱼劫持**。MSE 的梯度是 $$2(\hat{y} - y)$$，误差的惩罚按平方增长。一个真实充值 $5,000 的玩家如果被低估到 $1,000，单条样本产生的平方损失是 $1.6 \times 10^7$，相当于把 160 万个零付费用户的 $1 误差绑在一起。为了迁就这几个极端值，模型不得不把大量普通小 R 甚至零付费用户的预测值整体往上拽，导致腰部和底部人群严重高估。
+2. **对称惩罚违背商业风险结构**。如图 1 所示（引自 Google ZILN 原始论文），面对同一条真实值为 $$x = 20$$ 的样本，MSE 对高估和低估施加完全对称的二次惩罚；而在重尾对数正态分布下，真实值落在右尾的概率密度本身远高于对称高斯分布，损失函数在左右两侧应该呈现明显的非对称形态。
+
+<Figure
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/paper-ziln-loss.png"
+  alt="MSE loss versus lognormal loss as a function of the mean parameter from Google ZILN paper Figure 2"
+  caption="图 1：Google ZILN 原论文 Figure 2，对比单样本观测值 x = 20 时，MSE 损失与对数正态负对数似然损失随均值参数变化的对称性差异（来源：Wang et al., arXiv:1912.07753）。"
+  width="88%"
+/>
+
+很多工程团队在早期尝试过“对标签取对数再做 MSE”，也就是训练目标改成 $$\log(y + 1)$$。这确实压住了梯度爆炸，但在推理还原时会踩进 Jensen 不等式的坑：直接取 $$\exp(\hat{z}) - 1$$ 得到的是条件中位数而非条件期望。对重尾分布来说，中位数可能只有真实期望的一半甚至三分之一，直接拿去算 tROAS 出价，会系统性低出价、彻底拿不到量。
+
+## 二、工业界基石：Google ZILN（Zero-Inflated Lognormal）
+
+2019 年，Google 团队在 [arXiv:1912.07753](https://arxiv.org/abs/1912.07753) 中提出了 **ZILN（Zero-Inflated Lognormal）** 损失函数，用一套极简的参数化概率模型同时解决了零膨胀、重尾梯度失真和无偏期望还原三个问题。至今它依然是绝大多数游戏公司 pLTV 系统的第一版工业基准线。
+
+ZILN 把用户的生命周期价值 $$Y$$ 拆成两步生成过程：先以概率 $$p \in (0, 1)$$ 决定用户是否付费；一旦付费（$$Y > 0$$），其付费金额服从参数为 $$(\mu, \sigma)$$ 的对数正态分布 $$\text{Lognormal}(\mu, \sigma^2)$$。对应的混合概率密度为：
+
+```math
+f_{\text{ZILN}}(y \mid p, \mu, \sigma) = (1 - p)\cdot \mathbb{I}(y = 0) + p \cdot \frac{\mathbb{I}(y > 0)}{y \sigma \sqrt{2\pi}} \exp\left( -\frac{(\ln y - \mu)^2}{2\sigma^2} \right)
+```
+
+对负对数似然求最小化，就得到端到端可微的 ZILN 损失函数：
+
+```math
+\mathcal{L}_{\text{ZILN}}(y; p, \mu, \sigma) = \underbrace{-\mathbb{I}(y > 0)\ln p - \mathbb{I}(y = 0)\ln(1 - p)}_{\text{付费分类交叉熵}} + \underbrace{\mathbb{I}(y > 0)\left[ \ln(y \sigma \sqrt{2\pi}) + \frac{(\ln y - \mu)^2}{2\sigma^2} \right]}_{\text{仅在正样本上生效的对数正态似然}}
+```
+
+在网络结构实现上（图 2），ZILN 很轻量：主干网络（DNN、DeepFM 或特征交互底座）末端只需要输出 3 个标量 logit，分别经过 Sigmoid 激活得到付费率 $$p$$、恒等映射得到对数均值 $$\mu$$、Softplus 激活得到正值离散度 $$\sigma$$。
+
+<Figure
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/paper-ziln-arch.png"
+  alt="DNN network structure with ZILN loss outputting p, mu, and sigma from Google ZILN paper Figure 3"
+  caption="图 2：Google ZILN 原论文 Figure 3，主干网络最后一层仅输出 3 个 logit，分别控制付费概率 p、对数均值 μ 与对数标准差 σ（来源：Wang et al., arXiv:1912.07753）。"
+  width="86%"
+/>
+
+在线上推理阶段，利用对数正态分布的解析期望公式，可以直接给出无偏的 pLTV 点估计：
+
+```math
+\mathbb{E}[Y \mid x] = p(x) \cdot \exp\left( \mu(x) + \frac{\sigma(x)^2}{2} \right)
+```
+
+工程落地时有一个必须加上去的保护阀：**给 $$\sigma(x)$$ 设硬截断上限**（通常截断在 $$[0.1, 2.0]$$ 或 $$[0.1, 2.5]$$ 区间内）。因为期望公式里存在 $$\exp(\sigma^2 / 2)$$ 这一指数二次项，只要某个异常冷启动特征让网络吐出一个 $$\sigma = 4.5$$，预测值就会瞬间飙升 $$e^{10.1} \approx 24,000$$ 倍，把整条投放计划的出价预算瞬间打穿。
+
+在下面的交互实验面板里，可以亲自拖动付费率 $$p$$ 和对数离散度 $$\sigma$$，直观看到参数微调如何剧烈改变 Top 1% 鲸鱼流水占比和总体基尼系数（Gini）。
+
+<PltvTailSimulator lang="zh" />
+
+## 三、超越单峰假设：2022 到 2024 年的三代工业演进
+
+ZILN 在工程上很好用，但跑进真实手游流水后很快会暴露出它的天花板：**游戏内的付费结构从来不是光滑的单峰对数正态分布**。
+
+打开任何一款商业化成熟的卡牌或 SLG 游戏，付费档位都是高度离散的多峰形态：大量用户停在 $0.99 首充、$4.99 月卡、$19.99 战令，跨过一个断层后，另一批中大 R 集中在 $99.99 限时礼包和持续抽卡上。强行用一个单峰的 $$(\mu, \sigma)$$ 去包住这几个截然不同的消费层级，既拟合不好低额多峰，又会在尾部出现剧烈偏差。
+
+2022 到 2024 年，快手与腾讯相继发表了三篇极具代表性的工业论文，沿着“多分布切分 -> 显式鲸鱼隔离 -> 自适应分布对齐”的主线，把 pLTV 建模推向了第二、三代范式。
+
+<TechGraph
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/pltv-evolution-style1.svg"
+  title="INDUSTRIAL PLTV EVOLUTION"
+  caption="工业界 pLTV 重尾建模演进路线：从 ZILN 单峰基准，到快手 MDME/ODMN 分桶多专家、腾讯 ExpLTV 显式鲸鱼检测，再到 OptDist 自适应子分布对齐。"
+/>
+
+### 1. 快手 MDME / ODMN（CIKM 2022）：把复杂分布切桶交给多个子专家
+
+快手团队在 CIKM 2022 发表的 [arXiv:2208.13358](https://arxiv.org/abs/2208.13358)（*Billion-user Customer Lifetime Value Prediction: An Industrial-scale Solution from Kuaishou*）同时抓住了两个痛点：一是单峰 ZILN 拟合不了多峰重尾，二是游戏和短视频业务里 D1、D7、D30 的累计价值天然存在单调递进的序贯依赖。
+
+针对第一个痛点，论文提出 **MDME（Multi-Distribution Multi-Experts）** 模块（图 3）：先通过分布切分模块（DSM）把整个 LTV 区间切分成若干子桶（比如零付费、低额、中额、高额），用分类头预测样本落入每个子分布的概率；同时为每个子分布配备专门的子专家网络去回归桶内期望，最后按概率加权汇总。针对第二个痛点，**ODMN（Order Dependency Modeling Network）** 把不同时间窗口的 MDME 模块按时间顺序串联起来，让 D1 的表征和输出去约束 D7、D30 的预测，确保长期预测不会出现“D7 比 D30 还高”的逻辑倒挂。在快手大规模离线与线上实验中，MDME/ODMN 相比单一 ZILN 基准显著拉高了 Normalized Gini 并带来可观的线上收入提升。
+
+<Figure
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/paper-mdme-arch.png"
+  alt="Structure details of the MDME module showing DSM and multi-experts from Kuaishou CIKM 2022 Figure 3"
+  caption="图 3：快手 CIKM 2022 原论文 Figure 3，MDME 模块通过分布切分模块（DSM）将重尾分布拆分为多个子区间，并由多专家头联合学习分类概率与区间内期望（来源：Li et al., arXiv:2208.13358）。"
+  width="94%"
+/>
+
+### 2. 腾讯 ExpLTV（CIKM 2023）：把“抓鲸鱼”单独拎成显式任务
+
+腾讯游戏团队在 CIKM 2023 发表的 [arXiv:2308.12729](https://arxiv.org/abs/2308.12729)（*Out of the Box Thinking: Improving Customer Lifetime Value Modelling via Expert Routing and Game Whale Detection*）直指手游场景最扎心的现实：如果把大 R 鲸鱼和普通小 R 混在同一个回归头里训，哪怕用了 ZILN，鲸鱼样本在总样本里占比依然太小，梯度信号很快就被海量的零付费和首充用户淹没。
+
+ExpLTV 的解法很干脆（图 4）：把用户显式划分为不付费、普通付费和**游戏鲸鱼（Game Whales, GWs）**三层，在多任务专家路由框架里单独拉出一个**鲸鱼识别分支（Game Whale Detection）**，用专门的目标把高潜鲸鱼的隐向量从普通玩家里推开。论文中的 t-SNE 可视化表明，加上鲸鱼检测头后，高价值玩家在隐空间里形成了清晰独立的聚类，在多款真实手游数据集上同时提升了全局 Gini 和头部大 R 召回精度。
+
+<Figure
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/paper-expltv-arch.png"
+  alt="Overview of ExpLTV architecture with explicit game whale detection from Tencent CIKM 2023 Figure 2"
+  caption="图 4：腾讯 CIKM 2023 原论文 Figure 2，ExpLTV 在专家路由骨干中显式引入游戏鲸鱼检测（GW Detection）模块，隔离头部大 R 与长尾用户的梯度冲突（来源：Zhang et al., arXiv:2308.12729）。"
+  width="90%"
+/>
+
+### 3. 腾讯 OptDist（CIKM 2024）：摆脱手工划桶，样本级自适应子分布对齐
+
+MDME 和分桶方案虽然比单峰强，但引入了新的工程麻烦：桶边界怎么切？一款 SLG 和一款休闲游戏的付费断点完全不同，静态写死桶边界，一旦游戏开了周年庆限定卡池，分布一漂移，旧分桶就集体失准。
+
+腾讯金融科技（FiT）团队在 CIKM 2024 发表的 [arXiv:2408.08585](https://arxiv.org/abs/2408.08585)（*OptDist: Learning Optimal Distribution for Customer Lifetime Value Prediction*）提出了一种更通用的思路（图 5）：把分布选择模块（DSM）和分布学习模块（DLM）解耦并建立对齐机制。系统维护一组候选子分布网络（SDNs），不再靠人工写死哪类人进哪个桶，而是由路由机制为每条样本动态选择拟合损失最小的候选子分布，并用一致性对齐约束保证选择模块和分布学习模块协同收敛。
+
+<Figure
+  src="/images/posts/mobile-game-ua-pltv-heavy-tail-modeling/paper-optdist-arch.png"
+  alt="Overall framework of OptDist with DSM and DLM alignment from Tencent CIKM 2024 Figure 2"
+  caption="图 5：腾讯 CIKM 2024 原论文 Figure 2，OptDist 通过分布选择模块（DSM）与分布学习模块（DLM）的对齐机制，为每条样本动态匹配最优子分布（来源：Weng et al., arXiv:2408.08585）。"
+  width="92%"
+/>
+
+把这四篇工业里程碑放在同一张表里，演进逻辑一目了然：
+
+| 方案与出处 | 核心假设与结构 | 解决的核心痛点 | 落地权衡与适用阶段 |
+| --- | --- | --- | --- |
+| ZILN（Google，2019） | 单峰零膨胀对数正态，3 个 logit 输出 | 替代失效的 MSE，给出无偏解析期望 | 改动成本最低，适合作为全品类冷启动首版基准 |
+| MDME / ODMN（快手，CIKM 2022） | 人工/规则分桶 + 多分布专家 + 序贯多窗口 | 打破单峰局限，消除 D1/D7/D30 预测倒挂 | 需要结合业务付费档位调优桶数与边界 |
+| ExpLTV（腾讯，CIKM 2023） | 专家路由共享底座 + 显式鲸鱼检测头 | 解决大 R 样本极度稀疏导致的梯度淹没 | 重度 SLG / RPG / 二次元内购游戏收益最大 |
+| OptDist（腾讯，CIKM 2024） | 候选子分布网络 + 样本级动态路由对齐 | 摆脱静态硬分桶，适应多品类与分布漂移 | 训练复杂度更高，适合统一中台服务多款游戏 |
+
+## 四、pLTV 离线评估：为什么不能只看 AUC 和 RMSE
+
+在 pLTV 项目里，模型做不好往往不是因为算法不够复杂，而是离线指标选错了。
+
+只看二分类 AUC，只能衡量模型把“付不付费”分得准不准，完全区分不了一个冲 $0.99 的玩家和一个冲 $1,000 的鲸鱼；只看全局 RMSE 或 MAE，又会掉回平方误差陷阱，一个极端样本的预测波动就能掩盖 99% 用户的排序退化。
+
+工业界评审 pLTV 模型上线，通常会同时卡死以下三个互补指标（这也是 Google ZILN 论文里系统规范化的评估口径）：
+
+1. **Normalized Gini（归一化基尼系数）**：把所有测试用户按模型预测值 $$\hat{y}$$ 降序排列，画出累计实际收入的洛伦兹收益曲线（Gain Curve），计算该曲线与随机对角线围成的面积，再除以“按真实 LTV 完美排序”围成的最大理论面积：
+
+```math
+\text{Norm-Gini} = \frac{\text{Gini}(\hat{y}, y)}{\text{Gini}(y, y)} \in [0, 1]
+```
+
+归一化基尼系数衡量的是**高价值人群的排序区分度**。它对预测值的整体缩放不敏感，哪怕所有预测都偏低 20%，只要把鲸鱼排在最前面，Normalized Gini 依然很高。
+
+2. **分位校准图（Decile Chart）与分桶 Bias**：排序准了，不代表能直接用来出价。把用户按 $$\hat{y}$$ 分成 10 个等频分位（Deciles，重度游戏甚至要把 Top 10% 再拆成 Top 1% 和 Top 5%），逐桶比对平均预测值 $$\overline{\hat{y}}_k$$ 与真实均值 $$\overline{y}_k$$。如果全局均值是对的，但 Top 1% 系统性低估 40%、底部 50% 系统性高估 20%，回传给媒体做 VBO 出价就会导致抢不到真正的大 R 流量，同时在低质流量上超额买单。
+3. **Top-K 鲸鱼捕获率（Whale Recall@K%）**：直接看模型打分排名前 1% 或前 5% 的玩家，实际覆盖了大盘多少比例的总流水。在重度内购游戏里，这个指标往往和线上 tROAS 达标率相关性最高。
+
+<Callout type="tip" title="工程落地提醒：先做准排序与校准，再谈信号回传">
+上线任何一代 pLTV 模型时，不要只盯着离线全量均值误差（Global PCOC）。先用 Normalized Gini 锁住头部鲸鱼排序，再通过保序回归（Isotonic Regression）或分桶分段校准把 Top 1% 到 Top 10% 的分位偏差压进 ±10% 以内，最后才适合接进媒体 VBO 回传链路或 SKAN 4.0 64 桶编码器。
+</Callout>
+
+模型架构解决了“给定完整标签怎么拟合重尾”的问题，但真实生产环境里还有一个更棘手的时间难题：今天安装的玩家，要过 7 天甚至 30 天才知道他到底充了多少钱。下一篇进入延迟反馈建模（Delayed Feedback）的数学推导与流式训练架构，并打通跨渠道出价与冷启动探索。
+
+## 参考资料
+
+- Wang, X., Liu, T., & Miao, J. (2019). *A Deep Probabilistic Model for Customer Lifetime Value Prediction* (ZILN). Google. [arXiv:1912.07753](https://arxiv.org/abs/1912.07753)
+- Li, K., Shao, G., Yang, N., Fang, X., & Song, Y. (2022). *Billion-user Customer Lifetime Value Prediction: An Industrial-scale Solution from Kuaishou* (MDME/ODMN). CIKM 2022, Kuaishou. [arXiv:2208.13358](https://arxiv.org/abs/2208.13358)
+- Zhang, S., Yan, X., Yang, X., Jia, B., & Wang, S. (2023). *Out of the Box Thinking: Improving Customer Lifetime Value Modelling via Expert Routing and Game Whale Detection* (ExpLTV). CIKM 2023, Tencent. [arXiv:2308.12729](https://arxiv.org/abs/2308.12729)
+- Weng, Y., Tang, X., Xu, Z., Lyu, F., & Liu, D. (2024). *OptDist: Learning Optimal Distribution for Customer Lifetime Value Prediction*. CIKM 2024, FiT, Tencent. [arXiv:2408.08585](https://arxiv.org/abs/2408.08585)

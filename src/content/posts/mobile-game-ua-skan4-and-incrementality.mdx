@@ -1,0 +1,152 @@
+---
+title: "手游买量算法（四）：SKAN 4.0 隐私黑盒、归因失真与因果增量三角校准"
+date: 2026-11-19
+tags: [广告与推荐, 技术报告解读]
+summary: "拆解 Apple ATT 与 SKAdNetwork 4.0 的三窗口与人群匿名度量化机制、64 桶 pLTV 最优编码思路，以及结合 Ghost Ads、TikTok、Amazon 与 Meta 论文的归因纠偏与 MMM 因果增量三角校准架构。"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import Skan4WindowMatrix from '../../components/blog/Skan4WindowMatrix.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+
+前几篇讨论的所有 pLTV 预估和流式纠偏，都建立在一个默认前提上：归因系统能告诉你，某个具体设备的安装和充值究竟来自哪条广告计划。
+
+2021 年 4 月 Apple iOS 14.5 强制落地 ATT（App Tracking Transparency）之后，这个前提在 iOS 高价值市场彻底碎裂。绝大多数玩家在弹窗里选择了拒绝追踪，设备级广告标识符 IDFA 大面积置零。第三方移动归因平台（MMP，如 AppsFlyer、Adjust）原本依赖 IDFA 做确定性匹配（Deterministic Matching），如今在 iOS 端被迫全面转向 Apple 官方主导的隐私黑盒协议 **SKAdNetwork（SKAN）**。
+
+更深一层的问题在于，哪怕在还能拿到设备标识的 Android 端，传统最后一次点击归因（Last-Touch Attribution）本身也在系统性撒谎。后 IDFA 时代的手游买量度量，本质上是两场硬仗的叠加：**在端侧隐私量化协议里榨出最大信息量**，以及**用因果增量实验把失真的归因报表重新拉回真实世界**。
+
+## 一、SKAdNetwork 4.0 协议拆解：三窗口、随机延迟与人群匿名度
+
+根据 [Apple 官方 SKAdNetwork 4.0 文档](https://developer.apple.com/documentation/storekit/skadnetwork) 及[多窗口回传规范](https://developer.apple.com/documentation/storekit/receiving-postbacks-in-multiple-conversion-windows)，SKAN 4.0 彻底抹掉了用户级 Device ID，只允许端侧操作系统通过匿名聚合回传（Postback）把很有限的转化信号发给广告网络。
+
+整个协议围绕三个核心约束运转：
+
+1. **三个固定活动窗口与随机回传延迟**：安装后不再只有一次回传，而是分为 Window 1（Day 0 到 Day 2）、Window 2（Day 3 到 Day 7）和 Window 3（Day 8 到 Day 35）。窗口结束后并不会立刻发回数据，Apple 强行叠加随机延迟：Window 1 延迟 24 到 48 小时，Window 2 和 Window 3 延迟 24 到 144 小时。开发者可以主动调用 `lockWindow` 提前锁定窗口，换取更早收到回传，代价是放弃该窗口剩余时间里的玩家行为更新。
+2. **转化值极端量化**：只有 Window 1 有资格返回 6-bit 的精细转化值（Fine Conversion Value，整数 0 到 63）；Window 2 和 Window 3 哪怕跑满规模，最高也只返回 3 档粗粒度值（Coarse Conversion Value：Low / Medium / High）。
+3. **人群匿名度分级（Crowd Anonymity Tiers 0 到 3）**：这是 SKAN 4.0 对买量结构冲击最大的机制。Apple 会根据单条计划聚合出的安装体量动态判定隐私匿名度，体量越散、安装量越低，系统不仅会把 4 位层次化 Source Identifier 截断成 3 位甚至 2 位，还会把转化值直接降级成 Coarse 甚至直接丢弃为 Null。
+
+在下面的交互协议矩阵里，切换不同人群匿名度档位与 `lockWindow` 开关，可以直接观察三个窗口里字段的衰减规则。
+
+<Skan4WindowMatrix lang="zh" />
+
+这套机制直接推翻了过去“拆几百条细碎计划精细化测试”的老路。如果预算被切得太碎，每条计划的日均 iOS 安装量掉进 Tier 0 或 Tier 1，广告网络收到的回传全是 Null 或粗粒度标签，媒体的 VBO 模型立刻变瞎。因此 iOS 买量被迫高度整合计划结构，确保单条计划稳稳踩在 Tier 2 甚至 Tier 3 门槛之上。
+
+## 二、算法核心题：怎么把连续 pLTV 塞进 64 个 Fine CV 桶？
+
+Window 1 里宝贵的 64 个整数档位（0 到 63，通常 0 留给未付费/无关键行为，剩下 63 个有效档位），构成了 iOS 端很狭窄的信息通道。
+
+把重度游戏里跨度从 $0 到 $5,000 的连续预测价值（pLTV）映射进 63 个离散桶，本质上是一个**有损率失真量化（Rate-Distortion Quantization）问题**。如果按等宽切分（比如每 $80 一桶），98% 的小额付费用户和潜在首充玩家全部挤进 1 号桶，桶 2 到桶 63 几乎全是空的，信息熵接近于零；如果只编码 D0 到 D2 的真实充值金额，前 48 小时还没掏钱的潜在大 R 又全被标成了 0。
+
+成熟的买量算法团队通常会做两层设计：
+
+1. **编码对象从“已发生收入”升级为“混合 pLTV 分数”**：在安装后前 24 到 48 小时内，端侧或服务端结合玩家的新手引导进度、首日在线时长、关卡推进、联盟加入以及已产生的付费金额，实时算出一个连续的 D30/D90 pLTV 估计值 $$\hat{y}$$，再把 $$\hat{y}$$ 映射进 1 到 63 档。这样哪怕玩家前两天还没充钱，只要行为特征像高潜鲸鱼，依然能占到高桶位，提前把优质信号喂给媒体。
+2. **用动态规划求最小量化均方误差边界**：给定历史人群的 pLTV 经验分布，把寻找最优桶边界 $$0 = c_0 < c_1 < \dots < c_K$$ 转化为一维最优标量量化（等价于一维 K-Means / Lloyd-Max 量化）：
+
+```math
+\min_{c_1, \dots, c_{K-1}} \sum_{k=1}^{K} \int_{c_{k-1}}^{c_k} \big(y - \mu_k\big)^2 \, dF(y), \qquad \mu_k = \mathbb{E}\big[Y \mid c_{k-1} \le Y < c_k\big]
+```
+
+在重尾分布下，最优解会自动呈现出**低值区极密、高值区按对数跨度拉开**的形态（比如 $0.99、$2.99、$4.99 各自占桶，而 $200 以上按倍增步长划桶），在 6-bit 带宽上限内把给媒体出价用的价值方差损失压到最低。
+
+## 三、为什么归因报表一定会骗人：功劳分配不等于因果增量
+
+解决完 SKAN 量化之后，还需要直面一个更底层的问题：**归因（Attribution）回答的是“功劳算在谁头上”，而买量财务关心的是“如果没有花这笔广告费，这些收入会不会本来就发生”**。
+
+归因报表失真有三个顽固病灶：
+
+- **收割自然量（Organic Cannibalization）**：老玩家换了新手机，或者原本看了游戏主播视频就打算去 App Store 搜索下载，结果在下载前 2 小时刷信息流顺手扫到了一眼展示广告。按 24 小时展示归因（View-Through Attribution），媒体理直气壮地把这笔本就属于自然流量的安装和后续充值记成了自己的功劳。
+- **跨渠道重复邀功（Double Counting）**：玩家上午在 TikTok 看到广告没点，下午在 Meta 点了广告没装，晚上在 Google 搜索品牌词完成下载。各个媒体站在各自后台都会把这笔转化记满 100%，全渠道报表汇总出来的收入经常凭空比游戏实际入账多出 30% 以上。
+- **再营销偏差（Selection Bias in Retargeting）**：再营销计划天然瞄准“原本就准备回流或复购的高活跃用户”，表观 ROAS 动辄 500%，实际把广告停掉后，80% 的人照样会自己登录充值。
+
+2026 年 6 月，TikTok 团队在 ADKDD 2026 发表的 [arXiv:2606.26690](https://arxiv.org/abs/2606.26690)（*Attributed, But Not Incremental: Cannibalization-Corrected Attribution for Large-Scale Advertising*）用直观的图景刻画了这种“归因蚕食失配（Attribution-Cannibalization Mismatch）”（图 1）：付费归因转化里混入了大量非增量的自然需求与跨渠道重叠量 $$H_t$$，直接拿未纠偏的日归因新客（DNU）去做渠道诊断和预算倾斜，会把钱持续灌进蚕食率最高而非真实增量最高的渠道。论文提出用稀疏的增量实验作为因果锚点，把实验测出的真实增量比例映射回每日细粒度业务层级，在 TikTok 全球生产环境部署后将测得的蚕食率压低了约 15 个百分点。
+
+<Figure
+  src="/images/posts/mobile-game-ua-skan4-and-incrementality/paper-tiktok-cannibalization.png"
+  alt="Attribution-cannibalization mismatch and correction from TikTok ADKDD 2026 arXiv:2606.26690 Figure 1"
+  caption="图 1：TikTok ADKDD 2026 原论文 Figure 1，展示付费归因转化与真实增量之间的蚕食偏差及实验校准纠偏机制（来源：Li et al., arXiv:2606.26690）。"
+  width="82%"
+/>
+
+类似的结论在 Meta 大规模实证研究里更加触目惊心。Gordon、Moakler 与 Zettelmeyer（Meta Ads Research & Northwestern）在 [arXiv:2304.06828](https://arxiv.org/abs/2304.06828)（*Predicted Incrementality by Experimentation (PIE) for Ad Measurement*，2026 年 4 月修订版）中系统回测了 **2,226 场真实 Meta 广告随机对照实验（RCT）**。如图 2 所示，行业沿用了十多年的 7 天最后点击归因（7-day Last-Click Attribution），在预测“每美元真实增量转化”这件事上的样本外解释度只有 $$R^2 = 0.19$$；而基于历史 RCT 训练出的预测增量模型 PIE，样本外解释度达到 $$R^2 = 0.88$$，在投放决策上与真实随机实验的分歧率仅 8% 到 12%。
+
+<Figure
+  src="/images/posts/mobile-game-ua-skan4-and-incrementality/paper-pie-incrementality.png"
+  alt="PIE model performance versus 7-day last-click attribution across 2226 Meta RCTs from arXiv:2304.06828 Figure 2"
+  caption="图 2：PIE 原论文 Figure 2，基于 2,226 场 Meta 真实广告 RCT 实验，对比 7 天最后点击归因（R² = 0.19）与实验驱动的增量预测模型 PIE（R² = 0.88）的样本外拟合差距（来源：Gordon et al., arXiv:2304.06828）。"
+  width="92%"
+/>
+
+## 四、因果增量三驾马车：Ghost Ads、Geo-Lift 与实验校准型 MMM
+
+既然归因报表有偏，而又不可能对每天每一条广告计划都跑昂贵的随机实验，工业界在最近几年逐步收敛到了**度量三角校准架构（Measurement Triangulation）**：把高频但有偏的归因数据、宏观覆盖全渠道的贝叶斯营销组合模型（MMM），以及低频但无偏的因果实验锚点（Ghost Ads / Geo-Lift）拼成闭环。
+
+<TechGraph
+  src="/images/posts/mobile-game-ua-skan4-and-incrementality/privacy-triangulation-style9.svg"
+  title="MEASUREMENT TRIANGULATION C4"
+  caption="后 IDFA 时代度量三角校准 C4 架构：在设备隐私隔离边界内，把 MMP/SKAN 归因采集、幽灵广告与地域因果实验、贝叶斯 MMM 纳入统一的三角校准中台，向预算分配层输出增量校准系数。"
+/>
+
+这三条腿各自解决另外两条解决不了的问题：
+
+### 1. 用户级实验：Ghost Ads（幽灵广告）
+
+早年做广告增量实验要么对对照组放公益广告（PSA，白白烧钱买曝光），要么做 Intent-to-Treat 全局留出（大量对照人群根本没触发过竞价，信噪比被严重稀释，需要极大样本才能测出显著性）。
+
+Johnson、Lewis 与 Nubbemeyer 在 *Journal of Marketing Research*（2017，[doi:10.1509/jmr.15.0297](https://doi.org/10.1509/jmr.15.0297)）中提出的 **Ghost Ads（幽灵广告）** 把实验方差压低了一个数量级。做法很巧妙：广告竞价引擎照常对所有符合条件的用户跑完整竞价；当对照组里的某个用户实际赢下了这次竞价时，系统并不真的把商业广告发出去（改发默认替补广告，不收广告主费用），只在后台打一条加密的“幽灵曝光日志（Ghost Ad Impression）”。这样实验组和对照组都能精确锁定在**真正有资格看到且赢下竞价的同一类人群**上，既零额外媒体费，又极大缩小了统计检验所需样本量。
+
+### 2. 地域级实验：Geo-Lift（合成控制法）
+
+在 iOS 端拿不到 IDFA，或者外部大媒体不开放用户级幽灵广告接口时，只能退回到地域颗粒度做 **Geo-Lift 地理增量实验**。把国家或州/城市切分成实验区与对照区，在实验区暂停投放或把预算提高 50%，然后利用**合成控制法（Synthetic Control）**用若干对照地区的加权线性组合去拟合实验区在实验前的历史流水曲线，以此作为实验期间的反事实基准：
+
+```math
+\widehat{\text{Lift}}_t = Y_{\text{treat}, t} - \sum_{j \in \mathcal{C}} w_j^* Y_{j, t}, \qquad \text{iROAS} = \frac{\sum_{t \in \text{test}} \widehat{\text{Lift}}_t}{\Delta \text{Spend}}
+```
+
+Geo-Lift 完全不依赖个人设备标识，天然免疫 ATT 和 Cookie 退场，而且能把跨端（比如看手机广告去 PC/网页充值）和品牌口碑溢出全部收进增量账本。代价是每次实验至少要跑 2 到 4 周，且受区域季节波动与节假日干扰大，一年每个核心渠道通常只能跑 2 到 4 轮。
+
+### 3. 宏观建模与实验锚定：校准型 Bayesian MMM 与实验校准 MTA
+
+**营销组合模型（Marketing Mix Modeling, MMM）**完全使用聚合层面的分渠道每日消耗、自然基线、季节项与总流水做回归，不需要任何用户级追踪。现代贝叶斯 MMM（如 Google Meridian、Meta Robyn）在渠道消耗 $$x_{c, t}$$ 上串联两层非线性变换：先过 **Adstock（记忆衰减）**刻画广告曝光的滞后余温，再过 **Hill 饱和曲线**刻画预算放大后的边际收益递减：
+
+```math
+\text{Adstock}(x_{c, t}) = \sum_{l=0}^{L} \alpha_c^l \, x_{c, t-l}, \qquad f_{\text{Hill}}(z) = \frac{z^{S_c}}{K_c^{S_c} + z^{S_c}}
+```
+
+但纯观测数据拟合 MMM 有一个致命软肋：不同渠道的预算往往在发版本、周年庆时一起拉高，存在严重共线性与内生性，模型很容易把自然增长错算给某个大渠道。
+
+破局之道，是把因果实验（Ghost Ads / Geo-Lift）测出来的无偏 iROAS 区间，直接作为**贝叶斯先验约束（Informative Priors）**注入 MMM 似然函数里，或者像 Amazon Ads 在 [arXiv:2508.08209](https://arxiv.org/abs/2508.08209)（*Amazon Ads Multi-Touch Attribution*，2025）中披露的三层架构那样（图 3）：把随机对照实验建为最底层的 **Ground Truth System**，用来持续校准中间层的可扩展机器学习归因模型（**Attribution System**），再把校准后的增量功劳喂给顶层的预算与出价决策系统（**Decision System**）。
+
+<Figure
+  src="/images/posts/mobile-game-ua-skan4-and-incrementality/paper-amazon-mta-system.png"
+  alt="Amazon Multi-Touch Attribution three-tier architecture linking RCTs to attribution and decision systems from arXiv:2508.08209 Figure 4"
+  caption="图 3：Amazon Ads MTA 原论文 Figure 4，展示工业界如何用底层随机实验真值系统（Ground Truth）校准中层归因模型，最终驱动顶层预算与出价决策（来源：Lewis et al., arXiv:2508.08209）。"
+  width="92%"
+/>
+
+把三套工具放进同一张操作台，各自的分工与节奏一目了然：
+
+| 度量工具 | 颗粒度与更新频率 | 是否依赖 IDFA | 优势 | 核心局限与互补角色 |
+| --- | --- | --- | --- | --- |
+| MMP / SKAN 4.0 归因 | 计划/素材级，天级更新 | Android 依赖，iOS 靠 SKAN 聚合 | 响应最快，直接驱动日常素材淘汰与出价调参 | 存在蚕食与重复归因偏置，需乘以增量校准系数 |
+| Ghost Ads / Geo-Lift | 渠道或大策略级，月/季度更新 | Ghost Ads 需平台支持，Geo-Lift 零依赖 | 因果无偏，直接给出真实增量 iROAS 金标准 | 成本高、周期长、颗粒度粗，用作周期锚点 |
+| 校准型 Bayesian MMM | 渠道级，周/月级更新 | 零依赖，纯聚合时间序列 | 全局覆盖含自然量与线下渠道，给出饱和曲线 | 纯观测易共线，必须用实验真值约束先验 |
+
+<Callout type="info" title="四篇系列收束：把四个闭环串成一台完整机器">
+回顾整个手游买量算法体系，四篇内容其实是同一套资金与信号闭环的四个切面：
+
+1. **商业底层**（第一篇）决定了变现结构、回本周期与媒体黑盒分工。
+2. **pLTV 重尾估值**（第二篇）解决了从早期行为预测长期鲸鱼价值的分布难题。
+3. **延迟反馈与出价探索**（第三篇）解决了实时流假负纠偏、跨渠道边际资金分配与冷启动平衡。
+4. **隐私量化与增量校准**（第四篇）守住了最底层的度量真值，确保前面所有复杂模型没有在一个失真的虚假记分牌上盲目狂奔。
+</Callout>
+
+## 参考资料
+
+- Apple Developer Documentation. *SKAdNetwork*. [developer.apple.com](https://developer.apple.com/documentation/storekit/skadnetwork)
+- Apple Developer Documentation. *Receiving postbacks in multiple conversion windows*. [developer.apple.com](https://developer.apple.com/documentation/storekit/receiving-postbacks-in-multiple-conversion-windows)
+- Johnson, G. A., Lewis, R. A., & Nubbemeyer, E. I. (2017). *Ghost Ads: Improving the Economics of Measuring Online Ad Effectiveness*. Journal of Marketing Research, 54(6), 867-884. [doi:10.1509/jmr.15.0297](https://doi.org/10.1509/jmr.15.0297)
+- Gordon, B. R., Moakler, R., & Zettelmeyer, F. (2026). *Predicted Incrementality by Experimentation (PIE) for Ad Measurement*. Meta Ads Research & Northwestern University. [arXiv:2304.06828](https://arxiv.org/abs/2304.06828)
+- Lewis, R., Zettelmeyer, F., Gordon, B. R., Garib, C., Hermle, J., Perry, M., Romero, H., & Schnaidt, G. (2025). *Amazon Ads Multi-Touch Attribution*. Amazon. [arXiv:2508.08209](https://arxiv.org/abs/2508.08209)
+- Li, D., Yuan, B., Yang, Z., Chen, Q., & Song, L. (2026). *Attributed, But Not Incremental: Cannibalization-Corrected Attribution for Large-Scale Advertising*. ADKDD 2026, TikTok. [arXiv:2606.26690](https://arxiv.org/abs/2606.26690)
