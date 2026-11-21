@@ -1,0 +1,606 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式架构步进 · INKLING 2 MINI (24 层权重 -> 48 次层访问)',
+      title: '逐步跟踪共享 Core 的三轮循环、跨轮门控与状态账单',
+      subtitle: '点击或切换下方 5 个执行阶段，观察 24 层物理权重如何复用、rank-64 门控何时介入、Goodfire 发现的 d_2027 路由标签如何拉高与清零。',
+      prev: '上一阶段',
+      next: '下一阶段',
+      labels: {
+        visits: '累计层访问',
+        active: '累计有效激活参数',
+        globalKv: '累计全局 KV 层数',
+        d2027: 'd_2027 跨轮路由信号',
+        flowNote: '当前阶段状态流',
+      },
+      blocks: [
+        { id: 'b1', name: 'Block 1 · Prelude', layers: 'L0 - L5', tag: 'L5 全局 KV' },
+        { id: 'b2', name: 'Block 2 · Core 前半', layers: 'L6 - L11', tag: 'L11 全局 KV (共享)' },
+        { id: 'b3', name: 'Block 3 · Core 后半', layers: 'L12 - L17', tag: 'L17 全局 KV (共享)' },
+        { id: 'b4', name: 'Block 4 · Coda', layers: 'L18 - L23', tag: 'L23 全局 KV' },
+      ],
+      stages: [
+        {
+          id: 'prelude',
+          tab: '1. Prelude',
+          activeBlocks: ['b1'],
+          gateActive: false,
+          bypassActive: false,
+          visits: '6 / 48',
+          activeParams: '~1.2B',
+          globalKv: '1 / 8 层',
+          d2027: '未激活',
+          d2027Tone: 'muted',
+          headline: 'Block 1 (L0-L5) 只跑 1 次：建立入口表示与基线',
+          detail: '入口词法编码与局部上下文提取在此完成。输出不仅送入 Core Pass 1，还会作为固定基线保留给后续 Pass 2 和 Pass 3，避免反复覆盖冲淡原始词元信息。',
+        },
+        {
+          id: 'pass1',
+          tab: '2. Core Pass 1',
+          activeBlocks: ['b2', 'b3'],
+          gateActive: false,
+          bypassActive: false,
+          visits: '18 / 48',
+          activeParams: '~2.4B',
+          globalKv: '3 / 8 层',
+          d2027: '末层大幅拉高 (写标签)',
+          d2027Tone: 'warn',
+          headline: 'Core 第 1 轮 (L6-L17)：首轮语义整合与跨轮打标',
+          detail: '中间 12 层首次执行，写入第 1 组 L11/L17 全局 KV。Goodfire 白盒观测显示，在 Pass 1 末层附近，d_2027 等异常坐标被大幅拉高，为下一轮 Block 3 读取器写入路由标记。',
+        },
+        {
+          id: 'pass2',
+          tab: '3. Core Pass 2',
+          activeBlocks: ['b2', 'b3'],
+          gateActive: true,
+          bypassActive: true,
+          visits: '30 / 48',
+          activeParams: '~3.4B',
+          globalKv: '5 / 8 层',
+          d2027: '末层再次拉高 (续传)',
+          d2027Tone: 'warn',
+          headline: 'Core 第 2 轮 (共享权重)：AttnRes + rank-64 门控介入',
+          detail: '输入从 Prelude 基线重新出发，通过 Block AttnRes 读取 Pass 1 的 Block 2/3 状态 m，并经 48 路 rank-64 门控融进各子层（Q/K/V/MLP）。MoE 路由器面对更新后的隐状态激活不同专家子集，写入第 2 组独立 KV。',
+        },
+        {
+          id: 'pass3',
+          tab: '4. Core Pass 3',
+          activeBlocks: ['b2', 'b3'],
+          gateActive: true,
+          bypassActive: true,
+          visits: '42 / 48',
+          activeParams: '~4.4B',
+          globalKv: '7 / 8 层',
+          d2027: '末尾主动清零',
+          d2027Tone: 'ok',
+          headline: 'Core 第 3 轮 (共享权重)：末轮收束并擦除跨轮标签',
+          detail: '再次通过一阶马尔可夫通路读取 Pass 2 状态并写入第 3 组独立 KV。到 Pass 3 末尾、后方不再有新循环时，d_2027 激活被主动抹平，准备移交输出块。',
+        },
+        {
+          id: 'coda',
+          tab: '5. Coda',
+          activeBlocks: ['b4'],
+          gateActive: false,
+          bypassActive: false,
+          visits: '48 / 48',
+          activeParams: '~5.4B (总有效)',
+          globalKv: '8 / 8 层 (32.8 GB@1M)',
+          d2027: '已退出循环',
+          d2027Tone: 'muted',
+          headline: 'Block 4 (L18-L23) 只跑 1 次：词表投影与完整状态账单',
+          detail: '输出块以 MXFP8 保精度完成最终词表投影。至此 24 层物理权重跑出 48 次层访问、5.4B 有效激活与 48 份 KV/短卷积状态（其中 8 层为全局 KV）。',
+        },
+      ],
+    }
+  : {
+      eyebrow: 'INTERACTIVE ARCHITECTURE STEPPER · INKLING 2 MINI (24 WEIGHTS -> 48 VISITS)',
+      title: 'Trace the 3-Pass Shared Core, Cross-Loop Gate, and Runtime State Bill',
+      subtitle: 'Step through all 5 execution stages to inspect which physical blocks light up, when rank-64 gating activates, and how Goodfire’s d_2027 routing signal spikes and clears.',
+      prev: 'Previous',
+      next: 'Next',
+      labels: {
+        visits: 'Cumulative Layer Visits',
+        active: 'Effective Active Params',
+        globalKv: 'Global KV Layers',
+        d2027: 'd_2027 Cross-Loop Tag',
+        flowNote: 'Stage State Flow',
+      },
+      blocks: [
+        { id: 'b1', name: 'Block 1 · Prelude', layers: 'L0 - L5', tag: 'L5 Global KV' },
+        { id: 'b2', name: 'Block 2 · Core First Half', layers: 'L6 - L11', tag: 'L11 Global KV (Shared)' },
+        { id: 'b3', name: 'Block 3 · Core Second Half', layers: 'L12 - L17', tag: 'L17 Global KV (Shared)' },
+        { id: 'b4', name: 'Block 4 · Coda', layers: 'L18 - L23', tag: 'L23 Global KV' },
+      ],
+      stages: [
+        {
+          id: 'prelude',
+          tab: '1. Prelude',
+          activeBlocks: ['b1'],
+          gateActive: false,
+          bypassActive: false,
+          visits: '6 / 48',
+          activeParams: '~1.2B',
+          globalKv: '1 / 8 layers',
+          d2027: 'Inactive',
+          d2027Tone: 'muted',
+          headline: 'Block 1 (L0-L5) runs once: entry encoding and anchor baseline',
+          detail: 'Lexical encoding and local context extraction run once here. Its output feeds Core Pass 1 and is preserved as the anchor baseline for Passes 2 and 3 so repeated loops do not wash out token identity.',
+        },
+        {
+          id: 'pass1',
+          tab: '2. Core Pass 1',
+          activeBlocks: ['b2', 'b3'],
+          gateActive: false,
+          bypassActive: false,
+          visits: '18 / 48',
+          activeParams: '~2.4B',
+          globalKv: '3 / 8 layers',
+          d2027: 'Spikes at end (write tag)',
+          d2027Tone: 'warn',
+          headline: 'Core Pass 1 (L6-L17): first semantic pass and cross-loop tagging',
+          detail: 'The middle 12 layers run once and populate the first set of L11/L17 global KV states. Goodfire white-box probes show outlier coordinate d_2027 spiking near the end of Pass 1 to route signal into next-pass readers.',
+        },
+        {
+          id: 'pass2',
+          tab: '3. Core Pass 2',
+          activeBlocks: ['b2', 'b3'],
+          gateActive: true,
+          bypassActive: true,
+          visits: '30 / 48',
+          activeParams: '~3.4B',
+          globalKv: '5 / 8 layers',
+          d2027: 'Spikes again (relay)',
+          d2027Tone: 'warn',
+          headline: 'Core Pass 2 (shared weights): Block AttnRes + rank-64 gate opens',
+          detail: 'Starting from the Prelude anchor, Block AttnRes reads Pass 1 Block 2/3 state m and merges it via 48 rank-64 gates (Q, K, V, MLP per layer). MoE routers pick different expert subsets on the updated state and write Pass 2 KV.',
+        },
+        {
+          id: 'pass3',
+          tab: '4. Core Pass 3',
+          activeBlocks: ['b2', 'b3'],
+          gateActive: true,
+          bypassActive: true,
+          visits: '42 / 48',
+          activeParams: '~4.4B',
+          globalKv: '7 / 8 layers',
+          d2027: 'Cleared at pass end',
+          d2027Tone: 'ok',
+          headline: 'Core Pass 3 (shared weights): final refinement and tag cleanup',
+          detail: 'First-order Markov reads pull Pass 2 block states and append the third independent KV set. At the end of Pass 3, with no further loops ahead, the model actively zeroes out d_2027 before handing off to Coda.',
+        },
+        {
+          id: 'coda',
+          tab: '5. Coda',
+          activeBlocks: ['b4'],
+          gateActive: false,
+          bypassActive: false,
+          visits: '48 / 48',
+          activeParams: '~5.4B (total eff.)',
+          globalKv: '8 / 8 (32.8 GB @ 1M)',
+          d2027: 'Exited loop',
+          d2027Tone: 'muted',
+          headline: 'Block 4 (L18-L23) runs once: logit projection and full state bill',
+          detail: 'The exit block projects logits (keeping the final 4 layers in MXFP8). In total, 24 physical weight layers produce 48 layer visits, 5.4B effective active params, and 48 KV + conv state caches (8 global KV layers).',
+        },
+      ],
+    };
+
+const payload = JSON.stringify({ stages: copy.stages });
+---
+
+<section class="lpe-box not-prose" data-widget="looped-pass-explorer" data-payload={payload}>
+  <header class="lpe-head">
+    <p class="lpe-eyebrow">{copy.eyebrow}</p>
+    <h4 class="lpe-title">{copy.title}</h4>
+    <p class="lpe-subtitle">{copy.subtitle}</p>
+  </header>
+
+  <div class="lpe-tabs-row">
+    <div class="lpe-tabs" role="tablist">
+      {copy.stages.map((s, idx) => (
+        <button
+          type="button"
+          class:list={['lpe-tab', idx === 2 && 'is-active']}
+          role="tab"
+          aria-selected={idx === 2 ? 'true' : 'false'}
+          data-stage-idx={idx}
+        >
+          {s.tab}
+        </button>
+      ))}
+    </div>
+    <div class="lpe-nav">
+      <button type="button" class="lpe-nav-btn" data-step="-1">{copy.prev}</button>
+      <button type="button" class="lpe-nav-btn" data-step="1">{copy.next}</button>
+    </div>
+  </div>
+
+  <div class="lpe-schematic">
+    <div class="lpe-bypass-bar" data-bypass-bar>
+      <span>{isZh ? 'Prelude 基线保留通路 (Pass 2 / Pass 3 激活)' : 'Prelude Anchor Bypass (Active on Passes 2 & 3)'}</span>
+    </div>
+    <div class="lpe-blocks">
+      {copy.blocks.map((b) => (
+        <div class:list={['lpe-block', (b.id === 'b2' || b.id === 'b3') && 'is-shared']} data-block-id={b.id}>
+          <div class="lpe-block-top">
+            <span class="lpe-block-layers">{b.layers}</span>
+            {(b.id === 'b2' || b.id === 'b3') && <span class="lpe-badge">3x</span>}
+          </div>
+          <div class="lpe-block-name">{b.name}</div>
+          <div class="lpe-block-tag">{b.tag}</div>
+        </div>
+      ))}
+    </div>
+    <div class="lpe-gate-strip" data-gate-strip>
+      <span class="lpe-gate-pill">Block AttnRes</span>
+      <span class="lpe-gate-plus">+</span>
+      <span class="lpe-gate-pill">rank-64 Gate (48 reads/token)</span>
+      <span class="lpe-gate-arrow">-></span>
+      <span class="lpe-gate-desc">
+        {isZh ? '仅在 Core Pass 2 与 Pass 3 激活：读取上一轮 Block 2/3 状态 m' : 'Active on Core Passes 2 & 3: reads prior-pass Block 2/3 state m'}
+      </span>
+    </div>
+  </div>
+
+  <div class="lpe-metrics">
+    <div class="lpe-metric">
+      <span class="lpe-metric-k">{copy.labels.visits}</span>
+      <strong class="lpe-metric-v" data-out-visits>30 / 48</strong>
+    </div>
+    <div class="lpe-metric">
+      <span class="lpe-metric-k">{copy.labels.active}</span>
+      <strong class="lpe-metric-v" data-out-active>~3.4B</strong>
+    </div>
+    <div class="lpe-metric">
+      <span class="lpe-metric-k">{copy.labels.globalKv}</span>
+      <strong class="lpe-metric-v" data-out-kv>5 / 8</strong>
+    </div>
+    <div class="lpe-metric">
+      <span class="lpe-metric-k">{copy.labels.d2027}</span>
+      <strong class="lpe-metric-v" data-out-d2027>--</strong>
+    </div>
+  </div>
+
+  <div class="lpe-detail">
+    <p class="lpe-detail-k">{copy.labels.flowNote}</p>
+    <p class="lpe-detail-h" data-out-headline></p>
+    <p class="lpe-detail-p" data-out-detail></p>
+  </div>
+</section>
+
+<script>
+  function initLoopedPassExplorers() {
+    document.querySelectorAll<HTMLElement>('[data-widget="looped-pass-explorer"]').forEach((root) => {
+      if (root.dataset.bound === '1') return;
+      root.dataset.bound = '1';
+
+      const { stages } = JSON.parse(root.dataset.payload || '{"stages":[]}');
+      if (!stages.length) return;
+
+      let current = 2; // Start on Pass 2 so readers immediately see the cross-loop gate in action
+      const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-stage-idx]'));
+      const blocks = Array.from(root.querySelectorAll<HTMLElement>('[data-block-id]'));
+      const gateStrip = root.querySelector<HTMLElement>('[data-gate-strip]');
+      const bypassBar = root.querySelector<HTMLElement>('[data-bypass-bar]');
+      const outVisits = root.querySelector<HTMLElement>('[data-out-visits]');
+      const outActive = root.querySelector<HTMLElement>('[data-out-active]');
+      const outKv = root.querySelector<HTMLElement>('[data-out-kv]');
+      const outD2027 = root.querySelector<HTMLElement>('[data-out-d2027]');
+      const outHeadline = root.querySelector<HTMLElement>('[data-out-headline]');
+      const outDetail = root.querySelector<HTMLElement>('[data-out-detail]');
+
+      function render(idx: number) {
+        current = (idx + stages.length) % stages.length;
+        const st = stages[current];
+
+        tabs.forEach((btn, i) => {
+          const active = i === current;
+          btn.classList.toggle('is-active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+
+        blocks.forEach((el) => {
+          const id = el.dataset.blockId || '';
+          el.classList.toggle('is-lit', st.activeBlocks.includes(id));
+        });
+
+        gateStrip?.classList.toggle('is-lit', Boolean(st.gateActive));
+        bypassBar?.classList.toggle('is-lit', Boolean(st.bypassActive));
+
+        if (outVisits) outVisits.textContent = st.visits;
+        if (outActive) outActive.textContent = st.activeParams;
+        if (outKv) outKv.textContent = st.globalKv;
+        if (outD2027) {
+          outD2027.textContent = st.d2027;
+          outD2027.dataset.tone = st.d2027Tone;
+        }
+        if (outHeadline) outHeadline.textContent = st.headline;
+        if (outDetail) outDetail.textContent = st.detail;
+      }
+
+      tabs.forEach((btn) => {
+        btn.addEventListener('click', () => render(Number(btn.dataset.stageIdx || 0)));
+      });
+      root.querySelectorAll<HTMLButtonElement>('[data-step]').forEach((btn) => {
+        btn.addEventListener('click', () => render(current + Number(btn.dataset.step || 0)));
+      });
+
+      render(current);
+    });
+  }
+
+  initLoopedPassExplorers();
+  document.addEventListener('astro:after-swap', initLoopedPassExplorers);
+  document.addEventListener('languagechange', initLoopedPassExplorers);
+</script>
+
+<style>
+  .lpe-box {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--color-field);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .lpe-head {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .lpe-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .lpe-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    color: var(--color-heading);
+  }
+  .lpe-subtitle {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .lpe-tabs-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 1rem 0;
+  }
+  .lpe-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .lpe-tab {
+    padding: 0.42rem 0.78rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.16s ease;
+  }
+  .lpe-tab:hover {
+    border-color: var(--color-accent);
+  }
+  .lpe-tab.is-active {
+    color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .lpe-nav {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .lpe-nav-btn {
+    padding: 0.36rem 0.68rem;
+    font-size: 0.76rem;
+    color: var(--color-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .lpe-nav-btn:hover {
+    color: var(--color-heading);
+    border-color: var(--color-accent);
+  }
+  .lpe-schematic {
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+  }
+  .lpe-bypass-bar {
+    margin-bottom: 0.75rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    border: 1px dashed var(--color-border);
+    border-radius: 4px;
+    text-align: center;
+    opacity: 0.55;
+    transition: all 0.2s ease;
+  }
+  .lpe-bypass-bar.is-lit {
+    opacity: 1;
+    color: #2c6b5a;
+    border-color: #2c6b5a;
+    background: rgba(44, 107, 90, 0.08);
+  }
+  .lpe-blocks {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.7rem;
+  }
+  .lpe-block {
+    padding: 0.8rem 0.75rem;
+    background: var(--color-field);
+    border: 1.5px solid var(--color-border);
+    border-radius: 6px;
+    opacity: 0.52;
+    transition: all 0.2s ease;
+  }
+  .lpe-block.is-shared {
+    border-style: dashed;
+  }
+  .lpe-block.is-lit {
+    opacity: 1;
+    border-style: solid;
+    border-color: var(--color-accent);
+    background: rgba(134, 102, 59, 0.1);
+    box-shadow: 0 2px 10px rgba(134, 102, 59, 0.12);
+    transform: translateY(-1px);
+  }
+  .lpe-block-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+  }
+  .lpe-block-layers {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.74rem;
+    color: var(--color-muted);
+  }
+  .lpe-badge {
+    padding: 0.1rem 0.42rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #a6631b;
+    background: #fcf4e4;
+    border: 1px solid #e3c28d;
+    border-radius: 999px;
+  }
+  .lpe-block-name {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--color-heading);
+    margin-bottom: 0.25rem;
+  }
+  .lpe-block-tag {
+    font-size: 0.73rem;
+    color: var(--color-muted);
+  }
+  .lpe-gate-strip {
+    margin-top: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.76rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-field);
+    opacity: 0.45;
+    transition: all 0.2s ease;
+  }
+  .lpe-gate-strip.is-lit {
+    opacity: 1;
+    border-color: #a6631b;
+    background: #fcf4e4;
+  }
+  .lpe-gate-pill {
+    padding: 0.15rem 0.48rem;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-weight: 600;
+    font-size: 0.72rem;
+    color: #7c4910;
+    background: #f3dfb8;
+    border-radius: 4px;
+  }
+  .lpe-gate-plus,
+  .lpe-gate-arrow {
+    color: var(--color-muted);
+    font-weight: 700;
+  }
+  .lpe-gate-desc {
+    color: var(--color-body);
+  }
+  .lpe-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-top: 0.9rem;
+  }
+  .lpe-metric {
+    padding: 0.65rem 0.75rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .lpe-metric-k {
+    font-size: 0.7rem;
+    color: var(--color-muted);
+  }
+  .lpe-metric-v {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-heading);
+    font-variant-numeric: tabular-nums;
+  }
+  .lpe-metric-v[data-tone='warn'] {
+    color: #b1462f;
+  }
+  .lpe-metric-v[data-tone='ok'] {
+    color: #2c6b5a;
+  }
+  .lpe-metric-v[data-tone='muted'] {
+    color: var(--color-muted);
+  }
+  .lpe-detail {
+    margin-top: 0.85rem;
+    padding: 0.85rem 1rem;
+    background: var(--color-surface);
+    border-left: 3px solid var(--color-accent);
+    border-radius: 0 4px 4px 0;
+  }
+  .lpe-detail-k {
+    margin: 0 0 0.2rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+  .lpe-detail-h {
+    margin: 0 0 0.3rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--color-heading);
+  }
+  .lpe-detail-p {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.6;
+    color: var(--color-body);
+  }
+  @media (max-width: 767px) {
+    .lpe-blocks,
+    .lpe-metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>

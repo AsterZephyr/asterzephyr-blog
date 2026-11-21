@@ -190,5 +190,17 @@
     "target": "/images/posts/mobile-game-ua-skan4-and-incrementality/privacy-triangulation-style9-en.svg",
     "sourceHash": "cbc7eddcd9b97c0ea31fa7aba0ae5e6f57ff9913bd341ec5e43f272ebfbab1e3",
     "targetHash": "b2865f8bf3d56054ff0f6dbc52fb400ff1d3714c5bef654bb6d379f455abc8ff"
+  },
+  {
+    "source": "/images/posts/looped-transformers-2026/scaling-axes.svg",
+    "target": "/images/posts/looped-transformers-2026/scaling-axes-en.svg",
+    "sourceHash": "40f908ac5e9d147545219f273b9c23e31b757bf8445c2e80350c61009779e56c",
+    "targetHash": "518c68fdb674eb727339b83369a3fd6aa2d35cbe35d777f912790681063980bf"
+  },
+  {
+    "source": "/images/posts/looped-transformers-2026/scale-gap-100b.svg",
+    "target": "/images/posts/looped-transformers-2026/scale-gap-100b-en.svg",
+    "sourceHash": "948e13239d2c3a71a879a5de680422cce80d3ec035acbfaecd78d36b764a2be0",
+    "targetHash": "e461e7200d656415a3ce6d87b53e86158b3edd022b02b0d614e401419f5da415"
   }
 ]

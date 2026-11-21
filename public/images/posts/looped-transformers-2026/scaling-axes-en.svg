@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 452" width="960" height="452" role="img" aria-labelledby="title desc">
+<title id="title">Four Compute Scaling Paths on One Resource Map</title>
+<desc id="desc">Comparison of Dense scaling, Sparse MoE, Explicit CoT, and Looped-MoE across static weights, per-token compute, and primary capability lever.</desc>
+<defs>
+  <marker id="arrow-stone" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#5b554d"/>
+  </marker>
+  <marker id="arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#2c6b5a"/>
+  </marker>
+  <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#a6631b"/>
+  </marker>
+  <marker id="arrow-terra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#b1462f"/>
+  </marker>
+</defs>
+<rect width="960" height="452" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="38" font-size="19" font-weight="700" fill="#1f1d1a" text-anchor="middle">Four Scaling Paths: MoE and Looped-MoE as Mirror Images</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="64" font-size="13.5" fill="#57524b" text-anchor="middle">Recurrent depth saves static weight bytes; forward FLOPs and default KV still scale with effective depth</text>
+<rect x="40" y="96" width="420" height="152" rx="12" fill="#efebe4" stroke="#5b554d" stroke-width="1.6"/>
+<path d="M52 96 H448 Q460 96 460 108 V136 H40 V108 Q40 96 52 96 Z" fill="#e1dbd1"/>
+<line x1="40" y1="136" x2="460" y2="136" stroke="#5b554d" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="122" font-size="15.5" font-weight="700" fill="#1f1d1a">Dense Scaling</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="444" y="121" font-size="12" font-weight="600" fill="#5b554d" text-anchor="end">Axis 1</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="164" font-size="13.2" fill="#1f1d1a">Params N and per-token FLOPs grow together</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="194" font-size="13.2" font-weight="600" fill="#5b554d">Gain: knowledge capacity + reasoning depth</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="224" font-size="12.8" fill="#57524b">Bottleneck: memory bandwidth &amp; total compute</text>
+<rect x="500" y="96" width="420" height="152" rx="12" fill="#eaf1f8" stroke="#2f5d8a" stroke-width="1.6"/>
+<path d="M512 96 H908 Q920 96 920 108 V136 H500 V108 Q500 96 512 96 Z" fill="#cde0f2"/>
+<line x1="500" y1="136" x2="920" y2="136" stroke="#2f5d8a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="122" font-size="15.5" font-weight="700" fill="#1f1d1a">Sparse MoE</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="904" y="121" font-size="12" font-weight="600" fill="#2f5d8a" text-anchor="end">Axis 2 · Expand Params</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="164" font-size="13.2" fill="#1f1d1a">Total params N expand; active FLOPs stay low</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="194" font-size="13.2" font-weight="600" fill="#2f5d8a">Gain: factual capacity, specialization, speed</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="224" font-size="12.8" fill="#57524b">Bottleneck: total weight RAM &amp; All-to-All</text>
+<rect x="40" y="274" width="420" height="152" rx="12" fill="#fcf4e4" stroke="#a6631b" stroke-width="1.6"/>
+<path d="M52 274 H448 Q460 274 460 286 V314 H40 V286 Q40 274 52 274 Z" fill="#f3dfb8"/>
+<line x1="40" y1="314" x2="460" y2="314" stroke="#a6631b" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="300" font-size="15.5" font-weight="700" fill="#1f1d1a">Explicit Chain-of-Thought</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="444" y="299" font-size="12" font-weight="600" fill="#a6631b" text-anchor="end">Axis 3 · Expand Tokens</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="342" font-size="13.2" fill="#1f1d1a">Weights fixed; compute scales over length L</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="372" font-size="13.2" font-weight="600" fill="#a6631b">Gain: auditable, verifiable symbolic steps</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="402" font-size="12.8" fill="#57524b">Bottleneck: serial decode latency &amp; long KV</text>
+<rect x="500" y="274" width="420" height="152" rx="12" fill="#e7f2ee" stroke="#2c6b5a" stroke-width="1.6"/>
+<path d="M512 274 H908 Q920 274 920 286 V314 H500 V286 Q500 274 512 274 Z" fill="#c6e2d8"/>
+<line x1="500" y1="314" x2="920" y2="314" stroke="#2c6b5a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="300" font-size="15.5" font-weight="700" fill="#1f1d1a">Recurrent Depth (Looped-MoE)</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="904" y="299" font-size="12" font-weight="600" fill="#2c6b5a" text-anchor="end">Axis 4 · Expand Depth</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="342" font-size="13.2" fill="#1f1d1a">Unique params N fixed; shared layers run Rx</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="372" font-size="13.2" font-weight="600" fill="#2c6b5a">Gain: deeper reasoning &amp; coding in compact RAM</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="402" font-size="12.8" fill="#57524b">Bottleneck: default Rx KV, weight reads, PP/DP</text>
+<line x1="710" y1="248" x2="710" y2="274" stroke="#2c6b5a" stroke-width="2" marker-start="url(#arrow-teal)" marker-end="url(#arrow-teal)"/>
+<rect x="722" y="249" width="198" height="22" rx="6" fill="#faf7f2" stroke="#2c6b5a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="821" y="264" font-size="11.5" font-weight="600" fill="#2c6b5a" text-anchor="middle">Mirror trade: Params vs Depth</text>
+<line x1="460" y1="350" x2="500" y2="350" stroke="#a6631b" stroke-width="1.8" stroke-dasharray="4,3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="340" font-size="11" font-weight="600" fill="#a6631b" text-anchor="middle">Stackable</text>
+</svg>

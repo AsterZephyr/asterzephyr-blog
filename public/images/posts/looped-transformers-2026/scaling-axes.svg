@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 452" width="960" height="452" role="img" aria-labelledby="title desc">
+<title id="title">四种计算扩展路径的资源坐标</title>
+<desc id="desc">对比 Dense、Sparse MoE、显式 CoT 与 Looped-MoE 在参数存储、单 token 计算量与主要收益上的差异。</desc>
+<defs>
+  <marker id="arrow-stone" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#5b554d"/>
+  </marker>
+  <marker id="arrow-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#2c6b5a"/>
+  </marker>
+  <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#a6631b"/>
+  </marker>
+  <marker id="arrow-terra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#b1462f"/>
+  </marker>
+</defs>
+<rect width="960" height="452" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="38" font-size="19" font-weight="700" fill="#1f1d1a" text-anchor="middle">四种扩展路径：MoE 与 Looped-MoE 互为镜像</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="64" font-size="13.5" fill="#57524b" text-anchor="middle">循环深度省下的是静态权重体积，前向 FLOPs 与默认 KV Cache 仍按有效深度支付</text>
+<rect x="40" y="96" width="420" height="152" rx="12" fill="#efebe4" stroke="#5b554d" stroke-width="1.6"/>
+<path d="M52 96 H448 Q460 96 460 108 V136 H40 V108 Q40 96 52 96 Z" fill="#e1dbd1"/>
+<line x1="40" y1="136" x2="460" y2="136" stroke="#5b554d" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="122" font-size="15.5" font-weight="700" fill="#1f1d1a">稠密缩放 (Dense)</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="444" y="121" font-size="12" font-weight="600" fill="#5b554d" text-anchor="end">轴 1</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="164" font-size="13.2" fill="#1f1d1a">参数 N 与单 token FLOPs 同步放大</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="194" font-size="13.2" font-weight="600" fill="#5b554d">收益：知识容量 + 推理深度同步提升</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="224" font-size="12.8" fill="#57524b">瓶颈：显存带宽与总训练算力双重受限</text>
+<rect x="500" y="96" width="420" height="152" rx="12" fill="#eaf1f8" stroke="#2f5d8a" stroke-width="1.6"/>
+<path d="M512 96 H908 Q920 96 920 108 V136 H500 V108 Q500 96 512 96 Z" fill="#cde0f2"/>
+<line x1="500" y1="136" x2="920" y2="136" stroke="#2f5d8a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="122" font-size="15.5" font-weight="700" fill="#1f1d1a">稀疏 MoE (Sparse MoE)</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="904" y="121" font-size="12" font-weight="600" fill="#2f5d8a" text-anchor="end">轴 2 · 扩参数</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="164" font-size="13.2" fill="#1f1d1a">总参数 N 大幅扩大，单 token 激活压低</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="194" font-size="13.2" font-weight="600" fill="#2f5d8a">收益：事实知识容量、领域特化、高吞吐</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="224" font-size="12.8" fill="#57524b">瓶颈：全量权重显存、All-to-All、负载均衡</text>
+<rect x="40" y="274" width="420" height="152" rx="12" fill="#fcf4e4" stroke="#a6631b" stroke-width="1.6"/>
+<path d="M52 274 H448 Q460 274 460 286 V314 H40 V286 Q40 274 52 274 Z" fill="#f3dfb8"/>
+<line x1="40" y1="314" x2="460" y2="314" stroke="#a6631b" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="300" font-size="15.5" font-weight="700" fill="#1f1d1a">显式思维链 (Explicit CoT)</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="444" y="299" font-size="12" font-weight="600" fill="#a6631b" text-anchor="end">轴 3 · 拉长序列</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="342" font-size="13.2" fill="#1f1d1a">权重固定，靠输出序列长度 L 堆叠算力</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="372" font-size="13.2" font-weight="600" fill="#a6631b">收益：可审计、可验证的多步符号推理</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="56" y="402" font-size="12.8" fill="#57524b">瓶颈：串行生成延迟高，KV 随思考长度涨</text>
+<rect x="500" y="274" width="420" height="152" rx="12" fill="#e7f2ee" stroke="#2c6b5a" stroke-width="1.6"/>
+<path d="M512 274 H908 Q920 274 920 286 V314 H500 V286 Q500 274 512 274 Z" fill="#c6e2d8"/>
+<line x1="500" y1="314" x2="920" y2="314" stroke="#2c6b5a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="300" font-size="15.5" font-weight="700" fill="#1f1d1a">循环深度 (Looped-MoE)</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="904" y="299" font-size="12" font-weight="600" fill="#2c6b5a" text-anchor="end">轴 4 · 扩深度 (MoE 反面)</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="342" font-size="13.2" fill="#1f1d1a">唯一参数 N 固定，共享层循环 R 轮</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="372" font-size="13.2" font-weight="600" fill="#2c6b5a">收益：紧凑权重下的多跳推理与代码深度</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="516" y="402" font-size="12.8" fill="#57524b">瓶颈：默认 R 倍 KV 膨胀、重复读权重、PP/DP</text>
+<line x1="710" y1="248" x2="710" y2="274" stroke="#2c6b5a" stroke-width="2" marker-start="url(#arrow-teal)" marker-end="url(#arrow-teal)"/>
+<rect x="722" y="249" width="198" height="22" rx="6" fill="#faf7f2" stroke="#2c6b5a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="821" y="264" font-size="11.5" font-weight="600" fill="#2c6b5a" text-anchor="middle">互为镜像：参数 vs 深度</text>
+<line x1="460" y1="350" x2="500" y2="350" stroke="#a6631b" stroke-width="1.8" stroke-dasharray="4,3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="340" font-size="11" font-weight="600" fill="#a6631b" text-anchor="middle">可叠加</text>
+</svg>

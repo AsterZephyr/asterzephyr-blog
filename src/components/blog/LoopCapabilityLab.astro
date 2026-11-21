@@ -1,0 +1,452 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式评测对照 · 知识操作 vs 闭卷知识容量',
+      title: '调大循环次数时，哪些能力在涨，哪些指标原地不动？',
+      subtitle: '切换模型与推理循环档位，对比左侧串行推理与代码指标的跃升，以及右侧闭卷事实问答的纹丝不动（全部为论文与官方模型卡一手数据）。',
+      leftHead: '随循环次数提升：知识操作与串行推理',
+      rightHead: '几乎不动：闭卷事实与多轮约束',
+      models: [
+        {
+          id: 'dory',
+          label: 'NVIDIA Dory1.0-4B',
+          steps: ['1 轮', '2 轮', '4 轮'],
+          defaultStep: 2,
+          note: '同一份 4B 权重只调推理循环次数：SWE-bench Verified 涨 11.5 分，4 轮代理输出缩至 0.40× 到 0.80×（GDPval-AA-V2 0.40×、Terminal-Bench 2.1 0.50×），而闭卷事实 AA-Omniscience 从 1 轮到 4 轮始终停在 10.0。',
+          gains: [
+            { name: 'SWE-bench Verified', unit: '', max: 70, values: [50.3, 59.5, 61.8], delta: '+11.5 分' },
+            { name: 'SciCode', unit: '', max: 45, values: [27.3, 34.9, 35.1], delta: '+7.8 分' },
+          ],
+          gainCallout: {
+            title: '代理输出长度压缩 (4 轮 vs 1 轮)',
+            text: '整体缩至 0.40× 到 0.80×：GDPval-AA-V2 降至 0.40×，Terminal-Bench 2.1 降至 0.50×，显式试错转向隐空间。',
+          },
+          flats: [
+            { name: 'AA-Omniscience (闭卷事实)', unit: '', max: 30, values: [10.0, 10.0, 10.0], tag: '1->4 轮无变化' },
+          ],
+          flatCallout: {
+            title: '与 Ouro (7.7T) 探针一致',
+            text: '单参数记住的静态事实数没有随循环变多，补事实记忆依然需要更大参数或外挂搜索。',
+          },
+        },
+        {
+          id: 'inkling',
+          label: 'Inkling Varloop (26.4B)',
+          steps: ['1 轮基线', '多轮循环 (3 轮 / 5 轮)'],
+          defaultStep: 1,
+          note: 'Thinking Machines 变长循环研究版 TML-d24-varloop-research 实测：无 CoT 跨度翻倍、GPQA CoT 缩短过半、N-Hop Lookup 增至 10 轮仍在涨；但闭卷事实基准对轮次几乎无感。',
+          gains: [
+            { name: 'Think Fast 无 CoT 跨度 (1 轮 vs 3 轮)', unit: 's', max: 45, values: [16, 37], delta: '2.3×' },
+            { name: 'GPQA Diamond CoT 长度 (1 轮 vs 5 轮)', unit: ' tok', max: 4000, values: [3703, 1661], delta: '缩短 55%' },
+          ],
+          gainCallout: {
+            title: 'Inkling 2 Mini 3 轮定版代码代理成绩',
+            text: 'SWE-bench Verified 79.2% · SWE-bench Pro v2 Hard 77.9% · DeepSWE v1.1 48.2% · N-Hop Lookup 加到 10 轮仍在涨。',
+          },
+          flats: [
+            { name: 'MultiChallenge (多轮对话)', unit: '%', max: 100, values: [50.0, 50.0], tag: '落后 Qwen3.8-27B' },
+            { name: 'ComplexConstraints v1.1', unit: '%', max: 100, values: [33.4, 33.4], tag: '落后 Qwen3.8-27B' },
+          ],
+          flatCallout: {
+            title: '闭卷事实基准对循环轮次几乎不敏感',
+            text: 'AA-Omniscience、SimpleQA Verified 与 WorldVQA 增加循环次数后几乎不涨分。',
+          },
+        },
+      ],
+    }
+  : {
+      eyebrow: 'INTERACTIVE BENCHMARK LAB · MANIPULATION VS CAPACITY',
+      title: 'What Climbs with More Loops, and What Refuses to Move?',
+      subtitle: 'Switch checkpoints and loop settings to contrast rising serial reasoning and coding metrics (left) against flat closed-book factual recall (right). All numbers come directly from the papers and model cards.',
+      leftHead: 'Scales with Loops: Knowledge Manipulation',
+      rightHead: 'Stays Flat: Closed-Book Facts & Chat',
+      models: [
+        {
+          id: 'dory',
+          label: 'NVIDIA Dory1.0-4B',
+          steps: ['1 loop', '2 loops', '4 loops'],
+          defaultStep: 2,
+          note: 'One 4B checkpoint stepping inference loops from 1 to 4: SWE-bench Verified jumps +11.5 pts and 4-loop agent outputs drop to 0.40x-0.80x (0.40x GDPval-AA-V2, 0.50x Terminal-Bench 2.1), while closed-book AA-Omniscience stays fixed at 10.0.',
+          gains: [
+            { name: 'SWE-bench Verified', unit: '', max: 70, values: [50.3, 59.5, 61.8], delta: '+11.5 pts' },
+            { name: 'SciCode', unit: '', max: 45, values: [27.3, 34.9, 35.1], delta: '+7.8 pts' },
+          ],
+          gainCallout: {
+            title: 'Agent Output Compression (4 loops vs 1 loop)',
+            text: 'Outputs shrink to 0.40x-0.80x overall (0.40x on GDPval-AA-V2, 0.50x on Terminal-Bench 2.1) as backtracking moves into latent passes.',
+          },
+          flats: [
+            { name: 'AA-Omniscience (Closed-Book QA)', unit: '', max: 30, values: [10.0, 10.0, 10.0], tag: '0 gain (1->4x)' },
+          ],
+          flatCallout: {
+            title: 'Matches ByteDance Ouro (7.7T) Probes',
+            text: 'Memorized facts per parameter do not increase with loops; factual recall still requires more parameters or external search.',
+          },
+        },
+        {
+          id: 'inkling',
+          label: 'Inkling Varloop (26.4B)',
+          steps: ['1-Pass Baseline', 'Multi-Pass (3x / 5x)'],
+          defaultStep: 1,
+          note: 'Measured on Thinking Machines’ TML-d24-varloop-research checkpoint: no-CoT horizon more than doubles, GPQA CoT shrinks by over half, and N-Hop Lookup keeps climbing to 10 passes, while closed-book QA barely moves.',
+          gains: [
+            { name: 'Think Fast No-CoT Horizon (1x vs 3x)', unit: 's', max: 45, values: [16, 37], delta: '2.3x' },
+            { name: 'GPQA Diamond CoT Length (1x vs 5x)', unit: ' tok', max: 4000, values: [3703, 1661], delta: '-55%' },
+          ],
+          gainCallout: {
+            title: 'Inkling 2 Mini 3-Pass Release Coding Benchmarks',
+            text: 'SWE-bench Verified 79.2% · SWE-bench Pro v2 Hard 77.9% · DeepSWE v1.1 48.2% · N-Hop Lookup keeps rising out to 10 passes.',
+          },
+          flats: [
+            { name: 'MultiChallenge (Multi-Turn Chat)', unit: '%', max: 100, values: [50.0, 50.0], tag: 'trails Qwen3.8-27B' },
+            { name: 'ComplexConstraints v1.1', unit: '%', max: 100, values: [33.4, 33.4], tag: 'trails Qwen3.8-27B' },
+          ],
+          flatCallout: {
+            title: 'Closed-Book Factual QA Stays Loop-Invariant',
+            text: 'AA-Omniscience, SimpleQA Verified, and WorldVQA show virtually no gain from adding more loop passes.',
+          },
+        },
+      ],
+    };
+
+const payload = JSON.stringify({ models: copy.models });
+---
+
+<section class="lcl-box not-prose" data-widget="loop-capability-lab" data-payload={payload}>
+  <header class="lcl-head">
+    <p class="lcl-eyebrow">{copy.eyebrow}</p>
+    <h4 class="lcl-title">{copy.title}</h4>
+    <p class="lcl-subtitle">{copy.subtitle}</p>
+  </header>
+
+  <div class="lcl-toolbar">
+    <div class="lcl-model-tabs" role="tablist">
+      {copy.models.map((m, idx) => (
+        <button type="button" class:list={['lcl-pill', idx === 0 && 'is-active']} data-model-idx={idx}>
+          {m.label}
+        </button>
+      ))}
+    </div>
+    <div class="lcl-step-tabs" data-step-tabs></div>
+  </div>
+
+  <div class="lcl-grid">
+    <div class="lcl-col lcl-col-teal">
+      <p class="lcl-col-head">{copy.leftHead}</p>
+      <div class="lcl-bars" data-gain-bars></div>
+    </div>
+
+    <div class="lcl-col lcl-col-terra">
+      <p class="lcl-col-head">{copy.rightHead}</p>
+      <div class="lcl-bars" data-flat-bars></div>
+    </div>
+  </div>
+
+  <p class="lcl-note" data-model-note></p>
+</section>
+
+<script>
+  function initLoopCapabilityLabs() {
+    document.querySelectorAll<HTMLElement>('[data-widget="loop-capability-lab"]').forEach((root) => {
+      if (root.dataset.bound === '1') return;
+      root.dataset.bound = '1';
+
+      const { models } = JSON.parse(root.dataset.payload || '{"models":[]}');
+      if (!models.length) return;
+
+      let modelIdx = 0;
+      let stepIdx = models[0].defaultStep ?? 0;
+
+      const modelBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-model-idx]'));
+      const stepTabsWrap = root.querySelector<HTMLElement>('[data-step-tabs]');
+      const gainBars = root.querySelector<HTMLElement>('[data-gain-bars]');
+      const flatBars = root.querySelector<HTMLElement>('[data-flat-bars]');
+      const noteEl = root.querySelector<HTMLElement>('[data-model-note]');
+
+      function renderSteps() {
+        if (!stepTabsWrap) return;
+        const m = models[modelIdx];
+        stepTabsWrap.innerHTML = '';
+        m.steps.forEach((lbl: string, idx: number) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = `lcl-step-btn${idx === stepIdx ? ' is-active' : ''}`;
+          b.textContent = lbl;
+          b.addEventListener('click', () => {
+            stepIdx = idx;
+            render();
+          });
+          stepTabsWrap.appendChild(b);
+        });
+      }
+
+      function render() {
+        const m = models[modelIdx];
+        modelBtns.forEach((b, i) => b.classList.toggle('is-active', i === modelIdx));
+        renderSteps();
+
+        if (gainBars) {
+          const rows = m.gains
+            .map((g: any) => {
+              const val = g.values[stepIdx];
+              const pct = Math.min(100, Math.max(10, (val / g.max) * 100));
+              const valStr = Number.isInteger(val) ? val.toLocaleString() : val.toFixed(1);
+              return `
+                <div class="lcl-row">
+                  <div class="lcl-row-top">
+                    <span class="lcl-row-name">${g.name}</span>
+                    <span class="lcl-row-val">${valStr}${g.unit} <em class="lcl-delta">${g.delta}</em></span>
+                  </div>
+                  <div class="lcl-track"><div class="lcl-fill lcl-fill-teal" style="width:${pct.toFixed(1)}%"></div></div>
+                </div>
+              `;
+            })
+            .join('');
+          const callout = m.gainCallout
+            ? `<div class="lcl-callout lcl-callout-teal"><div class="lcl-callout-t lcl-t-teal">${m.gainCallout.title}</div><p class="lcl-callout-p">${m.gainCallout.text}</p></div>`
+            : '';
+          gainBars.innerHTML = rows + callout;
+        }
+
+        if (flatBars) {
+          const rows = m.flats
+            .map((f: any) => {
+              const val = f.values[stepIdx];
+              const pct = Math.min(100, Math.max(12, (val / f.max) * 100));
+              const valStr = val.toFixed(1);
+              return `
+                <div class="lcl-row">
+                  <div class="lcl-row-top">
+                    <span class="lcl-row-name">${f.name}</span>
+                    <span class="lcl-row-val">${valStr}${f.unit} <em class="lcl-delta-terra">${f.tag}</em></span>
+                  </div>
+                  <div class="lcl-track"><div class="lcl-fill lcl-fill-terra" style="width:${pct.toFixed(1)}%"></div></div>
+                </div>
+              `;
+            })
+            .join('');
+          const callout = m.flatCallout
+            ? `<div class="lcl-callout lcl-callout-terra"><div class="lcl-callout-t lcl-t-terra">${m.flatCallout.title}</div><p class="lcl-callout-p">${m.flatCallout.text}</p></div>`
+            : '';
+          flatBars.innerHTML = rows + callout;
+        }
+
+        if (noteEl) noteEl.textContent = m.note;
+      }
+
+      modelBtns.forEach((b) => {
+        b.addEventListener('click', () => {
+          modelIdx = Number(b.dataset.modelIdx || 0);
+          stepIdx = models[modelIdx].defaultStep ?? 0;
+          render();
+        });
+      });
+
+      render();
+    });
+  }
+
+  initLoopCapabilityLabs();
+  document.addEventListener('astro:after-swap', initLoopCapabilityLabs);
+  document.addEventListener('languagechange', initLoopCapabilityLabs);
+</script>
+
+<style>
+  .lcl-box {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--color-field);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .lcl-head {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .lcl-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .lcl-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    color: var(--color-heading);
+  }
+  .lcl-subtitle {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .lcl-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 1rem 0 1.1rem;
+  }
+  .lcl-model-tabs,
+  .lcl-step-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .lcl-pill {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .lcl-pill.is-active {
+    color: #fff;
+    background: var(--color-heading);
+    border-color: var(--color-heading);
+  }
+  .lcl-step-tabs :global(.lcl-step-btn) {
+    padding: 0.36rem 0.72rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .lcl-step-tabs :global(.lcl-step-btn.is-active) {
+    color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .lcl-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .lcl-col {
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+  }
+  .lcl-col-teal {
+    border-top: 3px solid #2c6b5a;
+  }
+  .lcl-col-terra {
+    border-top: 3px solid #b1462f;
+  }
+  .lcl-col-head {
+    margin: 0 0 0.85rem;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--color-heading);
+  }
+  .lcl-bars :global(.lcl-row) {
+    margin-bottom: 0.85rem;
+  }
+  .lcl-bars :global(.lcl-row-top) {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.32rem;
+    font-size: 0.8rem;
+  }
+  .lcl-bars :global(.lcl-row-name) {
+    color: var(--color-body);
+    font-weight: 600;
+  }
+  .lcl-bars :global(.lcl-row-val) {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-weight: 700;
+    color: var(--color-heading);
+    white-space: nowrap;
+  }
+  .lcl-bars :global(.lcl-delta) {
+    font-style: normal;
+    font-size: 0.72rem;
+    color: #2c6b5a;
+    margin-left: 0.25rem;
+  }
+  .lcl-bars :global(.lcl-delta-terra) {
+    font-style: normal;
+    font-size: 0.72rem;
+    color: #b1462f;
+    margin-left: 0.25rem;
+  }
+  .lcl-bars :global(.lcl-track) {
+    height: 10px;
+    background: var(--color-field);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .lcl-bars :global(.lcl-fill) {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.28s ease;
+  }
+  .lcl-bars :global(.lcl-fill-teal) {
+    background: linear-gradient(90deg, #5aa08b, #2c6b5a);
+  }
+  .lcl-bars :global(.lcl-fill-terra) {
+    background: linear-gradient(90deg, #d47a63, #b1462f);
+  }
+  .lcl-bars :global(.lcl-callout) {
+    margin-top: 0.9rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 5px;
+  }
+  .lcl-bars :global(.lcl-callout-teal) {
+    background: #e7f2ee;
+    border: 1px solid #bfdcd2;
+  }
+  .lcl-bars :global(.lcl-callout-terra) {
+    background: #fbebe5;
+    border: 1px solid #f0c9bd;
+  }
+  .lcl-bars :global(.lcl-callout-t) {
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+  }
+  .lcl-bars :global(.lcl-t-teal) {
+    color: #2c6b5a;
+  }
+  .lcl-bars :global(.lcl-t-terra) {
+    color: #b1462f;
+  }
+  .lcl-bars :global(.lcl-callout-p) {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--color-body);
+  }
+  .lcl-note {
+    margin: 0.9rem 0 0;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--color-muted);
+  }
+  @media (max-width: 767px) {
+    .lcl-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

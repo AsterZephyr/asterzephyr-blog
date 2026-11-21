@@ -1,0 +1,500 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式显存账本 · INKLING 2 MINI KV CACHE 测算器',
+      title: '拖动上下文长度与 KV 策略，看 19.5 GB 权重如何撞穿 32 GB 笔记本内存',
+      subtitle: '基于 Inkling 2 Mini 架构（20 层滑窗 1,024 + 4 层全局注意力，每层 8 KV 头 × 128 维，L11/L17 循环 3 轮），对照默认逐轮 KV、Dory 末轮 KV 与 Looped CED 压缩。',
+      ctxLabel: '上下文长度',
+      precLabel: 'KV 精度',
+      stratLabel: 'KV 缓存策略',
+      strategies: [
+        { id: 'default', label: '默认逐轮 KV (8 层全局)', factor: 1.0, desc: 'Inkling 2 Mini 原生设计：L5(1×) + L11(3×) + L17(3×) + L23(1×) = 8 层全局 KV。131k 社区实测占 31.2 GiB（对比 Qwen3.8-27B 为 20.9 GiB）。' },
+        { id: 'last', label: '末轮 KV (Dory 策略)', factor: 0.5, desc: '只缓存最后一轮循环的 KV，全局 KV 从 8 层降回物理 4 层，4 轮精度仅变动 -2.1 到 +0.4 分。' },
+        { id: 'ced', label: '编码器不动点 (Looped CED)', factor: 1 / 6, desc: '只循环编码器并共享末轮全局 KV，将全局 KV 压至标准的 1/6，在 552B 模拟中把单 token KV 缩减 36.8×。' },
+      ],
+      metrics: {
+        weights: '静态权重 (NVFP4/MXFP8)',
+        globalKv: '全局注意力 KV',
+        localKv: '滑窗局部 KV (40 次访问)',
+        total: '模型 + KV 合计',
+      },
+      cap32: '32 GB 笔记本内存线',
+      fitOk: '可装入 32 GB 统一内存',
+      fitOver: '超出 32 GB 笔记本物理上限',
+      qwenRef: '同上下文参考：131k 下 Qwen3.8-27B 实测约 20.9 GiB',
+    }
+  : {
+      eyebrow: 'INTERACTIVE VRAM LEDGER · INKLING 2 MINI KV CALCULATOR',
+      title: 'Slide Context Length & KV Strategy to See 19.5 GB Weights Cross 32 GB RAM',
+      subtitle: 'Based on Inkling 2 Mini’s exact layout (20 sliding-window 1,024 layers + 4 global layers, 8 KV heads x dim 128, L11/L17 looped 3x), contrasting default per-pass KV, Dory last-loop KV, and Looped CED.',
+      ctxLabel: 'Context Length',
+      precLabel: 'KV Precision',
+      stratLabel: 'KV Cache Strategy',
+      strategies: [
+        { id: 'default', label: 'Default Per-Pass (8 global)', factor: 1.0, desc: 'Native Inkling 2 Mini: L5(1x) + L11(3x) + L17(3x) + L23(1x) = 8 global KV layers. Community 131k runs measured 31.2 GiB vs 20.9 GiB for Qwen3.8-27B.' },
+        { id: 'last', label: 'Last-Loop KV (Dory style)', factor: 0.5, desc: 'Cache only the final loop pass, collapsing global KV back to 4 physical layers with -2.1 to +0.4 pt deltas at 4 loops.' },
+        { id: 'ced', label: 'Fixed-Point Encoder (CED)', factor: 1 / 6, desc: 'Loop only the global-KV encoder to a fixed point (1/6 global KV), cutting per-token KV by 36.8x in 552B DeepSeek simulations.' },
+      ],
+      metrics: {
+        weights: 'Static Weights (NVFP4/MXFP8)',
+        globalKv: 'Global Attention KV',
+        localKv: 'Sliding-Window KV (40 visits)',
+        total: 'Weights + KV Total',
+      },
+      cap32: '32 GB Laptop RAM Cap',
+      fitOk: 'Fits 32 GB Unified Memory',
+      fitOver: 'Exceeds 32 GB Laptop Limit',
+      qwenRef: 'Reference: Qwen3.8-27B measured ~20.9 GiB at 131k context',
+    };
+
+const payload = JSON.stringify({
+  isZh,
+  strategies: copy.strategies,
+  fitOk: copy.fitOk,
+  fitOver: copy.fitOver,
+});
+---
+
+<section class="lkv-box not-prose" data-widget="loop-kv-calculator" data-payload={payload}>
+  <header class="lkv-head">
+    <p class="lkv-eyebrow">{copy.eyebrow}</p>
+    <h4 class="lkv-title">{copy.title}</h4>
+    <p class="lkv-subtitle">{copy.subtitle}</p>
+  </header>
+
+  <div class="lkv-controls">
+    <div class="lkv-ctrl-group">
+      <div class="lkv-ctrl-top">
+        <span>{copy.ctxLabel}</span>
+        <strong data-out-ctx>1,000k (1M)</strong>
+      </div>
+      <input type="range" min="32" max="1000" step="1" value="1000" data-in-ctx />
+      <div class="lkv-presets">
+        <button type="button" class="lkv-chip" data-preset="64">64k</button>
+        <button type="button" class="lkv-chip" data-preset="131">131k</button>
+        <button type="button" class="lkv-chip" data-preset="256">256k</button>
+        <button type="button" class="lkv-chip" data-preset="512">512k</button>
+        <button type="button" class="lkv-chip is-active" data-preset="1000">1M</button>
+      </div>
+    </div>
+
+    <div class="lkv-ctrl-side">
+      <div class="lkv-ctrl-top"><span>{copy.precLabel}</span></div>
+      <div class="lkv-seg">
+        <button type="button" class="lkv-seg-btn is-active" data-prec="2">BF16 (2B)</button>
+        <button type="button" class="lkv-seg-btn" data-prec="1">FP8 (1B)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="lkv-strat-row">
+    <span class="lkv-strat-lbl">{copy.stratLabel}</span>
+    <div class="lkv-strat-tabs">
+      {copy.strategies.map((s, idx) => (
+        <button type="button" class:list={['lkv-strat-btn', idx === 0 && 'is-active']} data-strat-idx={idx}>
+          {s.label}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  <div class="lkv-bar-card">
+    <div class="lkv-bar-head">
+      <span class="lkv-status" data-status-badge></span>
+      <span class="lkv-qwen">{copy.qwenRef}</span>
+    </div>
+    <div class="lkv-bar-wrap">
+      <div class="lkv-stack">
+        <div class="lkv-seg-w" data-bar-w></div>
+        <div class="lkv-seg-kv" data-bar-kv></div>
+      </div>
+      <div class="lkv-cap-line" style="left: 53.33%">
+        <span class="lkv-cap-label">{copy.cap32}</span>
+      </div>
+    </div>
+    <div class="lkv-scale">
+      <span>0 GB</span>
+      <span>16 GB</span>
+      <span>32 GB</span>
+      <span>48 GB</span>
+      <span>60 GB</span>
+    </div>
+  </div>
+
+  <dl class="lkv-stats">
+    <div class="lkv-stat">
+      <dt>{copy.metrics.weights}</dt>
+      <dd>19.5 GB</dd>
+    </div>
+    <div class="lkv-stat">
+      <dt>{copy.metrics.globalKv}</dt>
+      <dd data-stat-gkv>32.8 GB</dd>
+    </div>
+    <div class="lkv-stat">
+      <dt>{copy.metrics.localKv}</dt>
+      <dd data-stat-lkv>0.17 GB</dd>
+    </div>
+    <div class="lkv-stat lkv-stat-total">
+      <dt>{copy.metrics.total}</dt>
+      <dd data-stat-total>52.5 GB</dd>
+    </div>
+  </dl>
+
+  <p class="lkv-desc" data-strat-desc></p>
+</section>
+
+<script>
+  function initLoopKvCalculators() {
+    document.querySelectorAll<HTMLElement>('[data-widget="loop-kv-calculator"]').forEach((root) => {
+      if (root.dataset.bound === '1') return;
+      root.dataset.bound = '1';
+
+      const { strategies, fitOk, fitOver } = JSON.parse(root.dataset.payload || '{}');
+      const inCtx = root.querySelector<HTMLInputElement>('[data-in-ctx]');
+      const outCtx = root.querySelector<HTMLElement>('[data-out-ctx]');
+      const presets = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-preset]'));
+      const precBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-prec]'));
+      const stratBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-strat-idx]'));
+      const barW = root.querySelector<HTMLElement>('[data-bar-w]');
+      const barKv = root.querySelector<HTMLElement>('[data-bar-kv]');
+      const statusBadge = root.querySelector<HTMLElement>('[data-status-badge]');
+      const statGkv = root.querySelector<HTMLElement>('[data-stat-gkv]');
+      const statLkv = root.querySelector<HTMLElement>('[data-stat-lkv]');
+      const statTotal = root.querySelector<HTMLElement>('[data-stat-total]');
+      const stratDesc = root.querySelector<HTMLElement>('[data-strat-desc]');
+
+      let precBytes = 2;
+      let stratIdx = 0;
+      const WEIGHT_GB = 19.5;
+      const MAX_BAR_GB = 60.0;
+
+      function update() {
+        const ctxK = Number(inCtx?.value || 1000);
+        const tokens = ctxK * 1000;
+        const st = strategies[stratIdx];
+
+        if (outCtx) outCtx.textContent = ctxK >= 1000 ? '1,000k (1M)' : `${ctxK}k`;
+        presets.forEach((b) => b.classList.toggle('is-active', Number(b.dataset.preset) === ctxK));
+        precBtns.forEach((b) => b.classList.toggle('is-active', Number(b.dataset.prec) === precBytes));
+        stratBtns.forEach((b, i) => b.classList.toggle('is-active', i === stratIdx));
+
+        // 2 (K+V) * 8 KV heads * 128 head_dim * precBytes per layer per token
+        const bytesPerLayerPerTok = 2 * 8 * 128 * precBytes;
+        // 8 global KV layers under default 3x loop; scaled by strategy factor
+        const globalKvGB = (8 * st.factor * bytesPerLayerPerTok * tokens) / 1e9;
+        // 40 sliding-window visits capped at window 1024 tokens
+        const localTok = Math.min(tokens, 1024);
+        const localKvGB = (40 * bytesPerLayerPerTok * localTok) / 1e9;
+        const totalGB = WEIGHT_GB + globalKvGB + localKvGB;
+
+        if (statGkv) statGkv.textContent = `${globalKvGB.toFixed(1)} GB`;
+        if (statLkv) statLkv.textContent = `${localKvGB.toFixed(2)} GB`;
+        if (statTotal) statTotal.textContent = `${totalGB.toFixed(1)} GB`;
+        if (stratDesc) stratDesc.textContent = st.desc;
+
+        const wPct = Math.min(100, (WEIGHT_GB / MAX_BAR_GB) * 100);
+        const kvPct = Math.min(100 - wPct, ((globalKvGB + localKvGB) / MAX_BAR_GB) * 100);
+        if (barW) barW.style.width = `${wPct.toFixed(2)}%`;
+        if (barKv) barKv.style.width = `${kvPct.toFixed(2)}%`;
+
+        if (statusBadge) {
+          const over = totalGB > 32;
+          statusBadge.textContent = over ? `${fitOver} (${totalGB.toFixed(1)} GB)` : `${fitOk} (${totalGB.toFixed(1)} GB)`;
+          statusBadge.classList.toggle('is-over', over);
+          statusBadge.classList.toggle('is-ok', !over);
+        }
+      }
+
+      inCtx?.addEventListener('input', update);
+      presets.forEach((b) => {
+        b.addEventListener('click', () => {
+          if (inCtx) inCtx.value = b.dataset.preset || '1000';
+          update();
+        });
+      });
+      precBtns.forEach((b) => {
+        b.addEventListener('click', () => {
+          precBytes = Number(b.dataset.prec || 2);
+          update();
+        });
+      });
+      stratBtns.forEach((b) => {
+        b.addEventListener('click', () => {
+          stratIdx = Number(b.dataset.stratIdx || 0);
+          update();
+        });
+      });
+
+      update();
+    });
+  }
+
+  initLoopKvCalculators();
+  document.addEventListener('astro:after-swap', initLoopKvCalculators);
+  document.addEventListener('languagechange', initLoopKvCalculators);
+</script>
+
+<style>
+  .lkv-box {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--color-field);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .lkv-head {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .lkv-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .lkv-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    color: var(--color-heading);
+  }
+  .lkv-subtitle {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .lkv-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+    gap: 1.25rem;
+    margin: 1rem 0;
+    align-items: start;
+  }
+  .lkv-ctrl-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  .lkv-ctrl-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--color-body);
+  }
+  .lkv-ctrl-top strong {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    color: var(--color-accent);
+  }
+  .lkv-ctrl-group input[type='range'] {
+    accent-color: var(--color-accent);
+    cursor: pointer;
+    width: 100%;
+  }
+  .lkv-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .lkv-chip {
+    padding: 0.22rem 0.55rem;
+    font-size: 0.74rem;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    color: var(--color-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .lkv-chip.is-active {
+    color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .lkv-ctrl-side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  .lkv-seg {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem;
+  }
+  .lkv-seg-btn {
+    padding: 0.42rem 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .lkv-seg-btn.is-active {
+    color: #fff;
+    background: var(--color-heading);
+    border-color: var(--color-heading);
+  }
+  .lkv-strat-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+  }
+  .lkv-strat-lbl {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+  .lkv-strat-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .lkv-strat-btn {
+    padding: 0.42rem 0.78rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .lkv-strat-btn.is-active {
+    color: #fff;
+    background: #2c6b5a;
+    border-color: #2c6b5a;
+  }
+  .lkv-bar-card {
+    padding: 0.95rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+  }
+  .lkv-bar-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+  }
+  .lkv-status {
+    padding: 0.22rem 0.65rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    border-radius: 999px;
+  }
+  .lkv-status.is-over {
+    color: #b1462f;
+    background: #fbebe5;
+    border: 1px solid #ecc0b2;
+  }
+  .lkv-status.is-ok {
+    color: #2c6b5a;
+    background: #e7f2ee;
+    border: 1px solid #b9ddd0;
+  }
+  .lkv-qwen {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+  .lkv-bar-wrap {
+    position: relative;
+    padding: 1.25rem 0 0.4rem;
+  }
+  .lkv-stack {
+    display: flex;
+    height: 24px;
+    background: var(--color-field);
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .lkv-seg-w {
+    background: #86663b;
+    transition: width 0.22s ease;
+  }
+  .lkv-seg-kv {
+    background: #b1462f;
+    transition: width 0.22s ease;
+  }
+  .lkv-cap-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    border-left: 2px dashed #a6631b;
+    pointer-events: none;
+  }
+  .lkv-cap-label {
+    position: absolute;
+    top: -2px;
+    left: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #a6631b;
+    white-space: nowrap;
+  }
+  .lkv-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.35rem;
+    font-size: 0.7rem;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    color: var(--color-muted);
+  }
+  .lkv-stats {
+    margin: 0.85rem 0 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+  .lkv-stat {
+    padding: 0.65rem 0.8rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+  }
+  .lkv-stat-total {
+    border-color: var(--color-accent);
+  }
+  .lkv-stat dt {
+    font-size: 0.7rem;
+    color: var(--color-muted);
+    margin-bottom: 0.2rem;
+  }
+  .lkv-stat dd {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    color: var(--color-heading);
+    font-variant-numeric: tabular-nums;
+  }
+  .lkv-desc {
+    margin: 0.8rem 0 0;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--color-body);
+  }
+  @media (max-width: 767px) {
+    .lkv-controls,
+    .lkv-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .lkv-controls {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
