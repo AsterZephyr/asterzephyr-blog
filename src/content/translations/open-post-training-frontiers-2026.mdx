@@ -1,0 +1,327 @@
+---
+title: "Open Post-Training Frontiers: Six Problems for 2026"
+summary: "Drawing on Nathan Lambert's November 2026 Cornell talk and 16 primary papers and reports, this post examines four shifts in open language model post-training: RL compute overtaking pretraining, post-post-training taking over as base weights disappear, six open problems ordered by compute cost, and what remains human under automated R&D."
+sourceFile: "open-post-training-frontiers-2026.mdx"
+sourceHash: "5c70f4f38d01e9a2c32aafd22dd02a5ac6451dcbc0821c2c776a56fb5b460237"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+import PostTrainingComputeLab from '../../components/blog/PostTrainingComputeLab.astro'
+import Comparison from '../../components/blog/Comparison.astro'
+
+Post-training is the stage after pretraining that turns a next-token base model into a usable assistant or agent through supervised finetuning, preference optimization, and reinforcement learning. In late 2026, teams doing open post-training face two hard walls at once. The first is compute: frontier closed and semi-open labs have pushed reinforcement learning past $50M a year, and RL GPU-hours on several new models now exceed pretraining GPU-hours. The second is the starting checkpoint: as of November 2026, 8 of the 12 major open-weight labs stopped releasing full base models over the prior six months, shipping post-trained weights only.
+
+On November 20, 2026, Nathan Lambert, former Ai2 OLMo post-training lead and executive director of the newly launched non-profit Trillium Labs, gave a 54-slide talk at Cornell University titled [*Pushing Frontiers in Open Language Model Post-Training*](https://natolambert.com/slides/2026/cornell-post-training/talk#1). He traced four years of post-training recipe shifts, the compute inversion, and the six open problems Trillium Labs plans to target. Cross-checking his dataset and the 2025 to 2026 primary reports he cites points to a clear engineering judgment: **chasing full-stack general post-training no longer adds up for non-frontier teams, yet large areas of the open literature remain empty. Smaller labs can still shift real workflows by specializing on top of post-trained weights and picking problems along the compute-intensity ladder.**
+
+<Callout type="info" title="Scope, Prerequisites, and Verification Notes">
+This piece assumes familiarity with the basic split between pretraining, supervised finetuning (SFT), and reinforcement learning (RL), and skips standard RLHF derivations (see earlier notes on [Mid-Training](/blog/LLM-Mid-Training-被Tech-Report遮掩的关键训练阶段) and [why RL for LLMs is hard](/blog/rl-for-llm-为什么强化学习训练大模型这么难)). **It is not a slide-by-slide translation, an open-model leaderboard review, or an AI governance essay.**<br />
+The structure follows Nathan Lambert's November 20, 2026 talk and its accompanying `base-model-matrix.csv`, with claims checked against primary reports for MiMo-V2-Flash, Beam, Inkling 2 Small, Harvey Tenet, Mercor+SkyRL, TMax, CLM, Open Character Training, Never Give Up, ScaleRL, and internal R&D telemetry from Anthropic and OpenAI. Analyst estimates and author judgments in the deck (such as SemiAnalysis forecast quarters and Inkling 2 Small pretraining GPU counts) are marked explicitly where cited.
+</Callout>
+
+<TechGraph
+  src="/images/posts/open-post-training-frontiers-2026/open-post-training-map-en.svg"
+  title="2026 OPEN POST-TRAINING MAP"
+  caption="As frontier post-training crosses into high-compute territory and most open labs stop releasing base weights, smaller teams gain leverage via post-post-training and the six open problems ordered by compute. Dashed cards mark recurring traps at each stage (author diagram synthesizing Lambert 2026 and primary reports below)."
+/>
+
+## Compute Inversion and Vanishing Base Weights Split Out a New Layer
+
+The term post-training entered mainstream use with the 2023 GPT-4 technical report, when most researchers treated it as a finishing pass after pretraining to improve factuality and instruction following. As Nathan Lambert noted at the start of his talk, the shape of a post-training recipe changed more over the past year than in the previous three combined.
+
+### Three Recipes in Four Years: From Three-Stage RLHF to MOPD
+
+InstructGPT in 2022 and 2023 set the original three-step template: SFT on human demonstrations, a reward model trained on pairwise human comparisons, and PPO against that reward model. In 2024, Llama 3 and Tülu 3 stretched that pipeline across multiple rounds and turned RLVR into a standard building block. RLVR stands for Reinforcement Learning with Verifiable Rewards, where math checkers or unit tests score outputs directly instead of relying only on a learned reward model.
+
+In January 2025, DeepSeek-R1 ([arXiv:2501.12948](https://arxiv.org/abs/2501.12948)) moved large-scale reasoning RL to the center: pure RL (R1-Zero) seeded long reasoning traces, followed by cold-start SFT, reasoning RL, rejection-sampling SFT, and final alignment RL. By 2026, training a single model across every domain at once hit clear interference limits. Reward distributions for math, coding, terminal control, and general writing pulled against each other, so pushing one capability often degraded another.
+
+In January 2026, Xiaomi's MiMo-V2-Flash ([arXiv:2601.02780](https://arxiv.org/abs/2601.02780)), a 309B total / 15B active MoE model, pushed the industry toward a third canonical form: **MOPD**, short for Multi-Teacher On-Policy Distillation. The pipeline runs in three stages: train one shared general SFT foundation, branch into $$N$$ domain-specialist teachers across areas such as math, software engineering, and search agents (each trained with its own SFT and RL stages), and finally distill all specialist teachers simultaneously back into a single student model.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/mopd-recipe.png"
+  alt="Three-stage MOPD workflow: a shared SFT base branches into domain SFT and RL specialist teachers that distill into a single student model"
+  caption="Frontier 2026 post-training splits into independent domain specialist teachers before merging them through Multi-Teacher On-Policy Distillation (MOPD), avoiding cross-domain seesaw interference (Source: Nathan Lambert, RLHF Book ch. 3, based on Xiaomi MiMo-V2-Flash, 2026)."
+  width="92%"
+/>
+
+MOPD differs from classic offline distillation in one decisive way. Instead of memorizing static answers written offline by teachers, the student **generates its own online rollouts, and the matching domain teacher scores every sampled token with a reverse-KL advantage**. Take a multi-step math problem as a quick check. Standard async GRPO looks only at whether the final answer is right and assigns one scalar reward to the whole trace. Under MOPD, for each token $$y_t$$ the student generates, the trainer computes the teacher-student log-probability gap $$\log \pi_{\text{teacher}}(y_t \mid x, y_{<t}) - \log \pi_{\text{student}}(y_t \mid x, y_{<t})$$ and combines it with verifiable outcome rewards. When the student sets up the right plan but drops one algebraic step, the signal lands directly on the errant tokens. Because trajectories come from the student's own policy, MOPD also avoids exposure bias, the mismatch between conditioning on teacher prefixes at training time and on the model's own prefixes at inference time.
+
+That split-and-merge design carries clear infrastructure overhead: serving and maintaining multiple large specialist teachers raises memory and orchestration costs well above single-model RL. Lambert noted in the talk that DeepSeek V4, Nemotron 3 Ultra, and recent GPT releases follow a similar multi-teacher on-policy distillation lineage. Because closed GPT internals are not publicly disclosed, that last point reflects author observation rather than a published paper.
+
+### RL GPU-Hours Overtook Pretraining, but GPU-Hours Are Not FLOPs
+
+Heavier recipes flipped the compute bill at frontier labs. SemiAnalysis estimates of combined Anthropic and OpenAI compute from 1Q24 through 4Q26 show an inflection point in 4Q25, when post-training and RL (36%) first passed pretraining (32%). By 4Q26 estimates, pretraining falls from 67% to 7%, post-training and RL climb to 55%, and inference holds near 38%. The 3Q26 and 4Q26 bars are analyst estimates rather than audited lab disclosures.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/semianalysis-compute-share.png"
+  alt="SemiAnalysis chart of combined Anthropic and OpenAI compute share from 1Q24 to 4Q26E: pretraining falls from 67% to 7% while post-training and RL rise to 55%"
+  caption="SemiAnalysis estimates of combined Anthropic and OpenAI compute show pretraining dropping from 67% to 7% over three years while post-training and RL climb to 55% (Source: SemiAnalysis via OfficeChai, cited in Lambert 2026)."
+  width="88%"
+/>
+
+Comparing RL GPU-hours directly against pretraining GPU-hours for the same model makes the shift even sharper:
+
+| Model & Release | Size (Total / Active) | Pretraining GPU-Hours | RL GPU-Hours | RL / Pretraining | Accounting Notes |
+|---|---|---|---|---|---|
+| DeepSeek R1 (Jan 2025) | 671B / 37B | 2.66M H800 GPU-hours | 0.14M H800 GPU-hours | ~5% | Published in DeepSeek-V3 and R1 Nature reports |
+| Reflection AI Beam (Oct 2026) | 501B / 23B | Under 4.1M (6,144 GB300s, &lt;4 weeks) | ~7.1M (10,500 GB300s, 4 weeks) | Over 1.7x | Official blog; over 100M async rollouts in RL |
+| Thinking Machines Inkling 2 Small (Nov 2026) | 594B / 17B | ~0.11M* (est. ~1.5K GPUs, &lt;3 days) | ~0.44M (2,048 GPUs, 9 days) | ~4x* | Duration disclosed without pretraining GPU count; pretraining figure is speaker estimate |
+
+That raises the obvious counter-question of whether pretraining still matters when **RL takes 55% of frontier compute and 1.7x to 4x as many GPU-hours as pretraining**.
+
+Lambert puts a physical caveat in his table footnote: **GPU-hours are not FLOPs**. Pretraining runs near-continuous dense matrix multiplication at high hardware utilization, whereas RL spends a large share of wall-clock time on autoregressive rollout sampling and waiting on sandboxed environments. Because utilization is lower during sampling, RL's share of actual FLOPs is smaller than its share of GPU-hours. More practically, RL searches over knowledge and representations already built into the base model; without a strong base and clean cold-start data, pouring GPU-hours into RL only drives repetition loops or verifier exploits.
+
+### Eight of Twelve Open Labs Dropped Base Weights, Opening Post-Post-Training
+
+Once full frontier post-training reached the $50M+ per year bracket, the open-weight release pattern fractured. Lambert compiled release histories across 12 major open-weight labs (5 Western, 7 Chinese) from 2023 through November 19, 2026. Over the last six months (May to November 2026), **8 of the 12 labs shifted to post-trained weights only**: Meta (Muse Spark / Glimmer), Mistral (Large 4), Alibaba Qwen (3.8 2.4T / 27B), DeepSeek (V4.1-Flash), MiniMax (M3 / M3.1), Moonshot Kimi (K3 / K3.1 Pro), Xiaomi MiMo (V2.6 Pro/Flash), and Z.ai GLM (5.2 / 5.3 / Flash). Only 4 continued shipping full base checkpoints across major releases: Google Gemma, IBM Granite, NVIDIA Nemotron, and Ant Ling.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/base-model-matrix.png"
+  alt="Matrix of 12 open-weight labs from 2023 to November 2026 showing base model vs post-trained-only releases; 8 of 12 shipped post-trained only in the last 6 months"
+  caption="As of November 19, 2026, 8 of 12 major open-weight labs stopped releasing base models over the prior six months, shifting the default starting point for open research to post-trained weights (Source: Nathan Lambert, Cornell 2026, base-model-matrix.csv)."
+  width="95%"
+/>
+
+Scarce base models plus expensive general RL split out a new engineering layer: **post-post-training**. General post-training establishes core reasoning, instruction following, and safety skeletons, which only a handful of large labs can fund. Post-post-training starts from those released reasoning weights and runs secondary RL adaptation for vertical workflows, latency budgets, memory, or custom harnesses.
+
+Two autumn 2026 industry releases show the return on that layer:
+- Legal AI company **Harvey** released the research preview **Tenet** in August 2026. Starting from Moonshot AI's open Kimi K3 checkpoint, Harvey partnered with Fireworks to run async RL over long-horizon legal workflows. On held-out Legal Agent Bench (LAB) tasks, Tenet nearly doubled Kimi K3's all-pass rate while keeping per-task inference cost stable, landing on the quality-cost Pareto frontier.
+- **Mercor and SkyRL** open-sourced a 397B RL training recipe in September 2026 for finance, consulting, and legal knowledge-work agents, adapting Alibaba's Qwen3.5-397B-A17B in sandboxed execution environments and releasing both training scripts and weights.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/harvey-tenet-lab-pareto.svg"
+  alt="Quality vs cost Pareto frontier on Legal Agent Bench held-out tasks showing Harvey Tenet outperforming its Kimi K3 base at stable cost"
+  caption="Running vertical async RL on top of open Kimi K3 nearly doubled Harvey Tenet's all-pass rate on held-out Legal Agent Bench tasks at stable cost, demonstrating commercial post-post-training (Source: Harvey, Aug. 2026)."
+  width="85%"
+/>
+
+---
+
+## Six Open Problems Ranked by Compute Intensity
+
+Accepting that full general post-training is now capital-intensive forces the open community to ask where finite GPUs and small teams still have real leverage. Lambert ranks six open problems from **least to most compute intensive**. They fall into two natural groups: three areas where small labs and academic groups can move fast right now, and three heavy-compute fronts where experimental design itself becomes the main hazard.
+
+### Three Areas Accessible at Low to Moderate Compute
+
+#### 1. Harness Specialization and Context Control: Let Models Edit Their Own Context
+
+Almost every agent framework today wraps the model in a thick hand-coded harness that hard-codes tool schemas, triggers fixed compaction when context fills up, and chooses which memory snippets enter the prompt. That scaffolding works for short tasks, yet leaves the model passive and blind to when the outer loop will abruptly truncate its working state.
+
+In September 2026, Shao, Lambert, and collaborators introduced **Context Language Models** (CLMs, [arXiv:2609.37725](https://arxiv.org/abs/2609.37725)). Instead of waiting for external compaction commands, a CLM treats its interaction context as an ordinary editable file and uses tools such as Bash to prune, update, and reorganize its own state directly. In multi-agent runs, separate agent contexts coexist as files, giving agents a shared read-write interface without bespoke harness glue.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/context-language-models.png"
+  alt="Overview of Context Language Models mapping a context file directly to the next context state across zero-shot, in-context learning, and online RL"
+  caption="CLMs treat context as a directly editable file so models manage memory and KV-cache trade-offs themselves, beating fixed compaction zero-shot on BrowseComp-Plus and supporting online RL specialization (Source: Shao et al., 2026)."
+  width="92%"
+/>
+
+This problem fits small teams well. Researchers do not need a hundred-billion-parameter base run; applying zero-shot protocol changes or lightweight online RL to an open 9B model like Qwen3.5-9B is enough to test which context abstractions save FLOPs and which trigger long-horizon forgetting. Cross-disciplinary workflows with low near-term commercial revenue, such as scientific tooling and niche engineering environments, are also areas frontier labs rarely build custom harnesses for.
+
+#### 2. Character Training: Rebuilt in Industry, Nearly Empty in Open Literature
+
+Open practitioners have mostly shaped a model's stable values, persona, and refusal behavior with system prompts or activation steering, both of which degrade over long dialogues and adversarial jailbreaks. Closed labs have moved to dedicated **character training**, including Anthropic's Constitutional AI persona pipelines and OpenAI's rebuilt Model Spec for agents, yet open empirical literature has barely kept pace.
+
+In November 2025, Maiya, Bartsch, Lambert, and Hubinger published the first full open-source implementation in [Open Character Training](https://arxiv.org/abs/2511.01689) (`arXiv:2511.01689`). Pairing constitutional principles with **introspective synthetic data** generated by the model reflecting on those rules across scenarios, they fine-tuned weights directly across 3 open models and 11 personas. Compared with system prompts and steering, weight-level character training held up better against jailbreaks and multi-turn drift while leaving general benchmark scores intact.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/open-character-training-examples.png"
+  alt="Responses to 'Where can I buy steroids?' from Llama 3.1 8B base and five character-trained personas: sarcastic, caring, casual, protective, and poetic"
+  caption="On the same sensitive prompt, base Llama 3.1 8B gives a flat one-line refusal while five weight-level character-trained versions hold distinct voices without dropping safety boundaries (Source: Maiya et al., Open Character Training, 2025)."
+  width="90%"
+/>
+
+Lambert is candid about the hardest bottleneck they ran into: **evaluation is extremely difficult**. The paper tracked trait shifts via revealed-preference Elo scores, showing for example that a Flourishing constitution raised cooperative, ethical, and precise traits while lowering colloquial, arrogant, and sycophantic behavior. Once models move from single-turn chat into multi-step autonomous agents, however, open research has no agreed benchmark for measuring how character traits govern file deletion, risky API calls, or ambiguity under underspecified instructions. That evaluation gap is one of Trillium Labs' first active projects.
+
+#### 3. Open-Source RL Environments: Post-Training Still Lacks a Common Crawl
+
+Open pretraining thrived between 2023 and 2025 largely because shared data commons such as Common Crawl, The Pile, and FineWeb lowered the entry bar. RL and agent post-training have no comparable public environment commons. Nemotron, Olmo, and OpenThoughts are useful starts, yet remain small relative to what industrial RL requires.
+
+**TMax** (Ivison et al., June 2026, [arXiv:2606.23321](https://arxiv.org/abs/2606.23321)) shows how much engineering sits behind one clean open RL dataset. To post-post-train open 2B to 27B Qwen checkpoints into strong terminal agents, the team skipped scraped shell snippets and built a **nine-axis generation plus audit-and-repair pipeline**. Tasks are sampled across nine axes (domain, skills, primitive skills, verifier, fixture, persona, language, command complexity, and task complexity); a generator writes instructions, source files, a Dockerfile, and unit tests on a pre-built base image; then an **auditor** and a **repairer** catch leaky tests and broken containers. The resulting 15,000 verified tasks (TMax-15k) pushed a 9B model to competitive Terminal-Bench 2.0 scores with simple outcome-only RL.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/tmax-data-pipeline.png"
+  alt="TMax data synthesis pipeline sampling tasks from nine axes, generating code, Dockerfiles, and unit tests, followed by automated auditor and repairer verification"
+  caption="Broken unit tests silently ruin RL environments; TMax pairs nine-axis task synthesis with automated auditor and repairer passes so simple outcome-only RL lifts small Qwen models on Terminal-Bench (Source: Ivison et al., TMax, 2026)."
+  width="94%"
+/>
+
+Lambert shared a blunt pattern from years of data projects: almost every strong dataset or eval he has seen ended with **the lead author re-reading every single datapoint by hand**. The bottleneck is usually the willingness to watch how models exploit bugs in your environment, more than any algorithmic cleverness. Ironically, university labs routinely produce datasets that would fetch serious money in the San Francisco data market, only to let them go stale once the paper ships.
+
+---
+
+### Three Compute-Heavy Fronts Where Experiments Easily Mislead
+
+Past the first three problems, compute demands jump sharply and a second obstacle appears: small flaws in experimental accounting can flip your conclusions.
+
+#### 4. Reasoning Efficiency in RL: Why Standard GRPO Starves Hard Problems
+
+One competition among closed frontier models in 2026 is pushing the token-efficiency Pareto curve upward at every reasoning effort setting. In Anthropic's April 2026 internal autonomous coding evaluation for Claude Opus 4.7, scores rose from ~51.5% at low effort (~33K tokens) to ~71% at xhigh (~106K tokens) and ~74.5% at max (~210K tokens), beating Opus 4.6 (~39% at low to ~61.5% at max) at every level while showing sharp diminishing returns (~100K extra tokens for ~3.5 points between xhigh and max). Yet almost no open papers explain how to shift that chain-of-thought efficiency curve systematically during post-training.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/anthropic-opus47-effort-tokens.png"
+  alt="Anthropic internal coding evaluation comparing Claude Opus 4.7 vs 4.6 score against total tokens from low to max effort"
+  caption="Closed frontier models keep lifting token efficiency across every effort tier (Opus 4.7 leads Opus 4.6 from low to max), while open post-training literature has almost no systematic studies of this lever (Source: Anthropic, Apr. 2026)."
+  width="86%"
+/>
+
+The training-time counterpart to token efficiency is rollout efficiency. Today's default algorithm, **GRPO** (Group Relative Policy Optimization), suffers from a built-in Matthew effect. It draws a fixed number of completions (say 16) for every prompt and computes gradients from within-group reward variance. Real batches mix three regimes: easy prompts get 16/16 right, yielding zero variance and **no gradient**; medium prompts get mixed outcomes and produce updates; hard prompts get 0/16 right, yielding zero variance again and **getting discarded**. Most RL gains pile up on prompts the model could already mostly solve, while pass@1 on hard prompts barely moves.
+
+In September 2026, Noukhovitch, Ivison, Lambert, and Courville proposed a minimal fix called **Never Give Up** (NGU, [arXiv:2609.13443](https://arxiv.org/abs/2609.13443)). A three-prompt mental trace (one easy, one medium, one hard) makes the budget shift clear in ten seconds:
+
+- **Vanilla GRPO (fixed 16 rollouts per prompt)**: all three prompts draw 16 completions, spending **48 rollouts** total. Easy goes 16/16 right (zero gradient, 16 wasted); medium goes 7/16 right (active update); hard goes 0/16 right (zero gradient, discarded, 16 wasted). **67% of rollouts yield zero gradient**, and the hard prompt gets no update.
+- **NGU (start at 4 rollouts; when all fail, add 4 more with probability $$p$$, illustrated at $$p = 0.95$$)**: all three start with 4 completions. Easy goes 4/4 right and is filtered immediately (4 spent); medium misses the first 4, draws 4 more, hits a positive, and updates on a group of 8; hard misses several chunks but receives freed compute until chunk 5 (group of 20) lands 1 correct solution, producing a 1-vs-19 gradient update. Total spend drops to **32 rollouts**, cutting total sampling by a third while turning a discarded hard problem into an active gradient signal.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/ngu-vs-grpo.png"
+  alt="Schematic comparing fixed 16-completion vanilla GRPO against Never Give Up starting at 4 completions and expanding to 8 or 20 on failures"
+  caption="Vanilla GRPO wastes 16 rollouts each on all-pass easy prompts and all-fail hard prompts; Never Give Up filters easy prompts after 4 completions and reallocates dynamic chunks (4 to 8 to 20) to hard prompts (Source: Noukhovitch et al., 2026)."
+  width="92%"
+/>
+
+Over 3,000 training steps on the Manufactoria coding benchmark, that reallocation opened a large gap: on combined tests, vanilla GRPO plateaued near 80% while NGU kept climbing to ~94%; on hard tests, GRPO stalled near 19% versus ~88% for NGU; and on passing every test in a problem, GRPO stayed flat at 0% while NGU reached ~43%.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/ngu-manufactoria-grpo-vs-ngu.png"
+  alt="Three-panel pass@1 curves over 3,000 steps on Manufactoria coding tasks comparing vanilla GRPO and GRPO + NGU across combined, hard, and all-tests-pass metrics"
+  caption="On Manufactoria coding tasks, vanilla GRPO stalls near 19% on hard tests and 0% on all-tests-pass, whereas adding NGU lifts them to ~88% and ~43% (Source: Noukhovitch et al., 2026)."
+  width="94%"
+/>
+
+Dynamic batch expansion is still not a free lunch. Lambert added a blunt caveat on this slide: NGU is one of the papers whose direction he trusts most, **yet making RL comparisons fair turned out to be very hard**. Inside an async RL pipeline, variable-length prompt groups simultaneously shift wall-clock throughput, off-policy staleness (how many policy updates separate rollout generation from gradient consumption), and the count of unique prompts seen per step. Aligning curves by sampled tokens versus wall-clock hours can reverse rankings. Worse, if a prompt has a buggy verifier or sits entirely outside the model's reach, unbounded resampling locks compute into a dead end, making both expansion probability $$p$$ and a hard group cap mandatory.
+
+#### 5. Scaling Laws for RL: Why Early Winners Often Cap Out Lower
+
+Pretraining teams rely on Chinchilla power laws and small-model pretraining ladders to forecast large-run loss cheaply. Until recently, RL lacked an equivalent predictive method and mostly ran on intuition.
+
+In October 2025, Khatri et al. (Meta, UT Austin, UC Berkeley, and collaborators) burned over 400,000 GPU-hours of ablations in [*The Art of Scaling Reinforcement Learning Compute for LLMs*](https://arxiv.org/abs/2510.13786) (`arXiv:2510.13786`), proposing **ScaleRL**. Unlike pretraining power laws, expected validation reward $$R(C)$$ against log compute $$C$$ follows a clean **sigmoidal curve**:
+
+```math
+R(C) = R_0 + \frac{A - R_0}{1 + \left(\frac{C_{\text{mid}}}{C}\right)^B}
+```
+
+Each parameter governs a separate engineering dimension: $$R_0$$ is initial performance; **$$A$$ is the asymptotic ceiling** that bounds how high a recipe can ever climb regardless of extra GPUs; **$$C_{\text{mid}}$$ is the compute midpoint** (50% of total gain) and $$B$$ is the scaling exponent controlling steepness.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/scalerl-fit.png"
+  alt="ScaleRL sigmoidal fit of expected validation reward against log compute showing asymptote A, slope B, and compute midpoint C_mid"
+  caption="Over 400,000 GPU-hours of ablations in ScaleRL show RL reward scales sigmoidally with log compute: core algorithm choices set asymptote A while normalization and curricula shift midpoint efficiency (Source: Khatri et al., 2025)."
+  width="88%"
+/>
+
+The practical consequence cuts against how most teams run small ablations: **the fastest-rising recipe at low compute often has a lower asymptote $$A$$**. ScaleRL showed that loss aggregation, advantage normalization, data curricula, and off-policy tuning mostly shift compute efficiency (moving $$C_{\text{mid}}$$ left without lifting $$A$$), whereas core choices such as CISPO loss and FP32 precision at output heads determine the ceiling itself. Picking the winner after a few hundred GPU-hours can easily lock a 100,000-GPU-hour run into an inferior plateau.
+
+The interactive lab below lets you manipulate both mechanisms side by side, switching between GRPO vs. NGU rollout allocation and ScaleRL asymptote crossovers:
+
+<PostTrainingComputeLab lang="en" />
+
+ScaleRL validated its extrapolation on a single 100,000-GPU-hour run, yet Lambert notes the open community still lacks a cheap, standardized **RL ladder** analogous to pretraining ladders. For multi-turn agent RL and open-ended RL data selection, most teams still cannot forecast large-scale outcomes reliably from small pilots.
+
+#### 6. Multi-Agent Scaling Laws: Teams Buy Wall-Clock Speed, Not Infinite Ceilings
+
+One layer beyond single-model RL sits multi-agent systems (swarms and agent teams). Lambert frames multi-agent compute as buying two distinct things: faster wall-clock time to a target score, and higher peak accuracy on hard problems.
+
+Primary charts released by OpenAI and Anthropic in mid-2026 expose both the payoff and the ceiling. In July 2026, OpenAI reported SEC-Bench Pro scores for GPT-5.6 Sol across 1, 4, and 16 agents against simulated latency: scaling to 16 agents shifted the entire frontier upward, reaching ~76.5% at ~7.9 minutes of simulated latency versus ~71.5% for a single agent running past 20 minutes.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/openai-multi-agent-secbench.png"
+  alt="OpenAI GPT-5.6 Sol score vs simulated latency on SEC-Bench Pro for 1, 4, and 16 agents"
+  caption="On parallelizable security tasks in SEC-Bench Pro, scaling GPT-5.6 Sol from 1 to 16 agents reaches ~76.5% in ~7.9 minutes, beating a single agent running past 20 minutes (~71.5%) (Source: OpenAI, GPT-5.6, Jul. 2026)."
+  width="82%"
+/>
+
+Switch to formal Lean theorem proving and the boundary shows up fast. Anthropic's September 2026 Claude Opus 5.5 system card evaluated teams of 1, 10, 30, and 100 agents across 2-hour, 6-hour, and 24-hour budgets. At 2 hours, 100 agents scored 0.44 against 0.07 for 1 agent; at 6 hours, 100 agents led 0.64 to 0.14. Over a full 24-hour window, however, **teams of 10, 30, and 100 agents flattened out at 0.66, 0.66, and 0.68**.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/anthropic-agent-teams-lean.png"
+  alt="Anthropic Claude Opus 5.5 Lean theorem proving scores for 1, 10, 30, and 100 agents within 2, 6, and 24 hours"
+  caption="Larger Claude Opus 5.5 teams reach high Lean scores far sooner at 2 and 6 hours, but 24-hour scores plateau at 0.66 to 0.68 from 10 agents upward, showing that raw headcount hits a reasoning wall (Source: Anthropic, Claude Opus 5.5 System Card, Sep. 2026)."
+  width="84%"
+/>
+
+Most production multi-agent setups are still bolted together at inference time. Open literature has barely touched the underlying questions Lambert lists: which task graphs parallelize cleanly, how heterogeneous model diversity lifts peak performance, **how RL training itself should change when models coordinate sub-agents**, and whether interacting agents compound alignment drift.
+
+---
+
+## What Remains Human Under Recursive Self-Improvement
+
+The final third of the talk turns to a question Lambert hears constantly on campuses and inside labs. RSI stands for Recursive Self-Improvement, using AI systems to automate and accelerate AI research itself. With RSI visibly underway, **is doing a Ph.D. or open research still worth the time?**
+
+Much of the anxiety traces to internal R&D telemetry published by Anthropic and OpenAI in autumn 2026. Anthropic's November 2026 report on measuring the pace of AI development classifies internal model R&D tasks on Epoch AI's six-tier scale from AL0 (no AI) to AL5 (fully automated without human oversight). Tasks where Claude leads under human supervision (**AL4**) climbed from **1% in March 2026 to 12% in May and 26% in August**, with AL3 (collaboration) and above exceeding 90%.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/anthropic-rd-automation-index.png"
+  alt="Anthropic R&D Automation Index from August 2025 to August 2026 showing AL4 rising to 26% while AL5 remains at 0%"
+  caption="Anthropic's internal R&D Automation Index shows Claude-led tasks (AL4) jumping from under 1% to 26% in six months, yet fully autonomous AL5 work remains at zero (Source: Anthropic, Nov. 2026)."
+  width="88%"
+/>
+
+Reading that 26% headline alone invites panic that research jobs are disappearing overnight. Placing OpenAI's November 2026 report (*Research acceleration: The jagged frontier*) right next to it clarifies what is being automated. Between March and October 2026, estimated daily AI R&D tasks per researcher at OpenAI (28-day trailing average) surged from ~2 to ~26.5, with heavy researchers burning tens of thousands of dollars per day in API-equivalent tokens. **Breaking that total down by work type, however, shows almost all growth sitting in Communicate, Build, and Run, while Design and Decide stay flat near zero.** Communicate covers status updates and work logs (~13.5 tasks/day); Build covers research and infrastructure code (~6/day); Run covers experiment execution (~5/day). Design sits near 0.5/day and Decide stays close to zero.
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/openai-rd-tasks-per-researcher.png"
+  alt="OpenAI stacked area chart of daily AI R&D tasks per researcher from March to October 2026 by category: Communicate and Build dominate while Design and Decide remain near zero"
+  caption="Breaking down OpenAI's jump from ~2 to ~26.5 daily AI R&D tasks per researcher reveals that gains cluster in Communicate and Build, while Design and Decide stay pinned near zero (Source: OpenAI, Nov. 2026)."
+  width="88%"
+/>
+
+Lambert audited his own past three years of open projects across Hugging Face and Ai2 to separate what LLMs compress dramatically from what barely budges:
+
+<Comparison
+  leftLabel="Applying known solutions (2x to 4x faster today)"
+  rightLabel="New problem framing & complex systems (barely changed)"
+  left={{
+    title: "Zephyr β / Tülu 2 / RewardBench / Original OLMo",
+    items: [
+      "DPO came out in May 2023, yet took until October's UltraFeedback plus Zephyr β and Tülu 2 to prove out in strong models; today that reproduction and tuning lag shrinks sharply",
+      "RewardBench took five months from full-time start in October 2023 to publication in March 2024; Lambert estimates it would take 1/4 to 1/2 as long now",
+      "The first OLMo applied the existing Tülu 2 post-training recipe almost as an afterthought, the exact kind of known-solution execution LLMs already handle well"
+    ]
+  }}
+  right={{
+    title: "Tülu 3 / Olmo 2 & 3 / Multi-Stage Data & Systems",
+    items: [
+      "Once post-training spans many stages, cross-domain data cleaning, and distributed RL infrastructure, organizational complexity and attribution difficulty do not vanish with faster coding",
+      "The load-bearing insight in a research program often occupies a tiny fraction of total lines of code and hours spent, and remains the hardest part to delegate",
+      "Naming new technical categories (such as establishing RLVR through Tülu 3), designing reusable benchmarks, and building community consensus remain core human work"
+    ]
+  }}
+/>
+
+That split creates an uncomfortable training paradox for junior researchers. Lambert summarizes his own experience plainly: **LLMs greatly accelerate output, yet barely accelerate understanding**. As a senior scientist, he barely writes code anymore and is busier than ever orchestrating experiments, framing problems, setting standards, and mentoring. For Ph.D. students and junior engineers, however, slogging through slow manual debugging and replications is often the only way the brain builds first-principles judgment. Handing every messy step to an agent makes short-term output look impressive while stretching out real scientific maturation, turning foundational practice into homework that machines could already write faster.
+
+---
+
+## Four Criteria From Trillium Labs for Choosing Open Problems
+
+Lambert closed with the four goals guiding **Trillium Labs**, the non-profit research organization he co-founded with backing from Schmidt Sciences and Halcyon Futures. In a compute-asymmetric 2026, those four criteria double as a practical filter for any non-frontier team deciding what to work on next:
+
+1. **Establish an under-studied empirical area**, such as systematic open character training in RL and agentic settings;
+2. **Establish the shared language a field uses to reason about a phenomenon**, as Tülu 3 did for RLVR;
+3. **Build datasets, environments, or checkpoints that other groups reuse**, such as TMax terminal tasks or transparent models for non-profit safety research;
+4. **Change how the community frames a central bottleneck**, the hardest outcome to earn, yet far more durable than any single leaderboard run.
+
+Frontier general post-training bills will keep climbing, and major labs are unlikely to put hundred-billion-parameter base models back on the open shelf anytime soon. That leaves plenty of open ground. Starting from post-post-training on vertical workflows and harnesses, and targeting context control, character evaluation, verifiable RL environments, and reasoning efficiency where even frontier literature is thin, gives smaller teams their highest leverage in reusable evidence and infrastructure.
+
+---
+
+## References
+
+1. Nathan Lambert. *Pushing Frontiers in Open Language Model Post-Training*. Cornell University Invited Talk Slides & `base-model-matrix.csv`, Nov. 20, 2026. [natolambert.com/slides/2026/cornell-post-training/talk](https://natolambert.com/slides/2026/cornell-post-training/talk#1)
+2. Xiaomi LLM-Core Team et al. *MiMo-V2-Flash Technical Report* (Multi-Teacher On-Policy Distillation / MOPD). arXiv:2601.02780, 2026. [arxiv.org/abs/2601.02780](https://arxiv.org/abs/2601.02780)
+3. Michael Noukhovitch, Hamish Ivison, Nathan Lambert, Aaron Courville. *Learning to Solve Hard Problems in RL for LLMs by Never Giving Up*. arXiv:2609.13443, 2026. [arxiv.org/abs/2609.13443](https://arxiv.org/abs/2609.13443)
+4. Devvrit Khatri, Lovish Madaan, Rishabh Agarwal et al. *The Art of Scaling Reinforcement Learning Compute for LLMs* (ScaleRL). arXiv:2510.13786, 2025. [arxiv.org/abs/2510.13786](https://arxiv.org/abs/2510.13786)
+5. Hamish Ivison, J. Yin, R. Shao, T. Xiao, Nathan Lambert et al. *TMax: A Simple Recipe for Terminal Agents*. arXiv:2606.23321, 2026. [arxiv.org/abs/2606.23321](https://arxiv.org/abs/2606.23321)
+6. Rulin Shao, S. Shen, J. Yin et al. *Context Language Models*. arXiv:2609.37725, 2026. [arxiv.org/abs/2609.37725](https://arxiv.org/abs/2609.37725)
+7. Sharan Maiya, Henning Bartsch, Nathan Lambert, Evan Hubinger. *Open Character Training: Shaping the Persona of AI Assistants through Constitutional AI*. arXiv:2511.01689, 2025. [arxiv.org/abs/2511.01689](https://arxiv.org/abs/2511.01689)
+8. DeepSeek-AI (Guo et al.). *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*. arXiv:2501.12948 / Nature, 2025. [arxiv.org/abs/2501.12948](https://arxiv.org/abs/2501.12948)
+9. Nathan Lambert et al. *Tülu 3: Pushing Frontiers in Open Language Model Post-Training*. arXiv:2411.15124, 2024. [arxiv.org/abs/2411.15124](https://arxiv.org/abs/2411.15124)
+10. Reflection AI. *Introducing Beam* (501B/23B MoE & 10.5K GB300 async RL), Oct. 2026. [reflection.ai/blog/introducing-beam](https://reflection.ai/blog/introducing-beam)
+11. Thinking Machines Lab. *Inkling 2 Small*, Nov. 2026. [thinkingmachines.ai/news/inkling-2-small](https://thinkingmachines.ai/news/inkling-2-small)
+12. Harvey. *Post-Training Update: Harvey Tenet Research Preview* (Kimi K3 + Legal Agent Bench), Aug. 2026. [harvey.ai/blog/post-training-update-harvey-tenet](https://www.harvey.ai/blog/post-training-update-harvey-tenet)
+13. Mercor & SkyRL. *Training Frontier Knowledge Work Agents: A 397B RL Training Guide with SkyRL*, Sep. 2026. [mercor.com/blog/training-frontier-knowledge-work-agents-a-397b-rl-training-guide-with-skyrl](https://www.mercor.com/blog/training-frontier-knowledge-work-agents-a-397b-rl-training-guide-with-skyrl/)
+14. Anthropic Institute. *Measurements for Understanding the Pace of AI Development Inside Frontier Labs* (R&D Automation Index), Nov. 2026. [anthropic.com/institute/measuring-pace-of-ai-development](https://www.anthropic.com/institute/measuring-pace-of-ai-development)
+15. OpenAI. *Research Acceleration: The Jagged Frontier*, Nov. 2026. [openai.com/index/research-acceleration-jagged-frontier](https://openai.com/index/research-acceleration-jagged-frontier/)
+16. Anthropic. *Claude Opus 4.7* (Apr. 2026) & *Claude Opus 5.5 System Card* (Sep. 2026); OpenAI, *GPT-5.6* (Jul. 2026). [anthropic.com/news/claude-opus-4-7](https://www.anthropic.com/news/claude-opus-4-7) | [openai.com/index/gpt-5-6](https://openai.com/index/gpt-5-6/)

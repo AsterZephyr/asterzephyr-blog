@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" width="1000" height="420" role="img" aria-labelledby="title desc">
+<title id="title">2026 年开源后训练的演进主线、六大开放问题与失效分支</title>
+<desc id="desc">上排四步展示开源后训练从前沿算力倒挂、基座停发后的 Post-Post-Training 切口、按算力排序的六大开放问题阶梯，到人类研究者的核心承重件；下排虚线标出对应环节的常见误判与失效分支。</desc>
+<defs>
+  <marker id="arrow-main" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0 1 L9 5 L0 9 z" fill="#4f4942"/>
+  </marker>
+  <marker id="arrow-fail" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+    <path d="M0 1 L9 5 L0 9 z" fill="#b1462f"/>
+  </marker>
+</defs>
+
+<rect width="1000" height="420" fill="#faf7f2"/>
+
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', Arial, sans-serif" x="500" y="34" font-size="18" font-weight="700" fill="#1f1d1a" text-anchor="middle">2026 开源后训练全景：算力倒挂、二次特化与六大开放问题</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', Arial, sans-serif" x="500" y="57" font-size="12.5" fill="#5d574f" text-anchor="middle">上排按现实演进拆解开源团队的切入路径，下排虚线标出最常见的资源误判与方法失效</text>
+
+<!-- Node 1 -->
+<rect x="28" y="82" width="220" height="154" rx="10" fill="#edf3f9" stroke="#2f5d8a" stroke-width="1.6"/>
+<path d="M38 82 H238 Q248 82 248 92 V118 H28 V92 Q28 82 38 82 Z" fill="#d3e3f3"/>
+<line x1="28" y1="118" x2="248" y2="118" stroke="#2f5d8a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="42" y="105" font-size="13" font-weight="700" fill="#1b3956">01 前沿后训练算力倒挂</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="42" y="142" font-size="11.5" fill="#23201c">• 配方演进：RLHF → R1 → MOPD</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="42" y="166" font-size="11.5" fill="#23201c">• RL 占头部实验室约 55% 算力</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="42" y="190" font-size="11.5" fill="#23201c">• 完整后训练进入 $50M+/yr 门槛</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="42" y="218" font-size="10.2" font-weight="600" fill="#2f5d8a">R1 · Beam · MiMo-V2-Flash</text>
+
+<!-- Node 2 -->
+<rect x="268" y="82" width="220" height="154" rx="10" fill="#fcf5e6" stroke="#a6631b" stroke-width="1.6"/>
+<path d="M278 82 H478 Q488 82 488 92 V118 H268 V92 Q268 82 278 82 Z" fill="#f4e0bc"/>
+<line x1="268" y1="118" x2="488" y2="118" stroke="#a6631b" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="282" y="105" font-size="13" font-weight="700" fill="#633a0d">02 Post-Post-Training</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="282" y="142" font-size="11.5" fill="#23201c">• 12 家开源厂中 8 家停发基座</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="282" y="166" font-size="11.5" fill="#23201c">• 直接基于后训练权重做二次 RL</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="282" y="190" font-size="11.5" fill="#23201c">• 垂类工作流与终端适配回报高</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="282" y="218" font-size="10.2" font-weight="600" fill="#9a5914">Harvey · SkyRL · TMax · CLM</text>
+
+<!-- Node 3 -->
+<rect x="508" y="82" width="220" height="154" rx="10" fill="#e9f4f0" stroke="#2c6b5a" stroke-width="1.6"/>
+<path d="M518 82 H718 Q728 82 728 92 V118 H508 V92 Q508 82 518 82 Z" fill="#cae4db"/>
+<line x1="508" y1="118" x2="728" y2="118" stroke="#2c6b5a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="522" y="105" font-size="13" font-weight="700" fill="#1a463a">03 六大开放问题阶梯</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="522" y="142" font-size="11.5" fill="#23201c">• 低算力：Harness · 性格 · 环境</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="522" y="166" font-size="11.5" fill="#23201c">• 中算力：推理效率与难题分配</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="522" y="190" font-size="11.5" fill="#23201c">• 高算力：RL 缩放与多 Agent 协同</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="522" y="218" font-size="10.2" font-weight="600" fill="#255d4e">NGU · ScaleRL · Agent Teams</text>
+
+<!-- Node 4 -->
+<rect x="748" y="82" width="224" height="154" rx="10" fill="#f3eff8" stroke="#634b7a" stroke-width="1.6"/>
+<path d="M758 82 H962 Q972 82 972 92 V118 H748 V92 Q748 82 758 82 Z" fill="#dfd5eb"/>
+<line x1="748" y1="118" x2="972" y2="118" stroke="#634b7a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="762" y="105" font-size="13" font-weight="700" fill="#3f2d52">04 人类研究者的承重件</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="762" y="142" font-size="11.5" fill="#23201c">• Claude 主导 26% 研发，AL5 为 0</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="762" y="166" font-size="11.5" fill="#23201c">• 编码沟通暴涨，设计决策贴零</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="762" y="190" font-size="11.5" fill="#23201c">• 定义问题、建基准与确立术语</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="762" y="218" font-size="10.2" font-weight="600" fill="#594170">Anthropic · OpenAI · Trillium</text>
+
+<!-- Horizontal arrows -->
+<line x1="248" y1="159" x2="265" y2="159" stroke="#4f4942" stroke-width="1.8" marker-end="url(#arrow-main)"/>
+<line x1="488" y1="159" x2="505" y2="159" stroke="#4f4942" stroke-width="1.8" marker-end="url(#arrow-main)"/>
+<line x1="728" y1="159" x2="745" y2="159" stroke="#4f4942" stroke-width="1.8" marker-end="url(#arrow-main)"/>
+
+<!-- Vertical failure arrows -->
+<line x1="138" y1="236" x2="138" y2="281" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+<line x1="378" y1="236" x2="378" y2="281" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+<line x1="618" y1="236" x2="618" y2="281" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+<line x1="860" y1="236" x2="860" y2="281" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+
+<!-- Failure tags -->
+<rect x="86" y="247" width="104" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="138" y="261" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">混同算力口径时</text>
+
+<rect x="326" y="247" width="104" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="378" y="261" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">硬拼全链路时</text>
+
+<rect x="566" y="247" width="104" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="618" y="261" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">脱离验证选错题</text>
+
+<rect x="808" y="247" width="104" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="860" y="261" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">用产出替理解时</text>
+
+<!-- Failure cards -->
+<rect x="28" y="284" width="220" height="106" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="42" y="308" font-size="12" font-weight="700" fill="#9b3621">误判 1：把卡时当 FLOPs</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="42" y="331" font-size="11.2" fill="#433834">RL 大量卡时耗在自回归采样，</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="42" y="352" font-size="11.2" fill="#433834">FLOPs 占比远低于卡时占比，</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="42" y="373" font-size="11.2" fill="#433834">且无法绕开强基座与冷启动。</text>
+
+<rect x="268" y="284" width="220" height="106" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="282" y="308" font-size="12" font-weight="700" fill="#9b3621">误判 2：中小团队复刻全栈</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="282" y="331" font-size="11.2" fill="#433834">从零追头部通用后训练成本高，</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="282" y="352" font-size="11.2" fill="#433834">缺少垂类环境与 Harness 适配，</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="282" y="373" font-size="11.2" fill="#433834">投入巨大却只做出滞后拷贝。</text>
+
+<rect x="508" y="284" width="220" height="106" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="522" y="308" font-size="12" font-weight="700" fill="#9b3621">误判 3：盲目堆题与不公对照</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="522" y="331" font-size="11.2" fill="#433834">固定批 GRPO 把算力耗在简单题；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="522" y="352" font-size="11.2" fill="#433834">小算力快起飞不等于上限更高；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="522" y="373" font-size="11.2" fill="#433834">多 Agent 堆数量长程仍会触顶。</text>
+
+<rect x="748" y="284" width="224" height="106" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="762" y="308" font-size="12" font-weight="700" fill="#9b3621">误判 4：把加速代码当科研</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="762" y="331" font-size="11.2" fill="#433834">只看任务数会高估全自动进度；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="762" y="352" font-size="11.2" fill="#433834">新人若全程跳过手动低效排查，</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="762" y="373" font-size="11.2" fill="#433834">反而更难建立第一性理解。</text>
+</svg>

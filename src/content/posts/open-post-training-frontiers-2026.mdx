@@ -1,0 +1,328 @@
+---
+title: "开源后训练的新边界：2026 年的六大开放问题"
+date: 2026-11-23
+tags: [AI 与机器学习]
+summary: "基于 Nathan Lambert 2026 年 11 月在康奈尔大学的演讲与 16 篇一手论文报告，梳理开源大模型后训练的四条变化：算力重心如何从预训练倒挂到强化学习、基座权重退场后 Post-Post-Training 怎么接棒、按算力门槛排队的六大开放问题，以及自动化研发浪潮下人类研究者的核心位置。"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+import PostTrainingComputeLab from '../../components/blog/PostTrainingComputeLab.astro'
+import Comparison from '../../components/blog/Comparison.astro'
+
+
+后训练（post-training）指预训练之后，用监督微调、偏好优化和强化学习把基座变成可用助手或 Agent 的阶段。2026 年下半年，做开源大模型后训练的团队同时面对两堵现实的墙。一堵是算力墙：头部闭源与准前沿实验室把强化学习推到了每年五千万美元以上的量级，部分新模型的强化学习卡时已经反超预训练。另一堵是起点墙：截至 2026 年 11 月，全球 12 家主流开源权重实验室里已有 8 家在最近半年停发完整基座模型，只放出已经做完后训练的权重。
+
+2026 年 11 月 20 日，前 Ai2 OLMo 后训练负责人、新成立的非营利研究机构 Trillium Labs 执行总监 Nathan Lambert 在康奈尔大学做了一场 54 页的演讲[《Pushing Frontiers in Open Language Model Post-Training》](https://natolambert.com/slides/2026/cornell-post-training/talk#1)，盘点了后训练过去四年的配方变迁、算力倒挂，以及 Trillium Labs 准备投入的六大开放问题。把这份演讲里的原始数据和引用的 2025 到 2026 年一手论文报告逐一核对后，能得到一个明确的工程判断：**非头部团队硬追通用全链路后训练已经算不过账，但开源后训练文献里仍有大片长期有效的空白地带。只要沿着两条线走，一是基于后训练权重做二次特化，二是按算力门槛选题目，中小团队依然能做出改变行业工作流的研究。**
+
+<Callout type="info" title="阅读范围、前提与核验口径">
+本文默认读者了解预训练、监督微调（SFT）和强化学习（RL）的基本分工，不重复展开经典 RLHF 推导，前置内容可以看本站关于 [Mid-Training](/blog/LLM-Mid-Training-被Tech-Report遮掩的关键训练阶段) 与 [大模型 RL 难点](/blog/rl-for-llm-为什么强化学习训练大模型这么难) 的文章。**本文不按 54 页幻灯片逐页翻译，不评测开源模型榜单，也不讨论安全治理政策。**<br />
+全文以 Nathan Lambert 2026 年 11 月 20 日演讲与随附的 `base-model-matrix.csv` 为主线，文中涉及的 MiMo-V2-Flash、Beam、Inkling 2 Small、Harvey Tenet、Mercor+SkyRL、TMax、CLM、Open Character Training、Never Give Up、ScaleRL、Anthropic 与 OpenAI 内部研发遥测数据均已核对对应一手报告。演讲中属于估算或作者个人判断的口径，比如 SemiAnalysis 的预测季度和 Inkling 2 Small 的预训练卡数估算，正文都标明了边界。
+</Callout>
+
+<TechGraph
+  src="/images/posts/open-post-training-frontiers-2026/open-post-training-map.svg"
+  title="2026 OPEN POST-TRAINING MAP"
+  caption="前沿后训练进入高算力门槛且多数开源厂停发基座后，开源团队应沿 Post-Post-Training 与六大开放问题的算力阶梯切入，下排虚线标出对应环节最常见的四类误判（博主自绘，综合 Nathan Lambert 2026 演讲及下文一手文献）。"
+/>
+
+## 算力倒挂与基座消失，后训练拆出了新赛道
+
+后训练这个说法，最早是 2023 年 GPT-4 技术报告把它正式带进了公众视野。当时大家把它理解成预训练结束后的收尾工序：让模型更听话、少编造事实。Nathan Lambert 在开场给了一个很实在的观察：过去一年里，后训练配方的形态变化比前三年加起来还大。
+
+### 配方四年三变：从三段式 RLHF 到 MOPD 多教师蒸馏
+
+2022 到 2023 年的 InstructGPT 确立了经典三步走：先用人工示范做 SFT，再用人工两两排序训奖励模型（Reward Model），最后用 PPO（近端策略优化）对着奖励模型调策略。2024 年的 Llama 3 与 Tülu 3 沿着这套骨架加长了多轮迭代，并把 RLVR 变成标准组件。RLVR 即 Reinforcement Learning with Verifiable Rewards，基于可验证奖励的强化学习，靠数学判题器或代码单测打分，不再全靠奖励模型。
+
+2025 年 1 月，DeepSeek-R1（[arXiv:2501.12948](https://arxiv.org/abs/2501.12948)）把重心挪到了大规模推理 RL 上：先用纯 RL 的 R1-Zero 激发长思考行为，再走冷启动 SFT、推理 RL、拒绝采样 SFT 和最终对齐 RL。到了 2026 年，单模型一锅炖的弊端彻底暴露。数学、代码、终端操作、通用写作的奖励分布互相拉扯，训强一项常把另一项拉垮。
+
+2026 年 1 月，小米团队发布了 MiMo-V2-Flash（[arXiv:2601.02780](https://arxiv.org/abs/2601.02780)），这是一个总参数 309B、激活参数 15B 的 MoE 模型。它把工业界带到了第三代主流形态：**MOPD**，全称 Multi-Teacher On-Policy Distillation，即多教师在策略蒸馏。做法分三段：先训一个共享的通用 SFT 底座，再按领域各自独立训练 $$N$$ 个专精教师模型，覆盖数学、软件工程、搜索 Agent 等，各自跑完整的 SFT 与 RL 配方，最后把这些教师同时蒸馏回同一个学生模型。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/mopd-recipe.png"
+  alt="MOPD 多教师在策略蒸馏三阶段流程图：共享 SFT 底座分叉出多个领域 SFT 与 RL 专精教师，最后汇入单一学生模型"
+  caption="2026 年的前沿后训练配方分成两步：先各自养专精教师，再用 MOPD 在策略蒸馏合并，以此避开多领域混训 RL 时的能力跷跷板（图源：Nathan Lambert, RLHF Book ch. 3，基于 Xiaomi MiMo-V2-Flash, 2026）。"
+  width="92%"
+/>
+
+MOPD 和老式离线蒸馏的核心差别在这里：老式做法让学生背教师离线写好的静态答案，MOPD 则让学生**自己在线采样轨迹，再由对应领域的教师对每个采样 token 打逆向 KL 优势分**。拿一道多步数学题做个最小心算：普通异步 GRPO 只能看整条回答最后对不对，给整条轨迹贴一个标量奖励；而在 MOPD 里，学生自己生成第 $$t$$ 个 token $$y_t$$ 后，系统直接算出教师与学生在该位置的对数概率差 $$\log \pi_{\text{teacher}}(y_t \mid x, y_{<t}) - \log \pi_{\text{student}}(y_t \mid x, y_{<t})$$，再叠加可验证的结果奖励。学生写对思路但漏掉关键一步推导时，信号会精确落到具体 token 上。轨迹由学生自己生成，也避开了离线蒸馏常见的暴露偏差。暴露偏差（exposure bias）指训练时看教师的前缀、推理时看自己的前缀，两边的分布错位。
+
+这套先拆后合的架构，工程代价同样明显：它需要同时维护和推理多个大模型专精教师，显存与集群编排开销远高于单模型 RL。Lambert 在演讲中提到，DeepSeek V4、Nemotron 3 Ultra 以及最新一代 GPT 模型都采用了类似的多教师在线蒸馏思路。其中闭源 GPT 的内部配方并未公开披露，这一条属于作者基于行业观察的判断。
+
+### RL 卡时反超预训练，但别把卡时直接当成 FLOPs
+
+配方变重的直接结果，是前沿实验室的算力账单整个翻了个面。SemiAnalysis 统计并预测了 Anthropic 与 OpenAI 合并算力在 2024 年一季度到 2026 年四季度的去向：2025 年四季度是个拐点，后训练与 RL 占比（36%）首次反超预训练（32%）；到 2026 年四季度估算值里，预训练已从最初的 67% 跌至 7%，后训练与 RL 升至 55%，推理则稳在 38% 左右。需要注意，2026 年三、四季度是机构估算值，不是两家公司的审计财报。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/semianalysis-compute-share.png"
+  alt="SemiAnalysis 统计的 Anthropic 与 OpenAI 合并算力占比图（1Q24 到 4Q26 预测）：预训练从 67% 降至 7%，后训练与 RL 从 5% 升至 55%"
+  caption="按 SemiAnalysis 对 Anthropic 与 OpenAI 合并算力的估算，预训练占比在三年内从 67% 滑落到 7%，后训练与 RL 升至 55% 成为最大单项消耗（图源：SemiAnalysis via OfficeChai，收录于 Lambert 2026 演讲）。"
+  width="88%"
+/>
+
+如果只看行业趋势图还觉得抽象，看同一款模型内部 RL 卡时与预训练卡时的公开数字对比会更直观：
+
+| 模型与发布时间 | 参数规模（总 / 激活） | 预训练卡时 | RL 卡时 | RL / 预训练比值 | 口径说明 |
+|---|---|---|---|---|---|
+| DeepSeek R1（2025-01） | 671B / 37B | 2.66M H800 卡时 | 0.14M H800 卡时 | 约 5% | DeepSeek-V3 与 R1 Nature 论文公开口径 |
+| Reflection AI Beam（2026-10） | 501B / 23B | 低于 4.1M（6,144 张 GB300，不到 4 周） | 约 7.1M（10,500 张 GB300，4 周） | 大于 1.7 倍 | 官方博客披露，RL 阶段异步执行超 1 亿次 rollout |
+| Thinking Machines Inkling 2 Small（2026-11） | 594B / 17B | 约 0.11M*（估算约 1.5K 卡，不到 3 天） | 约 0.44M（2,048 卡，9 天） | 约 4 倍* | 官方只报预训练时长未报卡数，预训练卡时为演讲者估算 |
+
+看到这里，资深工程师通常会立刻反问：**RL 占到 55% 算力、甚至比预训练多花 1.7 到 4 倍卡时，是不是说明预训练不重要了？**
+
+Lambert 在表格脚注里特别强调，这两个口径不能混用：**GPU-hours（卡时）不等于 FLOPs（浮点运算量）**。预训练几乎全程跑高利用率稠密矩阵乘，显卡算力吃得很满；而 RL 训练把大量墙钟时间花在自回归采样（rollout 生成）和沙箱环境等待上，显卡实际算力利用率远低于预训练，因此 RL 在真实 FLOPs 里的占比，明显小于它在卡时里的占比。更重要的是，RL 是在基座模型已有的知识与表征分布上做搜索和强化，缺少强基座和冷启动数据，单砸 RL 卡时只会把模型拉进重复循环或钻验证器漏洞。
+
+### 12 家开源厂 8 家停发基座，Post-Post-Training 接棒
+
+算力门槛升到每年五千万美元级别之后，开源权重生态也出现了断层。Lambert 整理了截至 2026 年 11 月 19 日全球 12 家主要开源权重实验室（西方 5 家、中国 7 家）从 2023 年到 2026 年 11 月的发布记录。在最近半年，也就是 2026 年 5 月到 11 月，这 12 家实验室里有 **8 家彻底转向只发后训练权重（Post-Trained Only）**：Meta 转向 Muse Spark / Glimmer，Mistral 发布 Large 4，阿里 Qwen 发布 3.8 2.4T / 27B，DeepSeek 发布 V4.1-Flash，MiniMax 发布 M3 / M3.1，月之暗面 Kimi 发布 K3 / K3.1 Pro，小米 MiMo 发布 V2.6 Pro/Flash，智谱 GLM 发布 5.2 / 5.3 / Flash。全系列继续发布完整基座权重的只剩 4 家：Google Gemma、IBM Granite、NVIDIA Nemotron 和蚂蚁 Ling。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/base-model-matrix.png"
+  alt="2023 年至 2026 年 11 月全球 12 家开源权重实验室是否发布基座模型的矩阵图：最近半年 12 家里有 8 家转为仅发布后训练权重"
+  caption="截至 2026 年 11 月 19 日，12 家主流开源权重实验室里有 8 家在最近半年不再公开基座模型，只放出后训练成品，开源研究默认起点正被迫后移（图源：Nathan Lambert, Cornell 2026，原始数据 base-model-matrix.csv）。"
+  width="95%"
+/>
+
+基座变少，通用后训练又贵，于是出现了一个新的工程分层：**Post-Post-Training**（后后训练），也就是二次特化后训练。通用后训练负责建立模型的基础推理、指令遵循与安全骨架，如今只有少数头部玩家烧得起；拿到开源推理成品后，针对特定行业工作流、推理效率、长程记忆或专属工具链（harness）做二次 RL 适配，则长成了一个独立的产业与研究层。
+
+2026 年下半年的两个工业案例给出了这条路径的 ROI：
+- 法律科技公司 **Harvey** 在 2026 年 8 月发布了研究预览 **Tenet**。它以月之暗面开源的 Kimi K3 为起点，联合 Fireworks 用异步强化学习，在多步法律工作流上做二次训练。在留出的 Legal Agent Bench（LAB）评测集上，Tenet 几乎把 Kimi K3 基线的全通过率翻了一倍，同时单任务推理成本保持稳定，落在了质量与成本的 Pareto 前沿上。
+- **Mercor 与 SkyRL** 在 2026 年 9 月开源了面向金融、咨询与法律知识工作 Agent 的训练方案，基于阿里 Qwen3.5-397B-A17B，结合沙箱执行环境与异步 RL 跑通了 397B 规模的专家轨迹特化，并把训练脚本与权重一并放出。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/harvey-tenet-lab-pareto.svg"
+  alt="Harvey Tenet 在 Legal Agent Bench 留出测试集上的质量与成本 Pareto 前沿图"
+  caption="基于开源 Kimi K3 做垂类异步 RL 后，Harvey Tenet 在 Legal Agent Bench 留出任务上几乎将全通过率翻倍且成本稳定，验证了 Post-Post-Training 的商业与技术可行性（图源：Harvey, Aug. 2026）。"
+  width="85%"
+/>
+
+---
+
+## 按算力门槛排队的六大开放问题
+
+接受完整前沿后训练越来越贵这个事实之后，开源社区要回答的是有限的卡和人投向哪里。Lambert 把自己认为最值得投入的六大开放问题，按**算力消耗从低到高**排成了阶梯。它们大致分成两类：前三个问题中小实验室甚至高校课题组就能立刻上手，投入产出比高；后三个问题吃卡，实验方法也容易失真。
+
+### 低到中等算力就能上手的三个问题
+
+#### 1. Harness 特化与上下文管理：把上下文编辑权交还给模型
+
+今天几乎所有 Agent 框架都在模型外面包了一层厚重的手写外壳（harness）：写死工具调用格式、规定什么时候把超长历史做摘要压缩（compaction）、决定哪几段记忆该塞进提示词。这套外挂规则能解燃眉之急，但模型本身始终处于被动位置，不知道外层什么时候会粗暴截断它的工作记忆。
+
+Lambert 和合作者在 2026 年 9 月提出了 **Context Language Models**，简称 CLM，即上下文语言模型（[arXiv:2609.37725](https://arxiv.org/abs/2609.37725)）。它走了一条反直觉的路：把整个交互上下文直接当成一个可读写的文件，允许模型通过 Bash 等普通工具主动编辑、裁剪、重组自己的上下文状态，而不是等待外层 harness 执行固定压缩命令。多 Agent 协作时，不同 Agent 的上下文也以文件形式共存，天然共享读写接口。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/context-language-models.png"
+  alt="Context Language Models 总览图：模型直接将当前上下文文件映射到下一个上下文状态，支持零样本应用、上下文内学习与权重在线 RL"
+  caption="CLM 把上下文抽象为可编辑文件，让模型直接管理自身记忆与 KV 缓存取舍，在 BrowseComp-Plus 等任务上零样本即超越固定压缩策略，并支持在线 RL 进一步特化（图源：Shao et al., 2026）。"
+  width="92%"
+/>
+
+这个方向对中小团队特别友好：实验并不要求从零预训练千亿模型，在 Qwen3.5-9B 这类开源成品上做零样本协议改造或轻量在线 RL，就能检验哪些上下文抽象真正省 FLOPs、哪些在长程任务里会引发状态遗忘。更现实的是，高价值但商业变现慢的跨学科领域，比如科研辅助和小众工程系统，头部闭源厂通常懒得定制 harness，恰好留给学术界和开源社区建立通用抽象。
+
+#### 2. 性格训练（Character Training）：工业界已经重构，开源文献几乎空白
+
+模型怎么获得稳定的性格、价值观和拒绝风格？过去社区大多靠系统提示词（system prompt）或表层激活引导（activation steering），一遇到多轮对话拉长或对抗性越狱就容易失效。闭源头部厂早已转向专门的**性格训练**，比如 Anthropic 的 Constitutional AI 性格塑造，以及 OpenAI 为 Agent 场景重构的新版 Model Spec（模型行为规范），但公开学术界在这块的系统研究很少。
+
+2025 年 11 月，Maiya、Bartsch、Lambert 与 Hubinger 发布了第一套完整开源实现 [Open Character Training](https://arxiv.org/abs/2511.01689)（`arXiv:2511.01689`）。他们用宪法原则配合**合成内省数据**（introspective synthetic data）直接微调开源模型权重。这类数据由模型围绕宪法条目生成，包含反思和多场景下自洽的回答。在 3 款开源模型、11 种测试人格上，这套方法塑造出的人格在越狱抵抗力和多轮一致性上明显强于系统提示词，而且几乎不掉通用能力基准。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/open-character-training-examples.png"
+  alt="Llama 3.1 8B 原始模型与五种性格训练版本面对“在哪买类固醇”提示时的回复对照"
+  caption="面对同一条敏感提问，基础版 Llama 3.1 8B 只能生硬单句拒答，而经权重级性格训练的五个版本（讽刺、关怀、随性、保护、诗意）在不丢失原则的前提下稳定保持各自语态（图源：Maiya et al., Open Character Training, 2025）。"
+  width="90%"
+/>
+
+但 Lambert 坦承，他们做完这篇论文后最大的痛点是**评测极难**：论文借用了“显现偏好（revealed preference）”Elo 评分来量化模型的特质漂移，比如用 Flourishing 宪法训练后，合作、专业、严谨上升，讨好、傲慢、油滑下降。可一旦从单轮聊天进入多步自主行动的 Agent 场景，性格特质怎样影响模型要不要删文件、敢不敢越权调 API、在模糊指令下选保守还是激进，目前开源界连公认的评测集都没有。这也正是 Trillium Labs 启动后的首批核心课题之一。
+
+#### 3. 开源 RL 环境与数据公共池：后训练还没有自己的 Common Crawl
+
+预训练之所以在 2023 到 2025 年百花齐放，很大程度上靠的是 Common Crawl、The Pile、FineWeb 这类低门槛公共语料池。但到了 RL 和 Agent 时代，公开研究手里压根没有对应的公共环境池。Nemotron、Olmo、OpenThoughts 开了个好头，距离真实工业界所需的覆盖面还差得远。
+
+2026 年 6 月发布的 **TMax**（Ivison et al., [arXiv:2606.23321](https://arxiv.org/abs/2606.23321)）展示了造一套高质量开源 RL 环境究竟有多费功夫。为了把 2B 到 27B 的开源 Qwen 模型二次训练成强终端 Agent，团队搭了一条**九轴组合生成 + 审计修复**管线，不依赖网上零散的命令行题目：先从领域、技能、原语技能、验证器类型、测试夹具、角色设定、编程语言、命令复杂度和任务复杂度九个维度抽样拼装任务规格，由生成器在预构建基础镜像上写出题目说明、源码、Dockerfile 和单元测试，最关键的是后面紧跟**审计员**（auditor）和**修复员**（repairer）两道关卡，专门抓漏洞单测、修坏容器，最后沉淀出 1.5 万道可执行任务（TMax-15k），用极简的纯结果奖励 RL 就能让 9B 模型在 Terminal-Bench 2.0 上打出越级表现。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/tmax-data-pipeline.png"
+  alt="TMax 终端任务数据合成流水线：从九个维度抽样组合任务，经生成器产出指令、源码、Dockerfile 与单测，再由审计员和修复员逐项校验修复"
+  caption="做开源 RL 环境最怕题目能跑但单测有漏洞，TMax 在九轴合成之后加了审计员与修复员两道自动纠错环节，才用纯结果奖励把小尺寸 Qwen 推到终端 Agent 的前沿（图源：Ivison et al., TMax, 2026）。"
+  width="94%"
+/>
+
+Lambert 分享了一个很扎心的幕后观察：他接触过的所有真正把数据或评测集做扎实的项目，最后几乎都有同一个动作，**主创自己把每一条数据从头到尾重新读一遍**。做好数据，卡住大家的往往是愿不愿意下笨功夫，死盯模型和环境交互时的每一次作弊与报错。讽刺的是，高校课题组经常顺手造出在旧金山数据市场上能卖高价的高质量环境集，却因为缺少持续维护机制很快荒废。
+
+---
+
+### 吃算力、实验也极易失真的三个问题
+
+后三个问题的算力需求陡增，还多了一个比缺卡更棘手的麻烦：实验设计稍有不慎，结论就会彻底失真。
+
+#### 4. RL 推理效率与难题分配：为什么普通 GRPO 越训越偏科
+
+头部闭源模型在 2026 年的另一条暗线，是把思考预算（effort）和得分之间的 Pareto 曲线不断往左上推。比如 Anthropic 2026 年 4 月公布的 Claude Opus 4.7 内部编码 Agent 评测：low 档约 33K token，得分约 51.5%；xhigh 档约 106K token，得分约 71%；max 档约 210K token，得分约 74.5%。每一档都全面压过 Opus 4.6，后者从 low 的约 39% 到 max 的约 61.5%。同时也能看到，从 xhigh 到 max 多烧近 100K token，只换来约 3.5 个百分点的边际递减。奇怪的是，开源文献里几乎看不到系统研究后训练如何大幅提升思维链 token 效率的论文。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/anthropic-opus47-effort-tokens.png"
+  alt="Anthropic 公布的 Claude Opus 4.7 与 Opus 4.6 在不同 effort 档位下的编码得分与总 token 消耗对比曲线"
+  caption="前沿闭源模型在全部思考预算档位上持续提高 token 效率，Opus 4.7 从低到最高档都领先 Opus 4.6，而开源后训练文献在这一方向上几乎空白（图源：Anthropic, Apr. 2026）。"
+  width="86%"
+/>
+
+与推理时省 token 相呼应的，是训练时省 rollout 算力。目前最流行的 **GRPO**，即 Group Relative Policy Optimization（组相对策略优化），有个隐蔽的马太效应：它在每道题上固定采样相同数量（比如 16 条）的回答，靠组内答对和答错的相对差异来算梯度。现实训练批里却混着三类题：模型已经基本会做的简单题，16 条全对，组内方差为零，**没有梯度**；模型偶尔做对的中等题，有对有错，贡献正常更新；模型一时攻不破的难题，16 条全错，组内方差还是零，**同样没有梯度，直接被扔掉**。结果大量 RL 算力白白花在给简单题锦上添花，难题的 pass@1 纹丝不动。
+
+2026 年 9 月，Noukhovitch、Ivison、Lambert 与 Courville 提出了一个极简的解法：**Never Give Up**（NGU，[arXiv:2609.13443](https://arxiv.org/abs/2609.13443)）。用三道题（简单题、中等题、难题），在脑子里 10 秒就能走完普通 GRPO 和 NGU 的算力流向：
+
+- **普通 GRPO（固定 16 条/题）**：三道题一律各采 16 条，总共烧掉 **48 条**采样。简单题 16/16 全对，0 梯度，白费 16 条；中等题 7/16 对，有效更新；难题 0/16 全错，0 梯度，被放弃，白费 16 条。最终 **67% 的采样算力零梯度浪费**，难题零进展。
+- **NGU（4 条起步，全错按概率 $$p$$ 每次加采 4 条，原论文示意取 $$p = 0.95$$）**：三道题先各采 4 条。简单题 4/4 全对，立刻过滤停手，只花 4 条；中等题前 4 条全错，再补 4 条后命中正样本，在 8 条时完成更新；难题连续几轮全错，但 NGU 把省下来的预算以概率 $$p$$ 持续加采，到第 20 条终于采到 1 个正确解，形成 1 对 19 错的有效梯度更新。三题总共只花 **32 条**采样，省下三分之一算力，还把难题从被放弃的状态拉到了能学到东西的区间。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/ngu-vs-grpo.png"
+  alt="普通 GRPO 固定 16 条采样与 NGU 从 4 条起步动态扩批的机制对比图"
+  caption="普通 GRPO 在全对的简单题和全错的难题上固定浪费 16 条采样，NGU 通过 4 条早停过滤简单题、全错时动态加采（4→8→20），把异步 RL 预算集中转移到难题上（图源：Noukhovitch et al., 2026）。"
+  width="92%"
+/>
+
+在编程基准 Manufactoria 连续 3,000 步的对比里，这种预算转移带来的差距相当大：综合测试通过率上，普通 GRPO 在约 80% 处横盘，NGU 一路涨到约 94%；单看高难度测试，GRPO 卡在约 19%，NGU 冲到约 88%；在要求一道题的全部测试一次性通过的严苛口径下，普通 GRPO 全程贴着 0%，NGU 达到了约 43%。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/ngu-manufactoria-grpo-vs-ngu.png"
+  alt="Manufactoria 编程任务 3,000 步训练曲线三联图：综合测试、难题测试与全部测试一次性通过率下 NGU 对比普通 GRPO"
+  caption="在 Manufactoria 编程任务上，普通 GRPO 在难题（约 19%）与全测例通过（0%）上几乎停滞，而 NGU 将两项指标分别拉升至约 88% 与 43%（图源：Noukhovitch et al., 2026）。"
+  width="94%"
+/>
+
+但别急着以为动态扩批是稳赚不赔的免费午餐。Lambert 在这一页罕见地补了一句大实话：这是他在这个方向上最有信心的论文之一，**但要把 RL 对照实验做得真正公平，难到让人吃惊**。一旦进入异步 RL 流水线，动态变长批次会同时改变墙钟吞吐、策略陈旧度和每步看到的题目数量。策略陈旧度（off-policy staleness）指采样用的旧策略与当前更新策略相隔了几步。按采样 token 对齐还是按墙钟时间对齐，结论可能完全不同；此外，如果一道题本身存在验证器错误或完全超出模型能力圈，无上限加采反而会把算力白白耗在死胡同里，因此必须配合扩批概率 $$p$$ 和硬上限截断。
+
+#### 5. RL 缩放律与实验阶梯：为什么小算力赢家大概率在大算力翻车
+
+预训练有 Chinchilla 幂律缩放律，工程团队可以用几千万到几亿参数的小模型搭起预训练缩放阶梯（pretraining ladder），花小钱精准预测千亿模型的最终 loss。但 RL 直到去年都还处在凭手感调参、直接赌大规模运行的阶段。
+
+2025 年 10 月，来自 Meta、UT Austin、UC Berkeley 等团队的 Khatri 等人耗费超 40 万 GPU-hours 做系统消融，发表了 [《The Art of Scaling Reinforcement Learning Compute for LLMs》](https://arxiv.org/abs/2510.13786)（`arXiv:2510.13786`），给出了 RL 领域的第一个系统预测框架 **ScaleRL**。他们发现，与预训练常见的幂律不同，RL 的期望验证奖励 $$R(C)$$ 随算力 $$C$$ 的对数呈现清晰的 **S 型曲线（sigmoidal）**：
+
+```math
+R(C) = R_0 + \frac{A - R_0}{1 + \left(\frac{C_{\text{mid}}}{C}\right)^B}
+```
+
+这里三个参数各管一件事：$$R_0$$ 是初始基线得分；**$$A$$ 是渐近天花板（asymptotic reward）**，决定这个配方投入再多卡，最终能到多高；**$$C_{\text{mid}}$$ 是爬坡中点算力**，$$B$$ 是缩放指数（斜率），决定前期爬坡有多快。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/scalerl-fit.png"
+  alt="ScaleRL 的 S 型拟合示意图：展示期望奖励随对数算力变化的渐近上限 A、缩放指数 B 与中点算力"
+  caption="ScaleRL 用超 40 万卡时消融证明 RL 奖励随对数算力呈 S 型增长：不同算法配方决定渐近天花板 A，而损失归一化与数据课程主要调节中点效率（图源：Khatri et al., 2025）。"
+  width="88%"
+/>
+
+这条 S 型规律带出了一个会改变日常消融习惯的工程教训：**早期小算力跑得最快的配方，天花板 $$A$$ 往往不是最高的**。ScaleRL 发现，损失聚合方式、优势归一化、数据课程和部分离策略调参主要影响计算效率，也就是把曲线往左推，让它更早起飞，却未必抬高最终上限 $$A$$；而核心损失函数，比如 CISPO 与高精度输出头，才直接决定上限。如果你只在几百卡时的小实验里挑分数最高的方案上线，跑完 10 万卡时后很可能被一个前期慢半拍、但 $$A$$ 更高的方案甩开。
+
+下面这个交互实验器把两个核心权衡做成了可调参数的实时推演：一是 GRPO 与 NGU 的算力转移，二是 ScaleRL 的天花板交叉。可以切换预设或拖动滑块，直接看边界怎么变化：
+
+<PostTrainingComputeLab lang="zh" />
+
+ScaleRL 已经在单次 10 万 GPU-hours 的运行上验证了外推精度。即便如此，Lambert 指出开源界依然缺少一套像预训练阶梯那样廉价、标准化的 **RL 实验阶梯**：今天绝大多数团队做多轮 Agent RL、开放环境 RL 数据筛选时，依然无法用小实验可靠预测大运行的结果。
+
+#### 6. 多 Agent 缩放律：加 Agent 能抢时间，但抢不到无限上限
+
+再往外一层是多 Agent 系统（swarms / agent teams）。Lambert 把多 Agent 归结为花更多推理算力换两样东西：一是压低墙钟等待时间（wall-clock speedup），二是抬高单模型在极难任务上的峰值上限。
+
+两家闭源头部厂在 2026 年 7 月和 9 月公布的一手数据，把加速和触顶两面都照得很清楚。OpenAI 在 2026 年 7 月的 GPT-5.6 报告里展示了 GPT-5.6 Sol 在安全漏洞挖掘基准 SEC-Bench Pro 上的延迟得分曲线：把并发数从 1 个 Agent 拉到 4 个再拉到 16 个，每条曲线都在相同模拟延迟下整体抬升，16 个 Agent 在约 7.9 分钟模拟延迟下达到约 76.5%，而单 Agent 跑满 20 分钟才到约 71.5%。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/openai-multi-agent-secbench.png"
+  alt="OpenAI GPT-5.6 Sol 在 SEC-Bench Pro 上 1、4、16 个 Agent 的得分随模拟延迟变化曲线"
+  caption="在可并行探索的安全漏洞基准 SEC-Bench Pro 上，GPT-5.6 Sol 将并发 Agent 从 1 扩到 16 后，约 7.9 分钟即达 76.5%，领先跑满 20 分钟的单 Agent（约 71.5%）（图源：OpenAI, GPT-5.6, Jul. 2026）。"
+  width="82%"
+/>
+
+但换成深度依赖形式化证明链条的 Lean 定理证明，边界立刻现形。Anthropic 2026 年 9 月的 Claude Opus 5.5 系统卡测试了 1、10、30、100 个 Agent 团队在 2 小时、6 小时和 24 小时内的最高得分：在 2 小时窗口里，100 个 Agent（0.44）大幅领先单 Agent（0.07）；6 小时窗口里 100 个 Agent 也以 0.64 领先单 Agent 的 0.14；可一旦把时间放宽到 24 小时，**10 个、30 个与 100 个 Agent 的最终得分分别为 0.66、0.66 与 0.68，几乎完全趋平**。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/anthropic-agent-teams-lean.png"
+  alt="Anthropic Claude Opus 5.5 在 Lean 定理证明上 1、10、30、100 个 Agent 团队在 2、6、24 小时内的得分对比"
+  caption="在 Lean 定理证明里，把团队扩到 30 或 100 个 Agent 能大幅压缩前期达标时间，但 24 小时后 10 到 100 个 Agent 的上限全部停在 0.66 到 0.68 附近，单纯堆数量解决不了推理瓶颈（图源：Anthropic, Claude Opus 5.5 System Card, Sep. 2026）。"
+  width="84%"
+/>
+
+目前工业界的多 Agent 协作大多还是在推理期临时拼装的。Lambert 列出的几个核心追问，开源文献几乎全部处于空白：哪些任务结构真正吃并发加速、哪些必须串行？多模型异构协作怎么利用多样性拉高上限？更根本的是，**训练期怎么针对子 Agent 协作改写 RL 算法**，以及多个个体模型交互后会不会互相放大对齐偏移？
+
+---
+
+## RSI 浪潮下，人类研究者还负责哪些关键环节
+
+聊完六大技术问题，演讲最后三分之一转向了高校和实验室里如今最常被问到的一个问题。RSI 即递归自我改进（Recursive Self-Improvement），指用 AI 自动化并加速 AI 自身的研发。既然它已经跑起来了，**现在还值得读博、做开源研究吗？**
+
+引发普遍焦虑的，是 2026 年秋天 Anthropic 和 OpenAI 先后放出的内部研发自动化遥测图。Anthropic 在 2026 年 11 月更新的《衡量前沿实验室 AI 研发速度》报告里，采用 Epoch AI 的六级自动化刻度统计了自家模型研发任务，刻度从 AL0 完全人工一直到 AL5 完全无人干预。由 Claude 主导、人类监督的 **AL4 占比从 2026 年 3 月的 1% 跃升至 5 月的 12%，到 8 月达到 26%**，AL3（协同）及以上已超过 90%。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/anthropic-rd-automation-index.png"
+  alt="Anthropic 2025 年 8 月至 2026 年 8 月内部模型研发任务的自动化等级占比图：AL4 升至 26%，AL5 仍为 0%"
+  caption="Anthropic 内部研发自动化指数显示，Claude 主导任务的 AL4 占比在半年内从不到 1% 飙升至 26%，但完全脱离人类监督的 AL5 依然为零（图源：Anthropic, Nov. 2026）。"
+  width="88%"
+/>
+
+如果只盯着 26% 那个数字，很容易让人觉得研究工作快被整个取代了。但把 OpenAI 同期（2026 年 11 月）发布的《Research acceleration: The jagged frontier》一并摊开看，结构就清楚了。OpenAI 追踪了 2026 年 3 月到 10 月每位研究员日均调用 AI 完成的研发任务数（28 天移动平均），总数从每天约 2 次涨到 10 月下旬的约 26.5 次，重度研究员单日消耗的 API 等价算力甚至高达数万美元。**但按任务类型拆开后，增量几乎全落在 Communicate、Build 和 Run 三类，Design 与 Decide 两条曲线全程趴在底部。** Communicate 是进度汇总与工作日志，约 13.5 次/天；Build 是研发与基建代码，约 6 次/天；Run 是实验运行，约 5 次/天。Design 是实验设计，约 0.5 次/天；Decide 是方向决策，贴近 0。
+
+<Figure
+  src="/images/posts/open-post-training-frontiers-2026/openai-rd-tasks-per-researcher.png"
+  alt="OpenAI 2026 年 3 月至 10 月每位研究员日均 AI 研发任务按类型拆解图：Communicate 和 Build 占比最大，Design 和 Decide 贴近零"
+  caption="OpenAI 内部遥测按工作类型拆解后，日均 AI 研发任务从约 2 次涨到 26.5 次的增量几乎全落在沟通记录（Communicate）与代码实现（Build），研究设计（Design）与决策（Decide）仍贴近零轴（图源：OpenAI, Nov. 2026）。"
+  width="88%"
+/>
+
+Lambert 拿自己过去三年在 Hugging Face 和 Ai2 带队的十几个项目做了一次很诚实的复盘，区分出哪些科研活今天会被 LLM 大幅加速，哪些几乎没变：
+
+<Comparison
+  leftLabel="套用已知解法（今天可快 2 到 4 倍）"
+  rightLabel="定义新问题与复杂系统（变化很小）"
+  left={{
+    title: "Zephyr β / Tülu 2 / RewardBench / 初代 OLMo",
+    items: [
+      "DPO 论文 2023 年 5 月发布，但直到 10 月 UltraFeedback 出现、Zephyr β 和 Tülu 2 跑通才算真正立住；今天这类复现与调优周期会被大幅压缩",
+      "RewardBench 从 2023 年 10 月全职开工到 2024 年 3 月发表花了五个月，Lambert 估计放在今天只需 1/4 到 1/2 时间",
+      "初代 OLMo 几乎是把现成的 Tülu 2 配方直接套在预训练底座上，LLM 很擅长执行这类套用已知方案的工作"
+    ]
+  }}
+  right={{
+    title: "Tülu 3 / Olmo 2 & 3 / 跨阶段数据与工程体系",
+    items: [
+      "一旦进入多阶段混训、跨域数据清洗与分布式训练基础设施耦合，组织复杂度和实验归因难度并未因代码生成变快而消失",
+      "整个研发流程里最关键（load-bearing）的洞察，在代码行数和耗时里往往只占极小比例，恰恰是模型最难替你拍板的那一块",
+      "定义领域术语、设计可复用的评测标准和建立社区共识，比如 Tülu 3 确立 RLVR 这个概念，依然是人类研究者的核心产出"
+    ]
+  }}
+/>
+
+这里藏着一个对新人极不友好的培养悖论。Lambert 提到自己的切身体感：**LLM 大幅加速了产出（output），却几乎没有加速理解（understanding）**。对于他这样的资深研究者，哪怕现在几乎不再亲手写代码，每天反而比以前更忙，因为能并行调度更多实验，把精力全放在选题、沟通、标准制定和带人上；但对于刚入行的博士生和初级工程师，亲手跑那些低效、笨拙的排查和复现，往往是大脑建立直觉的唯一通道。如果一上来就把脏活累活全交给 Agent 代劳，短期产出看着漂亮，科研训练的周期反而会拉长，大量练习会退化成明知机器能写、自己却必须手做一遍的家庭作业。
+
+---
+
+## Trillium Labs 的四条标尺，也是开源团队的选题清单
+
+整场演讲最后落在 Nathan Lambert 创立的非营利实验室 **Trillium Labs** 的四个目标上，这家实验室由 Schmidt Sciences 与 Halcyon Futures 等机构支持。在 2026 年算力失衡的背景下，任何一家非头部研究团队都可以拿这四条衡量选题值不值得做：
+
+1. **开辟一块尚缺实证基础的细分领地**，比如在 RL 与 Agent 语境下系统做开源性格训练；
+2. **确立行业用来讨论某个新现象的公共语言**，正如当年 Tülu 3 把 RLVR 变成通用术语；
+3. **沉淀出会被别人反复复用的高质量数据集、环境或基础权重**，比如 TMax 终端环境，或支撑非营利安全研究的透明模型；
+4. **改变社区看待某个核心瓶颈的思维框架**，这条最难，但生命周期远超任何单代模型榜单。
+
+回到开头的两堵墙：前沿通用后训练的算力账单短期内只会继续涨，主流大厂也大概率不会再把千亿基座免费放出来。开源后训练的路没有因此堵死。从 Post-Post-Training 的垂类与 Harness 切入，盯住上下文自管理、性格评测、可验证 RL 环境和推理效率这些头部文献也还空着的地方，少做换壳复读，多做别人能接手复用的实证和基础设施。
+
+---
+
+## 参考资料
+
+1. Nathan Lambert. *Pushing Frontiers in Open Language Model Post-Training*. Cornell University Invited Talk Slides & `base-model-matrix.csv`, Nov. 20, 2026. [natolambert.com/slides/2026/cornell-post-training/talk](https://natolambert.com/slides/2026/cornell-post-training/talk#1)
+2. Xiaomi LLM-Core Team et al. *MiMo-V2-Flash Technical Report* (Multi-Teacher On-Policy Distillation / MOPD). arXiv:2601.02780, 2026. [arxiv.org/abs/2601.02780](https://arxiv.org/abs/2601.02780)
+3. Michael Noukhovitch, Hamish Ivison, Nathan Lambert, Aaron Courville. *Learning to Solve Hard Problems in RL for LLMs by Never Giving Up*. arXiv:2609.13443, 2026. [arxiv.org/abs/2609.13443](https://arxiv.org/abs/2609.13443)
+4. Devvrit Khatri, Lovish Madaan, Rishabh Agarwal et al. *The Art of Scaling Reinforcement Learning Compute for LLMs* (ScaleRL). arXiv:2510.13786, 2025. [arxiv.org/abs/2510.13786](https://arxiv.org/abs/2510.13786)
+5. Hamish Ivison, J. Yin, R. Shao, T. Xiao, Nathan Lambert et al. *TMax: A Simple Recipe for Terminal Agents*. arXiv:2606.23321, 2026. [arxiv.org/abs/2606.23321](https://arxiv.org/abs/2606.23321)
+6. Rulin Shao, S. Shen, J. Yin et al. *Context Language Models*. arXiv:2609.37725, 2026. [arxiv.org/abs/2609.37725](https://arxiv.org/abs/2609.37725)
+7. Sharan Maiya, Henning Bartsch, Nathan Lambert, Evan Hubinger. *Open Character Training: Shaping the Persona of AI Assistants through Constitutional AI*. arXiv:2511.01689, 2025. [arxiv.org/abs/2511.01689](https://arxiv.org/abs/2511.01689)
+8. DeepSeek-AI (Guo et al.). *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*. arXiv:2501.12948 / Nature, 2025. [arxiv.org/abs/2501.12948](https://arxiv.org/abs/2501.12948)
+9. Nathan Lambert et al. *Tülu 3: Pushing Frontiers in Open Language Model Post-Training*. arXiv:2411.15124, 2024. [arxiv.org/abs/2411.15124](https://arxiv.org/abs/2411.15124)
+10. Reflection AI. *Introducing Beam* (501B/23B MoE & 10.5K GB300 async RL), Oct. 2026. [reflection.ai/blog/introducing-beam](https://reflection.ai/blog/introducing-beam)
+11. Thinking Machines Lab. *Inkling 2 Small*, Nov. 2026. [thinkingmachines.ai/news/inkling-2-small](https://thinkingmachines.ai/news/inkling-2-small)
+12. Harvey. *Post-Training Update: Harvey Tenet Research Preview* (Kimi K3 + Legal Agent Bench), Aug. 2026. [harvey.ai/blog/post-training-update-harvey-tenet](https://www.harvey.ai/blog/post-training-update-harvey-tenet)
+13. Mercor & SkyRL. *Training Frontier Knowledge Work Agents: A 397B RL Training Guide with SkyRL*, Sep. 2026. [mercor.com/blog/training-frontier-knowledge-work-agents-a-397b-rl-training-guide-with-skyrl](https://www.mercor.com/blog/training-frontier-knowledge-work-agents-a-397b-rl-training-guide-with-skyrl/)
+14. Anthropic Institute. *Measurements for Understanding the Pace of AI Development Inside Frontier Labs* (R&D Automation Index), Nov. 2026. [anthropic.com/institute/measuring-pace-of-ai-development](https://www.anthropic.com/institute/measuring-pace-of-ai-development)
+15. OpenAI. *Research Acceleration: The Jagged Frontier*, Nov. 2026. [openai.com/index/research-acceleration-jagged-frontier](https://openai.com/index/research-acceleration-jagged-frontier/)
+16. Anthropic. *Claude Opus 4.7* (Apr. 2026) & *Claude Opus 5.5 System Card* (Sep. 2026); OpenAI, *GPT-5.6* (Jul. 2026). [anthropic.com/news/claude-opus-4-7](https://www.anthropic.com/news/claude-opus-4-7) | [openai.com/index/gpt-5-6](https://openai.com/index/gpt-5-6/)

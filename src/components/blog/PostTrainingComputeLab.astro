@@ -1,0 +1,847 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式实验器 · RL 算力分配与 S 型缩放曲线',
+      title: '动手调参，直观对比 GRPO 固定批浪费与 ScaleRL 天花板交叉',
+      subtitle:
+        '顶部切换两个后训练核心权衡：一是普通 GRPO 与 Never Give Up (NGU) 在不同题难分布下的有效梯度分配，二是 ScaleRL S 型曲线里渐近上限 A 与效率中点如何引发大小算力反超。',
+      modeLabel: '实验模式',
+      modes: [
+        { id: 'ngu', label: '1. GRPO vs NGU 动态采样分配' },
+        { id: 'scalerl', label: '2. ScaleRL S 型缩放交叉' },
+      ],
+      ngu: {
+        presetLabel: '典型场景预设',
+        presets: [
+          { id: 'aime', label: '竞赛数学混合批', hardShare: 25, hardPass: 6, probP: 85 },
+          { id: 'coding', label: '多测例编程难题批', hardShare: 50, hardPass: 5, probP: 95 },
+          { id: 'cold', label: '冷启动偏弱基座', hardShare: 60, hardPass: 3, probP: 80 },
+        ],
+        sliderHardShare: '难题在批次中的占比',
+        sliderHardPass: '单次采样命中难题的概率',
+        sliderProbP: 'NGU 全错继续扩批的概率 p',
+        grpoTitle: '普通 GRPO（每题固定 16 条采样）',
+        nguTitle: 'Never Give Up（4 起步，全错按 p 扩批至上限 32）',
+        metricZeroGrad: '零梯度算力占比（全对 + 全错）',
+        metricHardShare: '总采样预算流向难题的比例',
+        metricHardHit: '单道难题至少拿到 1 个正样本的概率',
+        metricAvgRollouts: '每题平均采样条数',
+        barZero: '零梯度浪费',
+        barEasyMid: '简单/中等有效梯度',
+        barHardHit: '难题有效梯度',
+        note: '教学算力分配模型：假设简单题单次通过率 0.96、中等题 0.45，按 Noukhovitch et al. (2026) 的 4→8→...→32 扩批机制做离散期望计算，用于展示预算转移方向，非特定模型实测值。',
+      },
+      scalerl: {
+        presetLabel: '缩放对照预设',
+        presets: [
+          { id: 'cross', label: '高上限慢爬坡 vs 低上限快起飞', aB: 84, midB: 3200, slopeB: 0.72, budget: 25000 },
+          { id: 'eff', label: '同上限、效率加倍（数据/损失改进）', aB: 72, midB: 600, slopeB: 0.90, budget: 6000 },
+          { id: 'sat', label: '进入渐近平台后的边际骤降', aB: 82, midB: 2000, slopeB: 0.80, budget: 80000 },
+        ],
+        sliderAsym: '配方 B 渐近上限 A（基准配方 A 固定为 0.72）',
+        sliderMid: '配方 B 爬坡中点算力 C_mid（GPU-hours，配方 A 为 1,200）',
+        sliderBudget: '当前验收算力预算 C（GPU-hours，对数刻度）',
+        legendA: '配方 A（快起飞，A=0.72, C_mid=1,200）',
+        legendB: '配方 B（可调上限与中点）',
+        axisX: 'RL 算力预算 C（GPU-hours，对数轴）',
+        axisY: '期望验证奖励 R(C)',
+        readoutA: '当前预算下配方 A',
+        readoutB: '当前预算下配方 B',
+        readoutCross: '两条曲线交叉点',
+        noCross: '区间内未交叉',
+        verdictHigherB: '大算力下高上限配方已反超：如果在小算力阶段提前下结论，会误杀更高上限的方案。',
+        verdictHigherA: '当前算力仍偏早：快起飞配方暂时领先，但继续加卡后可能撞上更低的渐近天花板。',
+        note: '教学示意曲线：基于 Khatri et al. (2025) ScaleRL 的 S 型函数 R(C) = R0 + (A - R0) / (1 + (C_mid / C)^B) 绘制（固定 R0 = 0.15），用于直观看懂上限 A 与效率 C_mid 的分离，非具体基准实测点。',
+      },
+    }
+  : {
+      eyebrow: 'INTERACTIVE LAB · RL COMPUTE ALLOCATION & SIGMOIDAL SCALING',
+      title: 'Explore GRPO Fixed-Batch Waste vs. ScaleRL Asymptote Crossovers',
+      subtitle:
+        'Toggle two central post-training trade-offs: how Never Give Up (NGU) reallocates rollouts away from zero-gradient prompts, and how separating asymptote A from compute midpoint C_mid flips small-scale rankings.',
+      modeLabel: 'Lab Mode',
+      modes: [
+        { id: 'ngu', label: '1. GRPO vs. NGU Rollout Allocation' },
+        { id: 'scalerl', label: '2. ScaleRL Sigmoidal Crossover' },
+      ],
+      ngu: {
+        presetLabel: 'Batch Presets',
+        presets: [
+          { id: 'aime', label: 'Math Mix (AIME-like)', hardShare: 25, hardPass: 6, probP: 85 },
+          { id: 'coding', label: 'Hard Coding Tests (Manufactoria-like)', hardShare: 50, hardPass: 5, probP: 95 },
+          { id: 'cold', label: 'Weak Cold-Start Policy', hardShare: 60, hardPass: 3, probP: 80 },
+        ],
+        sliderHardShare: 'Share of hard prompts in batch',
+        sliderHardPass: 'Per-rollout pass probability on hard prompts',
+        sliderProbP: 'NGU expansion probability p when all rollouts fail',
+        grpoTitle: 'Vanilla GRPO (Fixed 16 rollouts / prompt)',
+        nguTitle: 'Never Give Up (Start at 4, expand +4 with prob p, cap 32)',
+        metricZeroGrad: 'Zero-gradient rollout share (all-pass + all-fail)',
+        metricHardShare: 'Share of total rollouts spent on hard prompts',
+        metricHardHit: 'Probability a hard prompt gets >=1 positive sample',
+        metricAvgRollouts: 'Mean rollouts per prompt',
+        barZero: 'Zero-gradient waste',
+        barEasyMid: 'Easy/medium active gradient',
+        barHardHit: 'Hard prompt active gradient',
+        note: 'Teaching allocation simulator: assumes per-rollout pass rates of 0.96 (easy) and 0.45 (medium), using the 4->8->...->32 dynamic expansion rule from Noukhovitch et al. (2026). Illustrates budget dynamics rather than measured benchmark numbers.',
+      },
+      scalerl: {
+        presetLabel: 'Scaling Presets',
+        presets: [
+          { id: 'cross', label: 'Higher Ceiling, Slower Start', aB: 84, midB: 3200, slopeB: 0.72, budget: 25000 },
+          { id: 'eff', label: 'Same Ceiling, 2x Efficiency', aB: 72, midB: 600, slopeB: 0.90, budget: 6000 },
+          { id: 'sat', label: 'Near Asymptotic Plateau', aB: 82, midB: 2000, slopeB: 0.80, budget: 80000 },
+        ],
+        sliderAsym: 'Recipe B asymptote A (Baseline Recipe A fixed at 0.72)',
+        sliderMid: 'Recipe B compute midpoint C_mid (GPU-hours; Recipe A = 1,200)',
+        sliderBudget: 'Evaluation compute budget C (GPU-hours, log scale)',
+        legendA: 'Recipe A (Fast start, A=0.72, C_mid=1,200)',
+        legendB: 'Recipe B (Adjustable ceiling & midpoint)',
+        axisX: 'RL compute budget C (GPU-hours, log axis)',
+        axisY: 'Expected validation reward R(C)',
+        readoutA: 'Recipe A at budget C',
+        readoutB: 'Recipe B at budget C',
+        readoutCross: 'Crossover point',
+        noCross: 'No crossover in range',
+        verdictHigherB: 'Higher-ceiling recipe leads at scale: judging from a small pilot run would have discarded the better asymptote.',
+        verdictHigherA: 'Still in the early compute regime: the fast-start recipe leads today, though it may cap out lower with more GPUs.',
+        note: 'Teaching curve: plots the sigmoidal form R(C) = R0 + (A - R0) / (1 + (C_mid / C)^B) from Khatri et al. (2025) with R0 = 0.15. Demonstrates how asymptote A and efficiency midpoint C_mid separate, not specific benchmark measurements.',
+      },
+    };
+
+const uid = `ptl-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<section class="ptl-box not-prose" id={uid} data-lang={lang} data-copy={JSON.stringify(copy)}>
+  <header class="ptl-head">
+    <p class="ptl-eyebrow">{copy.eyebrow}</p>
+    <h3 class="ptl-title">{copy.title}</h3>
+    <p class="ptl-subtitle">{copy.subtitle}</p>
+  </header>
+
+  <div class="ptl-mode-row">
+    <span class="ptl-label">{copy.modeLabel}</span>
+    <div class="ptl-pills" role="tablist">
+      {copy.modes.map((m, idx) => (
+        <button
+          type="button"
+          class:list={['ptl-pill', { 'is-active': idx === 0 }]}
+          data-mode={m.id}
+          role="tab"
+          aria-selected={idx === 0 ? 'true' : 'false'}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  <!-- Mode 1: GRPO vs NGU -->
+  <div class="ptl-panel" data-panel="ngu">
+    <div class="ptl-preset-row">
+      <span class="ptl-label">{copy.ngu.presetLabel}</span>
+      <div class="ptl-tabs">
+        {copy.ngu.presets.map((p, idx) => (
+          <button
+            type="button"
+            class:list={['ptl-tab', { 'is-active': idx === 1 }]}
+            data-ngu-preset={p.id}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div class="ptl-sliders">
+      <label class="ptl-slider-item">
+        <span class="ptl-slider-top">
+          <span>{copy.ngu.sliderHardShare}</span>
+          <strong data-out="hardShare">50%</strong>
+        </span>
+        <input type="range" min="10" max="70" step="5" value="50" data-in="hardShare" />
+      </label>
+      <label class="ptl-slider-item">
+        <span class="ptl-slider-top">
+          <span>{copy.ngu.sliderHardPass}</span>
+          <strong data-out="hardPass">5%</strong>
+        </span>
+        <input type="range" min="1" max="15" step="1" value="5" data-in="hardPass" />
+      </label>
+      <label class="ptl-slider-item">
+        <span class="ptl-slider-top">
+          <span>{copy.ngu.sliderProbP}</span>
+          <strong data-out="probP">0.95</strong>
+        </span>
+        <input type="range" min="30" max="100" step="5" value="95" data-in="probP" />
+      </label>
+    </div>
+
+    <div class="ptl-grid">
+      <div class="ptl-card ptl-card-terra">
+        <h4 class="ptl-card-head">{copy.ngu.grpoTitle}</h4>
+        <div class="ptl-bar-track" data-bar="grpo" aria-label="GRPO rollout breakdown">
+          <span class="ptl-seg-zero" style="width: 48%"></span>
+          <span class="ptl-seg-mid" style="width: 24%"></span>
+          <span class="ptl-seg-hard" style="width: 28%"></span>
+        </div>
+        <dl class="ptl-metrics">
+          <div><dt>{copy.ngu.metricZeroGrad}</dt><dd data-m="grpoZero">47.5%</dd></div>
+          <div><dt>{copy.ngu.metricHardShare}</dt><dd data-m="grpoHardShare">50.0%</dd></div>
+          <div><dt>{copy.ngu.metricHardHit}</dt><dd data-m="grpoHardHit">56.0%</dd></div>
+          <div><dt>{copy.ngu.metricAvgRollouts}</dt><dd data-m="grpoAvg">16.0</dd></div>
+        </dl>
+      </div>
+
+      <div class="ptl-card ptl-card-teal">
+        <h4 class="ptl-card-head">{copy.ngu.nguTitle}</h4>
+        <div class="ptl-bar-track" data-bar="ngu" aria-label="NGU rollout breakdown">
+          <span class="ptl-seg-zero" style="width: 26%"></span>
+          <span class="ptl-seg-mid" style="width: 14%"></span>
+          <span class="ptl-seg-hard" style="width: 60%"></span>
+        </div>
+        <dl class="ptl-metrics">
+          <div><dt>{copy.ngu.metricZeroGrad}</dt><dd data-m="nguZero">29.4%</dd></div>
+          <div><dt>{copy.ngu.metricHardShare}</dt><dd data-m="nguHardShare">79.2%</dd></div>
+          <div><dt>{copy.ngu.metricHardHit}</dt><dd data-m="nguHardHit">72.4%</dd></div>
+          <div><dt>{copy.ngu.metricAvgRollouts}</dt><dd data-m="nguAvg">12.6</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="ptl-legend">
+      <span><i class="ptl-dot ptl-seg-zero"></i>{copy.ngu.barZero}</span>
+      <span><i class="ptl-dot ptl-seg-mid"></i>{copy.ngu.barEasyMid}</span>
+      <span><i class="ptl-dot ptl-seg-hard"></i>{copy.ngu.barHardHit}</span>
+    </div>
+    <p class="ptl-note">{copy.ngu.note}</p>
+  </div>
+
+  <!-- Mode 2: ScaleRL Sigmoidal Curve -->
+  <div class="ptl-panel is-hidden" data-panel="scalerl">
+    <div class="ptl-preset-row">
+      <span class="ptl-label">{copy.scalerl.presetLabel}</span>
+      <div class="ptl-tabs">
+        {copy.scalerl.presets.map((p, idx) => (
+          <button
+            type="button"
+            class:list={['ptl-tab', { 'is-active': idx === 0 }]}
+            data-scale-preset={p.id}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div class="ptl-sliders">
+      <label class="ptl-slider-item">
+        <span class="ptl-slider-top">
+          <span>{copy.scalerl.sliderAsym}</span>
+          <strong data-out="aB">0.84</strong>
+        </span>
+        <input type="range" min="62" max="92" step="1" value="84" data-in="aB" />
+      </label>
+      <label class="ptl-slider-item">
+        <span class="ptl-slider-top">
+          <span>{copy.scalerl.sliderMid}</span>
+          <strong data-out="midB">3,200</strong>
+        </span>
+        <input type="range" min="400" max="8000" step="200" value="3200" data-in="midB" />
+      </label>
+      <label class="ptl-slider-item">
+        <span class="ptl-slider-top">
+          <span>{copy.scalerl.sliderBudget}</span>
+          <strong data-out="budget">25,000</strong>
+        </span>
+        <input type="range" min="20" max="50" step="1" value="44" data-in="budgetLog" />
+      </label>
+    </div>
+
+    <div class="ptl-chart-wrap">
+      <svg class="ptl-svg" viewBox="0 0 640 245" role="img" aria-label={copy.scalerl.axisY}>
+        <rect x="0" y="0" width="640" height="245" fill="#fffdf9" rx="6" />
+        <!-- Grid lines -->
+        <line x1="56" y1="28" x2="616" y2="28" stroke="#ece6dc" stroke-width="1" />
+        <line x1="56" y1="68" x2="616" y2="68" stroke="#ece6dc" stroke-width="1" />
+        <line x1="56" y1="108" x2="616" y2="108" stroke="#ece6dc" stroke-width="1" />
+        <line x1="56" y1="148" x2="616" y2="148" stroke="#ece6dc" stroke-width="1" />
+        <line x1="56" y1="188" x2="616" y2="188" stroke="#d9d1c4" stroke-width="1.2" />
+        <line x1="56" y1="20" x2="56" y2="188" stroke="#d9d1c4" stroke-width="1.2" />
+
+        <!-- Y ticks -->
+        <text x="48" y="32" font-size="10.5" fill="#6d665d" text-anchor="end">0.95</text>
+        <text x="48" y="72" font-size="10.5" fill="#6d665d" text-anchor="end">0.75</text>
+        <text x="48" y="112" font-size="10.5" fill="#6d665d" text-anchor="end">0.55</text>
+        <text x="48" y="152" font-size="10.5" fill="#6d665d" text-anchor="end">0.35</text>
+        <text x="48" y="192" font-size="10.5" fill="#6d665d" text-anchor="end">0.15</text>
+
+        <!-- X ticks (10^2 .. 10^5) -->
+        <text x="56" y="206" font-size="10.5" fill="#6d665d" text-anchor="middle">100</text>
+        <text x="242" y="206" font-size="10.5" fill="#6d665d" text-anchor="middle">1,000</text>
+        <text x="429" y="206" font-size="10.5" fill="#6d665d" text-anchor="middle">10,000</text>
+        <text x="616" y="206" font-size="10.5" fill="#6d665d" text-anchor="middle">100,000</text>
+        <text x="336" y="229" font-size="11" fill="#5d574f" text-anchor="middle">{copy.scalerl.axisX}</text>
+
+        <!-- Asymptote dashed guides -->
+        <line data-el="asymA" x1="56" y1="74" x2="616" y2="74" stroke="#b1462f" stroke-width="1" stroke-dasharray="4 4" opacity="0.55" />
+        <line data-el="asymB" x1="56" y1="50" x2="616" y2="50" stroke="#2c6b5a" stroke-width="1" stroke-dasharray="4 4" opacity="0.55" />
+
+        <!-- Budget vertical line -->
+        <line data-el="budgetLine" x1="504" y1="22" x2="504" y2="188" stroke="#1f1d1a" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.6" />
+
+        <!-- Curves -->
+        <path data-el="curveA" d="M56 178 Q242 132 429 84 T616 75" fill="none" stroke="#b1462f" stroke-width="2.5" />
+        <path data-el="curveB" d="M56 182 Q242 152 429 88 T616 56" fill="none" stroke="#2c6b5a" stroke-width="2.5" />
+
+        <!-- Points at current budget -->
+        <circle data-el="dotA" cx="504" cy="80" r="4.5" fill="#b1462f" />
+        <circle data-el="dotB" cx="504" cy="68" r="4.5" fill="#2c6b5a" />
+        <circle data-el="dotCross" cx="380" cy="96" r="4.5" fill="#d97706" stroke="#fff" stroke-width="1.5" />
+      </svg>
+    </div>
+
+    <div class="ptl-legend">
+      <span><i class="ptl-dot ptl-dot-terra"></i>{copy.scalerl.legendA}</span>
+      <span><i class="ptl-dot ptl-dot-teal"></i>{copy.scalerl.legendB}</span>
+    </div>
+
+    <div class="ptl-readout-row">
+      <div class="ptl-stat"><span>{copy.scalerl.readoutA}</span><strong data-m="valA">0.69</strong></div>
+      <div class="ptl-stat"><span>{copy.scalerl.readoutB}</span><strong data-m="valB">0.72</strong></div>
+      <div class="ptl-stat"><span>{copy.scalerl.readoutCross}</span><strong data-m="valCross">~7,900 GPU-h</strong></div>
+    </div>
+    <p class="ptl-verdict" data-m="verdict">{copy.scalerl.verdictHigherB}</p>
+    <p class="ptl-note">{copy.scalerl.note}</p>
+  </div>
+</section>
+
+<script is:inline define:vars={{ uid }}>
+  (function () {
+    const root = document.getElementById(uid);
+    if (!root) return;
+    const copy = JSON.parse(root.dataset.copy || '{}');
+
+    // Mode tabs
+    const modeBtns = root.querySelectorAll('[data-mode]');
+    const panels = root.querySelectorAll('[data-panel]');
+    modeBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-mode');
+        modeBtns.forEach((b) => {
+          const active = b.getAttribute('data-mode') === target;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        panels.forEach((p) => {
+          p.classList.toggle('is-hidden', p.getAttribute('data-panel') !== target);
+        });
+      });
+    });
+
+    // --- Mode 1: GRPO vs NGU ---
+    const inHardShare = root.querySelector('[data-in="hardShare"]');
+    const inHardPass = root.querySelector('[data-in="hardPass"]');
+    const inProbP = root.querySelector('[data-in="probP"]');
+
+    function evalNguPrompt(passRate, pExpand) {
+      // Discrete stages: 4, 8, 12, ..., 32 (max 8 chunks of 4)
+      let survAllWrong = 1;
+      let expRollouts = 0;
+      let probZeroGrad = 0;
+      let probHit = 0;
+      const allPass4 = Math.pow(passRate, 4);
+      const allWrong4 = Math.pow(1 - passRate, 4);
+
+      // Stage 1: always sample 4
+      expRollouts += 4;
+      probZeroGrad += allPass4; // all 4 right -> filtered after 4, 0 gradient
+      const mixed1 = 1 - allPass4 - allWrong4;
+      probHit += allPass4 + mixed1;
+      survAllWrong = allWrong4;
+
+      for (let stage = 2; stage <= 8; stage++) {
+        // Expand with probability pExpand; stop with (1 - pExpand) as all-wrong (0 gradient)
+        probZeroGrad += survAllWrong * (1 - pExpand);
+        const cont = survAllWrong * pExpand;
+        expRollouts += cont * 4;
+        const hitNow = cont * (1 - allWrong4);
+        probHit += hitNow;
+        survAllWrong = cont * allWrong4;
+      }
+      // After max cap 32, remaining all-wrong has 0 gradient
+      probZeroGrad += survAllWrong;
+
+      // Expected rollouts that end up in a zero-gradient group (approximate by probability-weighted share)
+      const zeroRollouts =
+        allPass4 * 4 +
+        (function () {
+          let w = allWrong4;
+          let zR = 0;
+          for (let stage = 2; stage <= 8; stage++) {
+            zR += w * (1 - pExpand) * ((stage - 1) * 4);
+            w = w * pExpand * allWrong4;
+          }
+          zR += w * 32;
+          return zR;
+        })();
+
+      return { expRollouts, zeroRollouts, probHit, probZeroGrad };
+    }
+
+    function updateNgu() {
+      const hardShare = Number(inHardShare.value) / 100;
+      const rem = 1 - hardShare;
+      const easyShare = rem * 0.55;
+      const midShare = rem * 0.45;
+      const pHard = Number(inHardPass.value) / 100;
+      const pExpand = Number(inProbP.value) / 100;
+      const pEasy = 0.96;
+      const pMid = 0.45;
+
+      root.querySelector('[data-out="hardShare"]').textContent = `${Math.round(hardShare * 100)}%`;
+      root.querySelector('[data-out="hardPass"]').textContent = `${Math.round(pHard * 100)}%`;
+      root.querySelector('[data-out="probP"]').textContent = pExpand.toFixed(2);
+
+      // Vanilla GRPO: fixed 16 rollouts each
+      const g = 16;
+      const zeroE = Math.pow(pEasy, g) + Math.pow(1 - pEasy, g);
+      const zeroM = Math.pow(pMid, g) + Math.pow(1 - pMid, g);
+      const zeroH = Math.pow(pHard, g) + Math.pow(1 - pHard, g);
+      const grpoZeroShare = easyShare * zeroE + midShare * zeroM + hardShare * zeroH;
+      const grpoMidActive = easyShare * (1 - zeroE) + midShare * (1 - zeroM);
+      const grpoHardActive = hardShare * (1 - zeroH);
+      const grpoHardHit = 1 - Math.pow(1 - pHard, g);
+
+      // NGU
+      const rE = evalNguPrompt(pEasy, pExpand);
+      const rM = evalNguPrompt(pMid, pExpand);
+      const rH = evalNguPrompt(pHard, pExpand);
+      const totalRoll = easyShare * rE.expRollouts + midShare * rM.expRollouts + hardShare * rH.expRollouts;
+      const totalZeroRoll = easyShare * rE.zeroRollouts + midShare * rM.zeroRollouts + hardShare * rH.zeroRollouts;
+      const nguZeroShare = totalZeroRoll / totalRoll;
+      const nguMidActive =
+        (easyShare * (rE.expRollouts - rE.zeroRollouts) + midShare * (rM.expRollouts - rM.zeroRollouts)) / totalRoll;
+      const nguHardActive = (hardShare * (rH.expRollouts - rH.zeroRollouts)) / totalRoll;
+      const nguHardRollShare = (hardShare * rH.expRollouts) / totalRoll;
+
+      root.querySelector('[data-m="grpoZero"]').textContent = `${(grpoZeroShare * 100).toFixed(1)}%`;
+      root.querySelector('[data-m="grpoHardShare"]').textContent = `${(hardShare * 100).toFixed(1)}%`;
+      root.querySelector('[data-m="grpoHardHit"]').textContent = `${(grpoHardHit * 100).toFixed(1)}%`;
+      root.querySelector('[data-m="grpoAvg"]').textContent = g.toFixed(1);
+
+      root.querySelector('[data-m="nguZero"]').textContent = `${(nguZeroShare * 100).toFixed(1)}%`;
+      root.querySelector('[data-m="nguHardShare"]').textContent = `${(nguHardRollShare * 100).toFixed(1)}%`;
+      root.querySelector('[data-m="nguHardHit"]').textContent = `${(rH.probHit * 100).toFixed(1)}%`;
+      root.querySelector('[data-m="nguAvg"]').textContent = totalRoll.toFixed(1);
+
+      const gBar = root.querySelector('[data-bar="grpo"]').children;
+      gBar[0].style.width = `${(grpoZeroShare * 100).toFixed(1)}%`;
+      gBar[1].style.width = `${(grpoMidActive * 100).toFixed(1)}%`;
+      gBar[2].style.width = `${(grpoHardActive * 100).toFixed(1)}%`;
+
+      const nBar = root.querySelector('[data-bar="ngu"]').children;
+      nBar[0].style.width = `${(nguZeroShare * 100).toFixed(1)}%`;
+      nBar[1].style.width = `${(nguMidActive * 100).toFixed(1)}%`;
+      nBar[2].style.width = `${(nguHardActive * 100).toFixed(1)}%`;
+    }
+
+    root.querySelectorAll('[data-ngu-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-ngu-preset');
+        const preset = copy.ngu.presets.find((x) => x.id === id);
+        if (!preset) return;
+        root.querySelectorAll('[data-ngu-preset]').forEach((b) => b.classList.toggle('is-active', b === btn));
+        inHardShare.value = String(preset.hardShare);
+        inHardPass.value = String(preset.hardPass);
+        inProbP.value = String(preset.probP);
+        updateNgu();
+      });
+    });
+    [inHardShare, inHardPass, inProbP].forEach((el) => el.addEventListener('input', updateNgu));
+    updateNgu();
+
+    // --- Mode 2: ScaleRL Sigmoidal ---
+    const inAB = root.querySelector('[data-in="aB"]');
+    const inMidB = root.querySelector('[data-in="midB"]');
+    const inBudgetLog = root.querySelector('[data-in="budgetLog"]');
+    let slopeB = 0.72;
+    const R0 = 0.15;
+    const aA = 0.72;
+    const midA = 1200;
+    const slopeA = 0.90;
+
+    function sigR(C, A, Cmid, B) {
+      return R0 + (A - R0) / (1 + Math.pow(Cmid / C, B));
+    }
+    function xFromLogC(logC) {
+      // log10(C) in [2, 5] -> x in [56, 616]
+      return 56 + ((logC - 2) / 3) * 560;
+    }
+    function yFromR(r) {
+      // r in [0.15, 0.95] -> y in [188, 28]
+      return 188 - ((r - 0.15) / 0.80) * 160;
+    }
+
+    function updateScale() {
+      const aB = Number(inAB.value) / 100;
+      const midB = Number(inMidB.value);
+      const logC = Number(inBudgetLog.value) / 10;
+      const C = Math.pow(10, logC);
+
+      root.querySelector('[data-out="aB"]').textContent = aB.toFixed(2);
+      root.querySelector('[data-out="midB"]').textContent = midB.toLocaleString('en-US');
+      root.querySelector('[data-out="budget"]').textContent = Math.round(C).toLocaleString('en-US');
+
+      let dA = '';
+      let dB = '';
+      let crossC = null;
+      let prevDiff = null;
+      const steps = 60;
+      for (let i = 0; i <= steps; i++) {
+        const lc = 2 + (3 * i) / steps;
+        const cVal = Math.pow(10, lc);
+        const rA = sigR(cVal, aA, midA, slopeA);
+        const rB = sigR(cVal, aB, midB, slopeB);
+        const x = xFromLogC(lc).toFixed(1);
+        const yA = yFromR(rA).toFixed(1);
+        const yB = yFromR(rB).toFixed(1);
+        dA += (i === 0 ? 'M' : 'L') + `${x} ${yA} `;
+        dB += (i === 0 ? 'M' : 'L') + `${x} ${yB} `;
+        const diff = rB - rA;
+        if (prevDiff !== null && ((prevDiff < 0 && diff >= 0) || (prevDiff > 0 && diff <= 0)) && crossC === null) {
+          const frac = Math.abs(prevDiff) / (Math.abs(prevDiff) + Math.abs(diff));
+          const prevLc = 2 + (3 * (i - 1)) / steps;
+          crossC = Math.pow(10, prevLc + frac * (3 / steps));
+        }
+        prevDiff = diff;
+      }
+
+      root.querySelector('[data-el="curveA"]').setAttribute('d', dA);
+      root.querySelector('[data-el="curveB"]').setAttribute('d', dB);
+      root.querySelector('[data-el="asymA"]').setAttribute('y1', yFromR(aA).toFixed(1));
+      root.querySelector('[data-el="asymA"]').setAttribute('y2', yFromR(aA).toFixed(1));
+      root.querySelector('[data-el="asymB"]').setAttribute('y1', yFromR(aB).toFixed(1));
+      root.querySelector('[data-el="asymB"]').setAttribute('y2', yFromR(aB).toFixed(1));
+
+      const xB = xFromLogC(logC);
+      const rAcur = sigR(C, aA, midA, slopeA);
+      const rBcur = sigR(C, aB, midB, slopeB);
+      root.querySelector('[data-el="budgetLine"]').setAttribute('x1', xB.toFixed(1));
+      root.querySelector('[data-el="budgetLine"]').setAttribute('x2', xB.toFixed(1));
+      root.querySelector('[data-el="dotA"]').setAttribute('cx', xB.toFixed(1));
+      root.querySelector('[data-el="dotA"]').setAttribute('cy', yFromR(rAcur).toFixed(1));
+      root.querySelector('[data-el="dotB"]').setAttribute('cx', xB.toFixed(1));
+      root.querySelector('[data-el="dotB"]').setAttribute('cy', yFromR(rBcur).toFixed(1));
+
+      const dotCross = root.querySelector('[data-el="dotCross"]');
+      if (crossC !== null) {
+        const cx = xFromLogC(Math.log10(crossC));
+        const cy = yFromR(sigR(crossC, aA, midA, slopeA));
+        dotCross.setAttribute('cx', cx.toFixed(1));
+        dotCross.setAttribute('cy', cy.toFixed(1));
+        dotCross.style.display = '';
+        root.querySelector('[data-m="valCross"]').textContent = `~${Math.round(crossC).toLocaleString('en-US')} GPU-h`;
+      } else {
+        dotCross.style.display = 'none';
+        root.querySelector('[data-m="valCross"]').textContent = copy.scalerl.noCross;
+      }
+
+      root.querySelector('[data-m="valA"]').textContent = rAcur.toFixed(3);
+      root.querySelector('[data-m="valB"]').textContent = rBcur.toFixed(3);
+      root.querySelector('[data-m="verdict"]').textContent =
+        rBcur >= rAcur ? copy.scalerl.verdictHigherB : copy.scalerl.verdictHigherA;
+    }
+
+    root.querySelectorAll('[data-scale-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-scale-preset');
+        const preset = copy.scalerl.presets.find((x) => x.id === id);
+        if (!preset) return;
+        root.querySelectorAll('[data-scale-preset]').forEach((b) => b.classList.toggle('is-active', b === btn));
+        inAB.value = String(preset.aB);
+        inMidB.value = String(preset.midB);
+        slopeB = preset.slopeB;
+        inBudgetLog.value = String(Math.round(Math.log10(preset.budget) * 10));
+        updateScale();
+      });
+    });
+    [inAB, inMidB, inBudgetLog].forEach((el) => el.addEventListener('input', updateScale));
+    updateScale();
+  })();
+</script>
+
+<style>
+  .ptl-box {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--color-field);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .ptl-head {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .ptl-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .ptl-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    color: var(--color-heading);
+  }
+  .ptl-subtitle {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .ptl-mode-row,
+  .ptl-preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 1rem;
+  }
+  .ptl-label {
+    min-width: 5.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+    text-transform: uppercase;
+  }
+  .ptl-pills,
+  .ptl-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .ptl-pill {
+    padding: 0.38rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .ptl-pill.is-active {
+    color: #fff;
+    background: var(--color-heading);
+    border-color: var(--color-heading);
+  }
+  .ptl-tab {
+    padding: 0.34rem 0.72rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .ptl-tab.is-active {
+    color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .ptl-panel.is-hidden {
+    display: none;
+  }
+  .ptl-sliders {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin: 1rem 0 1.1rem;
+  }
+  .ptl-slider-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.7rem 0.8rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: var(--color-body);
+  }
+  .ptl-slider-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.4rem;
+    align-items: baseline;
+  }
+  .ptl-slider-top strong {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--color-heading);
+    white-space: nowrap;
+  }
+  .ptl-slider-item input[type='range'] {
+    width: 100%;
+    accent-color: var(--color-accent);
+  }
+  .ptl-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .ptl-card {
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+  }
+  .ptl-card-terra {
+    border-top: 3px solid #b1462f;
+  }
+  .ptl-card-teal {
+    border-top: 3px solid #2c6b5a;
+  }
+  .ptl-card-head {
+    margin: 0 0 0.75rem;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--color-heading);
+  }
+  .ptl-bar-track {
+    display: flex;
+    height: 14px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #ece6dc;
+    margin-bottom: 0.9rem;
+  }
+  .ptl-seg-zero {
+    background: #d58c7a;
+  }
+  .ptl-seg-mid {
+    background: #d9a05b;
+  }
+  .ptl-seg-hard {
+    background: #2c6b5a;
+  }
+  .ptl-metrics {
+    margin: 0;
+    display: grid;
+    gap: 0.45rem;
+  }
+  .ptl-metrics > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+  }
+  .ptl-metrics dt {
+    color: var(--color-muted);
+  }
+  .ptl-metrics dd {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 700;
+    color: var(--color-heading);
+  }
+  .ptl-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.85rem;
+    font-size: 0.76rem;
+    color: var(--color-muted);
+  }
+  .ptl-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 0.35rem;
+    vertical-align: -1px;
+  }
+  .ptl-dot-terra {
+    background: #b1462f;
+  }
+  .ptl-dot-teal {
+    background: #2c6b5a;
+  }
+  .ptl-chart-wrap {
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fffdf9;
+  }
+  .ptl-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .ptl-readout-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+  }
+  .ptl-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.65rem 0.8rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.76rem;
+    color: var(--color-muted);
+  }
+  .ptl-stat strong {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.92rem;
+    color: var(--color-heading);
+  }
+  .ptl-verdict {
+    margin: 0.8rem 0 0;
+    padding: 0.65rem 0.85rem;
+    background: #e7f2ee;
+    border: 1px solid #bfdcd2;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--color-body);
+  }
+  .ptl-note {
+    margin: 0.75rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: var(--color-muted);
+  }
+  @media (max-width: 760px) {
+    .ptl-box {
+      padding: 1.1rem;
+    }
+    .ptl-sliders,
+    .ptl-grid,
+    .ptl-readout-row {
+      grid-template-columns: 1fr;
+    }
+    .ptl-label {
+      min-width: auto;
+      width: 100%;
+    }
+  }
+</style>
