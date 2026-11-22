@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 490" width="960" height="490" role="img" aria-labelledby="title desc">
+<title id="title">Four Engineering Boundaries of Data Taste</title>
+<desc id="desc">Breaking vague data taste into four conditional boundaries: compute-to-data regime, training stage, low-cost valuation signals, and verifiable environment synthesis.</desc>
+<defs>
+  <marker id="arrow-stone" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#5b554d"/>
+  </marker>
+</defs>
+<rect width="960" height="490" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="38" font-size="19" font-weight="700" fill="#1f1d1a" text-anchor="middle">Data Taste Is Conditional: Four Engineering Boundaries</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="64" font-size="13.5" fill="#57524b" text-anchor="middle">Claims about "good data" contradict each other whenever regime, stage, signal, or verifiability changes</text>
+
+<!-- Boundary 1 -->
+<rect x="36" y="94" width="428" height="172" rx="12" fill="#eaf1f8" stroke="#2f5d8a" stroke-width="1.6"/>
+<path d="M48 94 H452 Q464 94 464 106 V134 H36 V106 Q36 94 48 94 Z" fill="#cde0f2"/>
+<line x1="36" y1="134" x2="464" y2="134" stroke="#2f5d8a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="120" font-size="15" font-weight="700" fill="#1f1d1a">1. Compute–Data Regime</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="448" y="119" font-size="11.5" font-weight="600" fill="#2f5d8a" text-anchor="end">When filtering helps vs. hurts</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="162" font-size="12.8" fill="#1f1d1a">• Compute-limited: CCNet &amp; FineWeb per-dump dedup win</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="188" font-size="12.8" fill="#1f1d1a">• Multilingual mix: ATLAS transfer &amp; 1-epoch decay</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="214" font-size="12.8" fill="#1f1d1a">• High-compute fixed pool: heavy filtering hits a wall</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="244" font-size="12.2" font-weight="600" fill="#2f5d8a">Key check: Is GPU budget or unique token supply binding?</text>
+
+<!-- Boundary 2 -->
+<rect x="496" y="94" width="428" height="172" rx="12" fill="#fcf4e4" stroke="#a6631b" stroke-width="1.6"/>
+<path d="M508 94 H912 Q924 94 924 106 V134 H496 V106 Q496 94 508 94 Z" fill="#f3dfb8"/>
+<line x1="496" y1="134" x2="924" y2="134" stroke="#a6631b" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="120" font-size="15" font-weight="700" fill="#1f1d1a">2. Training Stage Boundary</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="908" y="119" font-size="11.5" font-weight="600" fill="#a6631b" text-anchor="end">Target distribution shifts</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="162" font-size="12.8" fill="#1f1d1a">• Pre/Mid-train: diversity → annealing &amp; long context</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="188" font-size="12.8" fill="#1f1d1a">• SFT: bake control &amp; protocols into data (Nemotron 3)</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="214" font-size="12.8" fill="#1f1d1a">• Large pools: DEITA fades at 5M+; RDS+ hidden states scale</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="244" font-size="12.2" font-weight="600" fill="#a6631b">Key check: World knowledge, protocol, or policy search?</text>
+
+<!-- Boundary 3 -->
+<rect x="36" y="294" width="428" height="172" rx="12" fill="#e7f2ee" stroke="#2c6b5a" stroke-width="1.6"/>
+<path d="M48 294 H452 Q464 294 464 306 V334 H36 V306 Q36 294 48 294 Z" fill="#c6e2d8"/>
+<line x1="36" y1="334" x2="464" y2="334" stroke="#2c6b5a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="320" font-size="15" font-weight="700" fill="#1f1d1a">3. Low-Cost Signal Boundary</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="448" y="319" font-size="11.5" font-weight="600" fill="#2c6b5a" text-anchor="end">Replacing manual eyeballing</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="362" font-size="12.8" fill="#1f1d1a">• Proxy runs: DataDecide continuous prob @ 0.01% compute</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="388" font-size="12.8" fill="#1f1d1a">• Distilled rubric: DataMan 14 criteria × 15 domains</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="414" font-size="12.8" fill="#1f1d1a">• Meta-gradients: DataRater optimizes held-out val loss</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="444" font-size="12.2" font-weight="600" fill="#2c6b5a">Key check: Does ranking hold at the target model scale?</text>
+
+<!-- Boundary 4 -->
+<rect x="496" y="294" width="428" height="172" rx="12" fill="#f9ece8" stroke="#b1462f" stroke-width="1.6"/>
+<path d="M508 294 H912 Q924 294 924 306 V334 H496 V306 Q496 294 508 294 Z" fill="#f0d0c7"/>
+<line x1="496" y1="334" x2="924" y2="334" stroke="#b1462f" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="320" font-size="15" font-weight="700" fill="#1f1d1a">4. Verifiable Synthesis Boundary</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="908" y="319" font-size="11.5" font-weight="600" fill="#b1462f" text-anchor="end">From web filtering to environments</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="362" font-size="12.8" fill="#1f1d1a">• Knowledge graph: Kimi K3 DAG + isolated verifiers</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="388" font-size="12.8" fill="#1f1d1a">• World model: Qwen-AgentWorld seed-grounded Sim RL</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="414" font-size="12.8" fill="#1f1d1a">• Backward hops: WeAgent-MMSearch pixels + contrast</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="444" font-size="12.2" font-weight="600" fill="#b1462f">Key check: Verified by an environment or model vibes?</text>
+
+<!-- Connecting arrows -->
+<line x1="464" y1="180" x2="496" y2="180" stroke="#5b554d" stroke-width="1.6" marker-end="url(#arrow-stone)"/>
+<line x1="710" y1="266" x2="710" y2="294" stroke="#5b554d" stroke-width="1.6" marker-end="url(#arrow-stone)"/>
+<line x1="250" y1="266" x2="250" y2="294" stroke="#5b554d" stroke-width="1.6" marker-end="url(#arrow-stone)"/>
+<line x1="464" y1="380" x2="496" y2="380" stroke="#5b554d" stroke-width="1.6" marker-end="url(#arrow-stone)"/>
+</svg>
