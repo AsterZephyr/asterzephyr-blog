@@ -2,10 +2,10 @@
 title: "\"Data Taste\" in LLM Training: Four Engineering Boundaries"
 date: 2026-11-22
 tags: [AI 与机器学习]
-summary: "Starting from a widely shared practitioner post on \"data taste,\" this article audits 16 primary papers and technical reports from 2019 to 2026 to turn vague intuition into four engineering boundaries: compute-data regimes, training-stage goals, low-cost proxy signals, and verifiable environment synthesis."
+summary: "Starting from a widely shared practitioner post on \"data taste,\" this article audits 16 primary papers and technical reports from 2019 to 2026 to turn vague intuition into four practical engineering checks: whether you are short on GPUs or data, which stage you are training, how to test cheaply, and who grades synthetic data."
 draft: false
 sourceFile: "what-is-good-data-taste-llm-engineering-boundaries.mdx"
-sourceHash: "b72a5a45e6a4e2faf4941789b2160da413c6e1e7482dcebc1ca9aabca7c6717b"
+sourceHash: "de8255fb86bfb4a8d0c0f4fc721aa1678e294ee5ed3fe9f0232513860fc79b37"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -15,21 +15,21 @@ import DataTasteBoundaryLab from '../../components/blog/DataTasteBoundaryLab.ast
 import Steps from '../../components/blog/Steps.astro'
 import StepItem from '../../components/blog/StepItem.astro'
 
-Almost every LLM team agrees that data sets the ceiling, yet the moment engineers write cleaning scripts or set mixing ratios, their practices point in opposite directions. Faced with the same web crawl, one team discards over 95% of raw tokens before touching a cluster, while another cites 2026 experiments arguing that aggressive filtering hurts once compute scales. At sign-off, one camp eyeballs a few dozen rows in a spreadsheet and ships, while the other refuses to move without small proxy runs.
+Almost every LLM team agrees on one thing: data sets the ceiling. Yet the moment engineers write cleaning scripts or set mixing ratios, their practices point in opposite directions. Faced with the same web crawl, one team cuts over 95% of raw tokens before touching a cluster, while another cites 2026 experiments arguing that aggressive filtering hurts once compute scales. At sign-off, one camp eyeballs a few dozen rows in a spreadsheet and ships, while the other refuses to move without small proxy runs.
 
-In industry shorthand, these clashing instincts are lumped together as **Data Taste**. Recently, Datumwell founder Allen published an X essay, [*What Is Good Data Taste?*](https://x.com/allen_datumwell/status/2123813175644782633?s=19), threading together over a dozen milestone papers from 2019 to 2026. Auditing each primary paper, technical report, and experimental premise reveals why teams keep talking past one another: **the field treats "good data" as a static property of text, whereas the exact same corpus flips from asset to liability once you change the compute regime, training stage, or verification loop.**
+In industry shorthand, these clashing instincts get lumped together as **Data Taste**. Recently, Datumwell founder Allen published an X essay, [*What Is Good Data Taste?*](https://x.com/allen_datumwell/status/2123813175644782633?s=19), threading together over a dozen milestone papers from 2019 to 2026. Auditing each primary paper, technical report, and experimental setup reveals why teams keep talking past each other: **people treat "good data" as a static label on text, whereas the exact same corpus can be gold today and harmful noise tomorrow once you change the compute budget, training stage, or evaluation loop.**
 
-Before modifying any data pipeline, what actually works is not mysticism, but locking where you sit along four concrete boundaries: your compute-to-unique-token regime, your current training stage, whether you have cheap proxy signals to replace manual eyeballing, and whether verifiable environments can gate synthetic data once natural corpora run dry.
+Before touching any cleaning script or synthesis pipeline, skip gut feel and answer four plain questions: are you short on GPUs or unique data, which training stage are you actually in, how can you test data cheaply, and when you have to generate synthetic data, who grades right from wrong?
 
-<Callout type="info" title="Scope, Non-Goals, and Verification Standard">
-This article assumes familiarity with the basic roles of Pre-training, Supervised Fine-Tuning (SFT), and Reinforcement Learning (RL), without requiring prior reading of the cited papers. **It does not cover legal data-compliance rules or distributed ETL throughput benchmarks**; it focuses strictly on training-side data value and failure boundaries.<br />
-Using Allen’s X essay as a starting point, every metric, mechanism, and authorship claim below has been verified against primary papers and technical reports. Wherever popular community summaries diverge from the primary source (such as Nemotron 3 Nano’s stage split, DataRater’s meta-gradient objective, or FineWeb’s deduplication failure mode), the text corrects them directly.
+<Callout type="info" title="Scope and Verification Standard">
+This article assumes you broadly know what Pre-training, Supervised Fine-Tuning (SFT), and Reinforcement Learning (RL) do, with no prior reading of the cited papers required. **It does not cover legal data-compliance rules or ETL engine throughput**; it focuses strictly on what makes training data useful and when it backfires.<br />
+Using Allen’s X essay as a starting point, every number, mechanism, and authorship claim below has been verified against primary papers and technical reports. Wherever common community summaries diverge from the primary source (such as Nemotron 3 Nano’s stage split, what DataRater actually optimizes, or why FineWeb deduplication dropped scores), the text corrects them directly.
 </Callout>
 
 <TechGraph
-  src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/four-boundaries-en.svg"
-  title="FOUR ENGINEERING GATES OF DATA TASTE"
-  caption="Four engineering gates to clear before editing a data pipeline: top row locks boundary actions; bottom dashed exits show typical failures when a gate is skipped (synthesized from 16 primary papers below)"
+  src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/four-boundaries-v2-en.svg"
+  title="FOUR QUESTIONS BEFORE EDITING A DATA PIPELINE"
+  caption="Four questions to answer before changing a cleaning or synthesis pipeline: the top row shows what works; the dashed bottom row shows how things backfire when you skip a check (synthesized from 16 primary papers below)"
 />
 
 ## Why Practitioners Still Feel Like "Data Taste" Is Folklore

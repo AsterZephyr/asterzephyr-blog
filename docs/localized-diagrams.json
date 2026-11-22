@@ -204,9 +204,15 @@
     "targetHash": "e461e7200d656415a3ce6d87b53e86158b3edd022b02b0d614e401419f5da415"
   },
   {
-    "source": "/images/posts/what-is-good-data-taste-llm-engineering-boundaries/four-boundaries.svg",
-    "target": "/images/posts/what-is-good-data-taste-llm-engineering-boundaries/four-boundaries-en.svg",
-    "sourceHash": "6761e5a4210a6d997484aa2264d3520595bf2078d96de85608157f983a1328ca",
-    "targetHash": "ae389346e6c11a4f9bc33110353d86f78decedb6d45ce14138e839921c5393e2"
+    "source": "/images/posts/what-is-good-data-taste-llm-engineering-boundaries/four-boundaries-v2.svg",
+    "target": "/images/posts/what-is-good-data-taste-llm-engineering-boundaries/four-boundaries-v2-en.svg",
+    "sourceHash": "09aff1c56c25bb3ba6b3d52c3c7ed9462a44f1ba42c1f0cbb0353b9a4f77c1ed",
+    "targetHash": "74f2d4ccab8d6dc25606c67731437019981955b0cbbe4387c1b13d8175199dce"
+  },
+  {
+    "source": "/images/posts/open-post-training-frontiers-2026/open-post-training-map.svg",
+    "target": "/images/posts/open-post-training-frontiers-2026/open-post-training-map-en.svg",
+    "sourceHash": "da6d446da89be7d19c475045b9f8836a9e1a6bfd72677d74e9601f5240718f67",
+    "targetHash": "17ae055ad5406d6c7c9b764c1807ed20e461d3668a12b906f91f10c2487b0fd4"
   }
 ]
