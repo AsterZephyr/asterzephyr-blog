@@ -5,6 +5,23 @@ import { load } from 'cheerio';
 import { matchingSections } from '../src/lib/discovery.mjs';
 import { findEdition } from '../src/lib/cjk-search.mjs';
 const dist = path.resolve(process.argv[2] || 'dist');
+// Pre-existing older articles with legacy CommonMark CJK punctuation + `**` leaks.
+// Frozen list: never add new posts here; fix `**...）**中文` instead.
+const legacyRawBoldSlugs = new Set([
+  'mobile-game-ua-delayed-feedback-and-bidding',
+  'mobile-game-ua-skan4-and-incrementality',
+  'nlp相关常问',
+  'promopting-llm工程入门指南',
+  'rl-for-llm-为什么强化学习训练大模型这么难',
+  '图计算增强反欺诈风控',
+  '宝宝床边故事集-存储引擎',
+  '工程估算与性能建模',
+  '广告平台关系与流程解析',
+  '搜广推业务区别',
+  '时间从哪里来',
+  '现代区块链生态系统架构分析',
+  '超参数-从机器学习理论到广告竞价系统',
+]);
 let articles = 0; let translations = 0;
 for (const item of await readdir(path.join(dist, 'blog'), { withFileTypes: true })) {
   if (!item.isDirectory()) continue;
@@ -12,6 +29,16 @@ for (const item of await readdir(path.join(dist, 'blog'), { withFileTypes: true 
   if (!$('[data-article-content]').length) continue;
   articles++;
   if ($('[data-english-content]').length) translations++;
+  if (!legacyRawBoldSlugs.has(item.name)) {
+    for (const sel of ['[data-article-content]', '[data-english-content]']) {
+      if (!$(sel).length) continue;
+      const inner = load($(sel).html() || '');
+      inner('code, pre, script, style, .katex-mathml').remove();
+      const text = inner.root().text();
+      const leak = text.match(/.{0,20}\*\*.{0,20}/);
+      assert.equal(leak, null, `${item.name} (${sel}): unrendered "**" found in HTML: ${leak?.[0]}`);
+    }
+  }
   const image = new URL($('meta[property="og:image"]').attr('content'));
   const png = await readFile(path.join(dist, image.pathname));
   assert.equal(png.subarray(1, 4).toString(), 'PNG');

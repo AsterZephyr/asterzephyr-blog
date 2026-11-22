@@ -1,62 +1,106 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 490" width="960" height="490" role="img" aria-labelledby="title desc">
-<title id="title">数据 Taste 的四条工程边界</title>
-<desc id="desc">将模糊的“数据品味”拆解为四条条件边界：算力与数据比例、训练阶段目标、低成本估值信号，以及环境与验证器驱动的合成。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 412" width="960" height="412" role="img" aria-labelledby="title desc">
+<title id="title">大模型数据 Taste 的四道工程决策关与失效分支</title>
+<desc id="desc">自左向右依次经过算力与数据区位、训练阶段目标、低成本估值信号、可验证合成闭环四道工程关口，每道关口下方以虚线标出跳过或误判时的典型失效模式。</desc>
 <defs>
-  <marker id="arrow-stone" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-    <path d="M0 0 L10 5 L0 10 z" fill="#5b554d"/>
+  <marker id="arrow-main" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0 1 L9 5 L0 9 z" fill="#4f4942"/>
+  </marker>
+  <marker id="arrow-fail" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+    <path d="M0 1 L9 5 L0 9 z" fill="#b1462f"/>
   </marker>
 </defs>
-<rect width="960" height="490" fill="#faf7f2"/>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="38" font-size="19" font-weight="700" fill="#1f1d1a" text-anchor="middle">数据 Taste 不是静态标签，而是四条边界下的条件决策</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="64" font-size="13.5" fill="#57524b" text-anchor="middle">离开算力区位、训练阶段、评测信号与可验证性谈“好数据”，结论往往互相矛盾</text>
 
-<!-- Boundary 1 -->
-<rect x="36" y="94" width="428" height="172" rx="12" fill="#eaf1f8" stroke="#2f5d8a" stroke-width="1.6"/>
-<path d="M48 94 H452 Q464 94 464 106 V134 H36 V106 Q36 94 48 94 Z" fill="#cde0f2"/>
-<line x1="36" y1="134" x2="464" y2="134" stroke="#2f5d8a" stroke-width="1"/>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="120" font-size="15.5" font-weight="700" fill="#1f1d1a">1. 算力—数据区位边界</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="448" y="119" font-size="12" font-weight="600" fill="#2f5d8a" text-anchor="end">过滤何时赚，何时亏</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="162" font-size="13" fill="#1f1d1a">• 算力受限：CCNet / FineWeb 单快照去重明显提效</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="188" font-size="13" fill="#1f1d1a">• 跨语言配比：ATLAS 揭示非对称迁移与 1 epoch 拐点</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="214" font-size="13" fill="#1f1d1a">• 高算力固定池：过度过滤制造数据墙（Bitter Lesson）</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="244" font-size="12.5" font-weight="600" fill="#2f5d8a">关键追问：瓶颈在 GPU 预算，还是在唯一 token 上限？</text>
+<rect width="960" height="412" fill="#faf7f2"/>
 
-<!-- Boundary 2 -->
-<rect x="496" y="94" width="428" height="172" rx="12" fill="#fcf4e4" stroke="#a6631b" stroke-width="1.6"/>
-<path d="M508 94 H912 Q924 94 924 106 V134 H496 V106 Q496 94 508 94 Z" fill="#f3dfb8"/>
-<line x1="496" y1="134" x2="924" y2="134" stroke="#a6631b" stroke-width="1"/>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="120" font-size="15.5" font-weight="700" fill="#1f1d1a">2. 训练阶段边界</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="908" y="119" font-size="12" font-weight="600" fill="#a6631b" text-anchor="end">分布目标随阶段切换</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="162" font-size="13" fill="#1f1d1a">• Pre-train / Mid-train：多样性覆盖 → 退火与长上下文</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="188" font-size="13" fill="#1f1d1a">• SFT：把交互协议与推理控制写进数据（Nemotron 3）</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="214" font-size="13" fill="#1f1d1a">• 大池筛选：DEITA 在小池强，百万级需 RDS+ 隐状态</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="244" font-size="12.5" font-weight="600" fill="#a6631b">关键追问：它在训世界知识、行为协议，还是策略搜索？</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', Arial, sans-serif" x="480" y="34" font-size="18.5" font-weight="700" fill="#1f1d1a" text-anchor="middle">改数据管线前先过四道工程关：主决策流与常见踩坑分支</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', Arial, sans-serif" x="480" y="57" font-size="12.5" fill="#5d574f" text-anchor="middle">上排按顺序锁定边界条件，下排虚线标出跳过该关或套错前提时的典型失效</text>
 
-<!-- Boundary 3 -->
-<rect x="36" y="294" width="428" height="172" rx="12" fill="#e7f2ee" stroke="#2c6b5a" stroke-width="1.6"/>
-<path d="M48 294 H452 Q464 294 464 306 V334 H36 V306 Q36 294 48 294 Z" fill="#c6e2d8"/>
-<line x1="36" y1="334" x2="464" y2="334" stroke="#2c6b5a" stroke-width="1"/>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="320" font-size="15.5" font-weight="700" fill="#1f1d1a">3. 低成本信号边界</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="448" y="319" font-size="12" font-weight="600" fill="#2c6b5a" text-anchor="end">替代“肉眼抽查”</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="362" font-size="13" fill="#1f1d1a">• 小模型代理：DataDecide 用连续概率在 0.01% 算力预测</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="388" font-size="13" fill="#1f1d1a">• 静态语义打分：DataMan 蒸馏 14 维质量 + 15 维领域</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="414" font-size="13" fill="#1f1d1a">• 双层元学习：DataRater 沿元梯度直接优化验证集损失</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="54" y="444" font-size="12.5" font-weight="600" fill="#2c6b5a">关键追问：信号能否在目标规模前保持排序一致性？</text>
+<!-- Gate 1 -->
+<rect x="34" y="82" width="206" height="148" rx="10" fill="#edf3f9" stroke="#2f5d8a" stroke-width="1.6"/>
+<path d="M44 82 H230 Q240 82 240 92 V118 H34 V92 Q34 82 44 82 Z" fill="#d3e3f3"/>
+<line x1="34" y1="118" x2="240" y2="118" stroke="#2f5d8a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="48" y="105" font-size="13.5" font-weight="700" fill="#1b3956">01 算力与数据区位</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="48" y="143" font-size="12" fill="#23201c">• 算力紧：单快照去重+过滤</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="48" y="167" font-size="12" fill="#23201c">• 固定池：警惕过严硬砍</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="48" y="191" font-size="12" fill="#23201c">• 多语种：严守 1-epoch 拐点</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="48" y="216" font-size="10.5" font-weight="600" fill="#2f5d8a">FineWeb · Bitter · ATLAS</text>
 
-<!-- Boundary 4 -->
-<rect x="496" y="294" width="428" height="172" rx="12" fill="#f9ece8" stroke="#b1462f" stroke-width="1.6"/>
-<path d="M508 294 H912 Q924 294 924 306 V334 H496 V306 Q496 294 508 294 Z" fill="#f0d0c7"/>
-<line x1="496" y1="334" x2="924" y2="334" stroke="#b1462f" stroke-width="1"/>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="320" font-size="15.5" font-weight="700" fill="#1f1d1a">4. 可验证合成边界</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="908" y="319" font-size="12" font-weight="600" fill="#b1462f" text-anchor="end">从筛网页走向造环境</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="362" font-size="13" fill="#1f1d1a">• 任务图谱：Kimi K3 层级知识图谱 + 隔离验证器</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="388" font-size="13" fill="#1f1d1a">• 世界模型：Qwen-AgentWorld 种子状态驱动 Sim RL</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="414" font-size="13" fill="#1f1d1a">• 逆向多跳：WeAgent-MMSearch 像素终点反推 + 难度筛选</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="514" y="444" font-size="12.5" font-weight="600" fill="#b1462f">关键追问：合成样本靠模型自评，还是靠可执行环境验真？</text>
+<!-- Gate 2 -->
+<rect x="262" y="82" width="206" height="148" rx="10" fill="#fcf5e6" stroke="#a6631b" stroke-width="1.6"/>
+<path d="M272 82 H458 Q468 82 468 92 V118 H262 V92 Q262 82 272 82 Z" fill="#f4e0bc"/>
+<line x1="262" y1="118" x2="468" y2="118" stroke="#a6631b" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="276" y="105" font-size="13.5" font-weight="700" fill="#633a0d">02 训练阶段目标</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="276" y="143" font-size="12" fill="#23201c">• Pre/Mid：广度后做退火锐化</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="276" y="167" font-size="12" fill="#23201c">• SFT：把交互协议写进分布</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="276" y="191" font-size="12" fill="#23201c">• 百万池：切回基座自身表征</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="276" y="216" font-size="10.5" font-weight="600" fill="#9a5914">Nemotron 3 · R1 · RDS+</text>
 
-<!-- Connecting arrows -->
-<line x1="464" y1="180" x2="496" y2="180" stroke="#5b554d" stroke-width="1.6" marker-end="url(#arrow-stone)"/>
-<line x1="710" y1="266" x2="710" y2="294" stroke="#5b554d" stroke-width="1.6" marker-end="url(#arrow-stone)"/>
-<line x1="250" y1="266" x2="250" y2="294" stroke="#5b554d" stroke-width="1.6" marker-end="url(#arrow-stone)"/>
-<line x1="464" y1="380" x2="496" y2="380" stroke="#5b554d" stroke-width="1.6" marker-end="url(#arrow-stone)"/>
+<!-- Gate 3 -->
+<rect x="490" y="82" width="206" height="148" rx="10" fill="#e9f4f0" stroke="#2c6b5a" stroke-width="1.6"/>
+<path d="M500 82 H686 Q696 82 696 92 V118 H490 V92 Q490 82 500 82 Z" fill="#cae4db"/>
+<line x1="490" y1="118" x2="696" y2="118" stroke="#2c6b5a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="504" y="105" font-size="13.5" font-weight="700" fill="#1a463a">03 低成本估值信号</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="504" y="143" font-size="12" fill="#23201c">• 语料排序：看连续概率指标</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="504" y="167" font-size="12" fill="#23201c">• 批量初筛：1.5B 多维打标</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="504" y="191" font-size="12" fill="#23201c">• 高价值池：双层验证元梯度</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="504" y="216" font-size="10.5" font-weight="600" fill="#255d4e">DataDecide · DataMan · Rater</text>
+
+<!-- Gate 4 -->
+<rect x="718" y="82" width="208" height="148" rx="10" fill="#f3eff8" stroke="#634b7a" stroke-width="1.6"/>
+<path d="M728 82 H916 Q926 82 926 92 V118 H718 V92 Q718 82 728 82 Z" fill="#dfd5eb"/>
+<line x1="718" y1="118" x2="926" y2="118" stroke="#634b7a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="105" font-size="13.5" font-weight="700" fill="#3f2d52">04 可验证合成闭环</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="143" font-size="12" fill="#23201c">• 真实状态/图谱作锚定种子</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="167" font-size="12" fill="#23201c">• 逆向构造堵死文本捷径</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="191" font-size="12" fill="#23201c">• 隔离验证器 + 组内对比筛题</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="732" y="216" font-size="10.5" font-weight="600" fill="#594170">Kimi K3 · AgentWorld · WeAgent</text>
+
+<!-- Horizontal main flow arrows -->
+<line x1="240" y1="156" x2="259" y2="156" stroke="#4f4942" stroke-width="1.8" marker-end="url(#arrow-main)"/>
+<line x1="468" y1="156" x2="487" y2="156" stroke="#4f4942" stroke-width="1.8" marker-end="url(#arrow-main)"/>
+<line x1="696" y1="156" x2="715" y2="156" stroke="#4f4942" stroke-width="1.8" marker-end="url(#arrow-main)"/>
+
+<!-- Vertical failure arrows -->
+<line x1="137" y1="230" x2="137" y2="275" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+<line x1="365" y1="230" x2="365" y2="275" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+<line x1="593" y1="230" x2="593" y2="275" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+<line x1="822" y1="230" x2="822" y2="275" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+
+<!-- Failure labels on arrows -->
+<rect x="93" y="241" width="88" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="137" y="255" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">看错区位时</text>
+
+<rect x="321" y="241" width="88" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="365" y="255" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">混用标准时</text>
+
+<rect x="549" y="241" width="88" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="593" y="255" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">跳过代理时</text>
+
+<rect x="778" y="241" width="88" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="822" y="255" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">靠自评合成时</text>
+
+<!-- Failure cards -->
+<rect x="34" y="278" width="206" height="104" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="48" y="302" font-size="12" font-weight="700" fill="#9b3621">失效 1：隐性分布畸变</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="48" y="325" font-size="11.5" fill="#433834">跨快照删重反把广告页抬高；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="48" y="346" font-size="11.5" fill="#433834">固定池硬砍提前撞上数据墙；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="48" y="367" font-size="11.5" fill="#433834">小语种超 1 轮收益急坠。</text>
+
+<rect x="262" y="278" width="206" height="104" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="276" y="302" font-size="12" font-weight="700" fill="#9b3621">失效 2：裁判偏见与退化</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="276" y="325" font-size="11.5" fill="#433834">百万池外置打分器跑输随机；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="276" y="346" font-size="11.5" fill="#433834">纯超长序列反伤短上下文；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="276" y="367" font-size="11.5" fill="#433834">线上强截断思考直接乱答。</text>
+
+<rect x="490" y="278" width="206" height="104" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="504" y="302" font-size="12" font-weight="700" fill="#9b3621">失效 3：误判与噪声放大</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="504" y="325" font-size="11.5" fill="#433834">肉眼翻 10 条放大确认偏误；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="504" y="346" font-size="11.5" fill="#433834">小模型看离散 Acc 等于抛硬币；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="504" y="367" font-size="11.5" fill="#433834">专挑高 loss 样本选出乱码。</text>
+
+<rect x="718" y="278" width="208" height="104" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="302" font-size="12" font-weight="700" fill="#9b3621">失效 4：伪难度与捷径刷分</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="325" font-size="11.5" fill="#433834">多模态题面 URL 泄答案；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="346" font-size="11.5" fill="#433834">粗略 prompt 致仿真迅速漂移；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="367" font-size="11.5" fill="#433834">无隔离验证触发 reward hacking。</text>
 </svg>

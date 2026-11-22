@@ -1,301 +1,351 @@
 ---
 title: "\"Data Taste\" in LLM Training: Four Engineering Boundaries"
-summary: "Starting from a practitioner essay on \"data taste,\" this post checks 16 papers and technical reports from 2019 to 2026 to ground data-quality judgment in four boundaries: compute-to-data regime, training stage, low-cost valuation signals, and verifiable environment synthesis."
-sourceFile: "what-is-good-data-taste-llm-engineering-boundaries.mdx"
-sourceHash: "7d3c0d85ad6cf511a2b69fc36cc12f3d7c86fd3cc4a7839cf288af1a68c23c7e"
+date: 2026-11-22
+tags: [AI 与机器学习]
+summary: "Starting from a widely shared practitioner post on \"data taste,\" this article audits 16 primary papers and technical reports from 2019 to 2026 to turn vague intuition into four engineering boundaries: compute-data regimes, training-stage goals, low-cost proxy signals, and verifiable environment synthesis."
 draft: false
+sourceFile: "what-is-good-data-taste-llm-engineering-boundaries.mdx"
+sourceHash: "b72a5a45e6a4e2faf4941789b2160da413c6e1e7482dcebc1ca9aabca7c6717b"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
 import Figure from '../../components/blog/Figure.astro'
 import TechGraph from '../../components/blog/TechGraph.astro'
+import DataTasteBoundaryLab from '../../components/blog/DataTasteBoundaryLab.astro'
 import Steps from '../../components/blog/Steps.astro'
 import StepItem from '../../components/blog/StepItem.astro'
 
-Most LLM teams agree that data sets the ceiling of a model, yet concrete filtering and mixing decisions still split right down the middle. On the same web crawl, some teams discard more than 95% of raw tokens before touching a cluster, while others point to 2026 scaling experiments arguing that aggressive filtering hurts once compute gets large enough. At sign-off time, some teams skim a few dozen rows by eye and ship; others insist on training proxy models to rank candidate mixes first. Those conflicting habits usually end up grouped under a single vague label: **data taste**.
+Almost every LLM team agrees that data sets the ceiling, yet the moment engineers write cleaning scripts or set mixing ratios, their practices point in opposite directions. Faced with the same web crawl, one team discards over 95% of raw tokens before touching a cluster, while another cites 2026 experiments arguing that aggressive filtering hurts once compute scales. At sign-off, one camp eyeballs a few dozen rows in a spreadsheet and ships, while the other refuses to move without small proxy runs.
 
-Recently, Datumwell founder Allen published an X essay titled [*What Is Good Data Taste?* (什么是好的数据 Taste?)](https://x.com/allen_datumwell/status/2123813175644782633?s=19), tying together more than a dozen influential papers from 2019 to 2026. Checking each paper and technical report against its primary source points to why these arguments rarely converge: **teams treat "good data" as a static property of text, whereas the actual value of the same corpus flips depending on compute budget, training stage, and verification setup.**
+In industry shorthand, these clashing instincts are lumped together as **Data Taste**. Recently, Datumwell founder Allen published an X essay, [*What Is Good Data Taste?*](https://x.com/allen_datumwell/status/2123813175644782633?s=19), threading together over a dozen milestone papers from 2019 to 2026. Auditing each primary paper, technical report, and experimental premise reveals why teams keep talking past one another: **the field treats "good data" as a static property of text, whereas the exact same corpus flips from asset to liability once you change the compute regime, training stage, or verification loop.**
 
-<Callout type="info" title="Reading scope and verification notes">
-This article assumes familiarity with the basic roles of pre-training, supervised fine-tuning (SFT), and reinforcement learning (RL), without requiring prior reading of the cited papers. Allen's X essay is the starting point, while all experimental numbers, mechanisms, and author attributions below have been checked against the original papers and technical reports. Where common secondary summaries diverge from primary sources (such as Nemotron 3 Nano's stage boundaries, DataRater's meta-gradient objective, or FineWeb's deduplication regression), the text corrects them against the original publications.
+Before modifying any data pipeline, what actually works is not mysticism, but locking where you sit along four concrete boundaries: your compute-to-unique-token regime, your current training stage, whether you have cheap proxy signals to replace manual eyeballing, and whether verifiable environments can gate synthetic data once natural corpora run dry.
+
+<Callout type="info" title="Scope, Non-Goals, and Verification Standard">
+This article assumes familiarity with the basic roles of Pre-training, Supervised Fine-Tuning (SFT), and Reinforcement Learning (RL), without requiring prior reading of the cited papers. **It does not cover legal data-compliance rules or distributed ETL throughput benchmarks**; it focuses strictly on training-side data value and failure boundaries.<br />
+Using Allen’s X essay as a starting point, every metric, mechanism, and authorship claim below has been verified against primary papers and technical reports. Wherever popular community summaries diverge from the primary source (such as Nemotron 3 Nano’s stage split, DataRater’s meta-gradient objective, or FineWeb’s deduplication failure mode), the text corrects them directly.
 </Callout>
-
-Turning "data taste" into usable engineering judgment comes down to locating your project along four boundaries before modifying a pipeline: your compute-to-unique-token regime, your current training stage, whether cheap signals can replace manual spot-checking, and, once natural corpora run dry, whether an executable environment and verifier gate your synthetic data.
 
 <TechGraph
   src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/four-boundaries-en.svg"
-  title="FOUR BOUNDARIES OF DATA TASTE"
-  caption="Four engineering boundaries of data taste: author-drawn synthesis summarizing the experimental conditions across the 16 primary sources below"
+  title="FOUR ENGINEERING GATES OF DATA TASTE"
+  caption="Four engineering gates to clear before editing a data pipeline: top row locks boundary actions; bottom dashed exits show typical failures when a gate is skipped (synthesized from 16 primary papers below)"
 />
 
-## Why Practitioners Still Feel Like Data Quality Is Guesswork
+## Why Practitioners Still Feel Like "Data Taste" Is Folklore
 
-Before turning to algorithms and scaling laws, two empirical studies of real LLM teams explain why "taste" remains the default vocabulary in data engineering.
+Before looking at algorithms and scaling laws, two empirical studies of real engineering teams explain why data judgment still feels like tribal lore.
 
-In the ASE 2024 study [*What Makes a High-Quality Training Dataset for Large Language Models: A Practitioners’ Perspective*](https://dl.acm.org/doi/10.1145/3691620.3695061), researchers interviewed 13 experienced LLM professionals and then surveyed 219 practitioners across 23 countries. Out of 18 candidate attributes, respondents ranked **Reliability, Relevance, Accuracy, and Compliance** highest, placing completeness, balance, absence of duplicates, consistency, and timeliness at the bottom. Their top pain points fell into three buckets: no standardized processing pipeline, no clear stopping rule for when cleaning is good enough, and no reliable quantitative metric afterward.
+An ASE 2024 empirical study, [*What Makes a High-Quality Training Dataset for Large Language Models: A Practitioners’ Perspective*](https://dl.acm.org/doi/10.1145/3691620.3695061), interviewed 13 senior LLM practitioners and surveyed 219 engineers across 23 countries. Out of 18 candidate attributes, practitioners ranked **Reliability, Relevance, Accuracy, and Compliance** at the top, placing completeness, balance, zero duplication, consistency, and freshness at the bottom.
 
-That same year, Google Research published a CHI 2024 extended abstract, [*Understanding the Dataset Practitioners Behind Large Language Model Development*](https://arxiv.org/abs/2402.16611), interviewing 10 internal practitioners across tooling, modeling, and evaluation. Even inside a top lab, dataset inspection split into two extremes: **eyeballing in spreadsheets** ("read the first 10 examples, and then maybe some in the middle") on one end, and custom Python notebooks on the other, with almost no shared tooling in between.
+Their biggest frustrations boiled down to three gaps: no standardized processing pipeline, no clear stopping rule for when data is "clean enough," and no trustworthy quantitative sign-off metrics once cleaning finishes.
 
-The paper flags the risk in that habit: **unstructured spot-checking amplifies confirmation bias**. When model outputs look wrong, engineers dig into the corpus with an explanation already in mind. They can almost always find a few messy rows that match their hunch, with no way to tell whether those samples are a real noise source, irrelevant edge cases, or rare long-tail signal.
+In the same year, Google Research’s CHI 2024 extended abstract, [*Understanding the Dataset Practitioners Behind Large Language Model Development*](https://arxiv.org/abs/2402.16611), interviewed 10 internal engineers spanning tooling, modeling, and evaluation. Even inside a frontier lab, data inspection split into two extremes: opening a spreadsheet to **eyeball** the first 10 rows and scroll randomly through the middle, or writing bespoke, throwaway Python notebooks—with almost no shared tooling in between.
 
-Getting out of that intuition loop means dropping the blanket question "Is this corpus clean?" and examining the four boundaries that govern data value.
+The paper pinpoints the hidden hazard of ad-hoc eyeballing: **it systematically amplifies confirmation bias**. When a model behaves poorly, engineers browse the corpus with a hunch already in mind, easily pull out a few ugly rows to confirm that hunch, and still have no way of knowing whether those rows represent real noise, negligible dust, or rare high-value tail information.
+
+Escaping this intuition-driven patch loop starts with dropping the blanket question "is this dataset clean?" and inspecting the four boundaries that actually govern data value.
 
 ---
 
 ## Boundary 1: Compute and Data Regimes Decide Whether Filtering Helps or Hurts
 
-Every year or two, the field re-argues how aggressively to filter web data. Putting the 2019 to 2026 results back inside their own experimental conditions shows that seemingly contradictory papers sit in two different regimes: **compute-constrained** versus **data-constrained**.
+Every year or two, the community re-litigates how aggressively web crawls should be filtered. Put the 2019–2026 experiments back inside their original constraints, and papers that look contradictory actually sit in two different regimes: **compute-bound** versus **data-bound**.
 
-The baseline is DeepMind's Chinchilla study, [*Training Compute-Optimal Large Language Models*](https://arxiv.org/abs/2203.15556) (2022). Across 400+ runs spanning 70M to 16B parameters, the authors showed that under a fixed compute budget $$C$$, parameter count $$N$$ and training tokens $$D$$ should scale roughly together as $$C^{0.5}$$; a 70B model trained on 1.4T tokens beat the 280B Gopher trained on 300B tokens at comparable compute. That set the rule for modern pre-training: under fixed FLOPs, spending compute on higher-density tokens yields direct gains.
+### From Chinchilla to FineWeb: Why Cleaning Can Backfire Even Under Tight Compute
 
-Early web-filtering pipelines followed directly from that rule. Meta's [CCNet](https://arxiv.org/abs/1911.00359) (2019) chained three steps over Common Crawl: paragraph deduplication, fastText language identification, and perplexity bucketing (head, middle, tail) using a Wikipedia-trained 5-gram KenLM. When raw crawls are full of broken encodings, machine-translated spam, and template boilerplate, and training budgets are nowhere near exhausting the web, rules and language-model filters rarely backfire.
+Modern pre-training begins with DeepMind’s Chinchilla paper, [*Training Compute-Optimal Large Language Models*](https://arxiv.org/abs/2203.15556) (2022). Across more than 400 runs spanning 70M to 16B parameters, the authors showed that for a fixed compute budget $$C$$, parameter count $$N$$ and training tokens $$D$$ should scale roughly together as $$C^{0.5}$$. A 70B model trained on 1.4T tokens (Chinchilla) outperformed 280B Gopher trained on 300B tokens at comparable compute. That set an intuitive baseline: when FLOPs are scarce, feeding denser, cleaner tokens pays off immediately.
 
-At multi-trillion-token scale, the first surprise showed up. When Hugging Face built [FineWeb](https://arxiv.org/abs/2406.17557) (2024, 15T tokens from 96 Common Crawl snapshots) and ran systematic deduplication ablations, **global MinHash fuzzy deduplication across all 96 snapshots degraded downstream benchmark performance.**
+Early web pipelines followed that logic straight down the line. Meta’s [CCNet](https://arxiv.org/abs/1911.00359) (2019) chained three steps on Common Crawl: paragraph deduplication, fastText language ID, and a 5-gram KenLM trained on Wikipedia to score perplexity (lower scores mean text closer to clean reference prose), splitting documents into head, middle, and tail tiers. Raw web dumps back then were flooded with mojibake, machine translation, and boilerplate, while training budgets were nowhere near exhausting unique tokens—so rule-based and language-model filters were almost risk-free wins.
 
-Tracing the `2013-48` snapshot exposed why. Iterative global deduplication swept from the newest dump back to the oldest, discarding roughly 90% of early dumps and shrinking the whole corpus to 4T tokens. Training ablation models on the **retained 10%** (~31B tokens) versus an independently deduplicated slice of the **discarded 90%** (171B tokens) showed that **the kept 10% performed worse than the 90% thrown away**. Manual inspection gave the reason: evergreen, high-value pages recur across many crawl snapshots and got stripped out of older dumps, causing global deduplication to upsample one-off ads, keyword stuffing, and malformed pages. Switching to independent **per-dump MinHash deduplication** (retaining 20T tokens before heuristic filtering to 15T) brought scores back up to match RefinedWeb.
+Once corpora pushed past trillions of tokens, the first surprise hit. When Hugging Face released [FineWeb](https://arxiv.org/abs/2406.17557) (2024)—a 15T-token corpus built from 96 Common Crawl snapshots—systematic ablations revealed an unexpected drop: **global MinHash fuzzy deduplication across all 96 dumps significantly degraded downstream benchmarks.**
 
-FineWeb did not reject filtering or deduplication in general (its FineWeb-Edu classifier later produced large gains). The problem was that **blunt cross-dump deletion silently shifted the surviving distribution**.
+Tracing the `2013-48` snapshot exposed why. Iterative global deduplication worked backward from newest to oldest snapshots, stripping roughly 90% of early dumps and compressing the entire corpus down to 4T tokens. When the authors trained ablation models comparing the kept 10% (~31B tokens) against an independently deduplicated version of the discarded 90% (171B tokens), **the kept 10% scored worse than the discarded 90%.**
+
+Manual inspection settled the mystery: evergreen high-value pages (reference articles, documentation, strong blogs) recur across dozens of snapshots, so global dedup wiped them from older dumps, while one-off ad pages, SEO keyword spam, and broken crawls survived and got upsampled. Switching to **per-dump independent MinHash deduplication** (yielding 20T tokens, then 15T after heuristic filters) recovered the lost ground and overtook RefinedWeb.
+
+FineWeb did not refute filtering or deduplication—the follow-up FineWeb-Edu classifier delivered large gains. Its real lesson is sharper: **blunt cross-dump pruning silently distorts the distribution of whatever remains.**
 
 <Figure
   src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/fineweb-dedup.png"
-  alt="FineWeb deduplication ablation curve showing independent per-dump MinHash outperforming global MinHash across dumps"
-  caption="Source: Hugging Face FineWeb blogpost (Penedo et al., 2024). Independent per-dump MinHash deduplication (blue) outperforms global cross-dump deduplication (red), which strips evergreen pages from older dumps and upsamples spam and ads."
+  alt="FineWeb deduplication ablation curves showing per-dump independent MinHash deduplication significantly outperforming global cross-dump MinHash deduplication"
+  caption="Per-dump independent MinHash deduplication (blue) substantially beats global cross-dump deduplication (red), because global dedup strips evergreen pages from early dumps and upsamples spam (Source: Penedo et al., FineWeb, 2024)."
   width="85%"
 />
 
-In May 2026, a Stanford team (Mohri, Duchi, and Hashimoto) looked at the opposite corner in [*A Bitter Lesson for Data Filtering*](https://arxiv.org/abs/2605.19407) (NeurIPS 2026): the **high-compute, data-scarce regime**. Aggressive web filters discard almost everything: DCLM-Baseline keeps ~2.1% of raw Common Crawl, and RefinedWeb keeps ~13%. To study abundant compute over a fixed token pool at manageable cost, the authors randomly downscaled the 240T-token DCLM-Pool into fixed pools of 670M to 10B tokens and trained dense 15M to 7B Transformers comparing the unfiltered pool against five filters (stop-word, repetition, English-language, RefinedWeb, and DCLM-Baseline), measuring negative log-likelihood (NLL) on C4, FineWeb-Edu, and Cosmopedia.
+### The Bitter Lesson: When Fixed Pools Meet High Compute, Filtering Reverses
 
-As scale grew, the curves crossed. At 15M parameters or low compute, filtered datasets won easily. On the 670M fixed pool, once models reached ~330M+ parameters and trained longer, **completely unfiltered Common Crawl crossed over and beat all five filtered subsets**, becoming Pareto-optimal. The authors also ran a junk-injection test: mixing shuffled-word low-quality documents into the clean pool beat the clean pool alone on a 330M model after ~11B training tokens. That aligns with capacity arguments: with enough parameters and steps, models isolate noise in internal subspaces while still pulling residual word co-occurrence signal out of shuffled text.
+In May 2026, a Stanford team (Mohri, Duchi, and Hashimoto) shifted focus to the opposite corner in [*A Bitter Lesson for Data Filtering*](https://arxiv.org/abs/2605.19407) (NeurIPS 2026): the **high-compute, data-scarce** regime.
+
+Mainstream filters cut deep—DCLM-Baseline keeps only ~2.1% of raw Common Crawl, and RefinedWeb keeps ~13%. To study abundant compute meeting a fixed pool of unique tokens under tractable budgets, the authors subsampled the 240T-token DCLM-Pool into fixed pools of 670M to 10B tokens and trained 15M to 7B dense Transformers on unfiltered data versus five filtered subsets (stop-words, dedup, English filter, RefinedWeb, DCLM-Baseline), measuring negative log-likelihood (NLL, lower is better) on C4, FineWeb-Edu, and Cosmopedia.
+
+As scale grew, the curves crossed. On 15M models or low-compute budgets, heavy filtering won clearly. On the fixed 670M pool, once models reached ~330M parameters and trained longer, **the completely unfiltered raw pool overtook all five filtered subsets** to become Pareto-optimal.
+
+Even more striking was a synthetic-noise injection test: deliberately mixing word-shuffled low-quality text into a clean pool caused a 330M model trained to ~11B tokens to beat the uncontaminated clean pool. The capacity explanation holds up cleanly: with enough parameters and steps, a model can wall off structural noise inside internal subspaces while still extracting residual co-occurrence statistics from corrupted prose.
 
 <Figure
   src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/bitter-lesson-fig.png"
-  alt="A Bitter Lesson for Data Filtering Figure 1 showing 15M, 80M, 330M, and 1B models where unfiltered Common Crawl crosses over and beats all five filtered subsets"
-  caption="Source: Mohri, Duchi & Hashimoto (arXiv:2605.19407, Figure 1). On a fixed 670M pool, filtered subsets lead at 15M, but from 330M and 1B onward, completely unfiltered Common Crawl (orange) crosses over and outperforms all five filtered subsets."
+  alt="A Bitter Lesson for Data Filtering Figure 1 showing evaluation curve crossovers between unfiltered and filtered subsets across 15M, 80M, 330M, and 1B models on a fixed 670M pool"
+  caption="On a fixed 670M pool, filtered subsets lead at 15M scale, but from 330M and 1B onward the unfiltered raw web pool (orange) overtakes all five filtered subsets at long step counts (Source: Mohri et al., arXiv:2605.19407, Figure 1)."
 />
 
-<Callout type="warning" title="Do not read 'A Bitter Lesson for Data Filtering' as 'delete your cleaning pipeline tomorrow'">
-[arXiv:2605.19407](https://arxiv.org/abs/2605.19407) spells out three boundary conditions that block naive extrapolation:<br />
-1. **The full-web crossover is far out**: scaling-law projections put the point where unfiltered 240T Common Crawl beats RefinedWeb at roughly $$10^{30}$$ FLOPs, well above current training budgets for almost all teams. When compute is tight, filtering and curation remain the primary lever.<br />
-2. **Fixed static pool assumption**: the experiments freeze the raw pool without synthetic expansion. In industrial practice, teams increasingly rewrite, distill, or restructure noisy web text rather than training on it raw.<br />
-3. **Dense pre-training NLL only**: the study excludes data curricula, annealing, post-training alignment, and adversarial misinformation that mimics clean style while injecting false facts.
+<Callout type="warning" title="Do Not Misread This Paper as a Reason to Delete Cleaning Pipelines Tomorrow">
+[arXiv:2605.19407](https://arxiv.org/abs/2605.19407) explicitly documents three assumptions; ignoring them leads straight to bad engineering decisions:<br />
+1. **A very distant crossover**: Extrapolating to the full 240T Common Crawl pool puts the unfiltered-over-RefinedWeb crossover near $$10^{30}$$ FLOPs, far above almost any team’s budget today. Inside the compute-bound regime, filtering remains the #1 lever.<br />
+2. **Static fixed-pool assumption**: The experiments forbid synthetic expansion. In practice, frontier labs increasingly put extra compute into faithful rephrasing or structured rewriting of noisy web text rather than training on raw dumps untouched.<br />
+3. **Dense pre-training NLL only**: The study excludes annealing, curricula, and post-training alignment, and does not cover adversarial poisoning where text reads cleanly while injecting deliberate falsehoods.
 </Callout>
 
-Even inside pre-training, keeping more data does not mean mixing blindly. The [ATLAS](https://arxiv.org/abs/2510.22037) study by researchers at MIT, UW, Stanford, and Google (submitted October 2025, ICLR 2026; [Google Research blog post](https://www.research.google/blog/atlas-practical-scaling-laws-for-multilingual-models/) in January 2026) ran 774 experiments across 10M to 8B parameters and 400+ languages, establishing three quantitative laws. Cross-lingual transfer is strongly directional: measuring a $$38 \times 38 = 1,444$$ language-pair matrix showed that Spanish and Portuguese strongly aid Catalan, yet $$A \to B$$ gains do not imply symmetric $$B \to A$$ transfer. Positive transfer also offsets part of the curse of multilinguality: doubling supported languages from $$K$$ to $$2K$$ at constant per-language performance requires only **1.18× parameters**, **1.66× total data**, and **1.96× compute**, dropping per-language data share to **83%** of the original budget. For scarce languages such as Hindi or Swahili, however, repeating data past **1 epoch** triggers rapid diminishing returns and upward-bending loss tails.
+### ATLAS: Asymmetric Cross-Lingual Transfer and the 1-Epoch Red Line
+
+Even inside pre-training, keeping more data never means mixing blindly. [ATLAS](https://arxiv.org/abs/2510.22037) (MIT, UW, Stanford, and Google; submitted Oct 2025, ICLR 2026; [Google Research blog walkthrough](https://www.research.google/blog/atlas-practical-scaling-laws-for-multilingual-models/) Jan 2026) ran 774 experiments across 10M to 8B parameters and 400+ languages, establishing three quantitative laws:
+
+- **Cross-lingual transfer is directional**: Measuring a $$38 \times 38 = 1,444$$ language transfer matrix showed that Spanish and Portuguese strongly boost Catalan, yet $$A \to B$$ transfer does not imply symmetric $$B \to A$$ benefit.
+- **Positive transfer softens the "curse of multilinguality"**: Doubling supported languages from $$K$$ to $$2K$$ at constant per-language performance requires only **1.18×** parameters, **1.66×** total data, and **1.96×** compute—reducing data needed per language to **83%**.
+- **Low-resource languages hit a 1-epoch cliff**: For scarce languages such as Hindi or Swahili, repeating beyond **1 epoch** causes marginal returns to collapse and validation loss to bend upward.
 
 <Figure
-  src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/atlas-curse-scaling.png"
-  alt="ATLAS multilingual scaling curves showing iso-performance contours from K to 16K languages and the 1.18x parameter, 1.66x data compute-optimal frontier"
-  caption="Source: Google Research ATLAS blog (Longpre et al., arXiv:2510.22037). Because positive cross-lingual transfer partially offsets capacity interference, each doubling of supported languages requires only ~1.18× parameters and ~1.66× total data along the compute-optimal frontier."
+  src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/atlas-curse-scaling.webp"
+  alt="ATLAS multilingual scaling curves showing iso-performance frontiers as languages double from K to 2K/4K/8K/16K with 1.18x parameter and 1.66x data scaling"
+  caption="Doubling languages does not double data needs: positive transfer holds single-language quality constant with ~1.18× parameters and ~1.66× data (Source: Longpre et al., Google Research ATLAS, arXiv:2510.22037)."
   width="85%"
 />
 
-When compute is scarce and raw pools are large, filtering is the most efficient way to cut redundancy; when the pool is fixed and compute is abundant, aggressive pruning hits a data wall early. In either regime, cross-lingual transfer direction and epoch limits need measurement rather than guesswork.
+When compute is tight and pools are vast, filtering is the cheapest way to strip redundancy; when pools are fixed and compute is plentiful, aggressive hard cuts manufacture a data wall early. On either side, cross-lingual direction and epoch caps must be measured rather than guessed.
 
 ---
 
-## Boundary 2: Pre-Training, Annealing, SFT, and RL Require Different Signals
+## Boundary 2: Pre-Training, Annealing, SFT, and RL Optimize Different Data Signals
 
-Another common mix-up is applying pre-training habits to SFT, or treating mid-training (annealing and continued pre-training) as interchangeable with SFT. As covered in our earlier post on [Mid-Training](/blog/llm-mid-training-被tech-report遮掩的关键训练阶段/), major capability jumps often happen during late pre-training annealing and context extension rather than post-training. Looking at concrete recipes makes it clear that each stage optimizes a different target distribution.
+Another common mistake is bringing pre-training habits into SFT, or collapsing Mid-training (annealing and continued pre-training) and SFT into one bucket. As unpacked earlier in [our Mid-Training deep dive](/blog/llm-mid-training-被tech-report遮掩的关键训练阶段/), major capability jumps often happen during late pre-training annealing and context extension rather than post-training. Real training recipes show why: each stage optimizes a fundamentally different distribution.
 
-NVIDIA's report for [Nemotron 3 Nano (30B-A3B)](https://arxiv.org/abs/2512.20848) (December 2025) and the [Nemotron open recipes](https://github.com/NVIDIA-NeMo/Nemotron) separate the data stages clearly. One frequent secondary-summary slip is worth correcting upfront: **the 23.5T and 1.5T figures are Phase 1 and Phase 2 of 25T total pre-training, not 1.5T of SFT**. The four stages split as follows:
+### Nemotron 3 Nano and DeepSeek-R1: Four Distinct Stage Contracts
 
-1. **Pre-training Phase 1 (23.5T tokens)**: the first 94% of pre-training, covering 15 categories (web, code, math, multilingual, and synthetic data) with a focus on breadth and diversity.
-2. **Pre-training Phase 2 / Annealing (1.5T tokens)**: switches to curated high-quality sources, raising the weight on reasoning and factual accuracy.
-3. **Long-Context Continued Pre-training (121B tokens)**: extends context to 1M tokens using NoPE. Because training solely on `512k` sequences caused slight regressions on short-context benchmarks, NVIDIA mixed **`512k` and `4k` sequences** (20% long-document QA, 1% synthetic retrieval up to 256k tokens, and 79% downsampled Phase 2 data). The synthetic long-context tasks spread key evidence across distant spans and multiple documents with distractors, while keeping answers automatically verifiable.
-4. **SFT (~18M samples) and Reasoning Control**: once in SFT, the model moves beyond general next-token modeling $$p(x_t \mid x_{<t})$$ to multi-turn tool use, state-action switching, and controllable reasoning protocols. Section 3.1.5 of the Nemotron 3 Nano report gives a concrete construction: reasoning traces are stripped from a random **10%** of SFT samples so the model answers directly when thinking is disabled, and reasoning traces are randomly truncated to varied token budgets in another **3%** before continuing into the original final answer. At serving time, once a request hits the user's thinking budget, the engine injects `</think>` and the model converges from the partial trace.
+NVIDIA’s [Nemotron 3 Nano (30B-A3B)](https://arxiv.org/abs/2512.20848) (Dec 2025) and its open [Nemotron recipe repository](https://github.com/NVIDIA-NeMo/Nemotron) draw clean stage lines. One viral misreading is worth fixing upfront: **the 23.5T and 1.5T figures are Phase 1 and Phase 2 of 25T total pre-training, not 1.5T of SFT.** The four stages divide cleanly:
 
-Inference-time budget control depends on writing that behavioral protocol into the SFT distribution ahead of time; hard truncation at serving time alone does not work reliably. A similar stage split appears in [DeepSeek-R1](https://arxiv.org/abs/2501.12948) (January 2025, updated January 2026): pure RL in R1-Zero produced emergent reflection and long reasoning, yet suffered poor readability and language mixing. R1 added curated cold-start SFT first, combined accuracy, format, and language-consistency rewards in RL, and fed rejection-sampled trajectories back into SFT to lift capability and usability together.
+1. **Pre-training Phase 1 (23.5T tokens)**: The first 94% of pre-training, spanning 15 broad categories (web, code, math, multilingual, synthetic) to maximize coverage and diversity.
+2. **Pre-training Phase 2 / Annealing (1.5T tokens)**: Shifts sharply toward curated high-precision corpora, upweighting reasoning and factual accuracy.
+3. **Long-Context Continued Pre-training (121B tokens)**: Uses NoPE (removing explicit positional encodings to ease length extrapolation) to push context to 1M tokens. Because training solely on `512k` sequences caused short-context benchmarks to slip, NVIDIA deliberately **mixed `512k` and `4k` sequences**: 20% long-document QA, 1% synthetic retrieval up to 256k, and 79% downsampled Phase 2 data. Those synthetic tasks scatter key evidence across multiple documents with distractors while preserving automatically verifiable answers.
+4. **SFT (~18M samples) & Reasoning Control**: Here the model stops merely modeling generic $$p(x_t \mid x_{<t})$$ and learns multi-turn tool use, state transitions, and controllable reasoning protocols.
 
-Even inside SFT **instruction data selection**, growing the candidate pool breaks methods that worked at small scale. [DEITA](https://arxiv.org/abs/2312.15685) (ICLR 2024; led by HKUST with co-authors from ShanghaiTech, BUPT, Meituan, and Alibaba, often misattributed to a single company) used LLM scoring for **Complexity × Quality × Diversity**, letting 6K selected samples match or beat 10× larger open alignment datasets on 7B/13B models.
+Section 3.1.5 of Nemotron 3 Nano reveals a remarkably pragmatic trick: strip the thinking chain from a random **10%** of SFT examples so the model learns to answer directly when reasoning mode is off; then truncate the thinking chain of another **3%** at varying token budgets and stitch the original final answer right after. At serving time, once a user’s thinking cap is hit, the server injects `</think>` and the model smoothly wraps up from partial thoughts.
 
-In 2025, Ai2 and UW scaled instruction selection from typical 100k to 200k pools up to **5.8M candidates** (selecting up to **2.5M samples**) in [*Large-Scale Data Selection for Instruction Tuning*](https://arxiv.org/abs/2503.01807). **Several established small-pool selectors (Perplexity, IFD, and multiple external embedding models) degraded at million-sample scale and lost to random sampling.** Larger pools give extreme outliers far more ways to exploit an external scorer's quirks.
+Budget-controlled reasoning works because that behavioral contract was written into the SFT distribution upfront; brute-force truncation at inference time alone fails. The same stage complementarity shows up in [DeepSeek-R1](https://arxiv.org/abs/2501.12948) (Jan 2025 initial release, Jan 2026 revision): pure-RL R1-Zero spontaneously developed reflection and long reasoning, but suffered from language mixing and poor readability. R1 stabilized formatting with cold-start SFT first, combined accuracy, format, and language-consistency rewards in RL, and fed rejection-sampled traces back into SFT to lift both capability and usability together.
 
-Their proposed method, **RDS+**, replaces external judges with **the target base model's own last-layer hidden states**. Because causal attention gathers more sequence context in later tokens, RDS+ applies position-weighted mean pooling over the full instruction and response sequence:
+### DEITA to RDS+: Why External SFT Scorers Lose to Random at Million Scale
+
+Even within SFT **instruction data selection**, scaling the candidate pool by an order of magnitude breaks methods that shine on small pools. [DEITA](https://arxiv.org/abs/2312.15685) (ICLR 2024; led by HKUST with ShanghaiTech, BUPT, Meituan, and Alibaba researchers—often misattributed to a single company) scored **Complexity × Quality × Diversity** using LLMs and matched or beat 10× larger open alignment sets on 7B/13B models with just 6K curated examples.
+
+In 2025, Ai2 and UW scaled the candidate pool from the usual 100k–200k up to **5.8 million examples** (selecting up to 2.5M) in [*Large-Scale Data Selection for Instruction Tuning*](https://arxiv.org/abs/2503.01807), delivering a sobering result: **classic small-pool winners (Perplexity, Instruction-Following Difficulty / IFD, and several external embedding selectors) degraded at million scale and even lost to random sampling.** Larger pools contain more extreme outliers that easily exploit blind spots in external judges.
+
+Their solution, **RDS+**, replaces external judges with **the final-layer hidden states of the target base model itself**. Running a forward pass over each instruction-response pair, it accounts for causal masking—where later tokens accumulate fuller sequence context—via linear position-weighted mean pooling:
 
 ```math
 e = \sum_{i=1}^{L} w_i h_i, \qquad w_i = \frac{i}{\sum_{j=1}^{L} j}
 ```
 
-where $$h_i$$ is the last-layer hidden state of token $$i$$ and $$L$$ is sequence length. RDS+ computes cosine similarity against validation queries and samples candidates via deduplicated multi-task round-robin selection. Scaling the pool from 200k to 5.8M steadily improved RDS+, beating the human-curated Tülu 2 and Tülu 3 SFT mixes. Even counting feature-extraction FLOPs, RDS+ becomes more compute-efficient than random sampling past roughly 326k selected samples, and hidden states from smaller or cross-family models (1.5B to 70B) still transfer well.
+Here $$h_i$$ is the final-layer hidden state of token $$i$$ and $$L$$ is sequence length. A 4-token toy sequence makes the weighting obvious in seconds: the denominator is $$1+2+3+4=10$$, so the four token weights are **0.1, 0.2, 0.3, and 0.4**—giving the final token, which attends over the whole prompt-response pair, 4× the weight of the first token. RDS+ then ranks candidates by cosine similarity against validation queries and samples round-robin across tasks for diversity.
+
+As the pool grew from 200k to 5.8M, RDS+ gains kept expanding, beating manually tuned Tülu 2 and Tülu 3 SFT mixes. Even counting the forward-pass compute required to extract hidden states, RDS+ beats random sampling in net compute efficiency once selection passes ~326k examples, and representations extracted from 1.5B–70B cross-family models still transfer well.
 
 <Figure
   src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/rds-plus-overview.png"
-  alt="RDS+ instruction selection overview: extract last-layer hidden states from the target pretrained LM, compute cosine similarity with validation queries, and select Top-K samples"
-  caption="Source: Ivison et al. (arXiv:2503.01807). RDS+ uses weighted last-layer hidden states from the target base model itself to match candidate instructions against validation queries, avoiding external-judge gaming on 5M+ pools."
+  alt="RDS+ instruction data selection pipeline extracting position-weighted hidden states from the target pretrained model and matching validation queries via cosine similarity"
+  caption="RDS+ matches validation queries using the target base model’s own position-weighted hidden states, avoiding external-judge gaming on million-scale SFT pools (Source: Ivison et al., arXiv:2503.01807)."
   width="90%"
 />
 
 <div className="overflow-x-auto [&_table]:min-w-[680px]">
 
-| Training Stage | Core Objective | Typical Data Failure Mode | Verified Engineering Practice |
+| Training Stage | Core Optimization Target | Typical Data Failure Mode | Verified Engineering Practice |
 | --- | --- | --- | --- |
-| Pre-training (Main) | Broad world knowledge and representation base | Global cross-dump dedup upsampling ads; low-resource multi-epoch overfitting | FineWeb per-dump MinHash; ATLAS asymmetric transfer & 1-epoch budget |
-| Mid-training / Annealing | Capability sharpening, long context, reasoning seeds | Pure long sequences hurting short context; noise diluting annealing steps | Nemotron 3 Nano Phase 2 (1.5T) + 121B mixed `512k`/`4k` continuation |
-| SFT (Instruction & Protocol) | Instruction following, tool use, controllable reasoning | External judges gamed at 5M+ pools; missing early-stop convergence examples | RDS+ base hidden-state pooling; Nemotron 10% no-think + 3% truncated traces |
-| RL (Policy Search & Alignment) | Amplifying verifiable policies via feedback | Pure RL language mixing; all-pass / all-fail prompts giving zero contrast | DeepSeek-R1 cold-start SFT + multi-reward RL; pass-rate contrast filtering |
+| Pre-training (Main) | Broad knowledge coverage & base representations | Global cross-dump dedup upsamples ads; low-resource multi-epoch overfitting | FineWeb per-dump dedup; ATLAS asymmetric transfer mix & 1-epoch guard |
+| Mid-training / Annealing | Capability sharpening, long context & reasoning seeds | Long-only sequences hurt short context; noisy data dilutes annealing gradients | Nemotron 3 Nano Phase 2 (1.5T) + 121B `512k`/`4k` mixed continuation |
+| SFT (Instructions & Protocols) | Instruction following, tool use, controllable reasoning | Million-scale pools game external scorers; missing budget-cutoff convergence | RDS+ target hidden-state selection; Nemotron 10% no-think + 3% truncated CoT |
+| RL (Policy Exploration) | Amplifying verifiable winning trajectories | Pure RL triggers language mixing; 0% / 100% pass tasks yield zero group contrast | DeepSeek-R1 cold-start SFT + multi-reward; rollout pass-rate difficulty filtering |
 
 </div>
 
 ---
 
-## Boundary 3: Measuring Data Value Without Burning a Full Pre-Training Run
+## Boundary 3: Measuring Data Value Cheaply Before Burning a Full Pre-Training Run
 
-No team can afford to pre-train a flagship model from scratch for every mixture tweak. Without cheap, reproducible early signals, teams slide back to skimming 10 rows in a spreadsheet.
+No team can afford to re-train a 70B or trillion-parameter run for every data tweak. Without cheap, reproducible pre-flight signals, organizations inevitably slide back into the "eyeball 10 rows in a spreadsheet" habit documented by Google Research.
 
-Three 2025 papers map out three distinct low-cost valuation routes: **corpus-level A/B ranking**, **document-level semantic tagging**, and **end-to-end meta-learned valuation**.
+Three 2025 papers map out three complementary low-cost valuation tracks: **corpus-level A/B ranking**, **document-level semantic tagging**, and **end-to-end meta-learned valuation**.
 
-### 1. DataDecide: Corpus-Level Ranking at 0.01% Compute via Continuous Probabilities
+### 1. DataDecide: Corpus-Level Ranking With Continuous Probabilities at 0.01% Compute
 
-In [DataDecide](https://arxiv.org/abs/2504.11393) (ICML 2025), researchers at Ai2, UW, and UPenn built a benchmark of 1,050 pretrained models across 25 corpora, 14 model sizes (4M to 1B, up to 100B tokens), and 3 random seeds to test whether small experiments predict which corpus wins at larger scale.
+In [DataDecide](https://arxiv.org/abs/2504.11393) (ICML 2025), Ai2 and collaborators built a massive controlled testbed: 1,050 models spanning 4M to 1B parameters (14 sizes, up to 100B tokens, 3 seeds) across 25 pre-training corpora with distinct sources, deduplication, and filters, testing whether small experiments predict large-scale winners.
 
-Two findings directly affect how pre-training ablations should be run. First, **single-scale small-model ranking matches complex scaling-law extrapolations**: ranking candidate corpora with a **150M** model predicts pairwise winners at **1B (100B tokens)** with roughly **80% accuracy**, and none of the 8 tested scaling-law baselines beat simple single-scale ranking on the compute-accuracy frontier. Second, **replace discrete accuracy with continuous probability proxies**: tiny models score near zero on generative coding tasks like MBPP and HumanEval, making pass@1 no better than a coin flip. Switching to character-length-normalized continuous probabilities, namely `Correct Prob` (probability assigned to the correct continuation) or `Total Prob` (total probability mass across candidate answers), pushes MMLU, ARC, HellaSwag, MBPP, and HumanEval above **80% corpus-ranking accuracy at just 0.01% of target compute**. Even before a small model can solve a task, its probability mass shows whether a corpus supplies the right domain exposure.
+Two findings directly reshape pre-training ablation workflows:
+
+- **Direct single-scale ranking ties complex scaling-law extrapolations**: Ranking corpus pairs directly with 150M models already predicts 1B (100B-token) winners with ~**80%** average accuracy; none of the 8 scaling-law extrapolation baselines beat simple direct ranking on the compute-accuracy frontier.
+- **Stop watching discrete Accuracy early; switch to continuous probability proxies**: Small models score near-zero pass@1 (single-sample solve rate) on coding suites like MBPP and HumanEval, turning discrete accuracy into a coin flip. Switching to **character-normalized continuous probability** on the correct completion (`Correct Prob`) or total probability across options (`Total Prob`) pushes ranking accuracy above **80%** across MMLU, ARC, HellaSwag, MBPP, and HumanEval at **just 0.01% of target compute**.
+
+The intuition is simple: long before a small model can assemble a full passing program, probability mass shifting slightly toward the right continuation already reveals whether a corpus carries the right domain signal.
 
 <Figure
-  src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/datadecide-metrics.png"
-  alt="DataDecide Figure 4 comparing discrete Accuracy against continuous probability metrics such as Correct Prob and Total Prob across 10 tasks and compute budgets"
-  caption="Source: Magnusson et al., DataDecide (arXiv:2504.11393, Figure 4). At very low compute budgets, discrete Accuracy (black) stays near chance, while continuous likelihood proxies like Correct Prob and Total Prob cross 80% corpus-ranking accuracy early."
+  src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/datadecide-metrics.webp"
+  alt="DataDecide Figure 4 comparing decision accuracy of discrete Accuracy versus continuous probability metrics Correct Prob and Total Prob across 10 tasks at small compute budgets"
+  caption="At tiny compute budgets, discrete Accuracy (black line) collapses near random chance while continuous Correct Prob and Total Prob climb above 80% corpus-ranking accuracy (Source: Magnusson et al., DataDecide, arXiv:2504.11393, Figure 4)."
 />
 
-DataDecide also documents its blind spot: **on standard math benchmarks, small-model predictions stayed near chance regardless of continuous proxy**. In addition, it ranks whole corpora rather than scoring individual documents.
+DataDecide is candid about its blind spot: **on standard math benchmarks, small-model predictions stay near random regardless of which continuous metric you pick.** It also ranks whole corpora A vs. B rather than scoring individual documents.
 
-### 2. DataMan: Distilling a Static Rubric Into a 1.5B Semantic Classifier
+### 2. DataMan: Distilling Static LLM Judgment Into a 1.5B Semantic Scorer
 
-When the task is document-level filtering and domain mixing across hundreds of billions of tokens, [DataMan](https://arxiv.org/abs/2502.19363) (ICLR 2025, Zhejiang University and Alibaba's Qwen Team) offers a practical industrial route.
+When the task is document-level filtering and domain cataloging across trillions of tokens, [DataMan](https://arxiv.org/abs/2502.19363) (Zhejiang University & Qwen, ICLR 2025) offers a practical industrial pipeline.
 
-Using "reverse thinking," the authors asked GPT-4-turbo to analyze why documents fell into the extreme top and bottom perplexity tails, deriving **13 individual quality criteria** (Accuracy, Coherence, Language Consistency, Semantic Density, Knowledge Novelty, Topic Focus, Creativity, Professionalism, Style Consistency, Grammatical Diversity, Structural Standardization, Originality, Sensitivity), plus **1 composite Overall Score** and **15 application domains**. GPT-4-turbo then labeled ~356K documents (>95% agreement with human experts) to fine-tune a **Qwen2-1.5B** scorer, which tagged 447B tokens of SlimPajama offline. Pre-training a 1.3B model on 30B top-scored (score 5) tokens beat QuRating and outperformed a uniform baseline trained on 50% more data.
+The team first used "reverse thinking" with GPT-4-turbo to diagnose why extreme high- and low-perplexity documents scored as they did, distilling **13 independent quality dimensions** (accuracy, coherence, language consistency, semantic density, knowledge novelty, topic focus, creativity, professionalism, style consistency, grammatical diversity, structural standardization, originality, sensitivity), plus **1 Overall Score** and **15 application domains**.
+
+Annotating ~356k documents with GPT-4-turbo (>95% agreement with human experts), they fine-tuned a lightweight **Qwen2-1.5B** scorer to tag all 447B tokens of SlimPajama offline. Training a 1.3B model on just 30B top-rated (score 5) tokens beat QuRating and outperformed uniform sampling trained on 50% more tokens.
 
 <Figure
   src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/dataman-pipeline.png"
-  alt="DataMan pipeline diagram showing reverse thinking to derive 15 common domains and 14 quality criteria, fine-tuning Qwen2-1.5B to score and select pre-training corpora"
-  caption="Source: Peng et al., DataMan (arXiv:2502.19363). Reverse-engineering extreme perplexity tails with a strong LLM distills 14 quality criteria and 15 domains into a 1.5B classifier for large-scale domain-by-quality mixing."
+  alt="DataMan pipeline diagram showing reverse-thinking discovery of 15 domains and 14 quality standards distilled into a Qwen2-1.5B scorer for large-scale pretraining curation"
+  caption="Distilling 14 quality dimensions and 15 domain tags from a frontier teacher into a 1.5B judge enables cheap, interpretable document filtering at scale (Source: Peng et al., DataMan, arXiv:2502.19363)."
   width="90%"
 />
 
-This route is cheap, interpretable, and easy to tune across a domain-by-quality matrix. Its limitation is that it **freezes a teacher model's static judgment**, inheriting teacher biases without tracking what gradient signal the target model lacks mid-run.
+This route is cheap, transparent, and easy to rebalance across a domain × quality matrix. Its trade-off is equally clear: **it freezes the teacher model’s static taste**, inheriting teacher style biases and remaining blind to what gradients the target model actually needs mid-training.
 
-### 3. DataRater: Training a Sample Scorer From Validation Loss via Meta-Gradients
+### 3. DataRater: Bi-Level Meta-Gradients Driven Directly by Held-Out Validation Loss
 
-To avoid hard-coding document quality rules with humans or GPT-4, Google DeepMind's [DataRater](https://arxiv.org/abs/2505.17895) (NeurIPS 2025) offers an end-to-end bi-level optimization approach.
+To avoid hand-coding or teacher-prompting quality rules altogether, Google DeepMind’s [DataRater](https://arxiv.org/abs/2505.17895) (NeurIPS 2025) frames data valuation as end-to-end bi-level optimization.
 
-DataRater is often misdescribed as using raw training loss as a label to select high-gradient samples, which would readily pick corrupted noise. Instead, it uses **bi-level optimization**: a 50M-parameter non-causal Transformer $$\phi_\eta$$ outputs normalized scalar weights for samples inside a micro-batch; an inner loop of eight 400M language models takes $$T=2$$ weighted update steps; an outer loop evaluates the updated models on a **disjoint held-out validation set** and backpropagates exact second-order **meta-gradients** through the unrolled inner updates (using `MixFlow-MG` mixed-mode differentiation) to update $$\eta$$.
+Online summaries often mischaracterize DataRater as "picking high-loss training examples," which would immediately select gibberish and corrupted scrapes. In reality, it runs **bi-level optimization**:
 
-DataRater rewards samples **whose gradient steps reduce held-out validation loss**. After meta-training, the 50M rater performs batch-level top-K filtering. Optimal discard fractions tuned on a 50M probe (10% on C4, 50% on C4/noclean, 75% on The Pile) held steady across 50M, 150M, 400M, and 1B target models, reaching up to a **46.6% net compute (FLOPs) gain** on noisier corpora.
+A 50M-parameter non-causal Transformer scorer $$\phi_\eta$$ assigns normalized weights to samples in a training mini-batch. In the inner loop, a population of eight 400M language models takes $$T=2$$ weighted gradient steps. In the outer loop, those updated models are evaluated on a **disjoint held-out validation set**, and `MixFlow-MG` mixed-mode differentiation backpropagates **second-order meta-gradients** from validation loss directly into the scorer weights $$\eta$$.
 
-Its limits are clear too: second-order meta-training adds far more system complexity and overhead than DataMan, and public validation ends at 1B target models. Whether a policy learned on 400M inner models transfers across two more orders of magnitude to 100B+ MoE runs remains untested in public literature.
+A two-sample contrast makes the mechanism click in seconds: **Sample A is garbled HTML** with huge training loss; taking two inner steps on it pushes validation loss *up*, so the outer meta-gradient drives its weight down. **Sample B is a clean code derivation**; taking two steps on it pushes validation loss *down*, so the scorer learns to upweight it. DataRater never rewards raw difficulty—it rewards **samples that lower target validation loss after training**.
 
-In production, mature teams tend to **layer these three tools**: distilled rubric taggers like DataMan for trillion-token indexing and domain cataloging, DataDecide continuous-probability proxies as corpus-level A/B gates, and meta-learned valuation only on noisy, high-value pools where the extra overhead pays off.
+Once meta-trained, the 50M scorer simply performs Top-K batch pruning. Optimal discard rates discovered at 50M (10% on C4, 50% on C4/noclean, 75% on The Pile) held steady across 150M, 400M, and 1B target models, delivering up to **46.6% net FLOP savings** on noisier corpora like The Pile and C4/noclean.
+
+Its limits are clear as well: second-order meta-training is far heavier to engineer than DataMan, and public validation stops at 1B target models. Whether valuation policies learned via 400M inner models transfer cleanly two orders of magnitude up to 100B+ MoE architectures remains an open empirical question.
+
+In practice, mature teams **stack all three layers**: lightweight multi-dimensional taggers like DataMan for bulk cataloging, DataDecide’s continuous-probability proxies as corpus-level A/B gates, and meta-learned valuation selectively on noisy, high-value core pools.
 
 ---
 
-## Boundary 4: Once Natural Corpora Run Dry, Environments and Verifiers Gate Synthetic Data
+## Boundary 4: Once Natural Data Runs Dry, Environments and Verifiers Must Gate Synthesis
 
-For long-horizon agents (editing repositories, calling tools, navigating browsers, reading errors, rolling back state) and multimodal search, clean, complete public trajectories with reliable feedback barely exist on the web. Filtering hits the ceiling of what already exists, shifting data engineering toward **synthetic generation**.
+For long-horizon agents (editing repositories, calling tools, browsing live pages, debugging failures, rolling back state) and multimodal search, the open web simply does not contain vast stores of clean, end-to-end trajectories with ground-truth feedback. Selection hits the ceiling of existing supply, pushing data engineering into **verifiable synthesis**.
 
-One dead-end shortcut should be ruled out first: extracting hidden reasoning traces from proprietary APIs. In August 2026, [*Stealing Reasoning Traces from Proprietary LLM APIs*](https://arxiv.org/abs/2608.09867) documented a concrete system flaw across Anthropic, OpenAI, and Google: providers returned encrypted reasoning blocks to clients for multi-turn pass-through, but those blocks were interchangeable across sessions and models within the same provider. An attacker could feed a frontier model's encrypted block into a weaker, less restricted model from the same vendor to force verbatim plaintext decoding. The authors reproduced the flaw across all three providers and decoded 315,320 publicly scraped blocks, uncovering 367 PII items and 182 credentials. Such bugs get patched quickly and cross legal and security lines; durable data capability cannot depend on scraping closed traces.
+First, rule out a dead-end shortcut: harvesting hidden reasoning traces from proprietary APIs. In August 2026, [*Stealing Reasoning Traces from Proprietary LLM APIs*](https://arxiv.org/abs/2608.09867) uncovered a real cryptographic scoping flaw: major vendors encrypted hidden thinking blocks for client round-tripping across multi-turn calls, yet those ciphertext blocks remained interchangeable across sessions and models within the same provider. Injecting a frontier model’s ciphertext into a weaker, looser sibling model coerced it into printing the plaintext trace. The authors reproduced the flaw across Anthropic, OpenAI, and Google, even decoding 367 PII records and 182 credentials from 315,320 reasoning blocks scraped from public repositories. Such loopholes are patched quickly and cross legal and security red lines; durable data moats cannot be built on leaked black-box traces.
 
-Three mid-2026 system papers show what scalable, verifiable synthetic engines look like. All three start from real material and hand quality control to executable environments or isolated verifiers.
+Three summer 2026 system papers show what scalable, grounded synthetic engines actually look like: every one anchors on real materials and hands quality gating to executable environments or isolated verifiers.
 
-### 1. Kimi K3: Hierarchical Knowledge Graphs for Coverage, Isolated Verifiers Against Hacking
+### 1. Kimi K3: Self-Evolving Knowledge Graphs for Breadth, Isolated Verifiers Against Cheating
 
-In [*Kimi K3: Open Frontier Intelligence*](https://arxiv.org/abs/2607.24653) (July to August 2026), synthesis spans both ends of training.
+In [*Kimi K3: Open Frontier Intelligence*](https://arxiv.org/abs/2607.24653) (released late July 2026, revised August), synthesis spans both ends of training:
 
-On the pre-training side (§3.1), the pipeline scales style- and perspective-diverse **rephrasing** of knowledge and math corpora with chunk-wise fidelity checks against source text, alongside **programmatic multimodal data** binding code directly to rendered SVGs, 3D assets, and webpages.
+- **Pre-training (§3.1)**: Scales multi-style, multi-perspective **rephrasing** for knowledge and math with chunk-level fidelity checks against source documents, alongside **programmatic multimodal pairs** binding code directly to rendered SVGs, 3D assets, and web pages.
+- **Post-training Agents (§4.2)**: To prevent synthetic tasks from collapsing into repetitive templates, the team builds a self-evolving **hierarchical knowledge graph** (a DAG explicitly named Knowledge Graph rather than Task Graph). Starting from coarse seed concepts, agents recursively search the web for sub-concepts, deduplicating against existing nodes before insertion, with directed edges strictly flowing coarse-to-fine down to atomic skills. Task synthesis samples cross-granularity node combinations, retrieves real papers, blogs, and repos along ancestor paths, and emits tasks across composable white-box harnesses (emulating diverse coding-agent scaffolds).
 
-On the post-training agent side (§4.2), to keep synthetic tasks from collapsing into repetitive templates, the team built a self-evolving **hierarchical Knowledge Graph (DAG; the report calls it a Knowledge Graph rather than a Task Graph)**. Starting from coarse seed concepts, agents recursively search the web for sub-concepts, query existing nodes to reuse equivalents before inserting duplicates, and direct edges strictly from coarse to atomic concepts. Task synthesis samples node combinations across granularities, retrieves real papers, blogs, and repositories using ancestor context, and generates tasks across composable white-box harnesses mimicking different coding agent scaffolds.
+Quality gating centers on §4.2.6 Autonomous Execution Tasks (AET): tasks omit reference trajectories and instead encapsulate **public diagnostic verifiers, hidden held-out verifiers, and submission-budget penalties**, blocking brute-force probing and reward hacking.
 
-Quality gating centers on autonomous execution tasks (§4.2.6 AET): tasks omit reference trajectories and wrap execution in **public diagnostic verifiers, hidden held-out verifiers, and submission-budget penalties** to block brute-force probing and reward hacking.
+### 2. Qwen-AgentWorld: Train the Environment Into a World Model, Then Scale Sim RL
 
-### 2. Qwen-AgentWorld: Train a Language World Model on Real Traces, Then Scale Controlled Simulation
+Live sandboxes, browsers, and external APIs are slow, costly, and flaky—and production edge cases like intermittent 500 errors, truncated pagination, and partial batch failures rarely trigger on demand. In June 2026, Qwen’s [*Qwen-AgentWorld: Language World Models for General Agents*](https://arxiv.org/abs/2606.24597) flipped the problem: **train the environment itself as a model.**
 
-Live sandboxes, browsers, and external APIs are slow, expensive, and fragile, and production edge cases (intermittent API faults, truncated pagination, partial batch failures) rarely trigger on demand. In June 2026, [*Qwen-AgentWorld: Language World Models for General Agents*](https://arxiv.org/abs/2606.24597) took a different route: train the environment itself as a model.
+The team collected **over 10 million real interaction trajectories** across 7 domains (MCP, Search, Terminal, SWE, Android, Web, OS), trained 35B-A3B and 397B-A17B language world models through CPT → SFT → RL to predict environment transitions $$p(o_{t+1} \mid o_{\le t}, a_{\le t})$$, and used them to power large-scale **Simulation RL (Sim RL)**.
 
-The Qwen team collected **10M+ real environment interaction trajectories** across 7 domains (MCP, Search, Terminal, SWE, Android, Web, OS) and trained 35B-A3B and 397B-A17B Language World Models (via CPT → SFT → RL) to generate next observations $$p(o_{t+1} \mid o_{\le t}, a_{\le t})$$ for large-scale **Simulation RL (Sim RL)**.
+Three evaluations make the payoff unmistakable:
 
-On the out-of-distribution OpenClaw platform, distilling real traces into reusable seed scenarios and varying both states and task goals produced **4,000 simulated environments**, lifting zero-shot scores by **+4.3 on Claw-Eval** and **+7.1 on QwenClawBench**. On MCP tool use, injecting controllable perturbations (API errors, pagination, partial returns) lifted average **MCPMark** scores from 21.5 (SFT) to **33.8 (+12.3)**, well above uncontrolled simulation (24.6). On search, the team constructed **1,000 self-consistent fictional relational-database worlds** (300 to 500 structured facts each, SQL-extracted ground truth, reverse-generated queries, and strict no-leakage partial snippets), boosting **WideSearch** by **+16.3** and **outperforming live real-environment RL (50.3% vs. 45.6%)**.
+- **Out-of-distribution transfer (OpenClaw)**: Distilling reusable seed scenes from a few real traces and expanding along state-variation and task-variant axes into **4,000 simulated environments** lifted Claw-Eval by **+4.3** and QwenClawBench by **+7.1** zero-shot.
+- **Controlled fault injection (MCP tool use)**: Deliberately injecting API errors, pagination cutoffs, and incomplete returns lifted MCPMark from an SFT baseline of 21.5 to **33.8 (+12.3)**, well ahead of unperturbed simulation (24.6).
+- **Grounded synthetic search (WideSearch)**: Building **1,000 self-consistent fictional relational database worlds** (300–500 structured rows each, deriving ground truth via SQL, reverse-generating queries, and enforcing leak-free chunked returns) drove a **+16.3** gain on real WideSearch—even **beating live online RL** (50.3% vs. 45.6%).
 
 <Figure
   src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/qwen-agentworld-overview.png"
-  alt="Qwen-AgentWorld Figure 1 overview showing 10M+ real environment trajectories trained via CPT, SFT, and RL into a general Language World Model powering Sim RL"
-  caption="Source: Qwen Team, Qwen-AgentWorld (arXiv:2606.24597, Figure 1). Training a general Language World Model on 10M+ real interaction trajectories enables scalable, controllable Simulation RL that outperforms live-environment RL on WideSearch."
+  alt="Qwen-AgentWorld Figure 1 illustrating CPT/SFT/RL training of a general language world model from 10M+ real trajectories to power scalable Sim RL"
+  caption="Training a language world model on 10M+ real traces lets teams amplify edge-case faults and state shifts on demand, outperforming live online RL in both efficiency and transfer (Source: Qwen Team, Qwen-AgentWorld, arXiv:2606.24597, Figure 1)."
   width="95%"
 />
 
-The paper also pins down the main bottleneck of simulated synthesis: **Initial State Conditioning**. Simulation fidelity depends heavily on feeding the world model detailed seed states (file systems, account configs, database schemas); skimping with rough prompts causes synthetic trajectories to drift quickly.
+The paper also flags the true bottleneck of simulated synthesis: **Initial State Conditioning**. The finer the seed state passed to the world model (filesystems, account configs, underlying database schemas), the more faithful the simulation; cutting corners with vague text prompts causes synthetic trajectories to drift within a few turns.
 
-### 3. WeAgent-MMSearch: Backward Multi-Hop Expansion From Pixel-Dependent Endpoints
+### 3. WeAgent-MMSearch: Reverse-Hop Expansion From Pixel-Dependent Endpoints
 
-Multimodal search synthesis has a common failure mode: questions or URLs leak the answer in text, letting models guess correctly without inspecting the image. In August 2026, Weixin AI (Tencent) and Sun Yat-sen University published [*WeAgent-MMSearch*](https://arxiv.org/abs/2608.28062) with a four-stage backward pipeline:
+Synthetic multimodal search data has a persistent leak: question text or webpage URLs quietly give away the answer, letting models score full marks via text shortcuts without inspecting a single pixel. In August 2026, WeChat AI and Sun Yat-sen University closed that gap in [*WeAgent-MMSearch*](https://arxiv.org/abs/2608.28062) with a four-step reverse pipeline:
 
-1. **Lock a visual endpoint ($$n_d$$)**: gather target images and visual facts from January to July 2026 web events and Wikipedia, accepting a seed only if the image is reachable inside `WeAgent-Harness` and the answer strictly requires **visible pixels**, unavailable in titles, URLs, or captions.
-2. **Expand backward ($$n_0 \to \dots \to n_{d-1} \to n_d$$)**: instead of guessing multi-hop prompts forward, work backward $$d \in \{2, 3, 4\}$$ hops. At each step, give the expert agent only entity $$n_i$$ and search the web to write a bridge question whose answer resolves uniquely to $$n_i$$, producing $$n_{i-1}$$.
-3. **Audit bridge uniqueness and leakage**: reject chains with missing images, ambiguous bridges, or metadata leakage.
-4. **Filter SFT and RL separately**: SFT keeps only verified-correct, complete expert trajectories run inside the same persistent-image harness (3.3K in-house + 56.2K normalized open = 59.5K). Before RL, the SFT model samples **8 rollouts** per prompt and **drops both 8/8 all-correct prompts (no headroom) and 0/8 all-wrong prompts (no within-group reward contrast)**, retaining 4.9K in-house prompts.
+1. **Lock a pixel-dependent endpoint ($$n_d$$)**: Harvest target images and visual facts from live Jan–Jul 2026 web events and Wikipedia, admitting an item only if the image is reachable inside the isomorphic `WeAgent-Harness` and the answer strictly requires **visible pixels** absent from titles, URLs, and captions.
+2. **Reverse multi-hop expansion ($$n_0 \to \dots \to n_{d-1} \to n_d$$)**: Instead of writing questions forward, expand backward $$d \in \{2, 3, 4\}$$ hops from $$n_d$$. At each step, an expert agent sees only entity $$n_i$$ and searches the web to craft a prerequisite clue pointing uniquely to it, yielding $$n_{i-1}$$.
+3. **Bridge uniqueness and leak audit**: Drop any chain with ambiguous intermediate hops, missing images, or metadata leakage.
+4. **Tiered SFT and RL filtering**: SFT retains only **complete and correct** expert traces collected inside the exact deployment harness with persistent image storage and multi-turn recall (3.3K custom + 56.2K normalized open-source = 59.5K). Before RL, the SFT model samples **8 rollouts** (policy trajectory samples) per candidate prompt, **discarding 8/8 all-pass tasks (no headroom) and 0/8 all-fail tasks (no group contrast reward)** to keep 4.9K high-leverage prompts.
 
 <Figure
-  src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/weagent-flow.png"
-  alt="WeAgent-MMSearch Figure 2 illustrating failure of text-only search pipelines versus persistent-image native text-vision interaction on time-sensitive multi-hop queries"
-  caption="Source: Liu et al., WeAgent-MMSearch (arXiv:2608.28062, Figure 2). Anchoring synthetic endpoints in visible pixels and persisting retrieved images inside the shared harness closes text-only shortcuts and forces genuine interleaved text-vision search."
+  src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/weagent-flow.webp"
+  alt="WeAgent-MMSearch Figure 2 contrasting text-only tool failure on pixel-dependent multi-hop queries against persistent image read-write harness execution"
+  caption="Anchoring endpoints strictly on visible pixels and persisting retrieved images inside an isomorphic harness closes text shortcuts and forces genuine interleaved visual-text search (Source: Liu et al., WeAgent-MMSearch, arXiv:2608.28062, Figure 2)."
   width="95%"
 />
 
-All three systems share three design choices: ground coverage and initial states in real material to avoid mode collapse, close text shortcuts and leakage structurally to prevent fake difficulty, and delegate quality gating to isolated verifiers or rollout pass-rate contrast rather than model self-scoring.
+All three systems share one discipline: ground synthesis in real artifacts or fine-grained state to prevent collapse; block shortcuts structurally to eliminate fake difficulty; and hand acceptance gating to isolated verifiers or rollout contrast instead of model self-grading.
 
 ---
 
-## Five Questions to Answer Before Changing a Data Pipeline
+## Interactive Boundary Locator: Lock Your Regime Before Editing the Pipeline
 
-Before modifying any data pipeline, answering five evidence-backed questions is far more dependable than eyeballing rows or copying a single trending paper:
+Before changing a cleaning filter, mixing ratio, or synthesis loop, pick your current **resource bottleneck** and **training stage** below to inspect the grounded playbook and the exact traps tied to that cell:
+
+<DataTasteBoundaryLab lang="en" />
+
+## Five Pre-Flight Questions Before Touching Any Pipeline
+
+Turn the four boundaries into a one-page engineering checklist built around concrete **actions** and **red flags**:
 
 <Steps>
-  <StepItem title="Is the bottleneck compute or unique tokens?">
-    When compute is tight, quality filtering, domain mixing, and per-dump deduplication (FineWeb, DataMan) remain the highest-leverage tools. Near multi-epoch limits on a fixed pool, watch for hidden distribution shifts from over-filtering and global deduplication (Bitter Lesson, ATLAS's 1-epoch bend).
+  <StepItem title="Is the real bottleneck compute or your unique-token ceiling?">
+    **Action**: Compare total planned training tokens against your deduplicated unique pool. Under tight compute, lean on per-dump deduplication and quality filtering; near a fixed-pool multi-epoch limit, relax harsh filters and invest in faithful rephrasing or measured cross-lingual transfer.<br />
+    **Red Flag**: Deduplication wipes >80% of an early crawl dump, or held-out NLL bends upward after low-resource languages cross 1 epoch.
   </StepItem>
-  <StepItem title="Should this data build knowledge, behavioral protocols, or policy search boundaries?">
-    Do not apply one yardstick across pre-training, annealing, SFT, and RL. Following Nemotron 3 Nano's pattern (writing thinking toggles into 10% and truncated budgets into 3% of SFT, and mixing `512k`/`4k` into long-context continuation), define the target behavioral protocol first and derive the data format from it.
+  <StepItem title="Is this batch teaching knowledge, runtime protocols, or policy boundaries?">
+    **Action**: Maintain four separate acceptance bars for pre-training (broad coverage), annealing/long-context (high precision plus long-short mixing), SFT (encoding think toggles, budget cutoffs, and tool schemas directly in data), and RL (cold-start format stability before policy search).<br />
+    **Red Flag**: Long-context benchmarks climb while 4k general scores drop, or serving-time truncation breaks answer convergence.
   </StepItem>
-  <StepItem title="Will the selector get gamed when the pool grows 10×?">
-    External scorers that work well on 100k pools often amplify judge bias at million-sample scale (Ivison et al.). Benchmark against a random baseline at target pool size, and consider base-model hidden states (RDS+) or explicit diversity constraints.
+  <StepItem title="Does your selector still beat random once the pool grows 10×?">
+    **Action**: Whenever an instruction pool passes a few hundred thousand items, always benchmark against same-budget random sampling; if external scorers slip, switch to target base-model hidden states (e.g., RDS+) with explicit diversity control.<br />
+    **Red Flag**: Top-scored samples converge on one verbose template while OOD benchmarks trail random sampling.
   </StepItem>
-  <StepItem title="Are decisions based on skimming 10 rows or running a cheap proxy?">
-    Before spending cluster runs, set up corpus-level small-model proxies (using DataDecide's continuous probabilities rather than early discrete accuracy) alongside versioned data diffs, so spreadsheets do not turn into confirmation-bias tools.
+  <StepItem title="Are you signing off by eyeballing 10 rows or running cheap proxy gates?">
+    **Action**: Before burning full cluster runs, rank candidate corpora pairwise with ~150M proxy models using continuous probability metrics (`Correct Prob` / `Total Prob`) on code and knowledge tasks, keeping versioned data diffs.<br />
+    **Red Flag**: Pipeline thresholds are debated around five cherry-picked spreadsheet rows with no reproducible proxy ranking log.
   </StepItem>
-  <StepItem title="Who verifies synthetic samples: LLM self-scoring or an executable environment?">
-    For agents and long-horizon reasoning, the hard part is closing a verifiable feedback loop (such as Kimi K3's knowledge graph and isolated verifiers, Qwen-AgentWorld's detailed seed states, or WeAgent-MMSearch's backward visual chains), rather than generating another 100K plausible-looking traces.
+  <StepItem title="Who grades your synthetic data: a self-judging LLM or an executable verifier?">
+    **Action**: Anchor synthetic tasks on real state, knowledge graphs, or visible pixels; separate public diagnostics from hidden held-out verifiers; filter RL prompts by rollout pass-rate contrast to remove all-pass and all-fail tasks.<br />
+    **Red Flag**: Training reward surges steadily while hidden held-out verifiers or real online evals stay flat.
   </StepItem>
 </Steps>
 
-<Callout type="note" title="Three open questions still lacking large-scale evidence">
-In the public literature, three areas still lack large-scale empirical answers:<br />
-1. **100B+ transfer of meta-learned valuation**: DataRater establishes stability from 400M inner models to 1B target models, but whether learned discard ratios and sample rankings hold across two more orders of magnitude on frontier MoE models has no public verification yet.<br />
-2. **Small-scale proxies for math and deep reasoning**: DataDecide's continuous probabilities predict general knowledge and coding corpora at 0.01% compute, yet standard math benchmarks stayed near chance, leaving cheap pre-training proxies for reasoning-heavy data unsolved.<br />
-3. **Raw web tails vs. verifiable synthetic compute**: *A Bitter Lesson for Data Filtering* assumes a fixed static web pool, while frontier labs put growing compute into rephrasing, graph synthesis, and world-model simulation. There is no unified public scaling law yet for splitting compute between raw web tails and verifiable synthesis.
+<Callout type="note" title="Three Open Questions Without Large-Scale Empirical Consensus">
+Across public literature today, three critical zones remain unresolved:<br />
+1. **100B+ transfer of meta-learned valuation**: DataRater validates from 400M inner models to 1B targets, but whether optimal pruning ratios and sample rankings stay robust two orders of magnitude higher on 100B+ MoE and hybrid architectures has no public proof yet.<br />
+2. **Small-scale predictability for math and complex reasoning**: DataDecide’s continuous probabilities reliably rank knowledge and code corpora early, yet math benchmarks stay near random at tiny scales—leaving a gap for low-cost reasoning-data proxies.<br />
+3. **Raw tail web data vs. verifiable synthesis under extreme compute**: The Bitter Lesson studies static fixed web pools, while frontier labs pour rising compute into rephrasing, graph synthesis, and world-model simulation; no unified public scaling law governs the optimal compute split between the two yet.
 </Callout>
 
 ---
 
-## Verified References
+## References
 
-- **Seed discussion**: Allen (`@allen_datumwell`), [*What Is Good Data Taste?* (什么是好的数据 Taste?)](https://x.com/allen_datumwell/status/2123813175644782633?s=19) (X Article, Nov 20, 2026)
-- **Empirical practitioner studies**:
-  - Yu et al., [*What Makes a High-Quality Training Dataset for Large Language Models: A Practitioners’ Perspective*](https://dl.acm.org/doi/10.1145/3691620.3695061) (ASE 2024, DOI: `10.1145/3691620.3695061`)
-  - Qian, Reif, Kahng, [*Understanding the Dataset Practitioners Behind Large Language Model Development*](https://arxiv.org/abs/2402.16611) (CHI 2024 EA, `arXiv:2402.16611`)
-- **Compute and data regimes, pre-training corpora**:
-  - Hoffmann et al., [*Training Compute-Optimal Large Language Models*](https://arxiv.org/abs/2203.15556) (DeepMind, `arXiv:2203.15556`)
-  - Wenzek et al., [*CCNet: Extracting High Quality Monolingual Datasets from Web Crawl Data*](https://arxiv.org/abs/1911.00359) (`arXiv:1911.00359`)
-  - Penedo et al., [*The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale*](https://arxiv.org/abs/2406.17557) (Hugging Face, `arXiv:2406.17557`)
-  - Mohri, Duchi, Hashimoto, [*A Bitter Lesson for Data Filtering*](https://arxiv.org/abs/2605.19407) (Stanford, NeurIPS 2026, `arXiv:2605.19407`)
-  - Longpre et al., [*ATLAS: Adaptive Transfer Scaling Laws for Multilingual Pretraining, Finetuning, and Decoding the Curse of Multilinguality*](https://arxiv.org/abs/2510.22037) (ICLR 2026, `arXiv:2510.22037`; [Google Research Blog](https://www.research.google/blog/atlas-practical-scaling-laws-for-multilingual-models/))
-- **Stage recipes and large-scale instruction selection**:
-  - NVIDIA, [*Nemotron 3 Nano: Open, Efficient Mixture-of-Experts Hybrid Mamba-Transformer Model for Agentic Reasoning*](https://arxiv.org/abs/2512.20848) (`arXiv:2512.20848`; [NVIDIA-NeMo/Nemotron](https://github.com/NVIDIA-NeMo/Nemotron))
-  - DeepSeek-AI, [*DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*](https://arxiv.org/abs/2501.12948) (`arXiv:2501.12948v2`)
-  - Liu et al., [*What Makes Good Data for Alignment? A Comprehensive Study of Automatic Data Selection in Instruction Tuning*](https://arxiv.org/abs/2312.15685) (DEITA, ICLR 2024, `arXiv:2312.15685`)
-  - Ivison et al., [*Large-Scale Data Selection for Instruction Tuning*](https://arxiv.org/abs/2503.01807) (RDS+, `arXiv:2503.01807`)
-- **Low-cost data valuation**:
-  - Magnusson et al., [*DataDecide: How to Predict Best Pretraining Data with Small Experiments*](https://arxiv.org/abs/2504.11393) (ICML 2025, `arXiv:2504.11393`)
-  - Peng et al., [*DataMan: Data Manager for Pre-training Large Language Models*](https://arxiv.org/abs/2502.19363) (ICLR 2025, `arXiv:2502.19363`)
-  - Calian et al., [*DataRater: Meta-Learned Dataset Curation*](https://arxiv.org/abs/2505.17895) (Google DeepMind, NeurIPS 2025, `arXiv:2505.17895`)
-- **Synthetic data, security boundaries, and agent environments**:
-  - Panfilov et al., [*Stealing Reasoning Traces from Proprietary LLM APIs*](https://arxiv.org/abs/2608.09867) (`arXiv:2608.09867`)
-  - Kimi Team, [*Kimi K3: Open Frontier Intelligence*](https://arxiv.org/abs/2607.24653) (`arXiv:2607.24653v2`)
-  - Qwen Team, [*Qwen-AgentWorld: Language World Models for General Agents*](https://arxiv.org/abs/2606.24597) (`arXiv:2606.24597`)
-  - Liu et al., [*WeAgent-MMSearch: Native Text-Vision Interaction for Multimodal Search Agents*](https://arxiv.org/abs/2608.28062) (`arXiv:2608.28062v2`)
+1. Allen (Datumwell), [*What Is Good Data Taste?*](https://x.com/allen_datumwell/status/2123813175644782633?s=19), X, 2026.
+2. Y. Liu et al., [What Makes a High-Quality Training Dataset for Large Language Models: A Practitioners’ Perspective](https://dl.acm.org/doi/10.1145/3691620.3695061), ASE 2024.
+3. M. Pushkarna et al. (Google Research), [Understanding the Dataset Practitioners Behind Large Language Model Development](https://arxiv.org/abs/2402.16611), CHI 2024 Extended Abstracts.
+4. J. Hoffmann et al. (DeepMind), [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556), NeurIPS 2022.
+5. G. Wenzek et al. (Meta), [CCNet: Extracting High Quality Monolingual Datasets from Web Crawl Data](https://arxiv.org/abs/1911.00359), LREC 2020 (arXiv:1911.00359).
+6. G. Penedo et al. (Hugging Face), [The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale](https://arxiv.org/abs/2406.17557), NeurIPS 2024 Datasets & Benchmarks.
+7. M. Mohri, J. Duchi, T. Hashimoto (Stanford), [A Bitter Lesson for Data Filtering](https://arxiv.org/abs/2605.19407), NeurIPS 2026 (arXiv:2605.19407).
+8. S. Longpre et al. (MIT, UW, Stanford, Google), [ATLAS: Adaptive Transfer Scaling Laws for Multilingual Pretraining, Finetuning, and Decoding the Curse of Multilinguality](https://arxiv.org/abs/2510.22037), ICLR 2026 & [Google Research Blog](https://www.research.google/blog/atlas-practical-scaling-laws-for-multilingual-models/).
+9. NVIDIA, [Nemotron 3 Nano: Open, Efficient Mixture-of-Experts Hybrid Mamba-Transformer Model for Agentic Reasoning](https://arxiv.org/abs/2512.20848) & [NVIDIA-NeMo/Nemotron](https://github.com/NVIDIA-NeMo/Nemotron), 2025.
+10. DeepSeek-AI, [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/abs/2501.12948), 2025/2026.
+11. W. Liu et al., [What Makes Good Data for Alignment? A Comprehensive Study of Automatic Data Selection in Instruction Tuning (DEITA)](https://arxiv.org/abs/2312.15685), ICLR 2024.
+12. H. Ivison et al. (Ai2, UW), [Large-Scale Data Selection for Instruction Tuning (RDS+)](https://arxiv.org/abs/2503.01807), 2025.
+13. I. Magnusson et al. (Ai2), [DataDecide: How to Predict Best Pretraining Data with Small Experiments](https://arxiv.org/abs/2504.11393), ICML 2025.
+14. R. Peng et al. (ZJU, Qwen), [DataMan: Data Manager for Pre-training Large Language Models](https://arxiv.org/abs/2502.19363), ICLR 2025.
+15. T. Calian et al. (Google DeepMind), [DataRater: Meta-Learned Dataset Curation](https://arxiv.org/abs/2505.17895), NeurIPS 2025.
+16. [Stealing Reasoning Traces from Proprietary LLM APIs](https://arxiv.org/abs/2608.09867), 2026.
+17. Kimi Team, [Kimi K3: Open Frontier Intelligence](https://arxiv.org/abs/2607.24653), 2026.
+18. Qwen Team, [Qwen-AgentWorld: Language World Models for General Agents](https://arxiv.org/abs/2606.24597), 2026.
+19. W. Liu et al. (WeChat AI, SYSU), [WeAgent-MMSearch: Scaling Native Multimodal Search Agents with Verifiable Reverse-Hop Synthesis](https://arxiv.org/abs/2608.28062), 2026.

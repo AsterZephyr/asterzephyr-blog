@@ -1,0 +1,613 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式边界定位器 · 数据 TASTE 工程决策矩阵',
+      title: '切换算力约束与训练阶段，看同一批数据的正确打法与踩坑分支',
+      subtitle:
+        '选定当前瓶颈（算力受限 vs 固定池数据受限）与训练阶段，右侧会同步切出对应的一手论文做法、低成本验收信号与典型失效陷阱。',
+      regimeLabel: '资源瓶颈',
+      stageLabel: '训练阶段',
+      leftHead: '这一格里最稳的工程做法',
+      rightHead: '套错前提时最容易踩的坑',
+      labelLever: '核心杠杆',
+      labelSignal: '低成本门控',
+      labelAnchor: '文献依据',
+      labelTrap: '典型失效模式',
+      labelRedFlag: '开工前核查反信号',
+      regimes: [
+        { id: 'compute', label: '算力受限（大池子 · GPU 吃紧）' },
+        { id: 'data', label: '数据受限（固定池 · 逼近多轮上限）' },
+      ],
+      stages: [
+        { id: 'pretrain', label: 'Pre-training' },
+        { id: 'midtrain', label: 'Mid-training / 退火' },
+        { id: 'sft', label: 'SFT 指令与协议' },
+        { id: 'rl', label: 'RL 与 Agent 合成' },
+      ],
+      cells: {
+        'compute:pretrain': {
+          lever: '单快照独立 MinHash 去重 + 轻量语义分类器过滤（保留高信息密度语料）',
+          signal: '用 150M 小代理跑语料两两排序，看 Correct Prob / Total Prob 连续概率',
+          anchor: 'Chinchilla · CCNet · FineWeb (15T) · DataMan (1.5B) · DataDecide',
+          whyTitle: '为什么在算力吃紧时优先做减法',
+          why: '唯一 token 远超集群可吞吐量，把有限 FLOPs 集中到干净、多样的样本上，提分最直接且几乎不触发数据墙。',
+          traps: [
+            '跨 96 个网页快照做全局去重，会顺手删掉老快照里的高价值常青内容，反向拉高广告与垃圾页占比（FineWeb）。',
+            '用小模型跑 MBPP / HumanEval 时死盯离散 Accuracy（几乎全 0），会把真正能涨点的代码语料误杀。',
+          ],
+          redFlag: '去重后如果早期快照被砍掉 80% 以上，必须抽样对比“留下的 10% vs 删掉的 90%”再决定是否上线。',
+        },
+        'compute:midtrain': {
+          lever: '在退火期集中拉高数学、代码与推理权重，长上下文续训坚持长短序列混训',
+          signal: '同步监控短上下文通用评测与长上下文多文档合成检索（自动真值校验）',
+          anchor: 'Nemotron 3 Nano Phase 2 (1.5T) + 121B Long-Context (512k/4k 混训)',
+          whyTitle: '退火期是性价比最高的能力锐化窗口',
+          why: '无需重训 20T 主语料，在最后 5% 到 10% 的 token 预算里切换高纯度分布，就能拉升长程推理与长窗召回。',
+          traps: [
+            '只喂 512k 超长序列做长上下文外推，会把模型原本的短上下文基础能力拉滑坡（Nemotron 3）。',
+            '把退火当成 SFT，混入大量格式化对话模板却没留足高质量知识回放，导致语言建模泛化变脆。',
+          ],
+          redFlag: '长窗任务分数涨了但常规 4k 评测掉了 1 分以上，说明短序列回放比例（如 Nemotron 的 79% Phase 2 下采样）给少了。',
+        },
+        'compute:sft': {
+          lever: '把目标交互协议显式写进分布（思考开关、截断收敛、工具调用），百万级大池改用基座隐状态筛选',
+          signal: '在目标池规模上必跑随机采样基线，对照验证查询集做 RDS+ 位置加权余弦匹配',
+          anchor: 'Nemotron 3 Nano (§3.1.5 10%/3% 协议) · DEITA (小池) · RDS+ (5.8M 大池)',
+          whyTitle: 'SFT 教的是“怎么答”，不是补世界知识',
+          why: '推理预算截断、工具切换和输出规范必须提前编码进 SFT 样本，单靠线上强截断无法让模型平稳收尾。',
+          traps: [
+            '候选池从 10 万扩到数百万后，继续沿用 Perplexity / IFD 或外置打分器，裁判偏好漏洞会被极端样本钻空子，成绩甚至跑输随机（Ivison et al.）。',
+            '只训完整思维链样本，线上预算耗尽强行插 </think> 时模型直接胡言乱语或截断死循环。',
+          ],
+          redFlag: '只要 SFT 筛选管线在大池子上没赢过“同预算随机采样 + 去重”，就立刻停用外置打分器。',
+        },
+        'compute:rl': {
+          lever: '先用少量冷启动 SFT 稳住格式，再用隔离验证器 + 组内通过率筛选有区分度的题',
+          signal: '每题采样 8 条 rollout，剔除 8/8 全对和 0/8 全错，只把算力花在有组内对比梯度的题上',
+          anchor: 'DeepSeek-R1 · Kimi K3 (AET 隔离验证器) · WeAgent-MMSearch (4.9K 精选)',
+          whyTitle: 'RL 算力最怕浪费在零梯度题与刷分捷径上',
+          why: '全对题没有提升空间，全错题没有正样本锚点；没有隐藏验证器隔离，模型会优先学会钻测试漏洞。',
+          traps: [
+            '不做冷启动直接纯 RL，模型容易出现中英混杂与可读性崩坏（DeepSeek-R1-Zero）。',
+            '多模态或 Agent 题面 URL、元数据偷偷泄答案，模型根本没看图就靠文本捷径把奖励刷满（WeAgent）。',
+          ],
+          redFlag: '训练奖励一路飙升但留出隐藏验证器分数停滞，九成已经触发 reward hacking 或文本捷径。',
+        },
+        'data:pretrain': {
+          lever: '放宽硬过滤阈值、避免过早砍掉 90%+ 长尾池，把冗余算力投向多视角保真改写与跨语种正迁移配比',
+          signal: '追踪单语种是否跨过 1-epoch 拐点，并在高噪音核心池上测试 DataRater 双层验证集收益',
+          anchor: 'A Bitter Lesson for Data Filtering · ATLAS (1-epoch 拐点) · DataRater · Kimi K3 改写',
+          whyTitle: '唯一 token 见底后，过度清洗反而亲手造出数据墙',
+          why: '大模型在足够长步数下能隔离噪声并榨出长尾共现信号；强过滤把池子缩成 2% 到 13% 后，多轮重复过拟合的代价很快盖过“更干净”的好处。',
+          traps: [
+            '在固定小语种或固定网页池上盲目照搬 2% 留存率的强过滤器，导致有效唯一 token 暴跌、提前过拟合。',
+            '对低资源语种（如印地语、斯瓦希里语）机械重放多个 epoch，跨过 1 epoch 后边际收益急坠（ATLAS）。',
+          ],
+          redFlag: '训练 loss 持续下降但留出验证集 NLL 开始掉头微翘，说明过滤太狠或重复轮次太高，该松阈值或引入保真改写。',
+        },
+        'data:midtrain': {
+          lever: '用多风格保真改写与程序化多模态配对（代码 ↔ SVG/3D/网页）扩充高密度语料，避免裸重复',
+          signal: '改写后逐块对照原文做保真校验；高噪声核心池可用 DataRater 元梯度挑“能让验证集掉 loss”的样本',
+          anchor: 'Kimi K3 (§3.1 改写与程序化多模态) · DataRater (最高 46.6% 净 FLOPs 收益)',
+          whyTitle: '退火期语料稀缺时，保真改写比简单重复稳得多',
+          why: '同源知识换视角改写能延续信息增量，但前提是有原文保真校验，否则会把改写模型自己的幻觉放大进退火层。',
+          traps: [
+            '拿训练 loss 最高的样本去凑退火高难语料，结果把乱码和脏文本当成“高信息量”喂进模型。',
+            '不做原文保真核验就批量用大模型改写，事实漂移会在退火高学习率窗口迅速污染底模。',
+          ],
+          redFlag: '改写语料加入后，事实类基准（非风格类）出现回退，通常是缺少逐块原文保真门控。',
+        },
+        'data:sft': {
+          lever: '围绕真实种子状态与层级知识图谱合成多样任务，再用同构执行 Harness 筛出完整答对轨迹',
+          signal: '图谱入图前先做等价概念去重，轨迹只保留在同构工具链下执行闭环且结果正确的样本',
+          anchor: 'Kimi K3 (§4.2 层级知识图谱 DAG) · WeAgent-MMSearch (同构 Harness 59.5K)',
+          whyTitle: '真实指令耗尽后，多样性靠结构化图谱而不是换 prompt 模板',
+          why: '反复微调 prompt 模板造出的指令很快同质化；从真实论文、仓库和网页事件反向挂接知识图谱，才能持续长出非雷同场景。',
+          traps: [
+            '在静态离线环境造轨迹，却拿到另一套工具协议的线上 Harness 里部署，格式与状态读写错位导致掉点。',
+            '偷懒走灰产抓取闭源 API 密文思维链，既面临漏洞迅速封堵，又直接踩中合规与 PII 泄露红线。',
+          ],
+          redFlag: '合成样本数量翻倍但模型在分布外评测上毫无起色，说明合成管线已经陷入模式坍缩。',
+        },
+        'data:rl': {
+          lever: '用千万级真实交互轨迹训练语言世界模型做 Sim RL，沿状态变化与故障扰动双轴扩增模拟环境',
+          signal: '给世界模型提供细粒度初始状态（文件系统、表结构、账号配置），并监控真实线上环境的迁移增益',
+          anchor: 'Qwen-AgentWorld (Sim RL · +12.3 MCPMark · +16.3 WideSearch) · WeAgent 逆向多跳',
+          whyTitle: '真实沙箱太慢太贵时，把“环境本身”模型化才能把数据墙推远',
+          why: '真实 API 很难稳定触发分页截断、偶发报错和批量部分失败，可控仿真却能按需放大这些长尾生产边界条件。',
+          traps: [
+            '偷懒只给世界模型一段粗略 prompt 而不锚定细粒度初始状态，仿真轨迹几轮之后就会漂移失真（Qwen-AgentWorld）。',
+            '在无真实数据库/SQL 真值约束的开放模拟里放任模型自判对错，把仿真幻觉当成正奖励学进策略。',
+          ],
+          redFlag: 'Sim RL 分数暴涨但在真实在线环境评测反降，首先排查初始状态粒度是否太粗、仿真反馈是否已脱离真实接口。',
+        },
+      },
+    }
+  : {
+      eyebrow: 'INTERACTIVE BOUNDARY LOCATOR · DATA TASTE DECISION MATRIX',
+      title: 'Switch Resource Regime & Training Stage to See What Works vs. What Breaks',
+      subtitle:
+        'Pick your real bottleneck (compute-bound vs. fixed-pool data-bound) and stage. Each cell maps verified paper practices, low-cost gates, and the trap triggered when assumptions are mixed.',
+      regimeLabel: 'Bottleneck Regime',
+      stageLabel: 'Training Stage',
+      leftHead: 'Grounded Engineering Playbook',
+      rightHead: 'What Breaks When Premise Is Missed',
+      labelLever: 'Primary Lever',
+      labelSignal: 'Low-Cost Gate',
+      labelAnchor: 'Paper Anchors',
+      labelTrap: 'Typical Failure Modes',
+      labelRedFlag: 'Pre-Flight Red Flag',
+      regimes: [
+        { id: 'compute', label: 'Compute-Bound (Large Pool · Tight GPUs)' },
+        { id: 'data', label: 'Data-Bound (Fixed Pool · Multi-Epoch Limit)' },
+      ],
+      stages: [
+        { id: 'pretrain', label: 'Pre-training' },
+        { id: 'midtrain', label: 'Mid-training / Anneal' },
+        { id: 'sft', label: 'SFT & Protocols' },
+        { id: 'rl', label: 'RL & Agent Synth' },
+      ],
+      cells: {
+        'compute:pretrain': {
+          lever: 'Per-dump independent MinHash deduplication + lightweight semantic filtering for high information density',
+          signal: 'Rank candidate corpora pairwise with 150M proxy models using continuous Correct Prob / Total Prob',
+          anchor: 'Chinchilla · CCNet · FineWeb (15T) · DataMan (1.5B) · DataDecide',
+          whyTitle: 'Why subtraction wins when FLOPs are scarce',
+          why: 'Unique tokens vastly exceed your GPU budget, so spending finite FLOPs on cleaner, denser tokens lifts downstream quality without hitting a data wall.',
+          traps: [
+            'Global cross-dump deduplication across 96 dumps strips evergreen pages from older dumps and upsamples one-off ads and spam (FineWeb).',
+            'Watching discrete Accuracy on MBPP or HumanEval at small proxy scale yields near-zero coin flips and discards strong coding corpora.',
+          ],
+          redFlag: 'If global dedup removes >80% of an early dump, run an ablation comparing the kept slice against the removed slice before shipping.',
+        },
+        'compute:midtrain': {
+          lever: 'Concentrate high-precision math, code, and reasoning in annealing; mix long and short sequences during context extension',
+          signal: 'Track short-context general benchmarks alongside synthetic long-doc retrieval with automated ground-truth checks',
+          anchor: 'Nemotron 3 Nano Phase 2 (1.5T) + 121B Long-Context (512k/4k mix)',
+          whyTitle: 'Annealing is the highest-leverage sharpening window',
+          why: 'Shifting distribution in the final 5% to 10% of pre-training tokens sharpens reasoning and long-context recall without re-running 20T tokens.',
+          traps: [
+            'Training context extension exclusively on 512k sequences degrades standard short-context benchmarks (Nemotron 3).',
+            'Treating annealing like SFT by flooding chat templates without high-quality knowledge replay makes base modeling brittle.',
+          ],
+          redFlag: 'If long-context scores jump while 4k general benchmarks dip >1 pt, increase short-sequence replay (e.g., Nemotron’s 79% Phase 2 downsample).',
+        },
+        'compute:sft': {
+          lever: 'Encode runtime protocols directly in SFT (think toggle, budget truncation, tool use); switch to base hidden states on million-scale pools',
+          signal: 'Always benchmark against random sampling at target pool scale; match validation queries via position-weighted RDS+',
+          anchor: 'Nemotron 3 Nano (§3.1.5 10%/3% protocol) · DEITA (small pool) · RDS+ (5.8M pool)',
+          whyTitle: 'SFT teaches behavioral protocols, not broad world knowledge',
+          why: 'Graceful budget cutoffs and multi-turn tool switching only work reliably when written directly into SFT trajectories.',
+          traps: [
+            'At 5.8M scale, external judges, Perplexity, and IFD get gamed by outlier examples and can underperform random sampling (Ivison et al.).',
+            'Training only on full CoT traces leaves models unable to converge when serving forcibly inserts </think> at a token cap.',
+          ],
+          redFlag: 'If a selection scorer fails to beat same-budget random sampling at full pool scale, drop the external judge immediately.',
+        },
+        'compute:rl': {
+          lever: 'Stabilize format with cold-start SFT, then run isolated verifiers and rollout pass-rate filtering to keep high-contrast prompts',
+          signal: 'Sample 8 rollouts per prompt; drop 8/8 all-pass and 0/8 all-fail tasks so RL spends compute only where group contrast exists',
+          anchor: 'DeepSeek-R1 · Kimi K3 (AET isolated verifiers) · WeAgent-MMSearch (4.9K prompts)',
+          whyTitle: 'RL compute is easily wasted on zero-gradient tasks and hacks',
+          why: 'All-pass prompts offer no headroom and all-fail prompts provide no positive anchor; unisolated tests invite reward hacking.',
+          traps: [
+            'Pure RL without cold-start SFT triggers language mixing and unreadable traces (DeepSeek-R1-Zero).',
+            'URLs or captions leak answers in multimodal search tasks, letting text shortcuts max out reward without reading pixels (WeAgent).',
+          ],
+          redFlag: 'Rising training reward paired with flat held-out verifier scores almost always signals reward hacking or shortcut leakage.',
+        },
+        'data:pretrain': {
+          lever: 'Loosen harsh filtering thresholds to preserve unique tail tokens; allocate spare compute to faithful rephrasing and measured transfer mixes',
+          signal: 'Track the 1-epoch boundary per language and test DataRater bi-level validation gain on high-noise core pools',
+          anchor: 'A Bitter Lesson for Data Filtering · ATLAS (1-epoch inflection) · DataRater · Kimi K3',
+          whyTitle: 'Once unique tokens run dry, harsh filters build your own data wall',
+          why: 'Larger models trained longer can isolate noise and extract residual statistics; cutting a fixed pool to 2% to 13% trades away irreplaceable variety.',
+          traps: [
+            'Blindly copying 2% retention filters onto a fixed domain or language pool causes severe multi-epoch overfitting.',
+            'Repeating low-resource languages (Hindi, Swahili) past 1 epoch triggers sharp diminishing returns (ATLAS).',
+          ],
+          redFlag: 'Training loss keeps dropping while held-out validation NLL curves upward: relax hard filters or shift to faithful rephrasing.',
+        },
+        'data:midtrain': {
+          lever: 'Expand high-density data via multi-style faithful rephrasing and programmatic code-to-visual pairs instead of raw repetition',
+          signal: 'Verify rephrased chunks against source documents; use DataRater meta-gradients on noisy pools to keep validation-lowering samples',
+          anchor: 'Kimi K3 (§3.1 rephrasing & programmatic multimodal) · DataRater (up to 46.6% net FLOP gain)',
+          whyTitle: 'Faithful rephrasing beats raw repetition in tight annealing pools',
+          why: 'Diverse perspectives extend information yield, provided source-fidelity checks stop rewriter hallucinations from poisoning annealing.',
+          traps: [
+            'Picking raw highest-loss training examples as "hard data" selects gibberish and corrupted text.',
+            'Bulk LLM rephrasing without chunk-level fidelity checks injects factual drift during the sensitive annealing phase.',
+          ],
+          redFlag: 'Factual recall benchmarks slip after adding rewritten corpora: audit chunk-level fidelity gating first.',
+        },
+        'data:sft': {
+          lever: 'Synthesize diverse tasks from real seed states and self-evolving knowledge graphs; filter trajectories inside the exact deployment harness',
+          signal: 'Deduplicate equivalent concepts before adding graph nodes; keep only complete, verified trajectories under isomorphic tool execution',
+          anchor: 'Kimi K3 (§4.2 hierarchical knowledge graph DAG) · WeAgent-MMSearch (59.5K SFT)',
+          whyTitle: 'Diversity at scale comes from structured graphs, not prompt tweaks',
+          why: 'Template paraphrasing collapses quickly; anchoring graph walks to real papers, repos, and live web events preserves genuine task spread.',
+          traps: [
+            'Collecting trajectories in a mismatched mock harness causes tool-schema drift when deployed to the real runtime.',
+            'Harvesting leaked proprietary API reasoning traces is legally toxic, leaks PII, and vanishes once vendors patch encryption scope.',
+          ],
+          redFlag: 'Doubling synthetic SFT volume moves OOD benchmarks by zero: your generator has entered mode collapse.',
+        },
+        'data:rl': {
+          lever: 'Train language world models on 10M+ real interaction traces for Sim RL, systematically injecting edge-case faults and state shifts',
+          signal: 'Condition world models on granular initial states (filesystems, schemas, configs) and validate Sim RL gains on real online evals',
+          anchor: 'Qwen-AgentWorld (Sim RL · +12.3 MCPMark · +16.3 WideSearch) · WeAgent reverse hops',
+          whyTitle: 'When live sandboxes bottleneck scale, model the environment itself',
+          why: 'Live APIs rarely trigger pagination truncation, partial batch errors, or transient faults on demand; controllable world models can.',
+          traps: [
+            'Feeding vague seed prompts instead of fine-grained initial states causes simulated trajectories to drift within a few turns (Qwen-AgentWorld).',
+            'Letting an unconstrained simulator self-grade without database/SQL ground truth bakes simulator hallucinations into policy weights.',
+          ],
+          redFlag: 'Sim RL scores climb fast while real online evaluation drops: tighten initial-state conditioning and ground-truth checks.',
+        },
+      },
+    };
+
+const payload = JSON.stringify({
+  cells: copy.cells,
+  labels: {
+    lever: copy.labelLever,
+    signal: copy.labelSignal,
+    anchor: copy.labelAnchor,
+    trap: copy.labelTrap,
+    redFlag: copy.labelRedFlag,
+  },
+});
+---
+
+<section class="dtl-box not-prose" data-widget="data-taste-boundary-lab" data-payload={payload}>
+  <header class="dtl-head">
+    <p class="dtl-eyebrow">{copy.eyebrow}</p>
+    <h4 class="dtl-title">{copy.title}</h4>
+    <p class="dtl-subtitle">{copy.subtitle}</p>
+  </header>
+
+  <div class="dtl-controls">
+    <div class="dtl-control-group">
+      <span class="dtl-control-label">{copy.regimeLabel}</span>
+      <div class="dtl-pills" role="tablist">
+        {copy.regimes.map((r, idx) => (
+          <button
+            type="button"
+            class:list={['dtl-pill', idx === 0 && 'is-active']}
+            data-regime={r.id}
+            aria-pressed={idx === 0 ? 'true' : 'false'}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div class="dtl-control-group">
+      <span class="dtl-control-label">{copy.stageLabel}</span>
+      <div class="dtl-tabs" role="tablist">
+        {copy.stages.map((s, idx) => (
+          <button
+            type="button"
+            class:list={['dtl-tab', idx === 0 && 'is-active']}
+            data-stage={s.id}
+            aria-pressed={idx === 0 ? 'true' : 'false'}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <div class="dtl-grid">
+    <div class="dtl-col dtl-col-teal">
+      <p class="dtl-col-head">{copy.leftHead}</p>
+      <div class="dtl-body" data-left-panel></div>
+    </div>
+
+    <div class="dtl-col dtl-col-terra">
+      <p class="dtl-col-head">{copy.rightHead}</p>
+      <div class="dtl-body" data-right-panel></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function initDataTasteBoundaryLabs() {
+    document.querySelectorAll<HTMLElement>('[data-widget="data-taste-boundary-lab"]').forEach((root) => {
+      if (root.dataset.bound === '1') return;
+      root.dataset.bound = '1';
+
+      const { cells, labels } = JSON.parse(root.dataset.payload || '{"cells":{},"labels":{}}');
+      let regime = 'compute';
+      let stage = 'pretrain';
+
+      const regimeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-regime]'));
+      const stageBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-stage]'));
+      const leftPanel = root.querySelector<HTMLElement>('[data-left-panel]');
+      const rightPanel = root.querySelector<HTMLElement>('[data-right-panel]');
+
+      function escapeHtml(text: string) {
+        return text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function render() {
+        regimeBtns.forEach((btn) => {
+          const active = btn.dataset.regime === regime;
+          btn.classList.toggle('is-active', active);
+          btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        stageBtns.forEach((btn) => {
+          const active = btn.dataset.stage === stage;
+          btn.classList.toggle('is-active', active);
+          btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+
+        const cell = cells[`${regime}:${stage}`];
+        if (!cell) return;
+
+        if (leftPanel) {
+          leftPanel.innerHTML = `
+            <div class="dtl-item">
+              <div class="dtl-k">${escapeHtml(labels.lever)}</div>
+              <p class="dtl-v">${escapeHtml(cell.lever)}</p>
+            </div>
+            <div class="dtl-item">
+              <div class="dtl-k">${escapeHtml(labels.signal)}</div>
+              <p class="dtl-v">${escapeHtml(cell.signal)}</p>
+            </div>
+            <div class="dtl-item">
+              <div class="dtl-k">${escapeHtml(labels.anchor)}</div>
+              <p class="dtl-anchor">${escapeHtml(cell.anchor)}</p>
+            </div>
+            <div class="dtl-callout dtl-callout-teal">
+              <div class="dtl-callout-t dtl-t-teal">${escapeHtml(cell.whyTitle)}</div>
+              <p class="dtl-callout-p">${escapeHtml(cell.why)}</p>
+            </div>
+          `;
+        }
+
+        if (rightPanel) {
+          const trapsHtml = cell.traps
+            .map((t: string) => `<li>${escapeHtml(t)}</li>`)
+            .join('');
+          rightPanel.innerHTML = `
+            <div class="dtl-item">
+              <div class="dtl-k dtl-k-terra">${escapeHtml(labels.trap)}</div>
+              <ul class="dtl-list">${trapsHtml}</ul>
+            </div>
+            <div class="dtl-callout dtl-callout-terra">
+              <div class="dtl-callout-t dtl-t-terra">${escapeHtml(labels.redFlag)}</div>
+              <p class="dtl-callout-p">${escapeHtml(cell.redFlag)}</p>
+            </div>
+          `;
+        }
+      }
+
+      regimeBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          regime = btn.dataset.regime || 'compute';
+          render();
+        });
+      });
+
+      stageBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          stage = btn.dataset.stage || 'pretrain';
+          render();
+        });
+      });
+
+      render();
+    });
+  }
+
+  initDataTasteBoundaryLabs();
+  document.addEventListener('astro:after-swap', initDataTasteBoundaryLabs);
+  document.addEventListener('languagechange', initDataTasteBoundaryLabs);
+</script>
+
+<style>
+  .dtl-box {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--color-field);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .dtl-head {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .dtl-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .dtl-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    color: var(--color-heading);
+  }
+  .dtl-subtitle {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .dtl-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    margin: 1rem 0 1.15rem;
+  }
+  .dtl-control-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .dtl-control-label {
+    min-width: 5.5rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+    text-transform: uppercase;
+  }
+  .dtl-pills,
+  .dtl-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .dtl-pill {
+    padding: 0.38rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .dtl-pill.is-active {
+    color: #fff;
+    background: var(--color-heading);
+    border-color: var(--color-heading);
+  }
+  .dtl-tab {
+    padding: 0.35rem 0.72rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .dtl-tab.is-active {
+    color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .dtl-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .dtl-col {
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+  }
+  .dtl-col-teal {
+    border-top: 3px solid #2c6b5a;
+  }
+  .dtl-col-terra {
+    border-top: 3px solid #b1462f;
+  }
+  .dtl-col-head {
+    margin: 0 0 0.85rem;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--color-heading);
+  }
+  .dtl-body :global(.dtl-item) {
+    margin-bottom: 0.75rem;
+  }
+  .dtl-body :global(.dtl-k) {
+    font-size: 0.73rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #2c6b5a;
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+  }
+  .dtl-body :global(.dtl-k-terra) {
+    color: #b1462f;
+  }
+  .dtl-body :global(.dtl-v) {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.58;
+    color: var(--color-body);
+  }
+  .dtl-body :global(.dtl-anchor) {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+  .dtl-body :global(.dtl-list) {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.83rem;
+    line-height: 1.6;
+    color: var(--color-body);
+  }
+  .dtl-body :global(.dtl-list li) {
+    margin-bottom: 0.45rem;
+  }
+  .dtl-body :global(.dtl-callout) {
+    margin-top: 0.85rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 5px;
+  }
+  .dtl-body :global(.dtl-callout-teal) {
+    background: #e7f2ee;
+    border: 1px solid #bfdcd2;
+  }
+  .dtl-body :global(.dtl-callout-terra) {
+    background: #fbebe5;
+    border: 1px solid #f0c9bd;
+  }
+  .dtl-body :global(.dtl-callout-t) {
+    font-size: 0.77rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+  }
+  .dtl-body :global(.dtl-t-teal) {
+    color: #2c6b5a;
+  }
+  .dtl-body :global(.dtl-t-terra) {
+    color: #b1462f;
+  }
+  .dtl-body :global(.dtl-callout-p) {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--color-body);
+  }
+  @media (max-width: 760px) {
+    .dtl-box {
+      padding: 1.1rem;
+    }
+    .dtl-grid {
+      grid-template-columns: 1fr;
+    }
+    .dtl-control-label {
+      min-width: auto;
+      width: 100%;
+    }
+  }
+</style>
