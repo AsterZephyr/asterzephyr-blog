@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 418" width="960" height="418" role="img" aria-labelledby="title desc">
+<title id="title">改数据管线前先想清楚四件事</title>
+<desc id="desc">自左向右四个问题：缺卡缺数据还是缺验证信号、现在训到哪一步、语料和轨迹怎么分层验数、造数据谁来判对错并先验收判官；下方虚线框标出想反了会怎么翻车。</desc>
+<defs>
+  <marker id="arrow-main" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0 1 L9 5 L0 9 z" fill="#4f4942"/>
+  </marker>
+  <marker id="arrow-fail" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+    <path d="M0 1 L9 5 L0 9 z" fill="#b1462f"/>
+  </marker>
+</defs>
+
+<rect width="960" height="418" fill="#faf7f2"/>
+
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', Arial, sans-serif" x="480" y="34" font-size="18.5" font-weight="700" fill="#1f1d1a" text-anchor="middle">改清洗、分拣或合成策略前，先想清楚这四件事</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', Arial, sans-serif" x="480" y="57" font-size="12.5" fill="#5d574f" text-anchor="middle">上面一排是该怎么做，下面虚线是想反了、偷懒了会怎么翻车（开训前先查污染、判官与血缘）</text>
+
+<!-- Gate 1 -->
+<rect x="34" y="82" width="206" height="150" rx="10" fill="#edf3f9" stroke="#2f5d8a" stroke-width="1.6"/>
+<path d="M44 82 H230 Q240 82 240 92 V118 H34 V92 Q34 82 44 82 Z" fill="#d3e3f3"/>
+<line x1="34" y1="118" x2="240" y2="118" stroke="#2f5d8a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="46" y="105" font-size="13" font-weight="700" fill="#1b3956">01 缺卡、缺数，还是缺裁判？</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="46" y="143" font-size="12" fill="#23201c">• 缺卡：放心做单快照去重清洗</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="46" y="167" font-size="12" fill="#23201c">• 缺数据：松阈值，建曝光账本</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="46" y="191" font-size="12" fill="#23201c">• 缺裁判：先修验证器再扩数据</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="46" y="218" font-size="10.2" font-weight="600" fill="#2f5d8a">FineWeb · Bitter · Olmix</text>
+
+<!-- Gate 2 -->
+<rect x="262" y="82" width="206" height="150" rx="10" fill="#fcf5e6" stroke="#a6631b" stroke-width="1.6"/>
+<path d="M272 82 H458 Q468 82 468 92 V118 H262 V92 Q262 82 272 82 Z" fill="#f4e0bc"/>
+<line x1="262" y1="118" x2="468" y2="118" stroke="#a6631b" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="276" y="105" font-size="13" font-weight="700" fill="#633a0d">02 现在训到哪一步？</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="276" y="143" font-size="12" fill="#23201c">• 预训练求广，中训给 RL 打底</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="276" y="167" font-size="12" fill="#23201c">• SFT 教规矩（截断/调工具）</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="276" y="191" font-size="12" fill="#23201c">• 百万池靠基座隐状态自己挑</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="276" y="218" font-size="10.2" font-weight="600" fill="#9a5914">Nemotron 3 · TrajLong · RDS+</text>
+
+<!-- Gate 3 -->
+<rect x="490" y="82" width="206" height="150" rx="10" fill="#e9f4f0" stroke="#2c6b5a" stroke-width="1.6"/>
+<path d="M500 82 H686 Q696 82 696 92 V118 H490 V92 Q490 82 500 82 Z" fill="#cae4db"/>
+<line x1="490" y1="118" x2="696" y2="118" stroke="#2c6b5a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="504" y="105" font-size="13" font-weight="700" fill="#1a463a">03 花小钱怎么分层验数？</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="504" y="143" font-size="12" fill="#23201c">• 语料级：小模型看概率 + 打标</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="504" y="167" font-size="12" fill="#23201c">• 轨迹级：步级 mask + 四类分拣</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="504" y="191" font-size="12" fill="#23201c">• 人评校准，机评全量，真环境终验</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="504" y="218" font-size="10.2" font-weight="600" fill="#255d4e">DataDecide · SRFT · GRM</text>
+
+<!-- Gate 4 -->
+<rect x="718" y="82" width="208" height="150" rx="10" fill="#f3eff8" stroke="#634b7a" stroke-width="1.6"/>
+<path d="M728 82 H916 Q926 82 926 92 V118 H718 V92 Q718 82 728 82 Z" fill="#dfd5eb"/>
+<line x1="718" y1="118" x2="926" y2="118" stroke="#634b7a" stroke-width="1"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="105" font-size="13" font-weight="700" fill="#3f2d52">04 造数据谁来判对错？</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="143" font-size="12" fill="#23201c">• 保持信息开放：真材料注入新信息</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="167" font-size="12" fill="#23201c">• 倒推出题，堵死文本蒙答案捷径</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="191" font-size="12" fill="#23201c">• 判官先过 2×2 人机对照与 κ 验收</text>
+<text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="732" y="218" font-size="10.2" font-weight="600" fill="#594170">Kimi K3 · AgentWorld · κ</text>
+
+<!-- Horizontal main flow arrows -->
+<line x1="240" y1="157" x2="259" y2="157" stroke="#4f4942" stroke-width="1.8" marker-end="url(#arrow-main)"/>
+<line x1="468" y1="157" x2="487" y2="157" stroke="#4f4942" stroke-width="1.8" marker-end="url(#arrow-main)"/>
+<line x1="696" y1="157" x2="715" y2="157" stroke="#4f4942" stroke-width="1.8" marker-end="url(#arrow-main)"/>
+
+<!-- Vertical failure arrows -->
+<line x1="137" y1="232" x2="137" y2="278" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+<line x1="365" y1="232" x2="365" y2="278" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+<line x1="593" y1="232" x2="593" y2="278" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+<line x1="822" y1="232" x2="822" y2="278" stroke="#b1462f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-fail)"/>
+
+<!-- Failure labels on arrows -->
+<rect x="93" y="244" width="88" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="137" y="258" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">判断反了会怎样</text>
+
+<rect x="321" y="244" width="88" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="365" y="258" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">混着用会怎样</text>
+
+<rect x="549" y="244" width="88" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="593" y="258" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">偷懒会怎样</text>
+
+<rect x="770" y="244" width="104" height="20" rx="4" fill="#faf7f2"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="822" y="258" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">盲信判官会怎样</text>
+
+<!-- Failure cards -->
+<rect x="34" y="282" width="206" height="106" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="46" y="306" font-size="12" font-weight="700" fill="#9b3621">踩坑 1：洗歪、洗光或放大错料</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="46" y="329" font-size="11.5" fill="#433834">跨快照去重把好网页删空；池子</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="46" y="350" font-size="11.5" fill="#433834">砍太狠很快背死；验证器偏松时</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="46" y="371" font-size="11.5" fill="#433834">加卡加数据只会越训越偏。</text>
+
+<rect x="262" y="282" width="206" height="106" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="276" y="306" font-size="12" font-weight="700" fill="#9b3621">踩坑 2：挑歪了还伤基础</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="276" y="329" font-size="11.5" fill="#433834">只看中训分、不测 SFT 后分数；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="276" y="350" font-size="11.5" fill="#433834">大池外置打分器跑输随机；线上</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="276" y="371" font-size="11.5" fill="#433834">强截断思考直接乱答。</text>
+
+<rect x="490" y="282" width="206" height="106" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="504" y="306" font-size="12" font-weight="700" fill="#9b3621">踩坑 3：越翻越偏、浪费负样本</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="504" y="329" font-size="11.5" fill="#433834">肉眼翻 10 条专找印证猜想的；</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="504" y="350" font-size="11.5" fill="#433834">把失败轨迹一刀切全扔，白丢</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="504" y="371" font-size="11.5" fill="#433834">了宝贵的纠错步骤和负例资产。</text>
+
+<rect x="718" y="282" width="208" height="106" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="306" font-size="12" font-weight="700" fill="#9b3621">踩坑 4：封闭自嗨、判官带偏</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="329" font-size="11.5" fill="#433834">自我蒸馏信息越洗越少；光看</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="350" font-size="11.5" fill="#433834">一致率不查 κ 和位置偏见，把</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="371" font-size="11.5" fill="#433834">漏洞和刷分错当成真涨分。</text>
+</svg>
