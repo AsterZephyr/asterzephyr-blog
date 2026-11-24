@@ -5,7 +5,7 @@ tags: [广告与推荐, 技术报告解读]
 summary: "Tracing computational advertising from 2002 search auctions to 2026 multi-billion-parameter rankers and generative ads, examining what DSP buyers, ADX exchanges, and SSP sellers actually solve and why four core math problems remain."
 draft: false
 sourceFile: "computational-ads-four-math-pillars.mdx"
-sourceHash: "fdafb94baa23e8bfef68efd5e4189248ea6fd0ef314188cf2162b619cf180e63"
+sourceHash: "1d39714bf6d0109888fcea1fba12ba6f27f4e8106a11e227a1170d49e2069a77"
 ---
 
 import AdPillarsLab from '../../components/blog/AdPillarsLab.astro'
@@ -18,9 +18,9 @@ import TimelineItem from '../../components/blog/TimelineItem.astro'
 
 Over the past twenty years, computational advertising has replaced its core model stack four times. Compute has grown by orders of magnitude, moving from hand-crafted logistic regression to 15-billion-parameter ranking models and end-to-end generative ads. Yet the error analyses in 2025 and 2026 industrial papers keep running into the same four issues: funnel filtering breaks probability calibration, autoregressive decoding breaks bid monotonicity, and reinforcement learning post-training lowers broad-$$K$$ recall (coverage across the top few hundred candidates) because single-item logs omit unobserved positives.
 
-More compute and generative models expand feature-interaction capacity and tighten coupling across retrieval, ranking, and bidding, but four underlying mathematical problems stay intact: expected-value calibration, constrained optimization and auction games, counterfactual debiasing, and exploration in a drifting market. Across the last two decades, what actually rewrote how those equations are solved was rarely parameter scale alone; it was changes in auction rules, commercial contracts, and privacy signal regimes, such as migrating from second-price to first-price auctions, shifting from manual CPC bidding to ROI autobidding, or losing cross-app tracking under ATT and SKAN.
+More compute and generative models expand feature-interaction capacity and tighten coupling across retrieval, ranking, and bidding, but four underlying mathematical problems stay intact: <strong style="color:#a44a3f">expected-value calibration</strong>, <strong style="color:#a44a3f">constrained optimization and auction games</strong>, <strong style="color:#a44a3f">counterfactual debiasing</strong>, and <strong style="color:#a44a3f">exploration in a drifting market</strong>. Across the last two decades, what actually rewrote how those equations are solved was rarely parameter scale alone; it was changes in <strong style="color:#a44a3f">auction rules, commercial contracts, and privacy signal regimes</strong>, such as migrating from second-price to first-price auctions, shifting from manual CPC bidding to ROI autobidding, or losing cross-app tracking under ATT and SKAN.
 
-Below we walk through the four historical waves, read the opposing ledgers across the ad supply chain, and examine how the four math problems resurface in 2026 papers. GPU kernel details, codebook training, and single-model architectures are covered in companion posts on [RankMixer](/blog/推荐系统的mixer革命-从一篇论文到四家大厂全量上线/), [OneTrans](/blog/onetrans-字节跳动如何用一个transformer统一推荐系统的特征交互与序列建模/), and [generative ad recommendation systems](/blog/广告生成式推荐的工程全景-从三篇工业论文提炼系统设计观/).
+Below we walk through the four historical waves, unpack the competing interests and blind spots across the ad supply chain, and examine how the four math problems resurface in 2026 papers. GPU kernel details, codebook training, and single-model architectures are covered in companion posts on [RankMixer](/blog/推荐系统的mixer革命-从一篇论文到四家大厂全量上线/), [OneTrans](/blog/onetrans-字节跳动如何用一个transformer统一推荐系统的特征交互与序列建模/), and [generative ad recommendation systems](/blog/广告生成式推荐的工程全景-从三篇工业论文提炼系统设计观/).
 
 <TechGraph
   src="/images/posts/computational-ads-four-math-pillars/evolution-convergence-map-en.svg"
@@ -80,15 +80,15 @@ On the ranking scaling track, Meta published **Wukong** (ICML 2024, `arXiv:2403.
 
 On the generative track, starting from Google **TIGER** (`arXiv:2305.05065v3`) with discrete Semantic IDs (SIDs) and Meta's trillion-parameter **HSTU** (`arXiv:2402.17152v3`, ICML 2024), platforms moved generative models into live ad serving: Kuaishou **OneRec** (`arXiv:2502.18965v1`, V2 `arXiv:2508.20900v4`) and **GR4AD** (`arXiv:2602.22732v3`), Tencent **GPR** (`arXiv:2511.10138v3`) and **UniVA** (`arXiv:2605.05803v2`), and Google Research **GEM-Rec** (`arXiv:2603.22231v1`). On the bidding side, Alibaba **AIGB / DiffBid** (`arXiv:2405.16141v4`, NeurIPS 2024) generated full bidding trajectories via conditional diffusion, and **LLM-Auction** (`arXiv:2512.10551v3`) integrated auction allocation into LLM alignment.
 
-Even with multi-billion-parameter rankers and end-to-end generative models in production, the older mathematical constraints did not disappear. Looking at the market's conflicting ledgers explains why.
+Even with multi-billion-parameter rankers and end-to-end generative models in production, the older mathematical constraints did not disappear. Looking at the conflicting incentives across the market explains why.
 
-## Reading the Three-Sided Ledger: Where Ads Differ From Organic RecSys
+## How Ads Differ From Organic RecSys: Competing Interests Across Three Sides
 
-Engineers moving from organic recommendation to ads often treat monetization as "organic ranking times a bid." That shortcut holds only on a whiteboard; live advertising runs across opposing ledgers and partial visibility.
+Engineers moving from organic recommendation to ads often treat monetization as "organic ranking times a bid." That shortcut holds only on a whiteboard; live advertising runs across competing commercial interests and partial visibility.
 
 ### Rule-Makers vs. Rule-Takers
 
-Open programmatic markets separate buyer DSPs, exchange ADXs, and seller SSPs, while walled-garden platforms (major search, feed, and short-video ecosystems) combine all three internally. These roles are not symmetric. A DSP computes a best response inside rules set by others; an ADX or SSP acts as the rule-maker (a Stackelberg leader) setting reserve floors, auction rules, and callout gates; a walled garden sees both sides and performs internal transfer pricing.
+Open programmatic markets separate buyer DSPs, exchange ADXs, and seller SSPs, while **closed-loop platforms** (major search, feed, and short-video platforms like Meta, Google, ByteDance, and Tencent that own both inventory and ad serving) combine all three internally. These roles are not symmetric. <strong style="color:#a44a3f">A DSP computes a best response inside rules set by others</strong>; <strong style="color:#a44a3f">an ADX or SSP acts as the rule-maker</strong> setting reserve floors, auction rules, and callout gates; a closed-loop platform sees both sides and handles settlement internally.
 
 <TechGraph
   src="/images/posts/computational-ads-four-math-pillars/triparty-four-pillars-en.svg"
@@ -98,22 +98,22 @@ Open programmatic markets separate buyer DSPs, exchange ADXs, and seller SSPs, w
 
 Laying all four roles side by side shows how each party's blind spot maps onto the same four mathematical problems:
 
-| Market Role | Game Position | Visibility & Blind Spot | Wallet & Constraints | Primary Pillars Used |
+| Market Role | Game Position | Visibility & Blind Spot | Objective & Constraints | Primary Pillars Used |
 |:---|:---|:---|:---|:---|
 | **Buyer (DSP / Advertiser Agent)** | Participant (Best Response) | Sees in-app conversions and spend; misses rival bids on losses | Maximize conversion value under Budget and ROAS / CPA floors | Calibration + Dual pacing + Delay & censoring fix + Cold-start |
 | **Exchange (ADX)** | Rule-Maker (Dispatch & Clearing) | Sees cross-DSP bids, win rates, and rebates; misses advertiser backend GMV | Maximize rebate-adjusted net margin under QPS caps and revenue floors | Net-margin expectation + Quota dual & auction rules + Unsent IPS + Supply probe |
 | **Seller (SSP / Publisher)** | Rule-Maker (Inventory & Floors) | Sees inventory, ad load, and retention; misses buyer bids below floor on no-fills | Maximize per-impression yield (eCPM / RPM) under fill-rate and UX guardrails | Bid distribution + Ad-load & reserve floor + Left-censored no-fills + Floor probe |
-| **Walled-Garden Platform** | Full-Information Leader (Internal Transfer) | Sees organic content, conversions, and full auction state | Balance platform revenue, advertiser ROI, and user retention | All four pillars coupled, plus intertemporal user externalities |
+| **Closed-Loop Platform** | Full-Information Leader (Internal Settlement) | Sees organic content, conversions, and full auction state | Balance platform revenue, advertiser ROI, and user retention | All four pillars coupled, plus intertemporal user externalities |
 
 ### Three Commercial Realities Hidden Behind Offline Metrics
 
-Looking at those ledgers clarifies three issues that bigger backbones do not fix on their own.
+Looking at this table clarifies three issues that bigger backbones do not fix on their own.
 
-First, **a wrong target loses money more cleanly as model quality rises**. Across buyers, the exact same feature flips sign: an installed-app signal is negative for user acquisition and positive for re-engagement; a high floor attracts high-ARPU buyers while starving low-bid long-tail demand. Ledger mismatch is even sharper: ranking by gross eCPM or gross RPM without deducting tiered rebates and media payouts turns top-scoring slices into money-losing trades. As detailed in our post on [ROS (Return on Spend) pacing and dynamic take rates](/blog/pacing-ros-dynamic-take-rate/), algorithms move bids, while settlement contracts determine whose ledger keeps the savings.
+First, <strong style="color:#a44a3f">a wrong target loses money more cleanly as model quality rises</strong>. Across buyers, the exact same feature flips sign: an installed-app signal is negative for user acquisition and positive for re-engagement; a high floor attracts high-ARPU buyers while starving low-bid long-tail demand. Settlement mismatch is even sharper: ranking by gross eCPM or gross RPM without deducting tiered rebates and media payouts turns top-scoring slices into money-losing trades. As detailed in our post on [ROS (Return on Spend) pacing and dynamic take rates](/blog/pacing-ros-dynamic-take-rate/), **algorithms move bids, while settlement contracts determine whether the buyer or the platform keeps the savings**.
 
-Second, **global offline metrics often diverge from executable revenue**. When base conversion or bid rates differ by orders of magnitude across channels, a flat network achieves high global AUC simply by memorizing channel averages, while live revenue depends on within-request or within-buyer ordering (GAUC). Global 1D monotone calibration fixes predicted-over-actual mean bias (PCOC) without changing a single score's within-group GAUC (nonlinear monotone calibration does change `Bid × pCTR` ratios across bids, which is why recalibration improves auction outcomes). Slicing traffic too finely can also raise offline correlation while diluting sample volume per bucket until high-density cells can no longer absorb reallocated quota. In many live stacks, static legacy sub-rule caps reject high-value requests long before model depth becomes the constraint.
+Second, <strong style="color:#a44a3f">global offline metrics often diverge from executable revenue</strong>. When base conversion or bid rates differ by orders of magnitude across channels, a flat network achieves high global AUC simply by memorizing channel averages, while live revenue depends on within-request or within-buyer ordering (GAUC). Global 1D monotone calibration fixes predicted-over-actual mean bias (PCOC) without changing a single score's within-group GAUC (nonlinear monotone calibration does change `Bid × pCTR` ratios across bids, which is why recalibration improves auction outcomes). Slicing traffic too finely can also raise offline correlation while diluting sample volume per bucket until high-density cells can no longer absorb reallocated quota. In many live stacks, static legacy sub-rule caps reject high-value requests long before model depth becomes the constraint.
 
-Third, **funnel position sets the unit economics of inference**. Pre-callout gates and early retrieval handle more than an order of magnitude more requests than post-bid ranking, and most upstream traffic never produces a bid or impression. Running heavy remote GPU inference on mostly empty queries can cost more than the expected margin per request. Good architecture matches compute spend to the marginal commercial value of each funnel layer.
+Third, <strong style="color:#a44a3f">funnel position sets the unit economics of inference</strong>. Pre-callout gates and early retrieval handle more than an order of magnitude more requests than post-bid ranking, and most upstream traffic never produces a bid or impression. Running heavy remote GPU inference on mostly empty queries can cost more than the expected margin per request. Good architecture matches compute spend to the marginal commercial value of each funnel layer.
 
 ## The Four Math Problems That Still Govern Ad Systems
 
@@ -125,9 +125,9 @@ The mindmap below gathers the four problems, their three-sided roles, and the co
   caption="All four mathematical problems span DSP, ADX, and SSP roles and resurface with measurable theoretical or production limits in 2025 to 2026 scaling and generative ad papers (author diagram)."
 />
 
-### Expected Value and Probability Calibration
+### Pillar 1: Expected Value and Probability Calibration
 
-An organic video feed only needs to rank the user's top clip above the second one; multiplying all scores by 10 changes nothing. Commercial ads multiply scores directly into `eCPM = Bid × pCTR` or autobidding formulas. Perfect ranking order with a +30% scale bias consistently overpays on won impressions (winner's curse), while a -30% bias surrenders profitable impressions to rivals.
+An organic video feed only needs to rank the user's top clip above the second one; multiplying all scores by 10 changes nothing. Commercial ads multiply scores directly into `eCPM = Bid × pCTR` or autobidding formulas. <strong style="color:#a44a3f">Perfect ranking order with a +30% scale bias consistently overpays on won impressions (winner's curse)</strong>, while a -30% bias surrenders profitable impressions to rivals.
 
 A quick calculation makes the scale gap concrete. Suppose an ad click converts 10% of the time, and spend among payers follows a lognormal distribution with log-mean $$\mu = 2.0$$ and log-dispersion $$\sigma = 1.5$$. Regressing $$\ln(y)$$ and inverting with $$\exp(\hat{\mu})$$ recovers the conditional median $$e^{2.0} \approx \$7.39$$, valuing the click at **$$\$0.74$$**. The true expectation requires the Jensen correction $$e^{\sigma^2/2}$$, giving $$e^{2.0 + 1.5^2/2} = e^{3.125} \approx \$22.76$$ and a true click value of **$$\$2.28$$**. Both models share identical ranking AUC, yet the uncalibrated one underbids by 3x.
 
@@ -141,7 +141,7 @@ Under ZILN, expected value is $$p(x)\cdot \exp(\mu(x) + \sigma(x)^2/2)$$. Becaus
 
 In 2025 and 2026, calibration reappeared in two sharp ways.
 
-First, **selection itself breaks a calibrated model**. Back in 2012, McMahan and Muralidharan (`arXiv:1211.3955v1`) proved that because auctions select which ads are observed, natural calibration and auction efficiency can conflict. In November 2026, Microsoft Ads released the arXiv preprint ***Lost in the Funnel*** (`arXiv:2611.22595v1`) with production proof (Figure 2): leaving an upstream relevance model $$S$$ unchanged and well-calibrated at its output (Expected Calibration Error, ECE, of 156 and 185 bp across two regions, where 1 bp = 0.01%), filtering thresholds and business rules drove pre-auction Control ECE up to 784 and 809 bp, producing signed errors of $$-7.3$$ and $$-7.8$$ percentage points driven almost entirely by selection-induced residual shift $$W$$. Adding Funnel-Aware Recalibration (FAR) at the decision boundary in a 20-day live A/B test cut pre-auction ECE by **60% and 71%** and impression ECE by **63% and 80%**, removing overestimated low-quality ads while raising CTR by **+1.0% and +2.0% relative**.
+First, <strong style="color:#a44a3f">selection itself breaks a calibrated model</strong>. Back in 2012, McMahan and Muralidharan (`arXiv:1211.3955v1`) proved that because auctions select which ads are observed, natural calibration and auction efficiency can conflict. In November 2026, Microsoft Ads released the arXiv preprint ***Lost in the Funnel*** (`arXiv:2611.22595v1`) with production proof (Figure 2): leaving an upstream relevance model $$S$$ unchanged and well-calibrated at its output (Expected Calibration Error, ECE, of 156 and 185 bp across two regions, where 1 bp = 0.01%), filtering thresholds and business rules drove pre-auction Control ECE up to 784 and 809 bp, producing signed errors of $$-7.3$$ and $$-7.8$$ percentage points driven almost entirely by selection-induced residual shift $$W$$. Adding Funnel-Aware Recalibration (FAR) at the decision boundary in a 20-day live A/B test cut pre-auction ECE by **60% and 71%** and impression ECE by **63% and 80%**, removing overestimated low-quality ads while raising CTR by **+1.0% and +2.0% relative**.
 
 <Figure
   src="/images/posts/computational-ads-four-math-pillars/paper-lost-in-funnel-reliability.png"
@@ -154,9 +154,9 @@ Second, generative ads ran directly into commercial pricing. Kuaishou's **GR4AD*
 
 Two practical guardrails remain: global 1D monotone calibration fixes scale bias without improving single-score within-group GAUC (slice-conditioned calibration can reorder across slices, yet does not replace upstream representation quality), and ZILN heads need hard upper clips on $$\sigma(x)$$ so a cold-start outlier never explodes $$\exp(\sigma^2/2)$$.
 
-### Constrained Optimization and Auction Games
+### Pillar 2: Constrained Optimization and Auction Games
 
-Two distinct branches of math sit side by side here: single-agent budget or quota control is convex optimization (2A), whereas auction design, reserve floors, and competing autobidders belong to multi-agent game theory (2B). Once first-price auctions and competing autobidders dominate a market, conflating the two breaks down.
+Two distinct branches of math sit side by side here: <strong style="color:#a44a3f">single-agent budget or quota control is convex optimization (2A), whereas auction design, reserve floors, and competing autobidders belong to multi-agent game theory (2B)</strong>. Once first-price auctions and competing autobidders dominate a market, conflating the two breaks down.
 
 Single-agent constraints are straightforward to state: spend at most $$1,000$$ today with ROAS at least $$2.0$$, or cap DSP callouts at $$5,000$$ QPS. Each request allows only milliseconds to decide, ruling out a global offline integer program over future arrivals.
 
@@ -174,7 +174,7 @@ Online PID loops or mirror descent track $$\mu, \lambda, \tau$$ without forecast
 
 Recent 2024 to 2026 work hit two limits here.
 
-First, generative decoding had to restore auction monotonicity. In March 2026, Google Research released the arXiv preprint ***One Model, Two Markets: Bid-Aware Generative Recommendation*** (GEM-Rec, `arXiv:2603.22231v1`). Passing live bids naively into black-box layers risks beam-search routing flips where raising a bid by 20% lowers exposure, breaking advertiser trust. GEM-Rec uses control tokens to decouple ad insertion from item choice and proves that inference-time **Bid-Aware Decoding** preserves allocation monotonicity without retraining. In offline first-price simulations on the public Steam dataset, sweeping a single pressure parameter $$\lambda$$ traces a smooth Pareto frontier between NDCG@10 and revenue (Figure 3; note this is an offline public-dataset simulation rather than a live ads A/B test).
+First, generative decoding had to restore auction monotonicity. In March 2026, Google Research released the arXiv preprint ***One Model, Two Markets: Bid-Aware Generative Recommendation*** (GEM-Rec, `arXiv:2603.22231v1`). Passing live bids naively into black-box layers risks beam-search routing flips where raising a bid by 20% lowers exposure, breaking advertiser trust. GEM-Rec uses control tokens to decouple ad insertion from item choice and proves that inference-time **Bid-Aware Decoding** <strong style="color:#a44a3f">preserves allocation monotonicity without retraining</strong>. In offline first-price simulations on the public Steam dataset, sweeping a single pressure parameter $$\lambda$$ traces a smooth Pareto frontier between NDCG@10 and revenue (Figure 3; note this is an offline public-dataset simulation rather than a live ads A/B test).
 
 <Figure
   src="/images/posts/computational-ads-four-math-pillars/paper-gemrec-pareto.png"
@@ -183,11 +183,11 @@ First, generative decoding had to restore auction monotonicity. In March 2026, G
   width="82%"
 />
 
-Second, multi-agent dynamics can turn formally chaotic. Alibaba's **AIGB / DiffBid** (`arXiv:2405.16141v4`) uses conditional diffusion to plan entire bidding trajectories and reduce horizon error propagation, yet still solves the same budget-and-ROI constrained program. Meanwhile, Google (EC 2024, `arXiv:2406.19350v2`) proved that uniform-scaling ROS autobidders produce bistability and quasiperiodicity; the Feb 2026 preprint ***Chaos in Autobidding Auctions*** (`arXiv:2602.09118v1`) proved they can simulate Chua's circuit and exhibit formal **Li-Yorke chaos** under discrete mirror descent; the Nov 2026 preprint ***On the Complexity of Exact Autobidding Equilibria*** (`arXiv:2611.04475v1`) proved exact equilibria are **FIXP-complete** (a higher-order fixed-point complexity class where computing exact or tightly approximate equilibria is intractable); and Li and Tang (IJCAI 2024, `arXiv:2210.06107v6`) showed single-round IC breaks down under ROI proxies and creates A/B-test interference. Even without convergence, Gaitonde et al. (`arXiv:2205.08674v6`) proved online dual pacing preserves at least $$1/2$$ of optimal liquid welfare across core auction formats. None of these properties change when a ranker scales from 100M to 15B parameters.
+Second, multi-agent dynamics can turn formally chaotic. Alibaba's **AIGB / DiffBid** (`arXiv:2405.16141v4`) uses conditional diffusion to plan entire bidding trajectories and reduce horizon error propagation, yet still solves the same budget-and-ROI constrained program. Meanwhile, Google (EC 2024, `arXiv:2406.19350v2`) proved that uniform-scaling ROS autobidders produce bistability and quasiperiodicity; the Feb 2026 preprint ***Chaos in Autobidding Auctions*** (`arXiv:2602.09118v1`) proved they can simulate Chua's circuit and exhibit formal **Li-Yorke chaos** under discrete mirror descent; the Nov 2026 preprint ***On the Complexity of Exact Autobidding Equilibria*** (`arXiv:2611.04475v1`) proved exact equilibria are **FIXP-complete** (a higher-order fixed-point complexity class where computing exact or tightly approximate equilibria is intractable); and Li and Tang (IJCAI 2024, `arXiv:2210.06107v6`) showed single-round IC breaks down under ROI proxies and creates A/B-test interference. Even without convergence, Gaitonde et al. (`arXiv:2205.08674v6`) proved online dual pacing preserves at least $$1/2$$ of optimal liquid welfare across core auction formats. <strong style="color:#a44a3f">None of these properties change when a ranker scales from 100M to 15B parameters.</strong>
 
-Single-agent duality also relies on a price-taker assumption: when a large buyer holds major share on a publisher, its multiplier shifts trigger rival responses, requiring damped updates and guardrail bounds.
+Single-agent duality also assumes your own bid adjustments do not directly shift rival bids: when a large buyer holds major share on a publisher, its multiplier shifts trigger rival responses, requiring damped updates and guardrail bounds.
 
-### Observation Bias and Censored Data
+### Pillar 3: Counterfactual Debiasing and Censored Data
 
 Ad logs are never uniform samples of the market; they are Missing-Not-At-Random (MNAR) slices filtered by the serving policy. Buyers observe conversions only after clicks, miss rival bids on lost auctions (right censoring), and wait days for delayed purchases; exchanges miss responses for dropped callouts; sellers miss bids below reserve floors on no-fills (left censoring).
 
@@ -199,7 +199,7 @@ Four standard debiasing tools handle these missing slices: inverse propensity sc
 \hat{\mathcal{L}}_{\text{IPS}}(\theta) = \frac{1}{N}\sum_{i=1}^{N} \frac{O_i}{p_i} \cdot \ell\big(f_\theta(x_i), y_i\big)
 ```
 
-Here $$O_i \in \{0,1\}$$ marks whether sample $$i$$ was exposed and $$p_i = \Pr(O_i = 1 \mid x_i)$$ is its logged propensity. This is a statistical identifiability limit rather than a model-capacity limit: scaling parameters cannot recover counterfactual outcomes that were never observed.
+Here $$O_i \in \{0,1\}$$ marks whether sample $$i$$ was exposed and $$p_i = \Pr(O_i = 1 \mid x_i)$$ is its logged propensity. <strong style="color:#a44a3f">This is a statistical identifiability limit rather than a model-capacity limit</strong>: scaling parameters cannot recover counterfactual outcomes that were never observed.
 
 Two 2026 preprints show this limit hitting generative models directly.
 
@@ -216,9 +216,9 @@ In November 2026, HKUST and Trip.com researchers released ***Better Rankers, Wor
 
 Because unclipped IPS suffers variance spikes as $$p_i \to 0$$, production systems pair weight clipping, self-normalization (SNIPS), or doubly robust estimators with active exploration so $$p_i$$ stays strictly positive.
 
-### Exploration in Non-Stationary Markets
+### Pillar 4: Exploration in Non-Stationary Markets
 
-Static pretraining text does not shift meaning every weekend. Ad markets drift hourly as holiday budgets double, creatives fatigue, rivals adjust bids, and new inventory enters. An exploit-only system concentrates spend and traffic onto past winners, starving new campaigns and locking recovering supply inside low tiers. Live auction noise injects some passive randomness, yet in sparse high-concurrency tails, skipping explicit exploration tends to push teams back toward manual rules, whitelists, and ad-hoc subsidies. Once low-scored slices hit zero exposure probability, IPS loses its denominator as well.
+Static pretraining text does not shift meaning every weekend. Ad markets drift hourly as holiday budgets double, creatives fatigue, rivals adjust bids, and new inventory enters. An exploit-only system concentrates spend and traffic onto past winners, starving new campaigns and locking recovering supply inside low tiers. Live auction noise injects some passive randomness, yet in sparse high-concurrency tails, <strong style="color:#a44a3f">skipping explicit exploration tends to push teams back toward manual rules, whitelists, and ad-hoc subsidies</strong>. Once low-scored slices hit zero exposure probability, IPS loses its denominator as well.
 
 Consider a new ad or inventory slice with 2 impressions and 0 clicks against a 3% market average CTR. At 0% exploration, it never receives impression 3 even if its true CTR is 6% (2x market). Allocating 50 low-cost probe impressions via Thompson Sampling or controlled $$\epsilon$$-exploration caps loss if the slice is poor, while lifting its posterior quickly if it is a 6% winner and paying back the probe tax many times over.
 

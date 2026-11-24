@@ -32,7 +32,7 @@
     <text x="130" y="340" text-anchor="middle" fill="#efe6d5" font-size="12.5">不完全信息下的</text>
     <text x="130" y="360" text-anchor="middle" fill="#efe6d5" font-size="12.5">多边受约束资源分配</text>
     <line x1="56" y1="376" x2="204" y2="376" stroke="#5c5144" stroke-width="1" />
-    <text x="130" y="396" text-anchor="middle" fill="#d3b482" font-size="11">DSP · ADX · SSP · 一体平台</text>
+    <text x="130" y="396" text-anchor="middle" fill="#d3b482" font-size="11">DSP · ADX · SSP · 闭环平台</text>
   </g>
 
   <!-- Level 1: Four Pillar Nodes -->
