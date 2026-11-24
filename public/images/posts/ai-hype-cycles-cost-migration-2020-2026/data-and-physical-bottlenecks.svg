@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-label="2026年AI数据市场与具身智能双前沿的隐性成本拆解图">
+  <defs>
+    <marker id="arrow-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#b9533c" />
+    </marker>
+  </defs>
+
+  <rect width="960" height="440" rx="14" fill="#fbf9f4" stroke="#e2dacb" stroke-width="1.5" />
+
+  <text x="32" y="38" font-family="-apple-system, BlinkMacSystemFont, PingFang SC, sans-serif" font-size="18" font-weight="700" fill="#1f1b16">2026 两大新前沿：当名义单价被卷穿，真正的隐性成本藏在哪里</text>
+  <text x="32" y="60" font-family="-apple-system, BlinkMacSystemFont, PingFang SC, sans-serif" font-size="12.5" fill="#6b6356">左边是软件侧的“判分权市场”，右边是物理侧的“具身工位核算”，两者共享同一条成本迁移规律</text>
+
+  <!-- Left Column: Data Market & RL Environments -->
+  <rect x="32" y="80" width="436" height="332" rx="12" fill="#ffffff" stroke="#d5cab7" stroke-width="1.5" />
+  <rect x="32" y="80" width="436" height="36" rx="12" fill="#efe7d6" />
+  <text x="50" y="103" font-family="-apple-system, PingFang SC, sans-serif" font-size="14" font-weight="700" fill="#6e4a18">前沿一：AI 数据市场与 RL 环境</text>
+
+  <!-- Visible Price Box -->
+  <rect x="52" y="132" width="396" height="58" rx="8" fill="#f4f8fb" stroke="#b9d0df" stroke-width="1.4" />
+  <text x="66" y="155" font-family="-apple-system, PingFang SC, sans-serif" font-size="12.5" font-weight="700" fill="#2c5875">表面看得到的报价层（采购合同单价）</text>
+  <text x="66" y="176" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#415868">PhD 专家时薪、单条高质量轨迹报价、单套任务环境开发费</text>
+
+  <line x1="250" y1="190" x2="250" y2="216" stroke="#b9533c" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow-b)" />
+
+  <!-- Hidden Costs Box -->
+  <rect x="52" y="220" width="396" height="174" rx="8" fill="#fdf4f1" stroke="#df9e8f" stroke-width="1.5" stroke-dasharray="5 4" />
+  <text x="66" y="244" font-family="-apple-system, PingFang SC, sans-serif" font-size="12.5" font-weight="700" fill="#9b3422">真实决定利润与护城河的三笔隐性成本</text>
+  <text x="66" y="272" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#2b2722">1. 验证器防作弊与沙箱安全工程</text>
+  <text x="66" y="290" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#5a5047">模型钻漏洞刷分（Reward Hacking）不仅白费算力，还会污染下游行为</text>
+  <text x="66" y="318" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#2b2722">2. 环境资产的快速折旧（半衰期）</text>
+  <text x="66" y="336" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#5a5047">一旦前沿模型把题库刷到饱和，环境边际价值趋近于零，必须持续翻新</text>
+  <text x="66" y="364" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#2b2722">3. 寡头买家集中度与“中立信任税”</text>
+  <text x="66" y="382" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#5a5047">头部实验室仅三四家；站队或安全泄露会立刻触发大客户撤单（如 Scale）</text>
+
+  <!-- Right Column: Physical AI -->
+  <rect x="492" y="80" width="436" height="332" rx="12" fill="#ffffff" stroke="#d5cab7" stroke-width="1.5" />
+  <rect x="492" y="80" width="436" height="36" rx="12" fill="#efe7d6" />
+  <text x="510" y="103" font-family="-apple-system, PingFang SC, sans-serif" font-size="14" font-weight="700" fill="#6e4a18">前沿二：Physical AI 与具身智能</text>
+
+  <!-- Visible Price Box -->
+  <rect x="512" y="132" width="396" height="58" rx="8" fill="#f4f8fb" stroke="#b9d0df" stroke-width="1.4" />
+  <text x="526" y="155" font-family="-apple-system, PingFang SC, sans-serif" font-size="12.5" font-weight="700" fill="#2c5875">表面看得到的通缩层（硬件 BOM 降价）</text>
+  <text x="526" y="176" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#415868">宇树 G1 打到 $13.5k 到 $16k 区间，Optimus 目标 $20k 到 $30k</text>
+
+  <line x1="710" y1="190" x2="710" y2="216" stroke="#b9533c" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow-b)" />
+
+  <!-- Hidden Costs Box -->
+  <rect x="512" y="220" width="396" height="174" rx="8" fill="#fdf4f1" stroke="#df9e8f" stroke-width="1.5" stroke-dasharray="5 4" />
+  <text x="526" y="244" font-family="-apple-system, PingFang SC, sans-serif" font-size="12.5" font-weight="700" fill="#9b3422">决定工位能否算平 ROI 的三笔隐性成本</text>
+  <text x="526" y="272" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#2b2722">1. 动作数据与具体本体强绑定</text>
+  <text x="526" y="290" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#5a5047">换一套构型或夹爪就要重采遥操作数据，纯视频模仿难学触觉力控</text>
+  <text x="526" y="318" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#2b2722">2. 机械磨损维护与有效开机率</text>
+  <text x="526" y="336" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#5a5047">前臂与手腕电子件高频故障（如 Figure 02 复盘），停机直接拉高小时费</text>
+  <text x="526" y="364" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#2b2722">3. 遥操作兜底与“最后一米”工位集成</text>
+  <text x="526" y="382" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#5a5047">硬标准看“每小时自治里的人工介入分钟数”以及非标工位改造成本</text>
+</svg>

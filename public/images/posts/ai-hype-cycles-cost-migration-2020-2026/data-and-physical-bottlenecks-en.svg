@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-label="Hidden costs in 2026 AI data markets and Physical AI deployments">
+  <defs>
+    <marker id="arrow-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#b9533c" />
+    </marker>
+  </defs>
+
+  <rect width="960" height="440" rx="14" fill="#fbf9f4" stroke="#e2dacb" stroke-width="1.5" />
+
+  <text x="32" y="38" font-family="-apple-system, BlinkMacSystemFont, Inter, sans-serif" font-size="18" font-weight="700" fill="#1f1b16">Two 2026 Frontiers: Where Hidden Costs Sit After Sticker Prices Drop</text>
+  <text x="32" y="60" font-family="-apple-system, BlinkMacSystemFont, Inter, sans-serif" font-size="12.5" fill="#6b6356">Software grading markets (left) and physical factory stations (right) follow the exact same cost-transfer rule</text>
+
+  <!-- Left Column -->
+  <rect x="32" y="80" width="436" height="332" rx="12" fill="#ffffff" stroke="#d5cab7" stroke-width="1.5" />
+  <rect x="32" y="80" width="436" height="36" rx="12" fill="#efe7d6" />
+  <text x="50" y="103" font-family="-apple-system, Inter, sans-serif" font-size="14" font-weight="700" fill="#6e4a18">Frontier 1: AI Data Markets &amp; RL Environments</text>
+
+  <rect x="52" y="132" width="396" height="58" rx="8" fill="#f4f8fb" stroke="#b9d0df" stroke-width="1.4" />
+  <text x="66" y="155" font-family="-apple-system, Inter, sans-serif" font-size="12.5" font-weight="700" fill="#2c5875">Visible Sticker Layer (Contract Quote)</text>
+  <text x="66" y="176" font-family="-apple-system, Inter, sans-serif" font-size="11.5" fill="#415868">PhD hourly rates, per-trajectory fees, custom RL task buildout</text>
+
+  <line x1="250" y1="190" x2="250" y2="216" stroke="#b9533c" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow-b)" />
+
+  <rect x="52" y="220" width="396" height="174" rx="8" fill="#fdf4f1" stroke="#df9e8f" stroke-width="1.5" stroke-dasharray="5 4" />
+  <text x="66" y="244" font-family="-apple-system, Inter, sans-serif" font-size="12.5" font-weight="700" fill="#9b3422">Three Hidden Costs Driving Real Margins &amp; Moats</text>
+  <text x="66" y="272" font-family="-apple-system, Inter, sans-serif" font-size="12" font-weight="700" fill="#2b2722">1. Verifier Hardening &amp; Sandbox Security</text>
+  <text x="66" y="290" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#5a5047">Reward hacking wastes compute and contaminates downstream model behavior</text>
+  <text x="66" y="318" font-family="-apple-system, Inter, sans-serif" font-size="12" font-weight="700" fill="#2b2722">2. Rapid Environment Depreciation (Half-Life)</text>
+  <text x="66" y="336" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#5a5047">Once saturated by frontier models, marginal value drops near zero</text>
+  <text x="66" y="364" font-family="-apple-system, Inter, sans-serif" font-size="12" font-weight="700" fill="#2b2722">3. Oligopoly Buyers &amp; Neutrality Risk</text>
+  <text x="66" y="382" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#5a5047">3 to 4 labs hold most demand; alignment or breach triggers rapid exits</text>
+
+  <!-- Right Column -->
+  <rect x="492" y="80" width="436" height="332" rx="12" fill="#ffffff" stroke="#d5cab7" stroke-width="1.5" />
+  <rect x="492" y="80" width="436" height="36" rx="12" fill="#efe7d6" />
+  <text x="510" y="103" font-family="-apple-system, Inter, sans-serif" font-size="14" font-weight="700" fill="#6e4a18">Frontier 2: Physical AI &amp; Humanoids</text>
+
+  <rect x="512" y="132" width="396" height="58" rx="8" fill="#f4f8fb" stroke="#b9d0df" stroke-width="1.4" />
+  <text x="526" y="155" font-family="-apple-system, Inter, sans-serif" font-size="12.5" font-weight="700" fill="#2c5875">Visible Deflation Layer (Hardware BOM)</text>
+  <text x="526" y="176" font-family="-apple-system, Inter, sans-serif" font-size="11.5" fill="#415868">Unitree G1 at $13.5k to $16k; Tesla Optimus targeting $20k to $30k</text>
+
+  <line x1="710" y1="190" x2="710" y2="216" stroke="#b9533c" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow-b)" />
+
+  <rect x="512" y="220" width="396" height="174" rx="8" fill="#fdf4f1" stroke="#df9e8f" stroke-width="1.5" stroke-dasharray="5 4" />
+  <text x="526" y="244" font-family="-apple-system, Inter, sans-serif" font-size="12.5" font-weight="700" fill="#9b3422">Three Hidden Costs Determining Station ROI</text>
+  <text x="526" y="272" font-family="-apple-system, Inter, sans-serif" font-size="12" font-weight="700" fill="#2b2722">1. Embodiment-Bound Action Data</text>
+  <text x="526" y="290" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#5a5047">Changing hardware forces data recollection; video lacks tactile force control</text>
+  <text x="526" y="318" font-family="-apple-system, Inter, sans-serif" font-size="12" font-weight="700" fill="#2b2722">2. Mechanical Wear &amp; Effective Uptime</text>
+  <text x="526" y="336" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#5a5047">Forearm &amp; wrist failures (Figure 02) cut active duty and raise $/hr</text>
+  <text x="526" y="364" font-family="-apple-system, Inter, sans-serif" font-size="12" font-weight="700" fill="#2b2722">3. Teleoperation &amp; Last-Meter Integration</text>
+  <text x="526" y="382" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#5a5047">True test: human intervention minutes per autonomous operating hour</text>
+</svg>

@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 450" width="960" height="450" role="img" aria-label="2020到2026年AI七波稀缺性与成本迁移路线图">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#86663b" />
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#b9533c" />
+    </marker>
+  </defs>
+
+  <rect width="960" height="450" rx="14" fill="#fbf9f4" stroke="#e2dacb" stroke-width="1.5" />
+
+  <text x="32" y="38" font-family="-apple-system, BlinkMacSystemFont, PingFang SC, sans-serif" font-size="18" font-weight="700" fill="#1f1b16">2020 到 2026 年七波 AI 浪潮：稀缺性与真实成本如何迁移</text>
+  <text x="32" y="60" font-family="-apple-system, BlinkMacSystemFont, PingFang SC, sans-serif" font-size="12.5" fill="#6b6356">每一波都在压低上一环的单价，同时把新瓶颈推向下一环</text>
+
+  <!-- Row 1: Waves 1 to 4 -->
+  <!-- Node 1 -->
+  <rect x="32" y="84" width="204" height="112" rx="10" fill="#ffffff" stroke="#d8cebc" stroke-width="1.5" />
+  <rect x="32" y="84" width="204" height="26" rx="10" fill="#f3ecde" />
+  <text x="44" y="102" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#86663b">01 · 2020 到 2022 算力</text>
+  <text x="44" y="129" font-family="-apple-system, PingFang SC, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">Scaling Law / 涌现 / CoT</text>
+  <text x="44" y="150" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：预训练算力与融资叙事</text>
+  <text x="44" y="170" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">错位：损失曲线被当商业承诺</text>
+
+  <line x1="236" y1="140" x2="262" y2="140" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Node 2 -->
+  <rect x="266" y="84" width="204" height="112" rx="10" fill="#ffffff" stroke="#d8cebc" stroke-width="1.5" />
+  <rect x="266" y="84" width="204" height="26" rx="10" fill="#f3ecde" />
+  <text x="278" y="102" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#86663b">02 · 2022 底到 2023 入口</text>
+  <text x="278" y="129" font-family="-apple-system, PingFang SC, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">开源模型与企业 RAG</text>
+  <text x="278" y="150" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：云交叉销售与私有数据接入</text>
+  <text x="278" y="170" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">错位：接入资料不等于理解业务</text>
+
+  <line x1="470" y1="140" x2="496" y2="140" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Node 3 -->
+  <rect x="500" y="84" width="204" height="112" rx="10" fill="#ffffff" stroke="#d8cebc" stroke-width="1.5" />
+  <rect x="500" y="84" width="204" height="26" rx="10" fill="#f3ecde" />
+  <text x="512" y="102" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#86663b">03 · 2024 算清总成本</text>
+  <text x="512" y="129" font-family="-apple-system, PingFang SC, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">MoE / 蒸馏 / 推理时计算</text>
+  <text x="512" y="150" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：单次合格任务的综合成本</text>
+  <text x="512" y="170" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">错位：只看 Token 价忽略重试返工</text>
+
+  <line x1="704" y1="140" x2="730" y2="140" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Node 4 -->
+  <rect x="734" y="84" width="194" height="112" rx="10" fill="#ffffff" stroke="#d8cebc" stroke-width="1.5" />
+  <rect x="734" y="84" width="194" height="26" rx="10" fill="#f3ecde" />
+  <text x="746" y="102" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#86663b">04 · 2024 底到 2025</text>
+  <text x="746" y="129" font-family="-apple-system, PingFang SC, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">Agent 与数字劳动力</text>
+  <text x="746" y="150" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：可靠性、治理与问责</text>
+  <text x="746" y="170" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">错位：能调工具不等于独立交付</text>
+
+  <!-- Connector from Row 1 Node 4 to Row 2 Node 5 -->
+  <path d="M 831 196 L 831 214 L 178 214 L 178 232" fill="none" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Row 2: Waves 5 to 7 (2026 Frontier) -->
+  <!-- Node 5 -->
+  <rect x="32" y="236" width="286" height="118" rx="10" fill="#ffffff" stroke="#c9b491" stroke-width="1.6" />
+  <rect x="32" y="236" width="286" height="26" rx="10" fill="#f5e9d5" />
+  <text x="44" y="254" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#7c5422">05 · 2026 经验与软件复制</text>
+  <text x="44" y="281" font-family="-apple-system, PingFang SC, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">人物蒸馏与软件逆向（CLI-Anything / REA）</text>
+  <text x="44" y="303" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：私有数据、持续维护、客户关系与判断力</text>
+  <text x="44" y="324" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">错位：把外在表达与功能重建当成完整商业替代</text>
+
+  <line x1="318" y1="295" x2="344" y2="295" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Node 6 -->
+  <rect x="348" y="236" width="282" height="118" rx="10" fill="#fffaf0" stroke="#c48a3a" stroke-width="2" />
+  <rect x="348" y="236" width="282" height="26" rx="10" fill="#f3dfc0" />
+  <text x="360" y="254" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#7c4f13">06 · 2025 到 2026 新前沿（软件侧）</text>
+  <text x="360" y="281" font-family="-apple-system, PingFang SC, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">AI 数据市场与 RL 环境（判分权）</text>
+  <text x="360" y="303" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：可信验证器、防作弊沙箱与中立信任</text>
+  <text x="360" y="324" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">错位：把会快速折旧的评测环境按订阅资产估值</text>
+
+  <line x1="630" y1="295" x2="656" y2="295" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Node 7 -->
+  <rect x="660" y="236" width="268" height="118" rx="10" fill="#fffaf0" stroke="#c48a3a" stroke-width="2" />
+  <rect x="660" y="236" width="268" height="26" rx="10" fill="#f3dfc0" />
+  <text x="672" y="254" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#7c4f13">07 · 2025 到 2026 新前沿（物理侧）</text>
+  <text x="672" y="281" font-family="-apple-system, PingFang SC, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">Physical AI 与具身智能</text>
+  <text x="672" y="303" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：触觉力控、本体可靠性与现场集成</text>
+  <text x="672" y="324" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">错位：硬件 BOM 降价不等于每小时自治成立</text>
+
+  <!-- Bottom dashed failure/common trap rail -->
+  <rect x="32" y="376" width="896" height="52" rx="10" fill="#fdf2ef" stroke="#d98c7a" stroke-width="1.5" stroke-dasharray="6 4" />
+  <text x="48" y="399" font-family="-apple-system, PingFang SC, sans-serif" font-size="12.5" font-weight="700" fill="#9b3422">反复重演的商业误判规律（隐性成本未消失，只是换了承担方）</text>
+  <text x="48" y="418" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#5e3228">科研解决局部指标  ->  市场按“通用替代”提前定价  ->  真实交付暴露隐性成本（验证、安全、折旧、人工兜底、硬件维护）</text>
+</svg>

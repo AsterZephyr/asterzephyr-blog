@@ -1,0 +1,642 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式商业沙盘 · 2026 三大隐性成本核算',
+      title: '表面报价 vs 真实交付成本：成本到底迁去哪了？',
+      subtitle: '切换三大前沿战场并拖动滑块，对比“宣传单上的名义单价”与“计入重试、折旧或人工兜底后的真实成本”。',
+      note: '注：以下数值为教学估算模型，用于展示成本结构对隐性分母的敏感度，不代表某一家公司的审计财报。',
+      tabs: [
+        { id: 'agent', label: 'Agent 数字劳动力' },
+        { id: 'data', label: '数据市场与 RL 环境' },
+        { id: 'physical', label: '具身智能工位' },
+      ],
+      scenarios: {
+        agent: {
+          summary: '按次或按动作计费看似把客服/运营成本打到几毛钱，但只要重试率和人工复核率压不下来，隐性人工很快吃掉全部软件差价。',
+          nominalLabel: '名义调用成本 / 任务',
+          trueLabel: '真实合格交付成本 / 任务',
+          ratioLabel: '隐性成本放大倍数',
+          verdictGood: '较人工基线节省超 20%，具备清晰替换 ROI',
+          verdictWarn: '节省不足 20% 或已反超人工基线，极易陷入试点取消区',
+          sliders: [
+            { id: 's1', label: '单步工具调用/动作费 ($)', min: 0.05, max: 0.50, step: 0.05, val: 0.10 },
+            { id: 's2', label: '单任务平均调用步数（含重试）', min: 2, max: 25, step: 1, val: 8 },
+            { id: 's3', label: '需要人工兜底/复核比例 (%)', min: 0, max: 60, step: 5, val: 25 },
+            { id: 's4', label: '单次人工介入与纠错成本 ($)', min: 2, max: 25, step: 1, val: 12 },
+          ],
+          presets: [
+            { label: '理想自动化（Klarna 早期叙事）', vals: [0.10, 4, 5, 8] },
+            { label: '企业复杂工单（当前常态）', vals: [0.10, 8, 25, 12] },
+            { label: '失控重试 + 高返工（退场区）', vals: [0.15, 18, 45, 16] },
+          ],
+          baselineText: '对照基线：人工直接处理单任务约 $4.50',
+        },
+        data: {
+          summary: '买 RL 环境不能只看标价和专家时薪，还要乘以验证器打回重试倍数，并按环境被模型刷满前的“半衰期”做资产摊销。',
+          nominalLabel: '名义专家时薪',
+          trueLabel: '单条可信轨迹全口径成本',
+          ratioLabel: '单月环境资产折旧率',
+          verdictGood: '单轨迹成本可控，验证器具备复用期',
+          verdictWarn: '资产折旧过快，一次性采购极难沉淀复利',
+          sliders: [
+            { id: 's1', label: '领域专家时薪 ($/小时)', min: 40, max: 250, step: 10, val: 120 },
+            { id: 's2', label: '通过严格验证器平均耗时（小时/条）', min: 0.5, max: 6.0, step: 0.5, val: 2.0 },
+            { id: 's3', label: '验证器审查与沙箱安全附加系数 (%)', min: 10, max: 120, step: 10, val: 50 },
+            { id: 's4', label: '环境饱和半衰期（月）', min: 2, max: 18, step: 1, val: 5 },
+          ],
+          presets: [
+            { label: '早期通用 SFT 标注', vals: [40, 0.5, 20, 14] },
+            { label: '2026 前沿代码/金融 RL 轨迹', vals: [120, 2.0, 50, 5] },
+            { label: '高对抗防作弊沙箱环境', vals: [200, 4.0, 90, 3] },
+          ],
+          baselineText: '核心观察：半衰期越短，买家越倾向自建或压价',
+        },
+        physical: {
+          summary: '硬件 BOM 跌到 $16,000 并不自动带来“几美分一小时”的劳动力。只要有效开机率偏低、每小时仍需几分钟人工介入或遥操作，小时成本立刻反超熟练工。',
+          nominalLabel: '仅硬件折旧小时费（名义）',
+          trueLabel: '真实有效小时成本（含维护+人工介入）',
+          ratioLabel: '人工与运维占比',
+          verdictGood: '逼近国内产线基线（$6 到 $10/小时），具备广泛替代弹性',
+          verdictWarn: '虽可能低于欧美高薪产线，但远超国内产线成本，需继续压低人工介入分钟数',
+          sliders: [
+            { id: 's1', label: '机器人整机采购价 ($)', min: 15000, max: 150000, step: 5000, val: 30000 },
+            { id: 's2', label: '年有效自主作业小时数（小时/年）', min: 600, max: 4000, step: 100, val: 1400 },
+            { id: 's3', label: '每小时自治中的人工介入/遥操作（分钟）', min: 0, max: 30, step: 1, val: 12 },
+            { id: 's4', label: '年维护+工位集成摊销占整机比例 (%)', min: 15, max: 100, step: 5, val: 45 },
+          ],
+          presets: [
+            { label: '高价工业原型（早期试点）', vals: [120000, 1200, 18, 60] },
+            { label: 'BOM 通缩 + 当前干预常态', vals: [20000, 1400, 12, 45] },
+            { label: '真正拐点（高开机 + 近零介入）', vals: [25000, 3200, 2, 25] },
+          ],
+          baselineText: '对照基线：欧美产线综合人工约 $30/小时，国内产线约 $6 到 $10/小时（按 3 年硬件折旧、人工干预成本 $35/小时估算）',
+        },
+      },
+    }
+  : {
+      eyebrow: 'INTERACTIVE UNIT-ECONOMICS LAB · 2026 HIDDEN COST TRACKER',
+      title: 'Sticker Price vs. True Delivery Cost: Where Did the Cost Move?',
+      subtitle: 'Switch between three 2026 battlegrounds and drag sliders to compare nominal pricing against true cost after retries, depreciation, and human fallback.',
+      note: 'Note: Illustrative teaching model showing sensitivity to hidden denominators, not audited financials of any single vendor.',
+      tabs: [
+        { id: 'agent', label: 'Digital Labor Agents' },
+        { id: 'data', label: 'Data & RL Environments' },
+        { id: 'physical', label: 'Physical AI Station' },
+      ],
+      scenarios: {
+        agent: {
+          summary: 'Per-action pricing looks cheap on paper, but once retry loops and human escalation stay high, hidden labor erases the software savings.',
+          nominalLabel: 'Nominal API / Credit Cost per Task',
+          trueLabel: 'True Cost per Qualified Task',
+          ratioLabel: 'Hidden Cost Multiplier',
+          verdictGood: 'Saves over 20% vs. human baseline with clear replacement ROI',
+          verdictWarn: 'Saves under 20% or exceeds human baseline; high cancellation risk',
+          sliders: [
+            { id: 's1', label: 'Price per action / tool call ($)', min: 0.05, max: 0.50, step: 0.05, val: 0.10 },
+            { id: 's2', label: 'Avg. actions per task (incl. retries)', min: 2, max: 25, step: 1, val: 8 },
+            { id: 's3', label: 'Human escalation / QA rate (%)', min: 0, max: 60, step: 5, val: 25 },
+            { id: 's4', label: 'Cost per human intervention ($)', min: 2, max: 25, step: 1, val: 12 },
+          ],
+          presets: [
+            { label: 'Ideal automation (early pitch)', vals: [0.10, 4, 5, 8] },
+            { label: 'Complex enterprise ticket (typical)', vals: [0.10, 8, 25, 12] },
+            { label: 'Runaway retries + rework', vals: [0.15, 18, 45, 16] },
+          ],
+          baselineText: 'Reference baseline: direct human ticket handling ~$4.50/task',
+        },
+        data: {
+          summary: 'Pricing an RL environment goes beyond expert hourly rates: add verifier rejection loops, sandbox security engineering, and fast asset depreciation as models saturate the benchmark.',
+          nominalLabel: 'Nominal Expert Hour Rate',
+          trueLabel: 'Full Cost per Verified Trajectory',
+          ratioLabel: 'Monthly Asset Depreciation',
+          verdictGood: 'Unit trajectory cost manageable with reusable verifier',
+          verdictWarn: 'Fast saturation depreciation weakens recurring moat',
+          sliders: [
+            { id: 's1', label: 'Domain expert hourly rate ($/hr)', min: 40, max: 250, step: 10, val: 120 },
+            { id: 's2', label: 'Expert hours per verified trajectory', min: 0.5, max: 6.0, step: 0.5, val: 2.0 },
+            { id: 's3', label: 'Verifier audit & sandbox security overhead (%)', min: 10, max: 120, step: 10, val: 50 },
+            { id: 's4', label: 'Environment saturation half-life (months)', min: 2, max: 18, step: 1, val: 5 },
+          ],
+          presets: [
+            { label: 'Early general SFT labeling', vals: [40, 0.5, 20, 14] },
+            { label: '2026 frontier code/finance RL', vals: [120, 2.0, 50, 5] },
+            { label: 'Anti-hack hardened sandbox', vals: [200, 4.0, 90, 3] },
+          ],
+          baselineText: 'Key dynamic: shorter half-life pushes labs to build in-house or squeeze vendors',
+        },
+        physical: {
+          summary: 'Hardware BOM falling to $16,000 does not automatically yield pennies-per-hour labor. Low active duty and ongoing human intervention minutes quickly push effective hourly cost above factory wages.',
+          nominalLabel: 'Hardware Depreciation Only ($/hr)',
+          trueLabel: 'Effective Hourly Cost (incl. maint + human)',
+          ratioLabel: 'Maintenance & Human Share',
+          verdictGood: 'Approaches China line wage ($6 to $10/hr) with broad deployment ROI',
+          verdictWarn: 'Above China factory wages (or near Western lines); cut intervention minutes first',
+          sliders: [
+            { id: 's1', label: 'Robot hardware price ($)', min: 15000, max: 150000, step: 5000, val: 30000 },
+            { id: 's2', label: 'Effective autonomous hours / year', min: 600, max: 4000, step: 100, val: 1400 },
+            { id: 's3', label: 'Human intervention / teleop (min per hr)', min: 0, max: 30, step: 1, val: 12 },
+            { id: 's4', label: 'Annual maintenance + integration (% of BOM)', min: 15, max: 100, step: 5, val: 45 },
+          ],
+          presets: [
+            { label: 'High-cost prototype pilot', vals: [120000, 1200, 18, 60] },
+            { label: 'BOM deflation + typical intervention', vals: [20000, 1400, 12, 45] },
+            { label: 'True inflection (high uptime, ~0 teleop)', vals: [25000, 3200, 2, 25] },
+          ],
+          baselineText: 'Baseline: Western factory labor ~$30/hr; China line ~$6 to $10/hr (assumes 3-yr depreciation and $35/hr remote/onsite specialist labor)',
+        },
+      },
+    };
+
+// SSR static defaults for the initial active tab ('agent')
+// s1=0.10, s2=8, s3=25%, s4=12 -> nominal=$0.80, true=$0.80 + 0.25*12 = $3.80, ratio=4.8x
+const payload = JSON.stringify(copy);
+---
+
+<section class="cost-lab not-prose" data-widget="ai-cost-shift-lab" data-payload={payload}>
+  <header class="cl-head">
+    <div>
+      <p class="cl-eyebrow">{copy.eyebrow}</p>
+      <h4 class="cl-title">{copy.title}</h4>
+      <p class="cl-subtitle">{copy.subtitle}</p>
+    </div>
+    <div class="cl-tabs" role="tablist">
+      {copy.tabs.map((t, i) => (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={i === 0 ? 'true' : 'false'}
+          data-tab-btn={t.id}
+          class:list={['cl-tab', i === 0 && 'is-active']}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  </header>
+
+  <p class="cl-summary" data-summary>{copy.scenarios.agent.summary}</p>
+
+  <div class="cl-presets" data-presets>
+    {copy.scenarios.agent.presets.map((p, idx) => (
+      <button type="button" class="cl-preset" data-preset-idx={idx}>{p.label}</button>
+    ))}
+  </div>
+
+  <div class="cl-grid">
+    <div class="cl-controls" data-controls>
+      {copy.scenarios.agent.sliders.map((s) => (
+        <label class="cl-slider-row" data-slider-row={s.id}>
+          <div class="cl-slider-meta">
+            <span data-slider-label={s.id}>{s.label}</span>
+            <strong class="cl-slider-val" data-slider-val={s.id}>{s.val}</strong>
+          </div>
+          <input
+            type="range"
+            min={s.min}
+            max={s.max}
+            step={s.step}
+            value={s.val}
+            data-slider-input={s.id}
+          />
+        </label>
+      ))}
+    </div>
+
+    <div class="cl-output">
+      <div class="cl-kpi-grid">
+        <div class="cl-kpi">
+          <span class="cl-kpi-label" data-nominal-label>{copy.scenarios.agent.nominalLabel}</span>
+          <strong class="cl-kpi-num" data-nominal-val>$0.80</strong>
+        </div>
+        <div class="cl-kpi is-accent">
+          <span class="cl-kpi-label" data-true-label>{copy.scenarios.agent.trueLabel}</span>
+          <strong class="cl-kpi-num" data-true-val>$3.80</strong>
+        </div>
+        <div class="cl-kpi">
+          <span class="cl-kpi-label" data-ratio-label>{copy.scenarios.agent.ratioLabel}</span>
+          <strong class="cl-kpi-num" data-ratio-val>4.8x</strong>
+        </div>
+      </div>
+
+      <div class="cl-bars" aria-label="Cost comparison bars">
+        <div class="cl-bar-row">
+          <span class="cl-bar-name" data-bar1-name>{isZh ? '名义成本' : 'Nominal'}</span>
+          <div class="cl-bar-track">
+            <div class="cl-bar-fill is-nominal" data-bar1 style="width: 21%"></div>
+          </div>
+        </div>
+        <div class="cl-bar-row">
+          <span class="cl-bar-name" data-bar2-name>{isZh ? '隐性附加' : 'Hidden'}</span>
+          <div class="cl-bar-track">
+            <div class="cl-bar-fill is-hidden" data-bar2 style="width: 79%"></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="cl-verdict is-warn" data-verdict>{copy.scenarios.agent.verdictWarn}</p>
+      <p class="cl-baseline" data-baseline>{copy.scenarios.agent.baselineText}</p>
+    </div>
+  </div>
+
+  <p class="cl-note">{copy.note}</p>
+</section>
+
+<script is:inline>
+  (() => {
+    function initAiCostShiftLabs() {
+      const roots = document.querySelectorAll('[data-widget="ai-cost-shift-lab"]');
+      roots.forEach((root) => {
+        if (root.dataset.bound === '1') return;
+        root.dataset.bound = '1';
+        const data = JSON.parse(root.dataset.payload || '{}');
+        let currentTab = 'agent';
+        let vals = data.scenarios.agent.sliders.map((s) => Number(s.val));
+
+        const tabBtns = root.querySelectorAll('[data-tab-btn]');
+        const summaryEl = root.querySelector('[data-summary]');
+        const presetsEl = root.querySelector('[data-presets]');
+        const nominalLabelEl = root.querySelector('[data-nominal-label]');
+        const trueLabelEl = root.querySelector('[data-true-label]');
+        const ratioLabelEl = root.querySelector('[data-ratio-label]');
+        const nominalValEl = root.querySelector('[data-nominal-val]');
+        const trueValEl = root.querySelector('[data-true-val]');
+        const ratioValEl = root.querySelector('[data-ratio-val]');
+        const bar1El = root.querySelector('[data-bar1]');
+        const bar2El = root.querySelector('[data-bar2]');
+        const verdictEl = root.querySelector('[data-verdict]');
+        const baselineEl = root.querySelector('[data-baseline]');
+
+        function compute() {
+          const sc = data.scenarios[currentTab];
+          const [v1, v2, v3, v4] = vals;
+          let nominal = 0;
+          let total = 0;
+          let nominalPct = 50;
+          let hiddenPct = 50;
+          let warn = false;
+
+          if (currentTab === 'agent') {
+            nominal = v1 * v2;
+            const hidden = (v3 / 100) * v4;
+            total = nominal + hidden;
+            const mult = nominal > 0 ? total / nominal : 1;
+            nominalValEl.textContent = '$' + nominal.toFixed(2);
+            trueValEl.textContent = '$' + total.toFixed(2);
+            ratioValEl.textContent = mult.toFixed(1) + 'x';
+            nominalPct = total > 0 ? Math.round((nominal / total) * 100) : 50;
+            hiddenPct = 100 - nominalPct;
+            warn = total > 3.6;
+          } else if (currentTab === 'data') {
+            nominal = v1;
+            const baseExpert = v1 * v2;
+            total = baseExpert * (1 + v3 / 100);
+            const monthlyDep = Math.min(100, Math.round((1 - Math.pow(0.5, 1 / Math.max(1, v4))) * 100));
+            nominalValEl.textContent = '$' + nominal.toFixed(0) + '/hr';
+            trueValEl.textContent = '$' + total.toFixed(0);
+            ratioValEl.textContent = monthlyDep + '% / mo';
+            nominalPct = total > 0 ? Math.round((baseExpert / total) * 100) : 50;
+            hiddenPct = 100 - nominalPct;
+            warn = v4 <= 5 || total >= 400;
+          } else {
+            const hwDepHr = v1 / (3 * Math.max(1, v2));
+            const maintHr = (v1 * (v4 / 100)) / Math.max(1, v2);
+            const humanHr = (v3 / 60) * 35;
+            nominal = hwDepHr;
+            total = hwDepHr + maintHr + humanHr;
+            const nonHwPct = total > 0 ? Math.round(((maintHr + humanHr) / total) * 100) : 0;
+            nominalValEl.textContent = '$' + nominal.toFixed(2) + '/hr';
+            trueValEl.textContent = '$' + total.toFixed(2) + '/hr';
+            ratioValEl.textContent = nonHwPct + '%';
+            nominalPct = 100 - nonHwPct;
+            hiddenPct = nonHwPct;
+            warn = total >= 12;
+          }
+
+          bar1El.style.width = Math.max(4, Math.min(100, nominalPct)) + '%';
+          bar2El.style.width = Math.max(4, Math.min(100, hiddenPct)) + '%';
+          verdictEl.textContent = warn ? sc.verdictWarn : sc.verdictGood;
+          verdictEl.classList.toggle('is-warn', warn);
+          verdictEl.classList.toggle('is-good', !warn);
+        }
+
+        function syncSliders() {
+          const sc = data.scenarios[currentTab];
+          sc.sliders.forEach((s, idx) => {
+            const id = s.id;
+            const labelEl = root.querySelector(`[data-slider-label="${id}"]`);
+            const valEl = root.querySelector(`[data-slider-val="${id}"]`);
+            const inputEl = root.querySelector(`[data-slider-input="${id}"]`);
+            if (labelEl) labelEl.textContent = s.label;
+            if (inputEl) {
+              inputEl.min = String(s.min);
+              inputEl.max = String(s.max);
+              inputEl.step = String(s.step);
+              inputEl.value = String(vals[idx]);
+            }
+            if (valEl) valEl.textContent = String(vals[idx]);
+          });
+        }
+
+        function renderTab(tabId) {
+          currentTab = tabId;
+          const sc = data.scenarios[tabId];
+          vals = sc.sliders.map((s) => Number(s.val));
+
+          tabBtns.forEach((btn) => {
+            const active = btn.dataset.tabBtn === tabId;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-selected', active ? 'true' : 'false');
+          });
+
+          summaryEl.textContent = sc.summary;
+          nominalLabelEl.textContent = sc.nominalLabel;
+          trueLabelEl.textContent = sc.trueLabel;
+          ratioLabelEl.textContent = sc.ratioLabel;
+          baselineEl.textContent = sc.baselineText;
+
+          presetsEl.innerHTML = '';
+          sc.presets.forEach((p) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'cl-preset';
+            b.textContent = p.label;
+            b.addEventListener('click', () => {
+              vals = p.vals.slice();
+              syncSliders();
+              compute();
+            });
+            presetsEl.appendChild(b);
+          });
+
+          syncSliders();
+          compute();
+        }
+
+        tabBtns.forEach((btn) => {
+          btn.addEventListener('click', () => renderTab(btn.dataset.tabBtn));
+        });
+
+        ['s1', 's2', 's3', 's4'].forEach((id, idx) => {
+          const inputEl = root.querySelector(`[data-slider-input="${id}"]`);
+          const valEl = root.querySelector(`[data-slider-val="${id}"]`);
+          if (inputEl) {
+            inputEl.addEventListener('input', () => {
+              vals[idx] = Number(inputEl.value);
+              if (valEl) valEl.textContent = String(vals[idx]);
+              compute();
+            });
+          }
+        });
+
+        presetsEl.querySelectorAll('[data-preset-idx]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const idx = Number(btn.dataset.presetIdx);
+            const sc = data.scenarios[currentTab];
+            if (sc.presets[idx]) {
+              vals = sc.presets[idx].vals.slice();
+              syncSliders();
+              compute();
+            }
+          });
+        });
+
+        compute();
+      });
+    }
+
+    initAiCostShiftLabs();
+    document.addEventListener('astro:after-swap', initAiCostShiftLabs);
+    document.addEventListener('languagechange', initAiCostShiftLabs);
+  })();
+</script>
+
+<style>
+  .cost-lab {
+    margin: 2rem 0;
+    padding: 1.35rem 1.4rem;
+    border: 1px solid #e2dacb;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #fcfaf5 0%, #f7f3ea 100%);
+    color: #2b2722;
+  }
+  .cl-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+  }
+  .cl-eyebrow {
+    margin: 0 0 0.25rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a6b3d;
+    font-weight: 600;
+  }
+  .cl-title {
+    margin: 0 0 0.3rem;
+    font-size: 1.1rem;
+    line-height: 1.35;
+    color: #1f1b16;
+  }
+  .cl-subtitle {
+    margin: 0;
+    font-size: 0.86rem;
+    color: #5f584d;
+    max-width: 42rem;
+  }
+  .cl-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .cl-tab {
+    padding: 0.42rem 0.8rem;
+    border: 1px solid #d9cfbe;
+    border-radius: 999px;
+    background: #fffdf9;
+    color: #534c42;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .cl-tab.is-active {
+    background: #86663b;
+    border-color: #86663b;
+    color: #ffffff;
+  }
+  .cl-summary {
+    margin: 0 0 0.85rem;
+    padding: 0.7rem 0.9rem;
+    border-left: 3px solid #86663b;
+    background: rgba(134, 102, 59, 0.07);
+    border-radius: 0 8px 8px 0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: #363028;
+  }
+  .cl-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+  }
+  .cl-preset {
+    padding: 0.32rem 0.68rem;
+    border: 1px dashed #c8bba4;
+    border-radius: 8px;
+    background: #fffdf8;
+    color: #5c5346;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .cl-preset:hover {
+    border-color: #86663b;
+    color: #2b2722;
+  }
+  .cl-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .cl-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .cl-slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.83rem;
+    color: #463f36;
+  }
+  .cl-slider-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .cl-slider-val {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #86663b;
+  }
+  .cl-slider-row input[type='range'] {
+    width: 100%;
+    accent-color: #86663b;
+    cursor: pointer;
+  }
+  .cl-output {
+    background: #ffffff;
+    border: 1px solid #e6dfd2;
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .cl-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+  }
+  .cl-kpi {
+    padding: 0.65rem 0.7rem;
+    border-radius: 9px;
+    background: #faf7f1;
+    border: 1px solid #ece5d8;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .cl-kpi.is-accent {
+    background: #fdf6e9;
+    border-color: #dfbe89;
+  }
+  .cl-kpi-label {
+    font-size: 0.72rem;
+    color: #6b6356;
+    line-height: 1.3;
+  }
+  .cl-kpi-num {
+    font-size: 1.08rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #1f1b16;
+  }
+  .cl-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .cl-bar-row {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.78rem;
+    color: #5b5347;
+  }
+  .cl-bar-track {
+    height: 10px;
+    border-radius: 999px;
+    background: #efeae0;
+    overflow: hidden;
+  }
+  .cl-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.2s ease;
+  }
+  .cl-bar-fill.is-nominal {
+    background: #3f6d8a;
+  }
+  .cl-bar-fill.is-hidden {
+    background: #b9533c;
+  }
+  .cl-verdict {
+    margin: 0;
+    padding: 0.55rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  .cl-verdict.is-good {
+    background: #eef6ef;
+    color: #275c32;
+    border: 1px solid #c9e2cc;
+  }
+  .cl-verdict.is-warn {
+    background: #fdf0ec;
+    color: #9b3422;
+    border: 1px solid #efc6bc;
+  }
+  .cl-baseline {
+    margin: 0;
+    font-size: 0.76rem;
+    color: #6f675b;
+    line-height: 1.45;
+  }
+  .cl-note {
+    margin: 0.85rem 0 0;
+    font-size: 0.74rem;
+    color: #7c7468;
+  }
+  @media (max-width: 768px) {
+    .cl-grid {
+      grid-template-columns: 1fr;
+    }
+    .cl-kpi-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

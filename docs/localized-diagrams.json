@@ -238,5 +238,17 @@
     "target": "/images/posts/generative-recommendation-evolution-2022-2026/gr-evolution-map-en.svg",
     "sourceHash": "b2cf9ced661edf22bd29918e83ad70c0e2f11e48437a9e0c5578c1c4156bcdd2",
     "targetHash": "44a008cde128d1cced7df8d11b08722616e7376385789be59fe0dde3b03f572e"
+  },
+  {
+    "source": "/images/posts/ai-hype-cycles-cost-migration-2020-2026/scarcity-migration-map.svg",
+    "target": "/images/posts/ai-hype-cycles-cost-migration-2020-2026/scarcity-migration-map-en.svg",
+    "sourceHash": "de74664fd1331d2fb46034ea10094bb7ec4e759223960e9b6514769ebcdcd785",
+    "targetHash": "27cddf331552e72818517caee434540b0af9d68728c457d6958ea8750e50e6c2"
+  },
+  {
+    "source": "/images/posts/ai-hype-cycles-cost-migration-2020-2026/data-and-physical-bottlenecks.svg",
+    "target": "/images/posts/ai-hype-cycles-cost-migration-2020-2026/data-and-physical-bottlenecks-en.svg",
+    "sourceHash": "589251648540c75a985d3f0581ef7d5a85476fda2bf68dbc4c4ef934e7a118cc",
+    "targetHash": "65fe3f2a3168c97d65d0adb543bcb994a4f969b6feaf6a13fac11e7d56e856c7"
   }
 ]
