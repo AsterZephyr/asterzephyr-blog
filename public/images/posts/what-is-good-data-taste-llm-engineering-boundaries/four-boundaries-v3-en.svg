@@ -21,7 +21,7 @@
 <line x1="34" y1="118" x2="240" y2="118" stroke="#2f5d8a" stroke-width="1"/>
 <text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif" x="46" y="105" font-size="12.4" font-weight="700" fill="#1b3956">01 GPUs, Data, or Verifiers?</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif" x="46" y="143" font-size="11.3" fill="#23201c">• Short on GPUs: filter &amp; dedup</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif" x="46" y="167" font-size="11.3" fill="#23201c">• Short on data: track exposure</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif" x="46" y="167" font-size="11.3" fill="#23201c">• Short on data: track epochs</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif" x="46" y="191" font-size="11.3" fill="#23201c">• Weak verifier: fix judge first</text>
 <text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="46" y="218" font-size="10.2" font-weight="600" fill="#2f5d8a">FineWeb · Bitter · Olmix</text>
 

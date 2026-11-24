@@ -5,7 +5,7 @@ tags: [AI 与机器学习]
 summary: "Starting from a widely shared practitioner post on \"data taste,\" this article audits 20+ primary papers and technical reports from 2019 to 2026 to turn vague intuition into four practical engineering checks: whether you lack GPUs, unique data, or trustworthy verifiers; which stage you are training; how to layer corpus and trajectory checks cheaply; and who grades synthetic data, plus three pre-training checks."
 draft: false
 sourceFile: "what-is-good-data-taste-llm-engineering-boundaries.mdx"
-sourceHash: "d497d1d59b2b1a45c9586ff3d6910815aac1a7a7db7b5b7dbef7a286cc230f46"
+sourceHash: "688f05c6e51d9178a1d6236d05801292478dc6afc3b722e2161dee5266fec503"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -102,7 +102,7 @@ Even inside pre-training, keeping more data never means mixing blindly. [ATLAS](
 
 - **Cross-lingual transfer is directional**: Measuring a $$38 \times 38 = 1,444$$ language transfer matrix showed that Spanish and Portuguese strongly boost Catalan, yet $$A \to B$$ transfer does not imply symmetric $$B \to A$$ benefit.
 - **Positive transfer softens the "curse of multilinguality"**: Doubling supported languages from $$K$$ to $$2K$$ at constant per-language performance requires only **1.18×** parameters, **1.66×** total data, and **1.96×** compute, reducing data needed per language to **83%**.
-- **The 1-epoch inflection for low-resource languages**: For scarce languages such as Hindi or Swahili, mechanically repeating beyond **1 epoch** causes marginal returns to drop sharply and validation loss to bend upward. Keep the scope precise: **1 epoch is an empirical inflection point for low-resource languages, not a universal cap for every corpus**. High-value general pools are routinely exposed for multiple rounds; the right habit is tracking **per-slice repetition counts** against diminishing returns against your budget.
+- **The 1-epoch inflection for low-resource languages**: For scarce languages such as Hindi or Swahili, mechanically repeating beyond **1 epoch** causes marginal returns to drop sharply and validation loss to bend upward. Keep the scope precise: **1 epoch is an empirical inflection point for low-resource languages, not a universal cap for every corpus**. High-value general pools are routinely trained for multiple epochs; the right habit is tracking **per-slice repetition counts** against diminishing returns against your budget.
 
 <Figure
   src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/atlas-curse-scaling.webp"
@@ -342,7 +342,7 @@ Turn the article into a one-page engineering checklist built around concrete **a
 
 <Steps>
   <StepItem title="Are you actually short on GPUs, unique tokens, or trustworthy verifiers?">
-    **Action**: Divide planned training tokens by your deduplicated unique pool, and run a 2×2 human-vs-judge check on 200 to 300 items. Under tight compute, lean on per-dump deduplication and quality filtering; near a fixed-pool multi-epoch limit, relax harsh thresholds and track an exposure ledger; if judge-pass / human-fail exceeds 10%, stop scaling data and fix the verifier first.<br />
+    **Action**: Divide planned training tokens by your deduplicated unique pool, and run a 2×2 human-vs-judge check on 200 to 300 items. Under tight compute, lean on per-dump deduplication and quality filtering; near a fixed-pool multi-epoch limit, relax harsh thresholds and track per-domain epoch counts; if judge-pass / human-fail exceeds 10%, stop scaling data and fix the verifier first.<br />
     **Red Flag**: Deduplication wipes >80% of an early crawl dump, held-out NLL bends upward after low-resource languages cross 1 epoch, or spot-checks reveal one-sided judge leniency.
   </StepItem>
   <StepItem title="Is this batch teaching knowledge, RL foundations, runtime protocols, or policy search?">
