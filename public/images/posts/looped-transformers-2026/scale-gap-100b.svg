@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 458" width="960" height="458" role="img" aria-labelledby="title desc">
 <title id="title">2026 年底循环模型的规模断层与 100B+ 四条未解约束</title>
-<desc id="desc">上半部分展示 340M-26.4B 质量验证区、100B+ 空白区与 552B 仅显存测算区之间的断层；下半部分列出 100B+ 大基模保持克制的四条工程原因。</desc>
+<desc id="desc">上半部分展示 340M-26.4B 质量验证区、100B+ 空白区与 552B 仅显存测算区之间的断层；下半部分列出 100B+ 大模型保持谨慎的四条工程原因。</desc>
 <defs>
   <marker id="arrow-stone" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
     <path d="M0 0 L10 5 L0 10 z" fill="#5b554d"/>
@@ -16,8 +16,8 @@
   </marker>
 </defs>
 <rect width="960" height="458" fill="#faf7f2"/>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="36" font-size="19" font-weight="700" fill="#1f1d1a" text-anchor="middle">为什么 100B+ 大基模依然克制：规模断层与四条未解约束</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="61" font-size="13" fill="#57524b" text-anchor="middle">开源质量验证停在 26.4B，552B 仅算清了显存账；大基模团队面对的是另一套瓶颈与风险</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="36" font-size="19" font-weight="700" fill="#1f1d1a" text-anchor="middle">为什么 100B+ 大模型依然谨慎：规模断层与四条未解约束</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" x="480" y="61" font-size="13" fill="#57524b" text-anchor="middle">开源质量验证停在 26.4B，552B 只测算了显存占用；大模型团队面对的是另一套瓶颈与风险</text>
 <rect x="34" y="82" width="892" height="148" rx="12" fill="#ffffff" stroke="#5b554d" stroke-width="1.4"/>
 <line x1="60" y1="186" x2="900" y2="186" stroke="#5b554d" stroke-width="2.5"/>
 <rect x="54" y="102" width="200" height="68" rx="8" fill="#eaf1f8" stroke="#2f5d8a" stroke-width="1.3"/>

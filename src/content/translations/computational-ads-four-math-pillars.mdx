@@ -5,7 +5,7 @@ tags: [广告与推荐, 技术报告解读]
 summary: "Tracing computational advertising from 2002 search auctions to 2026 multi-billion-parameter rankers and generative ads, examining what DSP buyers, ADX exchanges, and SSP sellers actually solve and why four core math problems remain."
 draft: false
 sourceFile: "computational-ads-four-math-pillars.mdx"
-sourceHash: "1d39714bf6d0109888fcea1fba12ba6f27f4e8106a11e227a1170d49e2069a77"
+sourceHash: "7526678a0eb714c6e7ffb4ed241b44b8330e7e24d11eb694a81e32e5e802b8ee"
 ---
 
 import AdPillarsLab from '../../components/blog/AdPillarsLab.astro'
@@ -103,7 +103,7 @@ Laying all four roles side by side shows how each party's blind spot maps onto t
 | **Buyer (DSP / Advertiser Agent)** | Participant (Best Response) | Sees in-app conversions and spend; misses rival bids on losses | Maximize conversion value under Budget and ROAS / CPA floors | Calibration + Dual pacing + Delay & censoring fix + Cold-start |
 | **Exchange (ADX)** | Rule-Maker (Dispatch & Clearing) | Sees cross-DSP bids, win rates, and rebates; misses advertiser backend GMV | Maximize rebate-adjusted net margin under QPS caps and revenue floors | Net-margin expectation + Quota dual & auction rules + Unsent IPS + Supply probe |
 | **Seller (SSP / Publisher)** | Rule-Maker (Inventory & Floors) | Sees inventory, ad load, and retention; misses buyer bids below floor on no-fills | Maximize per-impression yield (eCPM / RPM) under fill-rate and UX guardrails | Bid distribution + Ad-load & reserve floor + Left-censored no-fills + Floor probe |
-| **Closed-Loop Platform** | Full-Information Leader (Internal Settlement) | Sees organic content, conversions, and full auction state | Balance platform revenue, advertiser ROI, and user retention | All four pillars coupled, plus intertemporal user externalities |
+| **Closed-Loop Platform** | Full-Information Leader (Internal Settlement) | Sees organic content, conversions, and full auction state | Balance platform revenue, advertiser ROI, and user retention | All four pillars coupled, plus long-term user experience |
 
 ### Three Commercial Realities Hidden Behind Offline Metrics
 
@@ -278,8 +278,8 @@ Three things genuinely changed: representation and interaction capacity rose sha
 
 These four pillars do not explain the entire advertising business. Four external realities sit outside them and directly govern commercial outcomes:
 
-<Callout type="warning" title="Four System Boundaries Outside the Four Mathematical Pillars">
-1. **Intertemporal user externalities and Ad Load**: Adding one more high-bid, low-quality ad lifts today's revenue while dragging down 7-day retention and session time. That is an intertemporal multi-objective trade-off, not a static daily constraint.
+<Callout type="warning" title="Four Real-World Factors Outside the Four Mathematical Pillars">
+1. **Long-term user experience and Ad Load**: Adding one more high-bid, low-quality ad lifts today's revenue while dragging down 7-day retention and session time. That is an intertemporal multi-objective trade-off, not a static daily constraint.
 2. **Incrementality and causal lift**: Most models optimize attributed conversions, whereas advertisers ultimately pay for incremental sales caused by the ad. Concentrating spend on loyal buyers who would purchase anyway produces strong attributed ROAS and zero real growth.
 3. **Privacy-era structural signal loss (ATT / SKAN)**: Mobile privacy frameworks severed cross-app user tracking, making delayed, aggregated, noisy postbacks standard. This does not eliminate Pillar 3, but rewrites its observable data foundation (see [SKAN 4.0 and incrementality](/blog/mobile-game-ua-skan4-and-incrementality/)).
 4. **Ad fraud and adversarial traffic (Invalid Traffic)**: Click farms and attribution hijacking corrupt both probability estimates and dual feedback, requiring a dedicated security layer ahead of the four pillars.
@@ -287,7 +287,7 @@ These four pillars do not explain the entire advertising business. Four external
 
 ## Three Checks to Run Before Scaling the Model
 
-Most small and mid-sized DSP, ADX, SSP, or vertical publisher teams do not have thousand-GPU clusters for 15B TokenMixers or billion-parameter generative ad models. Scaling the backbone while the four foundations still leak rarely pays off. Before adding GPUs, run three checks that need almost no extra compute:
+Most small and mid-sized DSP, ADX, SSP, or vertical publisher teams do not have thousand-GPU clusters for 15B TokenMixers or billion-parameter generative ad models. Scaling the backbone while the four foundations still have gaps rarely pays off. Before adding GPUs, run three checks that need almost no extra compute:
 
 | Check Order | Zero-GPU Check | Roles & Pillar | Pass Criterion & Red Flag |
 |:---|:---|:---|:---|

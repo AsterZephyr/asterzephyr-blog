@@ -5,7 +5,7 @@ tags: [AI 与机器学习]
 summary: "Starting from a widely shared practitioner post on \"data taste,\" this article audits 20+ primary papers and technical reports from 2019 to 2026 to turn vague intuition into four practical engineering checks: whether you lack GPUs, unique data, or trustworthy verifiers; which stage you are training; how to layer corpus and trajectory checks cheaply; and who grades synthetic data, plus three pre-training checks."
 draft: false
 sourceFile: "what-is-good-data-taste-llm-engineering-boundaries.mdx"
-sourceHash: "c0e3b04aaf535a3032db9fab6a52bc5923d3fa91336982f07b95a1ff2337f6ee"
+sourceHash: "d497d1d59b2b1a45c9586ff3d6910815aac1a7a7db7b5b7dbef7a286cc230f46"
 ---
 
 import Callout from '../../components/blog/Callout.astro'
@@ -96,13 +96,13 @@ Even more striking was a synthetic-noise injection test: deliberately mixing wor
 3. **Dense pre-training NLL only**: The study excludes annealing, curricula, and post-training alignment, and does not cover adversarial poisoning where text reads cleanly while injecting deliberate falsehoods.
 </Callout>
 
-### ATLAS, Olmix, and the Third Bottleneck: Exposure Ledgers and Verifier Limits
+### ATLAS, Olmix, and the Third Bottleneck: Dynamic Mixing and Verifier Limits
 
 Even inside pre-training, keeping more data never means mixing blindly. [ATLAS](https://arxiv.org/abs/2510.22037) (MIT, UW, Stanford, and Google; submitted Oct 2025, ICLR 2026; [Google Research blog walkthrough](https://www.research.google/blog/atlas-practical-scaling-laws-for-multilingual-models/) Jan 2026) ran 774 experiments across 10M to 8B parameters and 400+ languages, establishing three quantitative laws:
 
 - **Cross-lingual transfer is directional**: Measuring a $$38 \times 38 = 1,444$$ language transfer matrix showed that Spanish and Portuguese strongly boost Catalan, yet $$A \to B$$ transfer does not imply symmetric $$B \to A$$ benefit.
 - **Positive transfer softens the "curse of multilinguality"**: Doubling supported languages from $$K$$ to $$2K$$ at constant per-language performance requires only **1.18×** parameters, **1.66×** total data, and **1.96×** compute, reducing data needed per language to **83%**.
-- **The 1-epoch inflection for low-resource languages**: For scarce languages such as Hindi or Swahili, mechanically repeating beyond **1 epoch** causes marginal returns to drop sharply and validation loss to bend upward. Keep the scope precise: **1 epoch is an empirical inflection point for low-resource languages, not a universal cap for every corpus**. High-value general pools are routinely exposed for multiple rounds; the right habit is maintaining an explicit **exposure ledger** that tracks diminishing returns against your budget.
+- **The 1-epoch inflection for low-resource languages**: For scarce languages such as Hindi or Swahili, mechanically repeating beyond **1 epoch** causes marginal returns to drop sharply and validation loss to bend upward. Keep the scope precise: **1 epoch is an empirical inflection point for low-resource languages, not a universal cap for every corpus**. High-value general pools are routinely exposed for multiple rounds; the right habit is tracking **per-slice repetition counts** against diminishing returns against your budget.
 
 <Figure
   src="/images/posts/what-is-good-data-taste-llm-engineering-boundaries/atlas-curse-scaling.webp"
@@ -232,7 +232,7 @@ Its limits are clear as well: second-order meta-training is far heavier to engin
 
 The three tracks above answer "which pre-training corpus wins." Once you move into SFT, RL, and long-horizon agent trajectories, the real bottleneck shifts to a finer question: **inside one batch of collected traces, which ones enter the positive set, which can be repaired, which belong in negative pools, and which should be deleted outright?**
 
-Putting three 2024–2026 empirical practices together replaces the blunt "keep all successes, trash all failures" rule:
+Putting three 2024 to 2026 empirical practices together replaces the blunt "keep all successes, trash all failures" rule:
 
 - **Filter by step instead of discarding whole failed traces**: JetBrains Research’s June 2026 [Step Rejection Fine-Tuning (SRFT)](https://blog.jetbrains.com/research/2026/06/step-rejection-fine-tuning/) runs a lightweight critic over each agent trace to label every step as `good`, `unnecessary`, `mistake`, or `recover`. Rather than rewriting the trace, training **masks loss on mistake steps while keeping them in context**, so the model sees how an error occurred and how later steps recovered from it. Training solely on 5,000 unresolved failed traces with step-level masking reached a **29.7%** resolution rate, beating a naive mix of 5,000 resolved plus 5,000 unresolved traces (**28.5%**).
 - **Separate model errors from environment crashes**: [Learning From Failure](https://arxiv.org/abs/2402.11651) (`arXiv:2402.11651v2`) showed that relying only on successful trajectories starves agent fine-tuning of data; conditioning failed traces with simple prefix/suffix tags turned failures into measurable gains on multi-hop reasoning and math. In production, triage traces into **four explicit buckets**: **Keep** (clean end-to-end positives), **Fix** (step-masked error steps or mid-trace recoveries), **Isolate** (genuine model mistakes routed to negative pools, contrastive training, or verifier training), and **Drop** (strictly infrastructure crashes, API timeouts, and early environment deaths).
@@ -245,8 +245,8 @@ Finally, let us translate the scale down to everyday teams. Seeing 240T pools an
 | Validation Layer | What This Layer Does | Cost | When to Use It (Small-Team Playbook Included) |
 | --- | --- | --- | --- |
 | Human Calibration | Blind-review 20 to 30 items to catch systematic judge leniency | Low | Audit only the top two candidate recipes each round to calibrate grader direction |
-| Bulk Machine Scoring | Run a 1.5B scorer (e.g., DataMan) or process rubric across the whole batch | Low–Medium | Runs across hundreds of thousands of items on a single GPU, but only after passing human-vs-judge calibration |
-| Small-Model Proxy | 150M continuous probabilities for pre-training; fixed-recipe 1B–3B runs for SFT sub-score ranking | Medium | Eliminate clearly weaker cleaning or triage recipes before burning the main cluster |
+| Bulk Machine Scoring | Run a 1.5B scorer (e.g., DataMan) or process rubric across the whole batch | Low to Medium | Runs across hundreds of thousands of items on a single GPU, but only after passing human-vs-judge calibration |
+| Small-Model Proxy | 150M continuous probabilities for pre-training; fixed-recipe 1B to 3B runs for SFT sub-score ranking | Medium | Eliminate clearly weaker cleaning or triage recipes before burning the main cluster |
 | Real Environment Gate | Actual build, execution, tool interaction, and hidden unit tests | High | Final admission gate; never replace with model self-grading |
 
 </div>
@@ -297,7 +297,7 @@ The paper also flags the true bottleneck of simulated synthesis: **Initial State
 
 Synthetic multimodal search data has a persistent leak: question text or webpage URLs quietly give away the answer, letting models score full marks via text shortcuts without inspecting a single pixel. In August 2026, WeChat AI and Sun Yat-sen University closed that gap in [*WeAgent-MMSearch*](https://arxiv.org/abs/2608.28062) with a four-step reverse pipeline:
 
-1. **Lock a pixel-dependent endpoint ($$n_d$$)**: Harvest target images and visual facts from live Jan–Jul 2026 web events and Wikipedia, admitting an item only if the image is reachable inside the isomorphic `WeAgent-Harness` and the answer strictly requires **visible pixels** absent from titles, URLs, and captions.
+1. **Lock a pixel-dependent endpoint ($$n_d$$)**: Harvest target images and visual facts from live Jan to Jul 2026 web events and Wikipedia, admitting an item only if the image is reachable inside the isomorphic `WeAgent-Harness` and the answer strictly requires **visible pixels** absent from titles, URLs, and captions.
 2. **Reverse multi-hop expansion ($$n_0 \to \dots \to n_{d-1} \to n_d$$)**: Instead of writing questions forward, expand backward $$d \in \{2, 3, 4\}$$ hops from $$n_d$$. At each step, an expert agent sees only entity $$n_i$$ and searches the web to craft a prerequisite clue pointing uniquely to it, yielding $$n_{i-1}$$.
 3. **Bridge uniqueness and leak audit**: Drop any chain with ambiguous intermediate hops, missing images, or metadata leakage.
 4. **Tiered SFT and RL filtering**: SFT retains only **complete and correct** expert traces collected inside the exact deployment harness with persistent image storage and multi-turn recall (3.3K custom + 56.2K normalized open-source = 59.5K). Before RL, the SFT model samples **8 rollouts** (policy trajectory samples) per candidate prompt, **discarding 8/8 all-pass tasks (no headroom) and 0/8 all-fail tasks (no group contrast reward)** to keep 4.9K high-leverage prompts. Note the scope cleanly: 0/8 all-fail tasks are only excluded from the current RL round, not thrown away; following Boundary 3’s four-bucket triage, once environment crashes are removed, genuine model failures still feed negative pools or verifier training.
@@ -354,7 +354,7 @@ Turn the article into a one-page engineering checklist built around concrete **a
     **Red Flag**: Top-scored samples converge on one verbose template while OOD benchmarks trail random sampling.
   </StepItem>
   <StepItem title="Are you relying on one layer, or running layered validation and four-bucket trajectory triage?">
-    **Action**: At corpus scale, pair 150M continuous-probability proxies (`Correct Prob` / `Total Prob`) with 1.5B semantic taggers; for SFT and agent traces, triage into Keep, Fix (step-level masking), Isolate (negative pools), and Drop (environment crashes). Small teams can rank recipes on fixed 1B–3B runs with 20 to 30 blind human checks calibrating direction.<br />
+    **Action**: At corpus scale, pair 150M continuous-probability proxies (`Correct Prob` / `Total Prob`) with 1.5B semantic taggers; for SFT and agent traces, triage into Keep, Fix (step-level masking), Isolate (negative pools), and Drop (environment crashes). Small teams can rank recipes on fixed 1B to 3B runs with 20 to 30 blind human checks calibrating direction.<br />
     **Red Flag**: Thresholds are argued over five cherry-picked spreadsheet rows, or every trace that fails the final test is dumped wholesale into the trash.
   </StepItem>
   <StepItem title="Is your synthesis loop information-open, and has the judge itself been audited?">

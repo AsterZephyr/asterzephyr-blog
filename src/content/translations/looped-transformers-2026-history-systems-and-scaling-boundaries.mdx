@@ -4,7 +4,7 @@ date: 2026-11-21
 tags: [AI 与机器学习]
 summary: "From the 2018 Universal Transformer to November 2026 releases like Inkling 2 Mini, Dory1.0-4B, and Looped-DiT, this post examines why recurrent depth broke through first in sub-30B models and T2I, and where KV cache, parallelism, and 100B+ scaling still push back."
 sourceFile: "looped-transformers-2026-history-systems-and-scaling-boundaries.mdx"
-sourceHash: "d21c181bdd6fbdbb04d82bff4b4391ea2b53355827b877a4a4f4d1d15406135e"
+sourceHash: "039e9fab5f21dde72966d1021006d7f984fbc7a96042aa5c01423106ba665f75"
 draft: false
 ---
 
@@ -22,7 +22,7 @@ import LoopKvCalculator from '../../components/blog/LoopKvCalculator.astro'
 
 In November 2026, Looped Transformers (architectures that add effective depth by executing shared layers repeatedly) landed three notable open-source results: [Inkling 2 Mini](https://thinkingmachines.ai/news/inkling-2-mini/) (26.4B total parameters, looping its middle 12 layers three times) scored 20.1 on the Artificial Analysis Intelligence Index, near the top of open models under 100B; NVIDIA's [Dory1.0-4B](https://arxiv.org/abs/2611.03998) raised SWE-bench Verified from 50.3 to 61.8 (+11.5 points) simply by scaling inference loops from 1 to 4 while shrinking agentic outputs to 0.40x through 0.80x; and on the vision side, [Looped-DiT](https://arxiv.org/abs/2609.40305) trained a 260M text-to-image model that beat a 6.5x larger non-looped baseline across multiple benchmarks.
 
-In engineering practice, however, reactions split sharply along role boundaries. Algorithm and small-model teams gain deeper reasoning inside single-GPU and laptop memory limits. Infrastructure teams face a very different bill: Inkling 2 Mini stores only 24 layers of weights (19.5 GB), yet the serving engine tracks 48 layers of KV cache and short-convolution states, reaching 31.2 GiB of measured VRAM at 131k context compared with 20.9 GiB for Qwen3.8-27B, while training and RL add cross-loop backpropagation, pipeline partitioning, and data-parallel sync overhead. Meanwhile, public 100B+ foundation models remain cautious: [Looped CED](https://arxiv.org/abs/2611.13378) worked out the 8-loop serving memory math on a 552B model, yet its from-scratch pretraining quality runs stopped at 340M parameters.
+In engineering practice, however, reactions split sharply along role boundaries. Algorithm and small-model teams gain deeper reasoning inside single-GPU and laptop memory limits. Infrastructure teams face a very different cost profile: Inkling 2 Mini stores only 24 layers of weights (19.5 GB), yet the serving engine tracks 48 layers of KV cache and short-convolution states, reaching 31.2 GiB of measured VRAM at 131k context compared with 20.9 GiB for Qwen3.8-27B, while training and RL add cross-loop backpropagation, pipeline partitioning, and data-parallel sync overhead. Meanwhile, public 100B+ foundation models remain cautious: [Looped CED](https://arxiv.org/abs/2611.13378) worked out the 8-loop serving memory math on a 552B model, yet its from-scratch pretraining quality runs stopped at 340M parameters.
 
 <Callout type="info" title="Evidence Scope">
 Throughout this post, we distinguish **paper and model-card measurements**, **independent evaluations and community runs**, and **architectural synthesis**. Questions still untested at 100B+ scale are kept explicitly open.
@@ -42,7 +42,7 @@ Looped Transformers (also called recurrent-depth models) move in the mirror dire
 
 This coordinate map clears up a common misconception: **recurrent depth saves only static weight storage; forward FLOPs and default KV caches still scale with effective depth.** Nor does it replace explicit CoT: CoT spreads compute over token length while recurrent depth stacks compute along network depth, and both Inkling 2 Mini and Dory1.0-4B combine the two.
 
-## From the 2018 Stall to the 2026 Reopening: Two Engineering Unlocks
+## From the 2018 Stall to the 2026 Reopening: Two Key Engineering Breakthroughs
 
 Looped Transformers first appeared in 2018 and stayed quiet for nearly seven years until two changes, **sparse routing** and **controlled cross-loop state pathways**, brought them back into active engineering.
 
@@ -67,7 +67,7 @@ Looped Transformers first appeared in 2018 and stayed quiet for nearly seven yea
   </TimelineItem>
 </Timeline>
 
-### Why Dense Looping Stalled and How MoE Bent the Slope
+### Why Dense Looping Stalled and How MoE Made Scaling Work
 
 Early [Universal Transformers](https://arxiv.org/abs/1807.03819) stalled for three reasons: repeating standard residual additions accumulates variance across passes ([LOOM](https://arxiv.org/abs/2610.01153) and Meta's [How to Loop Your Transformer](https://arxiv.org/abs/2610.40325) both document rapid saturation and reversal up to 32 loops); forcing one dense weight stack to handle lexical parsing, semantic reasoning, and final logit projection causes functional interference past 2 loops; and under iso-FLOP budgets, dense looping historically lost to growing unique parameters by $$N\times$$.
 
@@ -111,7 +111,7 @@ Switch from accuracy tables to memory occupancy, bandwidth, and cluster utilizat
 \text{KV}_{\text{global}}(1\text{M},\,\text{BF16}) = 8 \times 4096\text{ B} \times 10^6 \approx 32.8\text{ GB}
 ```
 
-Adjust context length, KV precision, and caching strategy in the interactive ledger below to see how quickly 19.5 GB of quantized weights crosses a 32 GB laptop cap, and how much headroom newer KV schemes recover:
+Adjust context length, KV precision, and caching strategy in the interactive calculator below to see how quickly 19.5 GB of quantized weights crosses a 32 GB laptop cap, and how much headroom newer KV schemes recover:
 
 <LoopKvCalculator lang="en" />
 

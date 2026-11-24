@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 418" width="960" height="418" role="img" aria-labelledby="title desc">
 <title id="title">改数据管线前先想清楚四件事</title>
-<desc id="desc">自左向右四个问题：缺卡缺数据还是缺验证信号、现在训到哪一步、语料和轨迹怎么分层验数、造数据谁来判对错并先验收判官；下方虚线框标出想反了会怎么翻车。</desc>
+<desc id="desc">自左向右四个问题：缺卡缺数据还是缺验证信号、现在训到哪一步、语料和轨迹怎么分层验数、造数据谁来判对错并先验收验证器；下方虚线框标出想反了会怎么翻车。</desc>
 <defs>
   <marker id="arrow-main" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto">
     <path d="M0 1 L9 5 L0 9 z" fill="#4f4942"/>
@@ -13,7 +13,7 @@
 <rect width="960" height="418" fill="#faf7f2"/>
 
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', Arial, sans-serif" x="480" y="34" font-size="18.5" font-weight="700" fill="#1f1d1a" text-anchor="middle">改清洗、分拣或合成策略前，先想清楚这四件事</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', Arial, sans-serif" x="480" y="57" font-size="12.5" fill="#5d574f" text-anchor="middle">上面一排是该怎么做，下面虚线是想反了、偷懒了会怎么翻车（开训前先查污染、判官与血缘）</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', Arial, sans-serif" x="480" y="57" font-size="12.5" fill="#5d574f" text-anchor="middle">上面一排是该怎么做，下面虚线是想反了、偷懒了会怎么翻车（开训前先查污染、验证器与溯源）</text>
 
 <!-- Gate 1 -->
 <rect x="34" y="82" width="206" height="150" rx="10" fill="#edf3f9" stroke="#2f5d8a" stroke-width="1.6"/>
@@ -21,7 +21,7 @@
 <line x1="34" y1="118" x2="240" y2="118" stroke="#2f5d8a" stroke-width="1"/>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="46" y="105" font-size="13" font-weight="700" fill="#1b3956">01 缺卡、缺数，还是缺裁判？</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="46" y="143" font-size="12" fill="#23201c">• 缺卡：放心做单快照去重清洗</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="46" y="167" font-size="12" fill="#23201c">• 缺数据：松阈值，建曝光账本</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="46" y="167" font-size="12" fill="#23201c">• 缺数据：松阈值，记重复轮次</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="46" y="191" font-size="12" fill="#23201c">• 缺裁判：先修验证器再扩数据</text>
 <text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="46" y="218" font-size="10.2" font-weight="600" fill="#2f5d8a">FineWeb · Bitter · Olmix</text>
 
@@ -52,7 +52,7 @@
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="105" font-size="13" font-weight="700" fill="#3f2d52">04 造数据谁来判对错？</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="143" font-size="12" fill="#23201c">• 保持信息开放：真材料注入新信息</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="167" font-size="12" fill="#23201c">• 倒推出题，堵死文本蒙答案捷径</text>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="191" font-size="12" fill="#23201c">• 判官先过 2×2 人机对照与 κ 验收</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="732" y="191" font-size="12" fill="#23201c">• 验证器先过 2×2 对照与 κ 验收</text>
 <text font-family="ui-monospace, SFMono-Regular, Menlo, monospace" x="732" y="218" font-size="10.2" font-weight="600" fill="#594170">Kimi K3 · AgentWorld · κ</text>
 
 <!-- Horizontal main flow arrows -->
@@ -77,7 +77,7 @@
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="593" y="258" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">偷懒会怎样</text>
 
 <rect x="770" y="244" width="104" height="20" rx="4" fill="#faf7f2"/>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="822" y="258" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">盲信判官会怎样</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="822" y="258" font-size="10.5" font-weight="600" fill="#b1462f" text-anchor="middle">盲信验证器会怎样</text>
 
 <!-- Failure cards -->
 <rect x="34" y="282" width="206" height="106" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
@@ -99,7 +99,7 @@
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="504" y="371" font-size="11.5" fill="#433834">了宝贵的纠错步骤和负例资产。</text>
 
 <rect x="718" y="282" width="208" height="106" rx="8" fill="#fdf2ef" stroke="#c96e59" stroke-width="1.3" stroke-dasharray="4 3"/>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="306" font-size="12" font-weight="700" fill="#9b3621">踩坑 4：封闭自嗨、判官带偏</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="306" font-size="12" font-weight="700" fill="#9b3621">踩坑 4：封闭自嗨、裁判带偏</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="329" font-size="11.5" fill="#433834">自我蒸馏信息越洗越少；光看</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="350" font-size="11.5" fill="#433834">一致率不查 κ 和位置偏见，把</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif" x="732" y="371" font-size="11.5" fill="#433834">漏洞和刷分错当成真涨分。</text>

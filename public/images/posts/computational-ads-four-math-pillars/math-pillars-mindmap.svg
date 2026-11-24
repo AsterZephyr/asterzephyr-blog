@@ -67,7 +67,7 @@
     <text x="622" y="132" fill="#6d6458" font-size="11">核心痛点: 全局 AUC 高不等于组内 GAUC 准，毛流水排序会掩盖返点净利倒挂</text>
 
     <rect x="608" y="150" width="616" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
-    <text x="622" y="170" fill="#994238" font-size="11" font-weight="700">2026 前沿撞墙</text>
+    <text x="622" y="170" fill="#994238" font-size="11" font-weight="700">2026 新问题</text>
     <text x="702" y="170" fill="#231f1a" font-size="11.5">Lost in the Funnel (2026): 漏斗选择破坏校准 (拍卖前 ECE 降 60%-71%)</text>
     <text x="622" y="188" fill="#6d6458" font-size="11">GR4AD / GPR: 纯语义 SID 碰撞 85.44%，被迫恢复确定性业务编码与校准价值头</text>
 
@@ -78,7 +78,7 @@
     <text x="622" y="258" fill="#6d6458" font-size="11">核心痛点: 切一价后如实出价失效，静态规则桶锁死高价值流量，合同定归属</text>
 
     <rect x="608" y="276" width="616" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
-    <text x="622" y="296" fill="#994238" font-size="11" font-weight="700">2026 前沿撞墙</text>
+    <text x="622" y="296" fill="#994238" font-size="11" font-weight="700">2026 新问题</text>
     <text x="702" y="296" fill="#231f1a" font-size="11.5">Google GEM-Rec (2026): 生成式解码必须显式注入出价并证明分配单调性</text>
     <text x="622" y="314" fill="#6d6458" font-size="11">Autobidding 理论 (2024-2026): 均衡 FIXP-complete 且存在混沌，堆参数解不了博弈</text>
 
@@ -89,8 +89,8 @@
     <text x="622" y="384" fill="#6d6458" font-size="11">核心痛点: 日志天然缺失非随机 (MNAR)，单日志负优势会误杀未观测合理候选</text>
 
     <rect x="608" y="402" width="616" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
-    <text x="622" y="422" fill="#994238" font-size="11" font-weight="700">2026 前沿撞墙</text>
-    <text x="702" y="422" fill="#231f1a" font-size="11.5">ABPO &amp; Better Rankers (2026): 持续 GRPO 需 IPS 锚定，单日志惩罚拉低大 K 召回</text>
+    <text x="622" y="422" fill="#994238" font-size="11" font-weight="700">2026 新问题</text>
+    <text x="702" y="422" fill="#231f1a" font-size="11.5">ABPO &amp; Better Rankers (2026): 持续 GRPO 需 IPS 纠偏，单日志惩罚拉低大 K 召回</text>
     <text x="622" y="440" fill="#6d6458" font-size="11">Time-aware IPS &amp; 影响函数 DFM (2025-2026): 曝光与时间时钟偏差独立于模型规模</text>
 
     <!-- P4 -->
@@ -100,8 +100,8 @@
     <text x="622" y="510" fill="#6d6458" font-size="11">核心痛点: 缺乏显式探索易陷局部茧房、倾向退回人工调规则，并让 IPS 失去分母</text>
 
     <rect x="608" y="528" width="616" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
-    <text x="622" y="548" fill="#994238" font-size="11" font-weight="700">2026 前沿撞墙</text>
+    <text x="622" y="548" fill="#994238" font-size="11" font-weight="700">2026 新问题</text>
     <text x="702" y="548" fill="#231f1a" font-size="11.5">GR4AD-X (2026): 单路径语义聚类锁死长尾新广告，被迫引入多路径 SID 破局</text>
-    <text x="622" y="566" fill="#6d6458" font-size="11">RL 后训练熵坍塌 (2026): 分布急剧变尖 (6.0 -&gt; 3.1 nats)，长尾探索空间收缩</text>
+    <text x="622" y="566" fill="#6d6458" font-size="11">RL 后训练熵坍塌 (2026): 输出分布过度集中 (6.0 -&gt; 3.1 nats)，长尾探索空间收缩</text>
   </g>
 </svg>

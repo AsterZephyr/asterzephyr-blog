@@ -200,43 +200,43 @@
   {
     "source": "/images/posts/looped-transformers-2026/scale-gap-100b.svg",
     "target": "/images/posts/looped-transformers-2026/scale-gap-100b-en.svg",
-    "sourceHash": "948e13239d2c3a71a879a5de680422cce80d3ec035acbfaecd78d36b764a2be0",
+    "sourceHash": "fef4500bf13aada45c3d317bb226faa4dcdd43dc8a373ad22e23ba74541a9c53",
     "targetHash": "e461e7200d656415a3ce6d87b53e86158b3edd022b02b0d614e401419f5da415"
   },
   {
     "source": "/images/posts/what-is-good-data-taste-llm-engineering-boundaries/four-boundaries-v3.svg",
     "target": "/images/posts/what-is-good-data-taste-llm-engineering-boundaries/four-boundaries-v3-en.svg",
-    "sourceHash": "322f65310455ae5a2d51968dc5ceb92d2c1485e88c2c0c4cb8e48aaf99d76d4f",
+    "sourceHash": "0fee5f10328633ead9d14c8c8d4c326f1e3f0d7cdd3fc7a165ad8f2075e3eebe",
     "targetHash": "744377a2d503c716fdd66c84cb061fab1eec89bedaaa7bfba4c16ac496aa7dae"
   },
   {
     "source": "/images/posts/open-post-training-frontiers-2026/open-post-training-map.svg",
     "target": "/images/posts/open-post-training-frontiers-2026/open-post-training-map-en.svg",
-    "sourceHash": "da6d446da89be7d19c475045b9f8836a9e1a6bfd72677d74e9601f5240718f67",
+    "sourceHash": "aa095d3dddc82d7d5e238a7b9c7ac02ef2473eb18de72269e66eaf1e4b51b4a7",
     "targetHash": "17ae055ad5406d6c7c9b764c1807ed20e461d3668a12b906f91f10c2487b0fd4"
-  },
-  {
-    "source": "/images/posts/generative-recommendation-evolution-2022-2026/gr-evolution-map.svg",
-    "target": "/images/posts/generative-recommendation-evolution-2022-2026/gr-evolution-map-en.svg",
-    "sourceHash": "662192e0053a21e7318449776f428e9edfb110d45cf6a586989a9dd1bbf2a1d9",
-    "targetHash": "44a008cde128d1cced7df8d11b08722616e7376385789be59fe0dde3b03f572e"
   },
   {
     "source": "/images/posts/computational-ads-four-math-pillars/evolution-convergence-map.svg",
     "target": "/images/posts/computational-ads-four-math-pillars/evolution-convergence-map-en.svg",
-    "sourceHash": "d82faa9abfb03983f8dc493f1f1fdb6eebf7e0b555b2d39d00bdf525a20d05b5",
+    "sourceHash": "06dc40aaf92ab4d8b20fafcfcfc03499b986f636cb4cac3e7e820ad6a6bd71f9",
     "targetHash": "232ccb8ec16a5a35a3d723d95ebea81761deb8513256183eaa15392c5259dc80"
   },
   {
     "source": "/images/posts/computational-ads-four-math-pillars/triparty-four-pillars.svg",
     "target": "/images/posts/computational-ads-four-math-pillars/triparty-four-pillars-en.svg",
-    "sourceHash": "cde7c945dc8d492432b514f654e2ed7232e120a40c355ca4dc650a106611a0ab",
+    "sourceHash": "aeab41c968342ca1f5cfb17c4ebe57f63b140bff1537568fd9891320592d8eeb",
     "targetHash": "390e338080491906c2b7ef9b0345ce2c3cd3e7eec4e37cde2d89bd27647a1baf"
   },
   {
     "source": "/images/posts/computational-ads-four-math-pillars/math-pillars-mindmap.svg",
     "target": "/images/posts/computational-ads-four-math-pillars/math-pillars-mindmap-en.svg",
-    "sourceHash": "656eb24aee9ce8c8dd6dfcfebf2399d20273dfc8b4fcae0fb0a1246af98fc155",
+    "sourceHash": "b626a147b218784b7b891db29080d6abdbf6e2286a3ccb6b1c3da725d7b25d43",
     "targetHash": "bed9c455a89ef7423d1cf1b92b182300eae55bdf869dd22c2805c19711233692"
+  },
+  {
+    "source": "/images/posts/generative-recommendation-evolution-2022-2026/gr-evolution-map.svg",
+    "target": "/images/posts/generative-recommendation-evolution-2022-2026/gr-evolution-map-en.svg",
+    "sourceHash": "b2cf9ced661edf22bd29918e83ad70c0e2f11e48437a9e0c5578c1c4156bcdd2",
+    "targetHash": "44a008cde128d1cced7df8d11b08722616e7376385789be59fe0dde3b03f572e"
   }
 ]

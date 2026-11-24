@@ -12,7 +12,7 @@
 
   <!-- Header -->
   <text x="36" y="38" fill="#86663b" font-size="11.5" font-weight="700" letter-spacing="1.4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">THREE-SIDED ROLES, SHARED PILLARS &amp; FAILURE BRANCHES</text>
-  <text x="36" y="64" fill="#231f1a" font-size="19.5" font-weight="700" font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">三边博弈位阶不同（参与者 vs. 定规则者），却共用同一套四支柱底座</text>
+  <text x="36" y="64" fill="#231f1a" font-size="19.5" font-weight="700" font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">买卖三方角色不同（出价方 vs. 定规则方），却都绕不开这四个数学问题</text>
 
   <!-- Left Column: Three Market Roles (3 core nodes) -->
   <g font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">

@@ -8,8 +8,8 @@ const isZh = lang === 'zh';
 
 const copy = isZh
   ? {
-      eyebrow: '交互式显存账本 · INKLING 2 MINI KV CACHE 测算器',
-      title: '拖动上下文长度与 KV 策略，看 19.5 GB 权重如何撞穿 32 GB 笔记本内存',
+      eyebrow: '交互式显存测算 · INKLING 2 MINI KV CACHE 开销',
+      title: '拖动上下文长度与 KV 策略，看 19.5 GB 权重如何撑爆 32 GB 笔记本内存',
       subtitle: '基于 Inkling 2 Mini 架构（20 层滑窗 1,024 + 4 层全局注意力，每层 8 KV 头 × 128 维，L11/L17 循环 3 轮），对照默认逐轮 KV、Dory 末轮 KV 与 Looped CED 压缩。',
       ctxLabel: '上下文长度',
       precLabel: 'KV 精度',
@@ -31,7 +31,7 @@ const copy = isZh
       qwenRef: '同上下文参考：131k 下 Qwen3.8-27B 实测约 20.9 GiB',
     }
   : {
-      eyebrow: 'INTERACTIVE VRAM LEDGER · INKLING 2 MINI KV CALCULATOR',
+      eyebrow: 'INTERACTIVE VRAM BREAKDOWN · INKLING 2 MINI KV CALCULATOR',
       title: 'Slide Context Length & KV Strategy to See 19.5 GB Weights Cross 32 GB RAM',
       subtitle: 'Based on Inkling 2 Mini’s exact layout (20 sliding-window 1,024 layers + 4 global layers, 8 KV heads x dim 128, L11/L17 looped 3x), contrasting default per-pass KV, Dory last-loop KV, and Looped CED.',
       ctxLabel: 'Context Length',

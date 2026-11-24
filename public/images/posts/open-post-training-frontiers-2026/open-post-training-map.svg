@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" width="1000" height="420" role="img" aria-labelledby="title desc">
 <title id="title">2026 年开源后训练的演进主线、六大开放问题与失效分支</title>
-<desc id="desc">上排四步展示开源后训练从前沿算力倒挂、基座停发后的 Post-Post-Training 切口、按算力排序的六大开放问题阶梯，到人类研究者的核心承重件；下排虚线标出对应环节的常见误判与失效分支。</desc>
+<desc id="desc">上排四步展示开源后训练从前沿算力倒挂、基座停发后的 Post-Post-Training 切口、按算力排序的六大开放问题阶梯，到人类研究者的不可替代环节；下排虚线标出对应环节的常见误判与失效分支。</desc>
 <defs>
   <marker id="arrow-main" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto">
     <path d="M0 1 L9 5 L0 9 z" fill="#4f4942"/>
@@ -49,7 +49,7 @@
 <rect x="748" y="82" width="224" height="154" rx="10" fill="#f3eff8" stroke="#634b7a" stroke-width="1.6"/>
 <path d="M758 82 H962 Q972 82 972 92 V118 H748 V92 Q748 82 758 82 Z" fill="#dfd5eb"/>
 <line x1="748" y1="118" x2="972" y2="118" stroke="#634b7a" stroke-width="1"/>
-<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="762" y="105" font-size="13" font-weight="700" fill="#3f2d52">04 人类研究者的承重件</text>
+<text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="762" y="105" font-size="13" font-weight="700" fill="#3f2d52">04 人类研究者的核心工作</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="762" y="142" font-size="11.5" fill="#23201c">• Claude 主导 26% 研发，AL5 为 0</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="762" y="166" font-size="11.5" fill="#23201c">• 编码沟通暴涨，设计决策贴零</text>
 <text font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif" x="762" y="190" font-size="11.5" fill="#23201c">• 定义问题、建基准与确立术语</text>

@@ -8,14 +8,14 @@ const isZh = lang === 'zh';
 
 const copy = isZh
   ? {
-      eyebrow: '交互式实验器 · 生成式推荐宽束推理延迟与 KV 账本',
-      title: '切换实测配置与宽束参数，看 vLLM 为什么被拖到两秒、瓶颈又在哪转移',
+      eyebrow: '交互式实验器 · 生成式推荐大束宽推理延迟与 KV 开销',
+      title: '切换实测配置与束宽参数，看 vLLM 为什么被拖到两秒、瓶颈又在哪转移',
       subtitle:
         '模式一直接展示华为 2611.23339v1 在 Ascend 910B4 上的五组 Table I 实测延迟与 100 ms 线上红线；模式二按前缀长度与束宽推演逻辑前缀重读、PagedAttention 块碎片和词表裁剪倍率。',
       modeLabel: '视图模式',
       modes: [
         { id: 'bench', label: '1. Ascend 910B4 实测延迟对照（Table I）' },
-        { id: 'math', label: '2. 宽束 KV 访存与词表裁剪账本（机制推演）' },
+        { id: 'math', label: '2. 大束宽 KV 访存与词表裁剪开销（机制推演）' },
       ],
       bench: {
         presetLabel: '实测配置预设',
@@ -36,7 +36,7 @@ const copy = isZh
               { name: '定制 vLLM（xAttention 定制核）', ttft: 33.5, decode: 26.4, e2e: 59.9, cls: 'amber' },
               { name: 'Tree Attention 静态图（无定制核）', ttft: 30.7, decode: 28.4, e2e: 59.1, cls: 'teal' },
             ],
-            verdict: '128 束宽下普通 vLLM 的 NPU 实际只算了 57.6 ms（28.8×2），却被宿主机调度拖出 208.2 ms Decode；展开三步循环后直接压回 59.1 ms，稳稳落入 100 ms 线上预算。',
+            verdict: '128 束宽下普通 vLLM 的 NPU 实际只算了 57.6 ms（28.8×2），却被 CPU 侧调度拖出 208.2 ms Decode；展开三步循环后直接压回 59.1 ms，稳稳落入 100 ms 线上预算。',
           },
           {
             id: '1.7b-512',
@@ -46,7 +46,7 @@ const copy = isZh
               { name: '定制 vLLM（xAttention 定制核）', ttft: 32.3, decode: 47.8, e2e: 80.1, cls: 'amber' },
               { name: 'Tree Attention 静态图（无定制核）', ttft: 30.9, decode: 48.1, e2e: 79.0, cls: 'teal' },
             ],
-            verdict: '512 束宽把普通 vLLM 彻底击穿到近 2 秒（1,989 ms）；Tree Attention 静态图压到 79.0 ms（25.2× 提速），虽然通用 Attention 核比 xAttention 慢 2.35 ms，但靠零 KV 重排和 21.5× 词表裁剪反而略快 1.1 ms。',
+            verdict: '512 束宽直接把普通 vLLM 拖慢到近 2 秒（1,989 ms）；Tree Attention 静态图压到 79.0 ms（25.2× 提速），虽然通用 Attention 核比 xAttention 慢 2.35 ms，但靠零 KV 重排和 21.5× 词表裁剪反而略快 1.1 ms。',
           },
           {
             id: '1.7b-10k',

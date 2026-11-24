@@ -19,13 +19,13 @@ const copy = isZh
           label: 'NVIDIA Dory1.0-4B',
           steps: ['1 轮', '2 轮', '4 轮'],
           defaultStep: 2,
-          note: '同一份 4B 权重只调推理循环次数：SWE-bench Verified 涨 11.5 分，4 轮代理输出缩至 0.40× 到 0.80×（GDPval-AA-V2 0.40×、Terminal-Bench 2.1 0.50×），而闭卷事实 AA-Omniscience 从 1 轮到 4 轮始终停在 10.0。',
+          note: '同一份 4B 权重只调推理循环次数：SWE-bench Verified 涨 11.5 分，4 轮 Agent 输出缩至 0.40× 到 0.80×（GDPval-AA-V2 0.40×、Terminal-Bench 2.1 0.50×），而闭卷事实 AA-Omniscience 从 1 轮到 4 轮始终停在 10.0。',
           gains: [
             { name: 'SWE-bench Verified', unit: '', max: 70, values: [50.3, 59.5, 61.8], delta: '+11.5 分' },
             { name: 'SciCode', unit: '', max: 45, values: [27.3, 34.9, 35.1], delta: '+7.8 分' },
           ],
           gainCallout: {
-            title: '代理输出长度压缩 (4 轮 vs 1 轮)',
+            title: 'Agent 输出长度压缩 (4 轮 vs 1 轮)',
             text: '整体缩至 0.40× 到 0.80×：GDPval-AA-V2 降至 0.40×，Terminal-Bench 2.1 降至 0.50×，显式试错转向隐空间。',
           },
           flats: [
@@ -47,7 +47,7 @@ const copy = isZh
             { name: 'GPQA Diamond CoT 长度 (1 轮 vs 5 轮)', unit: ' tok', max: 4000, values: [3703, 1661], delta: '缩短 55%' },
           ],
           gainCallout: {
-            title: 'Inkling 2 Mini 3 轮定版代码代理成绩',
+            title: 'Inkling 2 Mini 3 轮定版代码 Agent 成绩',
             text: 'SWE-bench Verified 79.2% · SWE-bench Pro v2 Hard 77.9% · DeepSWE v1.1 48.2% · N-Hop Lookup 加到 10 轮仍在涨。',
           },
           flats: [

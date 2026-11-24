@@ -2,7 +2,7 @@
 title: "Open Post-Training Frontiers: Six Problems for 2026"
 summary: "Drawing on Nathan Lambert's November 2026 Cornell talk and 16 primary papers and reports, this post examines four shifts in open language model post-training: RL compute overtaking pretraining, post-post-training taking over as base weights disappear, six open problems ordered by compute cost, and what remains human under automated R&D."
 sourceFile: "open-post-training-frontiers-2026.mdx"
-sourceHash: "5c70f4f38d01e9a2c32aafd22dd02a5ac6451dcbc0821c2c776a56fb5b460237"
+sourceHash: "8df0adb2e0c0135ebfecfbe84f81760c22ebdd99a3886c655326c73a03bba55f"
 draft: false
 ---
 
@@ -12,13 +12,13 @@ import TechGraph from '../../components/blog/TechGraph.astro'
 import PostTrainingComputeLab from '../../components/blog/PostTrainingComputeLab.astro'
 import Comparison from '../../components/blog/Comparison.astro'
 
-Post-training is the stage after pretraining that turns a next-token base model into a usable assistant or agent through supervised finetuning, preference optimization, and reinforcement learning. In late 2026, teams doing open post-training face two hard walls at once. The first is compute: frontier closed and semi-open labs have pushed reinforcement learning past $50M a year, and RL GPU-hours on several new models now exceed pretraining GPU-hours. The second is the starting checkpoint: as of November 2026, 8 of the 12 major open-weight labs stopped releasing full base models over the prior six months, shipping post-trained weights only.
+Post-training is the stage after pretraining that turns a next-token base model into a usable assistant or agent through supervised finetuning, preference optimization, and reinforcement learning. In late 2026, teams doing open post-training face two practical constraints at once. The first is compute: frontier closed and semi-open labs have pushed reinforcement learning past $50M a year, and RL GPU-hours on several new models now exceed pretraining GPU-hours. The second is the starting checkpoint: as of November 2026, 8 of the 12 major open-weight labs stopped releasing full base models over the prior six months, shipping post-trained weights only.
 
 On November 20, 2026, Nathan Lambert, former Ai2 OLMo post-training lead and executive director of the newly launched non-profit Trillium Labs, gave a 54-slide talk at Cornell University titled [*Pushing Frontiers in Open Language Model Post-Training*](https://natolambert.com/slides/2026/cornell-post-training/talk#1). He traced four years of post-training recipe shifts, the compute inversion, and the six open problems Trillium Labs plans to target. Cross-checking his dataset and the 2025 to 2026 primary reports he cites points to a clear engineering judgment: **chasing full-stack general post-training no longer adds up for non-frontier teams, yet large areas of the open literature remain empty. Smaller labs can still shift real workflows by specializing on top of post-trained weights and picking problems along the compute-intensity ladder.**
 
 <Callout type="info" title="Scope, Prerequisites, and Verification Notes">
 This piece assumes familiarity with the basic split between pretraining, supervised finetuning (SFT), and reinforcement learning (RL), and skips standard RLHF derivations (see earlier notes on [Mid-Training](/blog/LLM-Mid-Training-被Tech-Report遮掩的关键训练阶段) and [why RL for LLMs is hard](/blog/rl-for-llm-为什么强化学习训练大模型这么难)). **It is not a slide-by-slide translation, an open-model leaderboard review, or an AI governance essay.**<br />
-The structure follows Nathan Lambert's November 20, 2026 talk and its accompanying `base-model-matrix.csv`, with claims checked against primary reports for MiMo-V2-Flash, Beam, Inkling 2 Small, Harvey Tenet, Mercor+SkyRL, TMax, CLM, Open Character Training, Never Give Up, ScaleRL, and internal R&D telemetry from Anthropic and OpenAI. Analyst estimates and author judgments in the deck (such as SemiAnalysis forecast quarters and Inkling 2 Small pretraining GPU counts) are marked explicitly where cited.
+The structure follows Nathan Lambert's November 20, 2026 talk and its accompanying `base-model-matrix.csv`, with claims checked against primary reports for MiMo-V2-Flash, Beam, Inkling 2 Small, Harvey Tenet, Mercor+SkyRL, TMax, CLM, Open Character Training, Never Give Up, ScaleRL, and internal R&D usage data from Anthropic and OpenAI. Analyst estimates and author judgments in the deck (such as SemiAnalysis forecast quarters and Inkling 2 Small pretraining GPU counts) are marked explicitly where cited.
 </Callout>
 
 <TechGraph
@@ -52,7 +52,7 @@ That split-and-merge design carries clear infrastructure overhead: serving and m
 
 ### RL GPU-Hours Overtook Pretraining, but GPU-Hours Are Not FLOPs
 
-Heavier recipes flipped the compute bill at frontier labs. SemiAnalysis estimates of combined Anthropic and OpenAI compute from 1Q24 through 4Q26 show an inflection point in 4Q25, when post-training and RL (36%) first passed pretraining (32%). By 4Q26 estimates, pretraining falls from 67% to 7%, post-training and RL climb to 55%, and inference holds near 38%. The 3Q26 and 4Q26 bars are analyst estimates rather than audited lab disclosures.
+Heavier recipes flipped the compute split at frontier labs. SemiAnalysis estimates of combined Anthropic and OpenAI compute from 1Q24 through 4Q26 show an inflection point in 4Q25, when post-training and RL (36%) first passed pretraining (32%). By 4Q26 estimates, pretraining falls from 67% to 7%, post-training and RL climb to 55%, and inference holds near 38%. The 3Q26 and 4Q26 bars are analyst estimates rather than audited lab disclosures.
 
 <Figure
   src="/images/posts/open-post-training-frontiers-2026/semianalysis-compute-share.png"
@@ -249,7 +249,7 @@ Most production multi-agent setups are still bolted together at inference time. 
 
 The final third of the talk turns to a question Lambert hears constantly on campuses and inside labs. RSI stands for Recursive Self-Improvement, using AI systems to automate and accelerate AI research itself. With RSI visibly underway, **is doing a Ph.D. or open research still worth the time?**
 
-Much of the anxiety traces to internal R&D telemetry published by Anthropic and OpenAI in autumn 2026. Anthropic's November 2026 report on measuring the pace of AI development classifies internal model R&D tasks on Epoch AI's six-tier scale from AL0 (no AI) to AL5 (fully automated without human oversight). Tasks where Claude leads under human supervision (**AL4**) climbed from **1% in March 2026 to 12% in May and 26% in August**, with AL3 (collaboration) and above exceeding 90%.
+Much of the anxiety traces to internal R&D usage data published by Anthropic and OpenAI in autumn 2026. Anthropic's November 2026 report on measuring the pace of AI development classifies internal model R&D tasks on Epoch AI's six-tier scale from AL0 (no AI) to AL5 (fully automated without human oversight). Tasks where Claude leads under human supervision (**AL4**) climbed from **1% in March 2026 to 12% in May and 26% in August**, with AL3 (collaboration) and above exceeding 90%.
 
 <Figure
   src="/images/posts/open-post-training-frontiers-2026/anthropic-rd-automation-index.png"
@@ -284,7 +284,7 @@ Lambert audited his own past three years of open projects across Hugging Face an
     title: "Tülu 3 / Olmo 2 & 3 / Multi-Stage Data & Systems",
     items: [
       "Once post-training spans many stages, cross-domain data cleaning, and distributed RL infrastructure, organizational complexity and attribution difficulty do not vanish with faster coding",
-      "The load-bearing insight in a research program often occupies a tiny fraction of total lines of code and hours spent, and remains the hardest part to delegate",
+      "The decisive insight in a research program often occupies a tiny fraction of total lines of code and hours spent, and remains the hardest part to delegate",
       "Naming new technical categories (such as establishing RLVR through Tülu 3), designing reusable benchmarks, and building community consensus remain core human work"
     ]
   }}
@@ -303,7 +303,7 @@ Lambert closed with the four goals guiding **Trillium Labs**, the non-profit res
 3. **Build datasets, environments, or checkpoints that other groups reuse**, such as TMax terminal tasks or transparent models for non-profit safety research;
 4. **Change how the community frames a central bottleneck**, the hardest outcome to earn, yet far more durable than any single leaderboard run.
 
-Frontier general post-training bills will keep climbing, and major labs are unlikely to put hundred-billion-parameter base models back on the open shelf anytime soon. That leaves plenty of open ground. Starting from post-post-training on vertical workflows and harnesses, and targeting context control, character evaluation, verifiable RL environments, and reasoning efficiency where even frontier literature is thin, gives smaller teams their highest leverage in reusable evidence and infrastructure.
+Frontier general post-training costs will keep climbing, and major labs are unlikely to put hundred-billion-parameter base models back on the open shelf anytime soon. That leaves plenty of open ground. Starting from post-post-training on vertical workflows and harnesses, and targeting context control, character evaluation, verifiable RL environments, and reasoning efficiency where even frontier literature is thin, gives smaller teams their highest leverage in reusable evidence and infrastructure.
 
 ---
 

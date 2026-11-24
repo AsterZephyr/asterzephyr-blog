@@ -301,7 +301,7 @@ const payload = JSON.stringify({ isZh });
               : 'Similar to taking a log-domain median without Jensen correction: ranking order is intact, but systematic underbidding starves volume.';
           } else if (dual >= 1.25) {
             statDiag.textContent = isZh
-              ? '对偶乘子 k 过高：短期消耗冲高，但快速突破 ROAS 或 QPS 护栏，触发日内提前撞预算停投或毛利倒挂。'
+              ? '对偶乘子 k 过高：短期消耗冲高，但快速突破 ROAS 或 QPS 限制，触发日内提前撞预算停投或毛利倒挂。'
               : 'Dual multiplier k is too high: short-term spend surges past ROAS or QPS guardrails, causing early budget depletion or margin inversion.';
           } else if (dual <= 0.75) {
             statDiag.textContent = isZh

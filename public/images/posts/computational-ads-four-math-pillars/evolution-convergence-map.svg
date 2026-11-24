@@ -53,7 +53,7 @@
   <!-- Middle Convergence Band -->
   <rect x="135" y="228" width="690" height="44" rx="22" fill="#fcf3e6" stroke="#d8a866" stroke-width="1.4" stroke-dasharray="5 3" />
   <text x="480" y="255" text-anchor="middle" fill="#6b4b1f" font-size="13.5" font-weight="700" font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
-    改变的是「函数逼近容量」与「模块耦合方式」 · 不变的是「商业资源分配的四重数学硬边界」
+    改变的是「特征拟合能力」与「模块耦合方式」 · 不变的是「商业资源分配的四个数学问题」
   </text>
 
   <!-- Vertical lines from eras to band -->
@@ -72,20 +72,20 @@
   <g font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
     <!-- Pillar 1 -->
     <rect x="36" y="304" width="204" height="136" rx="10" fill="#ffffff" stroke="#c59c63" stroke-width="1.6" />
-    <text x="50" y="326" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">PILLAR 1 · 定价尺子</text>
+    <text x="50" y="326" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">PILLAR 1 · 期望定价</text>
     <text x="50" y="348" fill="#231f1a" font-size="14.5" font-weight="700">条件期望与概率校准</text>
     <text x="50" y="370" fill="#524b42" font-size="12">全期望分解 · 重尾 ZILN</text>
     <rect x="48" y="384" width="180" height="44" rx="6" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1" />
-    <text x="56" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 反噬: 选择诱发失校准</text>
+    <text x="56" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 新问题: 过滤导致失校准</text>
     <text x="56" y="418" fill="#8f362c" font-size="10.8">Lost in the Funnel · SID 碰撞</text>
 
     <!-- Pillar 2 -->
     <rect x="264" y="304" width="204" height="136" rx="10" fill="#ffffff" stroke="#c59c63" stroke-width="1.6" />
-    <text x="278" y="326" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">PILLAR 2 · 全局护栏</text>
+    <text x="278" y="326" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">PILLAR 2 · 约束控制</text>
     <text x="278" y="348" fill="#231f1a" font-size="14.5" font-weight="700">拉格朗日对偶与博弈控制</text>
     <text x="278" y="370" fill="#524b42" font-size="12">影子价格 · 预算 / ROAS / QPS</text>
     <rect x="276" y="384" width="180" height="44" rx="6" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1" />
-    <text x="284" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 反噬: 单调性与混沌边界</text>
+    <text x="284" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 新问题: 单调性与混沌</text>
     <text x="284" y="418" fill="#8f362c" font-size="10.8">GEM-Rec · FIXP / 混沌博弈</text>
 
     <!-- Pillar 3 -->
@@ -94,16 +94,16 @@
     <text x="506" y="348" fill="#231f1a" font-size="14.5" font-weight="700">反事实因果与删失纠偏</text>
     <text x="506" y="370" fill="#524b42" font-size="12">选择偏差 · 延迟归因 · 输标删失</text>
     <rect x="504" y="384" width="180" height="44" rx="6" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1" />
-    <text x="512" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 反噬: 策略自强化漂移</text>
+    <text x="512" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 新问题: 策略自强化漂移</text>
     <text x="512" y="418" fill="#8f362c" font-size="10.8">ABPO 请回 IPS · 时变去偏</text>
 
     <!-- Pillar 4 -->
     <rect x="720" y="304" width="204" height="136" rx="10" fill="#ffffff" stroke="#c59c63" stroke-width="1.6" />
-    <text x="734" y="326" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">PILLAR 4 · 生存呼吸</text>
+    <text x="734" y="326" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">PILLAR 4 · 持续探索</text>
     <text x="734" y="348" fill="#231f1a" font-size="14.5" font-weight="700">非平稳市场探索与利用</text>
     <text x="734" y="370" fill="#524b42" font-size="12">Bandit · 冷启动 · 底价探测</text>
     <rect x="732" y="384" width="180" height="44" rx="6" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1" />
-    <text x="740" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 反噬: RL 召回坍塌</text>
+    <text x="740" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 新问题: RL 召回下降</text>
     <text x="740" y="418" fill="#8f362c" font-size="10.8">单日志负优势压死腰部候选</text>
   </g>
 </svg>

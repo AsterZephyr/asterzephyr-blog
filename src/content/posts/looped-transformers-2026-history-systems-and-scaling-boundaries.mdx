@@ -18,9 +18,9 @@ import LoopedPassExplorer from '../../components/blog/LoopedPassExplorer.astro'
 import LoopCapabilityLab from '../../components/blog/LoopCapabilityLab.astro'
 import LoopKvCalculator from '../../components/blog/LoopKvCalculator.astro'
 
-2026 年 11 月，Looped Transformer（反复执行共享层以增加有效深度的架构）在开源社区交出三份代表性结果：[Inkling 2 Mini](https://thinkingmachines.ai/news/inkling-2-mini/)（26.4B 总参数、中间 12 层循环 3 次）拿到 Artificial Analysis Intelligence Index 20.1 分，进入 100B 以下开源模型前排；NVIDIA [Dory1.0-4B](https://arxiv.org/abs/2611.03998) 将推理循环从 1 次调到 4 次，SWE-bench Verified 从 50.3 升至 61.8（+11.5 分），代理输出反而缩至 0.40× 到 0.80×；视觉侧的 [Looped-DiT](https://arxiv.org/abs/2609.40305) 用 260M 参数在多项文生图基准上超过 6.5 倍大的非循环基线。
+2026 年 11 月，Looped Transformer（反复执行共享层以增加有效深度的架构）在开源社区交出三份代表性结果：[Inkling 2 Mini](https://thinkingmachines.ai/news/inkling-2-mini/)（26.4B 总参数、中间 12 层循环 3 次）拿到 Artificial Analysis Intelligence Index 20.1 分，进入 100B 以下开源模型前排；NVIDIA [Dory1.0-4B](https://arxiv.org/abs/2611.03998) 将推理循环从 1 次调到 4 次，SWE-bench Verified 从 50.3 升至 61.8（+11.5 分），Agent 输出长度反而缩短到原来的 0.40 到 0.80 倍；视觉侧的 [Looped-DiT](https://arxiv.org/abs/2609.40305) 用 260M 参数在多项文生图基准上超过 6.5 倍大的非循环基线。
 
-但放回工程现场，三类角色的体感明显分裂。算法和小模型团队拿到了单卡与笔记本内存内可装下的更深推理；Infra 团队看到的却是另一本账，Inkling 2 Mini 只存 24 层权重（19.5 GB），引擎却要维护 48 层 KV Cache 与短卷积状态，131k 上下文实测显存 31.2 GiB，高于 Qwen3.8-27B（20.9 GiB），训练和 RL 还多了跨轮反传、PP 切分与 DP 同步问题；100B+ 大基模团队则大多按兵不动，[Looped CED](https://arxiv.org/abs/2611.13378) 在 552B 模型上算清了 8 轮循环的显存账，从头预训练的质量验证却只跑到 340M。
+但放回工程现场，三类团队的感受完全不同。算法和小模型团队在单卡和笔记本内存里拿到了更深的推理能力；Infra 团队看到的却是另一套开销：Inkling 2 Mini 只存 24 层权重（19.5 GB），引擎却要维护 48 层 KV Cache 与短卷积状态，131k 上下文实测显存 31.2 GiB，高于 Qwen3.8-27B（20.9 GiB），训练和 RL 还多了跨轮反传、PP 切分与 DP 同步问题；100B+ 大模型团队则大多保持观望，[Looped CED](https://arxiv.org/abs/2611.13378) 在 552B 模型上测算了 8 轮循环的显存占用，从头预训练的质量验证却只跑到 340M。
 
 <Callout type="info" title="阅读口径">
 本文区分**论文与官方模型卡数据**、**第三方评测与社区实测**以及**机制整理**。尚未在 100B+ 规模公开验证的问题如实留作待定。
@@ -40,9 +40,9 @@ Looped Transformer（又称 Recurrent Depth）走的是稀疏 MoE 的反方向�
 
 看清这张坐标图，就能避开一个常见误解：**循环深度省下来的只有静态权重存储，前向 FLOPs 和默认设计的 KV Cache 一样要按有效深度支付。** 它和显式 CoT 也并非替代关系：CoT 把算力沿序列长度摊开，循环深度把算力沿网络深度叠加，Inkling 2 Mini 与 Dory1.0-4B 实际都在同时使用两者。
 
-## 从 2018 停滞到 2026 重开：两次工程解锁
+## 从 2018 年停滞到 2026 年重启：两项关键工程突破
 
-循环架构早在 2018 年就已提出，沉寂近七年后，靠**稀疏路由**与**可控跨轮状态通路**两项工程改造才回到主线视野。
+循环架构早在 2018 年就已提出，沉寂近七年后，靠**稀疏路由**与**跨轮状态门控**两项改动才重新回到主流研究里。
 
 <Timeline>
   <TimelineItem date="2018-07" label="Universal Transformer">
@@ -61,23 +61,23 @@ Looped Transformer（又称 Recurrent Depth）走的是稀疏 MoE 的反方向�
     <a href="https://arxiv.org/abs/2605.09165">Sparse Layers Critical</a>、<a href="https://arxiv.org/abs/2606.04438">LoopMoE</a>、<a href="https://arxiv.org/abs/2607.16051">Loopie</a>、<a href="https://arxiv.org/abs/2609.35751">Foil</a>、<a href="https://arxiv.org/abs/2610.01153">LOOM</a> 与 Meta <a href="https://arxiv.org/abs/2610.40325">How to Loop Your Transformer</a> 定位了稠密循环失效原因，补齐稀疏路由与跨轮稳定化设计。
   </TimelineItem>
   <TimelineItem date="2026-11" label="工程落地与系统补课" active>
-    <a href="https://arxiv.org/abs/2611.03998">Dory1.0-4B</a>、<a href="https://arxiv.org/abs/2611.05234">ARLoop</a> 与 <a href="https://thinkingmachines.ai/news/inkling-2-mini/">Inkling 2 Mini</a> 在代码代理上出分；同月 <a href="https://arxiv.org/abs/2611.13378">Looped CED</a>、<a href="https://arxiv.org/abs/2611.19649">LoopFill</a>、<a href="https://arxiv.org/abs/2611.24301">LoopCache</a>、<a href="https://arxiv.org/abs/2611.24576">Late Entry</a> 集中处理 KV 与解码延迟。
+    <a href="https://arxiv.org/abs/2611.03998">Dory1.0-4B</a>、<a href="https://arxiv.org/abs/2611.05234">ARLoop</a> 与 <a href="https://thinkingmachines.ai/news/inkling-2-mini/">Inkling 2 Mini</a> 在代码 Agent 基准上拿到明显提分；同月 <a href="https://arxiv.org/abs/2611.13378">Looped CED</a>、<a href="https://arxiv.org/abs/2611.19649">LoopFill</a>、<a href="https://arxiv.org/abs/2611.24301">LoopCache</a>、<a href="https://arxiv.org/abs/2611.24576">Late Entry</a> 集中处理 KV 与解码延迟。
   </TimelineItem>
 </Timeline>
 
-### 为什么稠密循环长期跑不起来，而 MoE 扭转了斜率
+### 为什么稠密循环长期跑不通，换成 MoE 就有效了
 
 早期 [Universal Transformer](https://arxiv.org/abs/1807.03819) 停滞的根源有三点：标准残差反复叠加引发方差漂移（[LOOM](https://arxiv.org/abs/2610.01153) 与 Meta [How to Loop Your Transformer](https://arxiv.org/abs/2610.40325) 测至 32 轮均记录到收益很快饱和甚至反转）；浅层词法、中层语义与深层投影强塞进同一套稠密权重产生功能冲突，朴素稠密循环多卡死在 2 轮；同等预训练 FLOPs 下，稠密循环长期打不过直接把参数扩到 $$N$$ 倍。
 
-2026 年扭转斜率的第一项改动是换成 MoE 骨干。[Sparse Layers are Critical to Scaling Looped Language Models](https://arxiv.org/abs/2605.09165) 的四路对照证实：稠密循环斜率输给标准基线，Looped-MoE 反而胜出。核心机制是**跨轮路由分化（Routing Divergence）**，物理层虽然共享，路由器在 1、2、3 轮面对演进中的隐状态会激活不同专家子集，从同一专家池里拼出多条有效计算路径。
+2026 年打破这个瓶颈的第一项改动是换成 MoE 主干。[Sparse Layers are Critical to Scaling Looped Language Models](https://arxiv.org/abs/2605.09165) 的四路对照证实：稠密循环的扩展效率输给标准基线，Looped-MoE 反而胜出。核心机制是**跨轮路由分化（Routing Divergence）**，物理层虽然共享，路由器在 1、2、3 轮面对演进中的隐状态会激活不同专家子集，从同一专家池里拼出多条有效计算路径。
 
-随后的四篇工作补齐了细节：[LoopMoE](https://arxiv.org/abs/2606.04438) 在总参数和单 token FLOPs 严格对齐下，靠 `IterAdaLN` 调制将相对 Vanilla MoE 的优势从 3B 的 1+ 分扩到 9B 的约 3 分；[Loopie](https://arxiv.org/abs/2607.16051)（20B-A2B）等算力跑赢 30B-A3B 非循环基线；[Foil](https://arxiv.org/abs/2609.35751) 通过压扁专家层、解绑每轮注意力在 100B tokens 上把 loss 压低 0.012 nat；[LOOM](https://arxiv.org/abs/2610.01153) 为每轮配独立路由器并加残差缩放与 EMA，克服专家选择坍缩，在 100M 到 1.7B 上把稳定循环推到 9 至 12 轮（1.7B 9 轮困惑度从 9.62 降至 7.77）。
+随后的四篇工作补齐了细节：[LoopMoE](https://arxiv.org/abs/2606.04438) 在总参数和单 token FLOPs 严格对齐下，靠 `IterAdaLN` 调制将相对 Vanilla MoE 的优势从 3B 的 1+ 分扩到 9B 的约 3 分；[Loopie](https://arxiv.org/abs/2607.16051)（20B-A2B）等算力跑赢 30B-A3B 非循环基线；[Foil](https://arxiv.org/abs/2609.35751) 把专家层做宽压扁、让每轮循环使用独立的注意力权重在 100B tokens 上把 loss 压低 0.012 nat；[LOOM](https://arxiv.org/abs/2610.01153) 为每轮配独立路由器并加残差缩放与 EMA，克服专家选择坍缩，在 100M 到 1.7B 上把稳定循环推到 9 至 12 轮（1.7B 9 轮困惑度从 9.62 降至 7.77）。
 
 ### 只循环中间层，并用门控稳住跨轮状态
 
 有了 MoE 路由后，循环放在哪一段、跨轮状态如何传，决定了模型能否稳训到万亿 token。2026 年 11 月的 [Inkling 2 Mini](https://thinkingmachines.ai/news/inkling-2-mini/)、[Dory1.0-4B](https://arxiv.org/abs/2611.03998) 与 [ARLoop](https://arxiv.org/abs/2611.05234) 全部收敛到 **Prelude-Core-Coda** 结构。
 
-对照 [Model Card](https://thinkingmachines.ai/model-card/inkling-2-mini) 与 [vLLM 工程博客](https://vllm.ai/blog/2026-11-20-inkling2-mini)，Inkling 2 Mini 只循环中间 12 层（28 项评测里 27 项赢过循环最后 12 层），第 2、3 轮保留 Prelude 基线并通过 Kimi 风格的 [Attention Residuals](https://arxiv.org/abs/2603.15031)（[ARLoop](https://arxiv.org/abs/2611.05234) 也独立验证了滑动窗口深度注意力）读取上一轮块级状态 $$m$$，再经秩为 64、初始关闭的门控融进每个子层输入：
+对照 [Model Card](https://thinkingmachines.ai/model-card/inkling-2-mini) 与 [vLLM 工程博客](https://vllm.ai/blog/2026-11-20-inkling2-mini)，Inkling 2 Mini 只循环中间 12 层（28 项评测里 27 项赢过循环最后 12 层），第 2、3 轮保留 Prelude 基线并通过 Kimi 风格的 [Attention Residuals](https://arxiv.org/abs/2603.15031)（[ARLoop](https://arxiv.org/abs/2611.05234) 也独立验证了跨层滑动窗口注意力）读取上一轮块级状态 $$m$$，再经秩为 64、初始关闭的门控融进每个子层输入：
 
 ```math
 \begin{aligned}
@@ -96,7 +96,7 @@ ByteDance Seed 的 [Ouro](https://arxiv.org/abs/2510.25741)（1.4B/2.6B，7.7T t
 
 <LoopCapabilityLab lang="zh" />
 
-跨模态对比同样清晰。文生图里的 [Looped-DiT](https://arxiv.org/abs/2609.40305) 加入中间轮深度监督和自调制注意力后，260M 模型就能超过 6.5 倍大基线且推理计算量低 4.9 倍（注：社区指出其与部分外部基线训练时长未严格对齐，但论文内部等算力消融同样明显）。T2I 比开放域 LLM 更容易出干净收益，核心在于两点：
+跨模态对比同样清晰。文生图里的 [Looped-DiT](https://arxiv.org/abs/2609.40305) 加入中间轮深度监督和自调制注意力后，260M 模型就能超过 6.5 倍大基线且推理计算量低 4.9 倍（注：社区指出其与部分外部基线训练时长未严格对齐，但论文内部等算力消融同样明显）。文生图比开放域大语言模型更容易拿到稳定收益，核心在于两点：
 
 1. **中间监督天然明确**：图像去噪每轮都对齐同一个清晰目标，局部偏差可直接纠偏；自回归文本里绝大多数 token 只是语法衔接，真正需要多步隐规划的高难决策点非常稀疏。
 2. **深度饱和与后训练门槛**：开放域文本在 3 到 4 轮后边际收益迅速收窄，想把更深循环用出效果极度依赖长程数据与后训练配方。Dory1.0-4B 在 RLVR 引入按难度分配轮次的课程；Inkling 2 Mini 先训 384 专家、mid-training 剪枝至 128 专家，再靠内部更大模型蒸馏 1T tokens 恢复，最后叠加 2.2T tokens（2,000 步）RL 与 on-policy distillation。
@@ -109,13 +109,13 @@ ByteDance Seed 的 [Ouro](https://arxiv.org/abs/2510.25741)（1.4B/2.6B，7.7T t
 \text{KV}_{\text{global}}(1\text{M},\,\text{BF16}) = 8 \times 4096\text{ B} \times 10^6 \approx 32.8\text{ GB}
 ```
 
-拖动下方测算器里的上下文长度、KV 精度与缓存策略，可以看到 19.5 GB 权重如何迅速撞穿 32 GB 笔记本物理上限，以及新系统方法能把它压回多少：
+拖动下方测算器里的上下文长度、KV 精度与缓存策略，可以看到 19.5 GB 权重如何迅速撑爆 32 GB 笔记本内存上限，以及新系统方法能把它压回多少：
 
 <LoopKvCalculator lang="zh" />
 
-社区实测迅速印证了这笔账：131k 上下文下 Inkling 2 Mini 占约 31.2 GiB，高于 Qwen3.8-27B（20.9 GiB）；48 次层访问加跨轮门控把前向切得很碎，Apple Silicon MLX 仅靠减少小 kernel 启动就把解码从 47 提到 70 tok/s，RTX 4080 16GB、RTX PRO 5000 与 DGX Spark 上单流速度落在 34 到 71 tok/s，3 层 DSpark 投机解码在代码上提速约 12%，在自由文本上反慢 28% 到 30%。输出长度也呈两面性：受控消融能大幅缩短 CoT，但在 Artificial Analysis 全榜单上，Inkling 2 Mini 追平 Qwen3.8-27B（Index 20）时代理计算量低约 2.8 倍，输出 token 却多约 38%（152k 对 110k）。
+社区实测很快印证了这一点：131k 上下文下 Inkling 2 Mini 占约 31.2 GiB，高于 Qwen3.8-27B（20.9 GiB）；48 次层访问加跨轮门控把前向计算切得很碎，Apple Silicon MLX 仅靠减少小 kernel 启动就把解码从 47 提到 70 tok/s，RTX 4080 16GB、RTX PRO 5000 与 DGX Spark 上单流速度落在 34 到 71 tok/s，3 层 DSpark 投机解码在代码上提速约 12%，在自由文本上反慢 28% 到 30%。输出长度也呈两面性：受控消融能大幅缩短 CoT，但在 Artificial Analysis 全榜单上，Inkling 2 Mini 追平 Qwen3.8-27B（Index 20）时 Agent 评测的总计算量低约 2.8 倍，输出 token 却多约 38%（152k 对 110k）。
 
-集群训练与 RL 侧还有三重摩擦：跨 $$R$$ 轮反传的激活显存按 $$R$$ 倍涨（[LOOM](https://arxiv.org/abs/2610.01153) 每 3 轮截断梯度以把 350M 显存压在 12.6 GiB）；共享中间层打破流水线并行（PP）的有向无环切分；变深循环放大 DP 同步等待与 RL rollout 尾延迟，且 token 级早退容易截断深层历史 KV。
+集群训练与 RL 侧还有三个工程难题：跨 $$R$$ 轮反传的激活显存按 $$R$$ 倍涨（[LOOM](https://arxiv.org/abs/2610.01153) 每 3 轮截断梯度以把 350M 显存压在 12.6 GiB）；共享中间层打破流水线并行（PP）的有向无环切分；变深循环放大 DP 同步等待与 RL rollout 尾延迟，且 token 级早退容易截断深层历史 KV。
 
 针对 KV 膨胀与串行解码瓶颈，2026 年 11 月系统社区集中交出了四条解法：
 
@@ -126,27 +126,27 @@ ByteDance Seed 的 [Ouro](https://arxiv.org/abs/2510.25741)（1.4B/2.6B，7.7T t
   <Card title="2. 编码器不动点共享 (Looped CED)" icon="chart">
     [Looped CED](https://arxiv.org/abs/2611.13378) 在非对称编码器-解码器里只循环生成全局 KV 的编码器并共享末轮缓存，以 1/6 全局 KV 拿回 86% 到 93% 收益；552B 模拟把单 token KV 压小 36.8×，单台 4×GB200 从装不下 1 条 128K 请求变成并发 38 条，8K prompt 吞吐升 3.6×。
   </Card>
-  <Card title="3. 波前自投机与槽位轮转 (LoopFill / LoopCache)" icon="bolt">
+  <Card title="3. 流水线自投机与槽位轮转 (LoopFill / LoopCache)" icon="bolt">
     [LoopFill](https://arxiv.org/abs/2611.19649) 合并浅轮预测与后缀草稿，在 Ouro-2.6B/Huginn-3.5B 上免训练无损提速 5.85×/5.13×；[LoopCache](https://arxiv.org/abs/2611.24301) 改按单轮周期轮转 KV 槽位，相对 WFD/LoopSpec 提速 10.25×/14.56×。
   </Card>
-  <Card title="4. 深缓存入口与算子融合 (Late Entry / vLLM)" icon="code">
+  <Card title="4. 跳过浅轮直入深层与算子融合 (Late Entry / vLLM)" icon="code">
     [Late Entry](https://arxiv.org/abs/2611.24576) 让新 token 跳过浅轮直接进入最后 $$K < T$$ 轮读深缓存，已提交 token 异步补算 $$1 \to T$$ 轮，在 Ouro-2.6B（$$T=4$$）/Huginn-3.5B（$$T=64$$）上提速 5.2×/8.4×；[vLLM](https://vllm.ai/blog/2026-11-20-inkling2-mini) 则融合跨轮读取与 FP32 rank-64 门控降低调度开销。
   </Card>
 </CardGrid>
 
-## 为什么 100B+ 大基模依然克制，以及 CoT 可监控性隐忧
+## 为什么 100B+ 大模型依然谨慎，以及思维链可监控性隐忧
 
 截至 2026 年 11 月，公开世界里仍没有一个从头预训练并完成质量验证的 100B 到 1T 循环基础模型。把 2026 年公开工作按规模排开，质量验证集中在 1.2B 到 26.4B，552B 仅算清了推理显存：
 
 <TechGraph
   src="/images/posts/looped-transformers-2026/scale-gap-100b.svg"
   title="THE LATE-2026 SCALE DISCONTINUITY"
-  caption="2026 年底循环模型的规模断层与 100B+ 大基模团队保持克制的四条未解约束"
+  caption="2026 年底循环模型的规模断层与 100B+ 大模型团队保持谨慎的四条未解约束"
 />
 
-算力与系统之外，Inkling 2 Mini 还把 **CoT 可监控性**推到了台前。Thinking Machines 释放了 `TML-d24-varloop-research`，配合 [NDIF](https://ndif.us/) 与 [Goodfire](https://www.goodfire.com/research/interpreting-inkling-2-mini/) 做白盒测试。26B 实测呈两面性：循环确实抬高了静默推理能力（Think Fast 16 秒升至 37 秒，GPQA 5 轮平均 CoT 从 3,703 缩至 1,661 tokens），但变短的 CoT 仍保持可读（主要是回溯减少），LinuxArena 控制测试与 CoT 审计也未见明显退化。官方同时明确限定：**26B 上成立的结论，随规模扩大未必继续成立。** 若千亿级闭源模型把大量多步规划移入潜空间，文本 CoT 审计会在白盒监测成熟之前先失效。
+算力与系统之外，Inkling 2 Mini 还把 **CoT 可监控性**推到了台前。Thinking Machines 开源了 `TML-d24-varloop-research`，配合 [NDIF](https://ndif.us/) 与 [Goodfire](https://www.goodfire.com/research/interpreting-inkling-2-mini/) 做白盒测试。26B 实测呈两面性：循环确实抬高了不写思维链时的内部推理能力（Think Fast 16 秒升至 37 秒，GPQA 5 轮平均 CoT 从 3,703 缩至 1,661 tokens），但变短的 CoT 仍保持可读（主要是回溯减少），LinuxArena 控制测试与 CoT 审计也未见明显退化。官方同时明确限定：**26B 上成立的结论，随规模扩大未必继续成立。** 若千亿级闭源模型把大量多步规划移入潜空间，文本 CoT 审计会在白盒监测成熟之前先失效。
 
-## 2026 年底的真实坐标
+## 2026 年底的工程现状
 
 回顾八年演进与 2026 年 11 月的集中发布，Looped Transformer 的工程定位可以归结为四点：
 
@@ -155,13 +155,13 @@ ByteDance Seed 的 [Ouro](https://arxiv.org/abs/2510.25741)（1.4B/2.6B，7.7T t
     MoE 路由分化打破稠密对称性，Prelude-Core-Coda 与门控跨轮状态稳住万亿 token 训练，循环深度已走出玩具阶段。
   </StepItem>
   <StepItem title="能力增益高度不对称">
-    它放大串行推理、多跳检索与代码代理深度，闭卷事实容量基本不随循环次数增长，重事实场景仍需更大参数或外挂搜索。
+    它放大串行推理、多跳检索与代码 Agent 的多步执行深度，闭卷事实容量基本不随循环次数增长，重事实场景仍需更大参数或外挂搜索。
   </StepItem>
   <StepItem title="架构必须与系统协同设计">
-    静态权重省下的字节默认会变成 KV、带宽与调度账单，必须配合末轮/不动点 KV、波前或 Late Entry 解码以及算子融合一起落地。
+    静态权重省下的显存默认会转嫁成 KV 缓存、显存带宽和算子调度开销，必须配合末轮或不动点 KV、流水线自投机或 Late Entry 解码以及算子融合一起落地。
   </StepItem>
-  <StepItem title="100B+ 旗舰基模的账仍未算完">
-    在出现不依赖更大教师蒸馏、原生带恒定 KV、且在 100B+ 与数十万亿 token 上等算力胜过顶级稀疏 MoE 的公开实证之前，大基模团队保持克制仍是理性的工程选择。
+  <StepItem title="100B+ 旗舰大模型尚未跑通实证">
+    在出现不依赖更大教师蒸馏、原生带恒定 KV、且在 100B+ 与数十万亿 token 上等算力胜过顶级稀疏 MoE 的公开实证之前，大模型团队暂时观望仍是稳妥的工程选择。
   </StepItem>
 </Steps>
 
