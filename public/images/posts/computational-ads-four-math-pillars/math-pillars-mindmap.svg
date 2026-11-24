@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1260 620" width="1260" height="620" role="img" aria-label="计算广告底层四大数学支柱全景思维导图：从历史主线、三边生态到 2026 Scaling 与生成式广告的映射">
+  <rect width="1260" height="620" rx="14" fill="#fbf9f5" stroke="#e4ddd0" stroke-width="1.5" />
+
+  <!-- Header -->
+  <text x="36" y="36" fill="#86663b" font-size="11.5" font-weight="700" letter-spacing="1.4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">COMPUTATIONAL ADVERTISING · FOUR MATHEMATICAL PILLARS MINDMAP</text>
+  <text x="36" y="62" fill="#231f1a" font-size="19.5" font-weight="700" font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">计算广告底层数学思维导图：无论精排 Scaling 还是生成式广告，都绕不开这四棵分支</text>
+
+  <!-- Curved Mindmap Branches -->
+  <g fill="none" stroke-width="2.4" stroke-linecap="round">
+    <path d="M 226 334 C 266 334, 266 146, 310 146" stroke="#b5813d" />
+    <path d="M 226 334 C 266 334, 266 272, 310 272" stroke="#2d6647" />
+    <path d="M 226 334 C 266 334, 266 398, 310 398" stroke="#2b527a" />
+    <path d="M 226 334 C 266 334, 266 524, 310 524" stroke="#994238" />
+  </g>
+
+  <g fill="none" stroke-width="1.6" stroke-linecap="round">
+    <path d="M 550 146 C 578 146, 580 118, 608 118" stroke="#c89e64" />
+    <path d="M 550 146 C 578 146, 580 174, 608 174" stroke="#c89e64" />
+    <path d="M 550 272 C 578 272, 580 244, 608 244" stroke="#5d9474" />
+    <path d="M 550 272 C 578 272, 580 300, 608 300" stroke="#5d9474" />
+    <path d="M 550 398 C 578 398, 580 370, 608 370" stroke="#5c82a8" />
+    <path d="M 550 398 C 578 398, 580 426, 608 426" stroke="#5c82a8" />
+    <path d="M 550 524 C 578 524, 580 496, 608 496" stroke="#c06c62" />
+    <path d="M 550 524 C 578 524, 580 552, 608 552" stroke="#c06c62" />
+  </g>
+
+  <!-- Root Node -->
+  <g font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
+    <rect x="34" y="256" width="192" height="156" rx="14" fill="#231f1a" stroke="#86663b" stroke-width="2" />
+    <text x="130" y="286" text-anchor="middle" fill="#e5c590" font-size="11" font-weight="700" font-family="ui-monospace, monospace">2002 - 2026 INVARIANT</text>
+    <text x="130" y="314" text-anchor="middle" fill="#ffffff" font-size="16.5" font-weight="700">计算广告本质</text>
+    <text x="130" y="340" text-anchor="middle" fill="#efe6d5" font-size="12.5">不完全信息下的</text>
+    <text x="130" y="360" text-anchor="middle" fill="#efe6d5" font-size="12.5">多边受约束资源分配</text>
+    <line x1="56" y1="376" x2="204" y2="376" stroke="#5c5144" stroke-width="1" />
+    <text x="130" y="396" text-anchor="middle" fill="#d3b482" font-size="11">DSP · ADX · SSP · 一体平台</text>
+  </g>
+
+  <!-- Level 1: Four Pillar Nodes -->
+  <g font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
+    <rect x="310" y="102" width="240" height="88" rx="10" fill="#fcf5ea" stroke="#b5813d" stroke-width="1.6" />
+    <text x="326" y="125" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">01 · 条件期望与概率校准</text>
+    <text x="326" y="149" fill="#231f1a" font-size="14" font-weight="700">把排序分变成可定价的概率</text>
+    <text x="326" y="172" fill="#5b5449" font-size="11.8">全期望拆解 · 经验贝叶斯 · 重尾 ZILN</text>
+
+    <rect x="310" y="228" width="240" height="88" rx="10" fill="#eef5f0" stroke="#2d6647" stroke-width="1.6" />
+    <text x="326" y="251" fill="#2d6647" font-size="11" font-weight="700" font-family="ui-monospace, monospace">02 · 拉格朗日对偶与控制</text>
+    <text x="326" y="275" fill="#1e3d2b" font-size="14" font-weight="700">把全局约束化成单次影子价</text>
+    <text x="326" y="298" fill="#3c5a47" font-size="11.8">预算 / ROAS / QPS / 广告加载率</text>
+
+    <rect x="310" y="354" width="240" height="88" rx="10" fill="#eef3f8" stroke="#2b527a" stroke-width="1.6" />
+    <text x="326" y="377" fill="#2b527a" font-size="11" font-weight="700" font-family="ui-monospace, monospace">03 · 反事实因果与删失纠偏</text>
+    <text x="326" y="401" fill="#1a344f" font-size="14" font-weight="700">修复非随机缺失的观测日志</text>
+    <text x="326" y="424" fill="#3a526c" font-size="11.8">ESMM · DFM 延迟 · 输标/底价删失</text>
+
+    <rect x="310" y="480" width="240" height="88" rx="10" fill="#fdf1ef" stroke="#994238" stroke-width="1.6" />
+    <text x="326" y="503" fill="#994238" font-size="11" font-weight="700" font-family="ui-monospace, monospace">04 · 非平稳探索与利用</text>
+    <text x="326" y="527" fill="#5e231c" font-size="14" font-weight="700">对抗漂移市场与数据信息茧房</text>
+    <text x="326" y="550" fill="#7a3b33" font-size="11.8">Bandit · 新供给冷启动 · 倾向分母</text>
+  </g>
+
+  <!-- Level 2: Widened Leaf Cards (width=616, x=608..1224) -->
+  <g font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
+    <!-- P1 -->
+    <rect x="608" y="94" width="616" height="46" rx="8" fill="#ffffff" stroke="#dfd3be" stroke-width="1.2" />
+    <text x="622" y="114" fill="#86663b" font-size="11" font-weight="700">三边角色落地</text>
+    <text x="702" y="114" fill="#231f1a" font-size="11.5">DSP 算 pCTR·pCVR·pLTV | ADX 算净利期望 | SSP 估买方出价分布</text>
+    <text x="622" y="132" fill="#6d6458" font-size="11">核心痛点: 全局 AUC 高不等于组内 GAUC 准，毛流水排序会掩盖返点净利倒挂</text>
+
+    <rect x="608" y="150" width="616" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
+    <text x="622" y="170" fill="#994238" font-size="11" font-weight="700">2026 前沿撞墙</text>
+    <text x="702" y="170" fill="#231f1a" font-size="11.5">Lost in the Funnel (2026): 漏斗选择破坏校准 (拍卖前 ECE 降 60%-71%)</text>
+    <text x="622" y="188" fill="#6d6458" font-size="11">GR4AD / GPR: 纯语义 SID 碰撞 85.44%，被迫恢复确定性业务编码与校准价值头</text>
+
+    <!-- P2 -->
+    <rect x="608" y="220" width="616" height="46" rx="8" fill="#ffffff" stroke="#c5dacd" stroke-width="1.2" />
+    <text x="622" y="240" fill="#2d6647" font-size="11" font-weight="700">三边角色落地</text>
+    <text x="702" y="240" fill="#231f1a" font-size="11.5">DSP 最优反应控预算/ROAS | ADX/SSP 机制设计定规则、配额与底价</text>
+    <text x="622" y="258" fill="#6d6458" font-size="11">核心痛点: 切一价后如实出价失效，静态规则桶锁死高价值流量，合同定归属</text>
+
+    <rect x="608" y="276" width="616" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
+    <text x="622" y="296" fill="#994238" font-size="11" font-weight="700">2026 前沿撞墙</text>
+    <text x="702" y="296" fill="#231f1a" font-size="11.5">Google GEM-Rec (2026): 生成式解码必须显式注入出价并证明分配单调性</text>
+    <text x="622" y="314" fill="#6d6458" font-size="11">Autobidding 理论 (2024-2026): 均衡 FIXP-complete 且存在混沌，堆参数解不了博弈</text>
+
+    <!-- P3 -->
+    <rect x="608" y="346" width="616" height="46" rx="8" fill="#ffffff" stroke="#c3d4e6" stroke-width="1.2" />
+    <text x="622" y="366" fill="#2b527a" font-size="11" font-weight="700">三边角色落地</text>
+    <text x="702" y="366" fill="#231f1a" font-size="11.5">DSP 缺输标对手价与延迟转化 | ADX 缺未下发反馈 | SSP 缺流拍真实出价</text>
+    <text x="622" y="384" fill="#6d6458" font-size="11">核心痛点: 日志天然缺失非随机 (MNAR)，单日志负优势会误杀未观测合理候选</text>
+
+    <rect x="608" y="402" width="616" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
+    <text x="622" y="422" fill="#994238" font-size="11" font-weight="700">2026 前沿撞墙</text>
+    <text x="702" y="422" fill="#231f1a" font-size="11.5">ABPO &amp; Better Rankers (2026): 持续 GRPO 需 IPS 锚定，单日志惩罚拉低大 K 召回</text>
+    <text x="622" y="440" fill="#6d6458" font-size="11">Time-aware IPS &amp; 影响函数 DFM (2025-2026): 曝光与时间时钟偏差独立于模型规模</text>
+
+    <!-- P4 -->
+    <rect x="608" y="472" width="616" height="46" rx="8" fill="#ffffff" stroke="#e6c8c3" stroke-width="1.2" />
+    <text x="622" y="492" fill="#994238" font-size="11" font-weight="700">三边角色落地</text>
+    <text x="702" y="492" fill="#231f1a" font-size="11.5">DSP 新计划冷启动扶持 | ADX 空白供给探测 | SSP 动态底价试探买方意愿</text>
+    <text x="622" y="510" fill="#6d6458" font-size="11">核心痛点: 缺乏显式探索易陷局部茧房、倾向退回人工调规则，并让 IPS 失去分母</text>
+
+    <rect x="608" y="528" width="616" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
+    <text x="622" y="548" fill="#994238" font-size="11" font-weight="700">2026 前沿撞墙</text>
+    <text x="702" y="548" fill="#231f1a" font-size="11.5">GR4AD-X (2026): 单路径语义聚类锁死长尾新广告，被迫引入多路径 SID 破局</text>
+    <text x="622" y="566" fill="#6d6458" font-size="11">RL 后训练熵坍塌 (2026): 分布急剧变尖 (6.0 -&gt; 3.1 nats)，长尾探索空间收缩</text>
+  </g>
+</svg>

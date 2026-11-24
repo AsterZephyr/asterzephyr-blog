@@ -1,0 +1,354 @@
+---
+title: "Twenty Years of Ad Tech: Four Unchanged Math Pillars"
+date: 2026-11-24
+tags: [广告与推荐, 技术报告解读]
+summary: "Tracing computational advertising from 2002 search auctions to 2026 multi-billion-parameter rankers and generative ads, examining what DSP buyers, ADX exchanges, and SSP sellers actually solve and why four core math problems remain."
+draft: false
+sourceFile: "computational-ads-four-math-pillars.mdx"
+sourceHash: "fdafb94baa23e8bfef68efd5e4189248ea6fd0ef314188cf2162b619cf180e63"
+---
+
+import AdPillarsLab from '../../components/blog/AdPillarsLab.astro'
+import Callout from '../../components/blog/Callout.astro'
+import Comparison from '../../components/blog/Comparison.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+import Timeline from '../../components/blog/Timeline.astro'
+import TimelineItem from '../../components/blog/TimelineItem.astro'
+
+Over the past twenty years, computational advertising has replaced its core model stack four times. Compute has grown by orders of magnitude, moving from hand-crafted logistic regression to 15-billion-parameter ranking models and end-to-end generative ads. Yet the error analyses in 2025 and 2026 industrial papers keep running into the same four issues: funnel filtering breaks probability calibration, autoregressive decoding breaks bid monotonicity, and reinforcement learning post-training lowers broad-$$K$$ recall (coverage across the top few hundred candidates) because single-item logs omit unobserved positives.
+
+More compute and generative models expand feature-interaction capacity and tighten coupling across retrieval, ranking, and bidding, but four underlying mathematical problems stay intact: expected-value calibration, constrained optimization and auction games, counterfactual debiasing, and exploration in a drifting market. Across the last two decades, what actually rewrote how those equations are solved was rarely parameter scale alone; it was changes in auction rules, commercial contracts, and privacy signal regimes, such as migrating from second-price to first-price auctions, shifting from manual CPC bidding to ROI autobidding, or losing cross-app tracking under ATT and SKAN.
+
+Below we walk through the four historical waves, read the opposing ledgers across the ad supply chain, and examine how the four math problems resurface in 2026 papers. GPU kernel details, codebook training, and single-model architectures are covered in companion posts on [RankMixer](/blog/推荐系统的mixer革命-从一篇论文到四家大厂全量上线/), [OneTrans](/blog/onetrans-字节跳动如何用一个transformer统一推荐系统的特征交互与序列建模/), and [generative ad recommendation systems](/blog/广告生成式推荐的工程全景-从三篇工业论文提炼系统设计观/).
+
+<TechGraph
+  src="/images/posts/computational-ads-four-math-pillars/evolution-convergence-map-en.svg"
+  title="EVOLUTION TO MATHEMATICAL INVARIANTS (2002 - 2026)"
+  caption="Four generations of ad-tech architectures raised model capacity and cross-stage coupling, yet 2026 production deployments still answer to four underlying mathematical problems (author diagram synthesizing 2002 to 2026 literature)."
+/>
+
+## How Four Generations Replaced Each Other From 2002 to 2026
+
+Ad-tech architectures rarely changed just to follow academic trends. Every major rewrite followed a concrete shift in settlement rules, auction formats, or supply-chain topology.
+
+<Timeline>
+  <TimelineItem date="2002 - 2014" label="Era 1: Auction Foundations, Guaranteed Duals, and Online Learning">
+    Google AdWords Select introduced `Bid × CTR` and the Generalized Second-Price (GSP) auction, ending the sniping cycles of pure first-price keyword bidding. Guaranteed display contracts adopted linear-programming duals, RTB exchanges emerged, and FTRL, GBDT+LR, delayed-feedback models, and contextual bandits set the industrial baseline.
+  </TimelineItem>
+  <TimelineItem date="2015 - 2022" label="Era 2: Deep Cascades, Autobidding, and the First-Price Shift">
+    Deep networks took over feature crossing and behavior sequences. Platforms moved to oCPX (automated target-CPA bidding) and Target ROAS (Return on Ad Spend) autobidding. Header bidding pushed up QPS across the supply chain, and Google Ad Manager switched to a unified first-price auction (1PA) in 2019, making bid shading and exchange-side traffic shaping standard practice.
+  </TimelineItem>
+  <TimelineItem date="2024 - 2026" label="Era 3: Ranking Scaling Laws">
+    Meta Wukong, ByteDance RankMixer and TokenMixer-Large (15B), OneTrans, and Tencent RankUp broke the scaling plateau of legacy DLRMs, pushing high-order interactions and long user histories to billions of parameters.
+  </TimelineItem>
+  <TimelineItem date="2024 - 2026" label="Era 4: Generative Ads and Trajectory Bidding" active>
+    TIGER, Meta HSTU, Kuaishou OneRec / GR4AD, Tencent GPR / UniVA, Google GEM-Rec, and Alibaba AIGB used semantic-ID generation or conditional diffusion to unify retrieval, ranking, and bidding, while running straight back into calibration, monotonicity, IPS debiasing, and recall loss.
+  </TimelineItem>
+</Timeline>
+
+### 2002 to 2014: Search Auctions Put Probability Inside the Price
+
+In the late 1990s, Overture (originally GoTo.com) ran paid search as a Generalized First-Price (GFP) auction: the highest bid took slot one and paid its exact bid on each click. Advertisers quickly wrote scripts to undercut or outbid rivals by one cent every few minutes, keeping prices in constant sawtooth swings.
+
+In February 2002, Google launched AdWords Select and ranked ads by `Bid × CTR` (expected revenue per impression) under a Generalized Second-Price auction (GSP), later analyzed formally by Edelman, Ostrovsky, Schwarz, and Varian in 2007. Multiplying bids by predicted click-through rate meant a model could no longer emit an arbitrary relevance score; its output had to be a calibrated probability safe to multiply by money. In 2007, Richardson et al. (WWW 2007) published the first systematic industrial blueprint for logistic regression click prediction and calibration.
+
+Display advertising grew along two tracks in parallel. For brand contracts promising fixed impression counts (Guaranteed Delivery), Devanur and Hayes (EC 2009), Balseiro et al. (2011 / 2014), and SHALE (KDD 2012) solved linear programs through dual shadow prices, turning global inventory allocation into millisecond online serving. Around 2009 and 2010, real-time bidding (RTB) split bulk display inventory into per-impression auctions. Ultra-sparse features drove Google's FTRL-Proximal online learner (McMahan et al., KDD 2013) and Facebook's GBDT+LR feature-crossing pipeline (He et al., ADKDD 2014). Delayed conversions motivated Criteo's Delayed Feedback Model (Chapelle, KDD 2014), while creative cold-start brought LinUCB (Li et al., WWW 2010) and Thompson Sampling (Chapelle & Li, NeurIPS 2011) into live traffic.
+
+### 2015 to 2022: Autobidding and the First-Price Migration
+
+Deep networks soon took over feature interaction and user sequences (Wide & Deep, DeepFM, DIN), but two rule changes altered the underlying math during this period.
+
+First, autobidding replaced manual per-click pricing. Alibaba's oCPC (Zhu et al., KDD 2017) alongside Target CPA and Target ROAS across major platforms asked advertisers to submit a budget and an efficiency target while platform agents bid impression by impression. Aggarwal et al. (WINE 2019) and Balseiro and Gur (Management Science 2019) formalized this shift: bidders moved from single-round quasilinear utility maximization to aggregate value maximization under budget and ROI constraints. Feeding accurate downstream value into those bidders made entire-space conversion modeling (ESMM, Ma et al., SIGIR 2018) and zero-inflated heavy-tail lifetime value modeling (ZILN, Wang et al., 2019) standard tools.
+
+Second, Header Bidding and the 2019 unified First-Price Auction (1PA) transition changed bidding strategy. Under single-slot display RTB second-price auctions, truthful bidding was dominant for unconstrained buyers (multi-slot GSP was already non-truthful, as Edelman et al. 2007 proved). Header bidding let publishers query multiple exchanges before calling the primary ad server, complicating multi-hop Supply Path Optimization (SPO), driving a sharp QPS surge, and prompting Google Ad Manager to announce in March 2019 and finish by September 2019 a full switch to unified first-price auctions. Because winners now paid their exact bid, single-slot truthful bidding no longer held. Buyers added bid shading and survival models to infer right-censored rival bids (such as DLF, Ren et al., WSDM 2019), while exchanges hit by mostly empty callouts and 20 to 50 ms RTB timeouts introduced pre-callout traffic shaping.
+
+### 2024 to 2026: Ranking Scaling Laws and Generative Ads
+
+The four-stage cascade (retrieval -> pre-ranking -> ranking -> re-ranking) eventually ran into two limits on GPUs: high-value ads dropped at retrieval never returned downstream, and fragmented hand-crafted crossing modules kept GPU Model FLOPs Utilization (MFU) in the single digits so adding parameters quickly saturated.
+
+From 2024 to 2026, large platforms pushed along two compute-heavy tracks.
+
+On the ranking scaling track, Meta published **Wukong** (ICML 2024, `arXiv:2403.02545v4`), stacking factorization-machine interaction blocks to hold a smooth scaling curve across two orders of magnitude of compute (Figure 1). ByteDance introduced **RankMixer** (`arXiv:2507.15551v3`), replacing quadratic self-attention with hardware-friendly token mixing to lift MFU by an order of magnitude, and scaled it to 7B online and 15B offline parameters in **TokenMixer-Large** (`arXiv:2602.06563v2`). **OneTrans** (`arXiv:2510.26104v3`, WWW 2026) unified feature interaction and behavior sequences inside one Transformer backbone (+5.68% online per-user GMV), while Tencent **RankUp** (`arXiv:2604.17878v3`) expanded input-space diversity to counter effective-rank collapse in deep rankers.
+
+<Figure
+  src="/images/posts/computational-ads-four-math-pillars/paper-wukong-scaling.png"
+  alt="Wukong scaling law curve showing relative LogLoss improving smoothly across two orders of magnitude of GFLOP per example compared with DLRM, DCNv2, AutoInt+, and FinalMLP"
+  caption="Figure 1: Wukong Figure 1 shows a structured ranking stack lowering Relative LogLoss smoothly from 1 to over 100 GFLOP/example, whereas legacy DLRM, DCNv2, and FinalMLP plateau or degrade early (Source: Zhang et al., ICML 2024, arXiv:2403.02545v4)."
+  width="84%"
+/>
+
+On the generative track, starting from Google **TIGER** (`arXiv:2305.05065v3`) with discrete Semantic IDs (SIDs) and Meta's trillion-parameter **HSTU** (`arXiv:2402.17152v3`, ICML 2024), platforms moved generative models into live ad serving: Kuaishou **OneRec** (`arXiv:2502.18965v1`, V2 `arXiv:2508.20900v4`) and **GR4AD** (`arXiv:2602.22732v3`), Tencent **GPR** (`arXiv:2511.10138v3`) and **UniVA** (`arXiv:2605.05803v2`), and Google Research **GEM-Rec** (`arXiv:2603.22231v1`). On the bidding side, Alibaba **AIGB / DiffBid** (`arXiv:2405.16141v4`, NeurIPS 2024) generated full bidding trajectories via conditional diffusion, and **LLM-Auction** (`arXiv:2512.10551v3`) integrated auction allocation into LLM alignment.
+
+Even with multi-billion-parameter rankers and end-to-end generative models in production, the older mathematical constraints did not disappear. Looking at the market's conflicting ledgers explains why.
+
+## Reading the Three-Sided Ledger: Where Ads Differ From Organic RecSys
+
+Engineers moving from organic recommendation to ads often treat monetization as "organic ranking times a bid." That shortcut holds only on a whiteboard; live advertising runs across opposing ledgers and partial visibility.
+
+### Rule-Makers vs. Rule-Takers
+
+Open programmatic markets separate buyer DSPs, exchange ADXs, and seller SSPs, while walled-garden platforms (major search, feed, and short-video ecosystems) combine all three internally. These roles are not symmetric. A DSP computes a best response inside rules set by others; an ADX or SSP acts as the rule-maker (a Stackelberg leader) setting reserve floors, auction rules, and callout gates; a walled garden sees both sides and performs internal transfer pricing.
+
+<TechGraph
+  src="/images/posts/computational-ads-four-math-pillars/triparty-four-pillars-en.svg"
+  title="THREE-SIDED ROLES, SHARED PILLARS & FAILURE BRANCHES"
+  caption="DSP buyers, ADX exchanges, and SSP sellers hold asymmetric market roles with opposing wallets and blind spots, yet all depend on the same four mathematical pillars and break in predictable ways when any pillar fails (author diagram)."
+/>
+
+Laying all four roles side by side shows how each party's blind spot maps onto the same four mathematical problems:
+
+| Market Role | Game Position | Visibility & Blind Spot | Wallet & Constraints | Primary Pillars Used |
+|:---|:---|:---|:---|:---|
+| **Buyer (DSP / Advertiser Agent)** | Participant (Best Response) | Sees in-app conversions and spend; misses rival bids on losses | Maximize conversion value under Budget and ROAS / CPA floors | Calibration + Dual pacing + Delay & censoring fix + Cold-start |
+| **Exchange (ADX)** | Rule-Maker (Dispatch & Clearing) | Sees cross-DSP bids, win rates, and rebates; misses advertiser backend GMV | Maximize rebate-adjusted net margin under QPS caps and revenue floors | Net-margin expectation + Quota dual & auction rules + Unsent IPS + Supply probe |
+| **Seller (SSP / Publisher)** | Rule-Maker (Inventory & Floors) | Sees inventory, ad load, and retention; misses buyer bids below floor on no-fills | Maximize per-impression yield (eCPM / RPM) under fill-rate and UX guardrails | Bid distribution + Ad-load & reserve floor + Left-censored no-fills + Floor probe |
+| **Walled-Garden Platform** | Full-Information Leader (Internal Transfer) | Sees organic content, conversions, and full auction state | Balance platform revenue, advertiser ROI, and user retention | All four pillars coupled, plus intertemporal user externalities |
+
+### Three Commercial Realities Hidden Behind Offline Metrics
+
+Looking at those ledgers clarifies three issues that bigger backbones do not fix on their own.
+
+First, **a wrong target loses money more cleanly as model quality rises**. Across buyers, the exact same feature flips sign: an installed-app signal is negative for user acquisition and positive for re-engagement; a high floor attracts high-ARPU buyers while starving low-bid long-tail demand. Ledger mismatch is even sharper: ranking by gross eCPM or gross RPM without deducting tiered rebates and media payouts turns top-scoring slices into money-losing trades. As detailed in our post on [ROS (Return on Spend) pacing and dynamic take rates](/blog/pacing-ros-dynamic-take-rate/), algorithms move bids, while settlement contracts determine whose ledger keeps the savings.
+
+Second, **global offline metrics often diverge from executable revenue**. When base conversion or bid rates differ by orders of magnitude across channels, a flat network achieves high global AUC simply by memorizing channel averages, while live revenue depends on within-request or within-buyer ordering (GAUC). Global 1D monotone calibration fixes predicted-over-actual mean bias (PCOC) without changing a single score's within-group GAUC (nonlinear monotone calibration does change `Bid × pCTR` ratios across bids, which is why recalibration improves auction outcomes). Slicing traffic too finely can also raise offline correlation while diluting sample volume per bucket until high-density cells can no longer absorb reallocated quota. In many live stacks, static legacy sub-rule caps reject high-value requests long before model depth becomes the constraint.
+
+Third, **funnel position sets the unit economics of inference**. Pre-callout gates and early retrieval handle more than an order of magnitude more requests than post-bid ranking, and most upstream traffic never produces a bid or impression. Running heavy remote GPU inference on mostly empty queries can cost more than the expected margin per request. Good architecture matches compute spend to the marginal commercial value of each funnel layer.
+
+## The Four Math Problems That Still Govern Ad Systems
+
+The mindmap below gathers the four problems, their three-sided roles, and the concrete limits reported in 2025 and 2026 papers before we look at each one closely.
+
+<TechGraph
+  src="/images/posts/computational-ads-four-math-pillars/math-pillars-mindmap-en.svg"
+  title="COMPUTATIONAL ADVERTISING · FOUR MATHEMATICAL PILLARS MINDMAP"
+  caption="All four mathematical problems span DSP, ADX, and SSP roles and resurface with measurable theoretical or production limits in 2025 to 2026 scaling and generative ad papers (author diagram)."
+/>
+
+### Expected Value and Probability Calibration
+
+An organic video feed only needs to rank the user's top clip above the second one; multiplying all scores by 10 changes nothing. Commercial ads multiply scores directly into `eCPM = Bid × pCTR` or autobidding formulas. Perfect ranking order with a +30% scale bias consistently overpays on won impressions (winner's curse), while a -30% bias surrenders profitable impressions to rivals.
+
+A quick calculation makes the scale gap concrete. Suppose an ad click converts 10% of the time, and spend among payers follows a lognormal distribution with log-mean $$\mu = 2.0$$ and log-dispersion $$\sigma = 1.5$$. Regressing $$\ln(y)$$ and inverting with $$\exp(\hat{\mu})$$ recovers the conditional median $$e^{2.0} \approx \$7.39$$, valuing the click at **$$\$0.74$$**. The true expectation requires the Jensen correction $$e^{\sigma^2/2}$$, giving $$e^{2.0 + 1.5^2/2} = e^{3.125} \approx \$22.76$$ and a true click value of **$$\$2.28$$**. Both models share identical ranking AUC, yet the uncalibrated one underbids by 3x.
+
+Whether a buyer estimates post-click spend or an exchange estimates pre-callout net margin, valuation follows the chain rule of expectation, stabilized by Empirical Bayes shrinkage for sparse slices and parametric heavy-tail likelihoods such as Google ZILN (`arXiv:1912.07753v1`; see [heavy-tail pLTV modeling](/blog/mobile-game-ua-pltv-heavy-tail-modeling/)):
+
+```math
+\mathbb{E}[V \mid x] = \underbrace{p(\text{event}_1 \mid x)}_{\text{bid / click prob}} \cdot \underbrace{p(\text{event}_2 \mid x, \text{event}_1)}_{\text{win / conv prob}} \cdot \underbrace{\mathbb{E}[Y \mid x, \text{event}_2]}_{\text{heavy-tail value or net margin}}
+```
+
+Under ZILN, expected value is $$p(x)\cdot \exp(\mu(x) + \sigma(x)^2/2)$$. Because deeper networks and pairwise or listwise ranking losses are translation-invariant, they distort probability scale by construction (Google KDD 2022, *Scale Calibration of Deep Ranking Models*), keeping calibration an explicit problem separate from AUC (e.g., WWW 2025 **MCNet**, `arXiv:2503.00334v1`).
+
+In 2025 and 2026, calibration reappeared in two sharp ways.
+
+First, **selection itself breaks a calibrated model**. Back in 2012, McMahan and Muralidharan (`arXiv:1211.3955v1`) proved that because auctions select which ads are observed, natural calibration and auction efficiency can conflict. In November 2026, Microsoft Ads released the arXiv preprint ***Lost in the Funnel*** (`arXiv:2611.22595v1`) with production proof (Figure 2): leaving an upstream relevance model $$S$$ unchanged and well-calibrated at its output (Expected Calibration Error, ECE, of 156 and 185 bp across two regions, where 1 bp = 0.01%), filtering thresholds and business rules drove pre-auction Control ECE up to 784 and 809 bp, producing signed errors of $$-7.3$$ and $$-7.8$$ percentage points driven almost entirely by selection-induced residual shift $$W$$. Adding Funnel-Aware Recalibration (FAR) at the decision boundary in a 20-day live A/B test cut pre-auction ECE by **60% and 71%** and impression ECE by **63% and 80%**, removing overestimated low-quality ads while raising CTR by **+1.0% and +2.0% relative**.
+
+<Figure
+  src="/images/posts/computational-ads-four-math-pillars/paper-lost-in-funnel-reliability.png"
+  alt="Reliability curves across 50 bins in two production regions showing Control scores systematically overestimating true rates while Funnel-Aware Recalibration tracks the diagonal"
+  caption="Figure 2: Microsoft Ads arXiv preprint Figure 2 shows an unchanged, well-calibrated upstream model becoming systematically overconfident after funnel filtering (gray Control curve), requiring boundary-specific FAR (blue curve) to track the diagonal again (Source: Somani et al., arXiv:2611.22595v1, verified 2026-11-24)."
+  width="84%"
+/>
+
+Second, generative ads ran directly into commercial pricing. Kuaishou's **GR4AD** (`arXiv:2602.22732v3`) measured an **85.44%** Semantic ID collision rate under pure semantic quantization, because identical ad videos can carry 10x differences in bids, rebates, and ROI targets across advertisers. Tencent **GPR** (`arXiv:2511.10138v3`), **UniVA** (`arXiv:2605.05803v2`), and **GR4AD** all replaced pure semantic quantization at the last token layer with deterministic business attributes. Because next-token cross-entropy reflects sequence predictability rather than eCPM, GPR attached a separate value head with `stop_gradient`, and Stage-3 RL post-training still relies on calibrated pCTR / pCVR models as its reward oracle.
+
+Two practical guardrails remain: global 1D monotone calibration fixes scale bias without improving single-score within-group GAUC (slice-conditioned calibration can reorder across slices, yet does not replace upstream representation quality), and ZILN heads need hard upper clips on $$\sigma(x)$$ so a cold-start outlier never explodes $$\exp(\sigma^2/2)$$.
+
+### Constrained Optimization and Auction Games
+
+Two distinct branches of math sit side by side here: single-agent budget or quota control is convex optimization (2A), whereas auction design, reserve floors, and competing autobidders belong to multi-agent game theory (2B). Once first-price auctions and competing autobidders dominate a market, conflating the two breaks down.
+
+Single-agent constraints are straightforward to state: spend at most $$1,000$$ today with ROAS at least $$2.0$$, or cap DSP callouts at $$5,000$$ QPS. Each request allows only milliseconds to decide, ruling out a global offline integer program over future arrivals.
+
+Lagrangian duality collapses those global caps into live shadow prices. Consider a value-maximizing autobidder (with raw expected value pre-normalized by target ROAS $$T$$ so the normalized target is $$1$$) in a single-slot second-price auction: half the budget remains with two hours left while cumulative ROAS sits well above target. The ROAS constraint is slack ($$\lambda \approx 0$$), and the budget shadow price $$\mu$$ drops from $$1.18$$ to $$0.87$$, lifting the multiplier $$k = (1+\lambda)/(\mu+\lambda) \approx 1/\mu$$ from $$0.85$$ to $$1.15$$. For a quasilinear profit maximizer, an extra $$1$$ in the denominator keeps $$k \le 1$$; only a cross-period value maximizer can lift $$k > 1$$ using banked ROAS headroom. On a request with normalized value $$v_t = \$1.00$$, the submitted bid moves from $$\$0.85$$ to $$\$1.15$$. Under a first-price auction, the dual controller still supplies effective valuation $$k v_t$$, and a shading layer then solves $$\arg\max_b (k v_t - b) F(b)$$ against the estimated win-rate curve $$F(b)$$.
+
+Attaching non-negative dual multipliers to aggregate budget $$B$$, target return $$T$$, or callout cap $$Q$$ yields clean per-request rules across guaranteed delivery (SHALE), buyer pacing (`arXiv:2302.08530v2`; see [ROS pacing and dynamic take rates](/blog/pacing-ros-dynamic-take-rate/)), and exchange traffic shaping (such as AdKDD 2026 **Bias-LF-DCN**, `arXiv:2608.03705v1`):
+
+```math
+\text{Buyer Autobid (Truthful):}\quad b_t^* = \frac{1 + \lambda}{\mu + \lambda T} \cdot v_t
+\qquad\qquad
+\text{Exchange Callout Gate:}\quad a_t^* = \mathbb{I}\!\Big(\mathbb{E}[\text{NetProfit}_t + \lambda \cdot \text{Rev}_t] > \tau\Big)
+```
+
+Online PID loops or mirror descent track $$\mu, \lambda, \tau$$ without forecasting the entire day perfectly. On the multi-agent side (2B), however, SSP reserve floors, mixed-feed allocation, and competing ROI autobidders must preserve allocation monotonicity (higher bids never lower exposure probability), incentive compatibility (IC), or stable equilibrium efficiency.
+
+Recent 2024 to 2026 work hit two limits here.
+
+First, generative decoding had to restore auction monotonicity. In March 2026, Google Research released the arXiv preprint ***One Model, Two Markets: Bid-Aware Generative Recommendation*** (GEM-Rec, `arXiv:2603.22231v1`). Passing live bids naively into black-box layers risks beam-search routing flips where raising a bid by 20% lowers exposure, breaking advertiser trust. GEM-Rec uses control tokens to decouple ad insertion from item choice and proves that inference-time **Bid-Aware Decoding** preserves allocation monotonicity without retraining. In offline first-price simulations on the public Steam dataset, sweeping a single pressure parameter $$\lambda$$ traces a smooth Pareto frontier between NDCG@10 and revenue (Figure 3; note this is an offline public-dataset simulation rather than a live ads A/B test).
+
+<Figure
+  src="/images/posts/computational-ads-four-math-pillars/paper-gemrec-pareto.png"
+  alt="GEM-Rec Pareto frontier on Steam dataset showing NDCG@10 versus Total First-Price Revenue across Bid Pressure lambda compared to TIGER baseline"
+  caption="Figure 3: Google Research GEM-Rec offline simulation on the public Steam dataset shows standard semantic-ID retrieval (TIGER) ignoring live pricing, while Bid-Aware Decoding with proven monotonicity sweeps NDCG@10 against first-price revenue via λ (Source: Jiang et al., arXiv:2603.22231v1 preprint, verified 2026-11-24)."
+  width="82%"
+/>
+
+Second, multi-agent dynamics can turn formally chaotic. Alibaba's **AIGB / DiffBid** (`arXiv:2405.16141v4`) uses conditional diffusion to plan entire bidding trajectories and reduce horizon error propagation, yet still solves the same budget-and-ROI constrained program. Meanwhile, Google (EC 2024, `arXiv:2406.19350v2`) proved that uniform-scaling ROS autobidders produce bistability and quasiperiodicity; the Feb 2026 preprint ***Chaos in Autobidding Auctions*** (`arXiv:2602.09118v1`) proved they can simulate Chua's circuit and exhibit formal **Li-Yorke chaos** under discrete mirror descent; the Nov 2026 preprint ***On the Complexity of Exact Autobidding Equilibria*** (`arXiv:2611.04475v1`) proved exact equilibria are **FIXP-complete** (a higher-order fixed-point complexity class where computing exact or tightly approximate equilibria is intractable); and Li and Tang (IJCAI 2024, `arXiv:2210.06107v6`) showed single-round IC breaks down under ROI proxies and creates A/B-test interference. Even without convergence, Gaitonde et al. (`arXiv:2205.08674v6`) proved online dual pacing preserves at least $$1/2$$ of optimal liquid welfare across core auction formats. None of these properties change when a ranker scales from 100M to 15B parameters.
+
+Single-agent duality also relies on a price-taker assumption: when a large buyer holds major share on a publisher, its multiplier shifts trigger rival responses, requiring damped updates and guardrail bounds.
+
+### Observation Bias and Censored Data
+
+Ad logs are never uniform samples of the market; they are Missing-Not-At-Random (MNAR) slices filtered by the serving policy. Buyers observe conversions only after clicks, miss rival bids on lost auctions (right censoring), and wait days for delayed purchases; exchanges miss responses for dropped callouts; sellers miss bids below reserve floors on no-fills (left censoring).
+
+Take a minimal numerical example. Suppose familiar Segment A and newer Segment B each arrive with 1,000 candidate opportunities per day, and both share a true 5% CTR. The legacy policy exposes A 90% of the time (900 impressions, 45 clicks) and B 10% of the time (100 impressions, 5 clicks). Under binary CTR cross-entropy, 9:1 sampling still leaves both Bayes optima at 5%, but under **positive-only next-item softmax cross-entropy (generative recommendation)** or **naive policy gradients (RL)**, A contributes 9x more positive gradient than B, pushing a larger model harder toward A. Reweighting each observed row by the inverse of its exposure probability ($$1/0.9$$ vs. $$1/0.1$$) restores equal effective opportunities ($$900/0.9 = 1,000$$ vs. $$100/0.1 = 1,000$$).
+
+Four standard debiasing tools handle these missing slices: inverse propensity scoring and doubly robust estimators using logged propensities $$p_i$$ (IPS / DR; Schnabel et al., `arXiv:1602.05352v2`; Joachims et al., `arXiv:1608.04468v1`); entire-space multi-task training to bypass click-only selection bias (ESMM, `arXiv:1804.07931v2`); survival likelihoods combining won densities with lost-bid censoring (DLF, `arXiv:1905.03028v2`); and delay-clock models separating unconverted clicks from true negatives (Chapelle DFM, KDD 2014; influence-function DFM, `arXiv:2502.01669v2`; see [delayed feedback and bidding](/blog/mobile-game-ua-delayed-feedback-and-bidding/)). The basic IPS objective is compact:
+
+```math
+\hat{\mathcal{L}}_{\text{IPS}}(\theta) = \frac{1}{N}\sum_{i=1}^{N} \frac{O_i}{p_i} \cdot \ell\big(f_\theta(x_i), y_i\big)
+```
+
+Here $$O_i \in \{0,1\}$$ marks whether sample $$i$$ was exposed and $$p_i = \Pr(O_i = 1 \mid x_i)$$ is its logged propensity. This is a statistical identifiability limit rather than a model-capacity limit: scaling parameters cannot recover counterfactual outcomes that were never observed.
+
+Two 2026 preprints show this limit hitting generative models directly.
+
+In May 2026, ***Don't Let Bandit Feedback Pull Continual LLM-Recommender Updates Off Target*** (ABPO, `arXiv:2605.18899v1`) examined continual post-deployment updates for LLM recommenders. Because live logs only carry policy-shaped bandit feedback, naive GRPO reinforces the old serving policy and over-penalizes ambiguous no-responses. Rather than enlarging the backbone, ABPO inserts the actually exposed item as an anchor in every GRPO rollout group and applies **Self-Normalized IPS** to correct policy mismatch. Likewise, ***Time-aware IPS*** (`arXiv:2603.04986v1`, March 2026) showed that ignoring time-varying exposure makes sequential and generative models mistake past exposure for static user interest.
+
+In November 2026, HKUST and Trip.com researchers released ***Better Rankers, Worse Retrievers*** (`arXiv:2611.22838v1`), auditing standard SFT + GRPO post-training across five public e-commerce and content benchmarks (Figure 4). GRPO lifted top-10 accuracy (under `Beam=50, K=10`, `hit@10` rose `+0.39` on Office and `+0.46` on Industrial), but turned negative past $$K \approx 20$$ (Office) and $$K \approx 50$$ (Industrial), losing **5.1 points** at $$K = 500$$ on Office and pushing **14% to 22%** of SFT's top-500 ground-truth targets out of the candidate pool. Controlled experiments traced the drop to the estimator: because each log records only one next item, GRPO assigns negative advantage to every other rolled-out candidate, penalizing plausible alternatives that similar users actually pick. At bottom, it is a positive-unlabeled (PU) counterfactual-missingness defect spilling into candidate-pool collapse.
+
+<Figure
+  src="/images/posts/computational-ads-four-math-pillars/paper-rl-recall-collapse.png"
+  alt="Change in hit@K after GRPO post-training relative to SFT showing small-K ranking gains turning into severe large-K recall losses on Office and Industrial datasets"
+  caption="Figure 4: Better Rankers, Worse Retrievers preprint Figure 1 shows GRPO improving hit@K for K≤10 while hurting recall past K=20 to 50 (losing 5.1 points at K=500 on Office) because single-item logs penalize unlogged plausible candidates (Source: Chen et al., arXiv:2611.22838v1, verified 2026-11-24)."
+  width="84%"
+/>
+
+Because unclipped IPS suffers variance spikes as $$p_i \to 0$$, production systems pair weight clipping, self-normalization (SNIPS), or doubly robust estimators with active exploration so $$p_i$$ stays strictly positive.
+
+### Exploration in Non-Stationary Markets
+
+Static pretraining text does not shift meaning every weekend. Ad markets drift hourly as holiday budgets double, creatives fatigue, rivals adjust bids, and new inventory enters. An exploit-only system concentrates spend and traffic onto past winners, starving new campaigns and locking recovering supply inside low tiers. Live auction noise injects some passive randomness, yet in sparse high-concurrency tails, skipping explicit exploration tends to push teams back toward manual rules, whitelists, and ad-hoc subsidies. Once low-scored slices hit zero exposure probability, IPS loses its denominator as well.
+
+Consider a new ad or inventory slice with 2 impressions and 0 clicks against a 3% market average CTR. At 0% exploration, it never receives impression 3 even if its true CTR is 6% (2x market). Allocating 50 low-cost probe impressions via Thompson Sampling or controlled $$\epsilon$$-exploration caps loss if the slice is poor, while lifting its posterior quickly if it is a 6% winner and paying back the probe tax many times over.
+
+From **LinUCB** (Li et al., WWW 2010, `arXiv:1003.0146v2`) to **Thompson Sampling** (Chapelle & Li, NeurIPS 2011), exploration turns a point estimate into mean plus uncertainty bonus:
+
+```math
+\text{Score}_t(x, a) = \underbrace{\hat{\mu}_t(x, a)}_{\text{exploitation estimate}} + \underbrace{\beta_t \cdot \hat{\sigma}_t(x, a)}_{\text{value of information (exploration)}}
+```
+
+Buyers fund cold-start boosts for new campaigns, exchanges reserve supply-probing quotas and random exploration streams logging `propensity_p`, and sellers perturb reserve floors to track shifting buyer willingness to pay.
+
+Generative models hit the same boundary in 2026. In *Better Rankers, Worse Retrievers* (`arXiv:2611.22838v1`), GRPO also cut average item-distribution entropy on the public Office benchmark from **6.0 nats to 3.1 nats**. Even though Office evaluates organic items rather than auctioned ads, bringing that same single-log RL loop into commercial advertising risks sharply narrowing exploration headroom for tail and cold-start campaigns. Kuaishou's October 2026 update **GR4AD-X** (`arXiv:2610.38378v2`) ran into a related failure in live ads: hard-quantizing each ad to a single Semantic ID path left ads near cluster boundaries vulnerable to context jitter and early beam-search pruning, requiring **Multi-Path SID** assignment to restore tail coverage.
+
+Exploration cost also differs by an order of magnitude across roles: DSPs spend real media dollars to explore under ROAS limits, whereas an ADX probe mainly uses bandwidth and microseconds of CPU. High-cost roles rely on structured priors (multimodal content or cross-buyer signals) to trim blind probing while keeping a small true-random floor for valid IPS denominators.
+
+### Interactive Stress Test: Hold Ranking Fixed, Break One Piece
+
+The single-screen simulator below holds offline ranking AUC fixed at 0.842. Adjust calibration drift (PCOC), dual multiplier $$k$$, and exploration share $$\epsilon$$ to see how realized net profit and 30-day cold-start survival fall non-linearly when one piece drifts.
+
+<AdPillarsLab lang="en" />
+
+## What Ranking Scaling and Generative Ads Actually Changed
+
+Noting that these four math problems remain does not make multi-billion-parameter rankers or generative ads empty hype. Production A/B lifts are real:
+- ByteDance **OneTrans** (`arXiv:2510.26104v3`) delivered **+5.68%** online per-user GMV over a decoupled baseline;
+- **TokenMixer-Large** (`arXiv:2602.06563v2`, 7B online / 15B offline) lifted advertising spend metric ADSS (Advertising Spending/Scale) by **+2.0%** and e-commerce orders by **+1.66%** against the production baseline;
+- Tencent **GPR** (`arXiv:2511.10138v3`) accumulated **5%+** GMV lift across Weixin Channels ad rollouts, and Kuaishou **GR4AD** (`arXiv:2602.22732v3`) drove **+4.2%** ad revenue over its legacy cascade.
+
+Putting both eras side by side makes the shift concrete:
+
+<Comparison
+  left={{
+    title: "Deep Cascade Era (2015 - 2022)",
+    items: [
+      "Limited model capacity: shallow feature crossing and short histories, single-digit GPU MFU",
+      "Disconnected stages: retrieval, pre-ranking, ranking, and bidding trained separately; dropped items never return",
+      "Piecewise math assembly: point prediction -> heuristic pacing -> offline debiasing patch -> static cold-start rules",
+      "Main bottleneck: representation ceiling and cross-stage objective mismatch"
+    ]
+  }}
+  right={{
+    title: "Ranking Scaling & Generative Ads (2024 - 2026)",
+    items: [
+      "Higher model capacity: 1B to 15B rankers and long sequences improve high-order crossing and intent modeling",
+      "Tighter cross-stage coupling: autoregressive decoding unifies retrieval and ranking; diffusion plans full bid trajectories",
+      "Same four math constraints in subtler forms: funnel-induced miscalibration, monotonic decoding, IPS-anchored GRPO, and RL recall drop",
+      "Main bottleneck: inference ROI, decision-boundary alignment, and closed-loop bias amplification"
+    ]
+  }}
+  leftLabel="Legacy Deep Cascade"
+  rightLabel="Scaling & Generative Era"
+/>
+
+Three things genuinely changed: representation and interaction capacity rose sharply, previously disconnected stages moved closer to joint optimization, and the four older mathematical requirements got new interfaces, such as proving monotonicity during semantic decoding or anchoring GRPO with IPS.
+
+### Four Constraints Outside These Four Problems
+
+These four pillars do not explain the entire advertising business. Four external realities sit outside them and directly govern commercial outcomes:
+
+<Callout type="warning" title="Four System Boundaries Outside the Four Mathematical Pillars">
+1. **Intertemporal user externalities and Ad Load**: Adding one more high-bid, low-quality ad lifts today's revenue while dragging down 7-day retention and session time. That is an intertemporal multi-objective trade-off, not a static daily constraint.
+2. **Incrementality and causal lift**: Most models optimize attributed conversions, whereas advertisers ultimately pay for incremental sales caused by the ad. Concentrating spend on loyal buyers who would purchase anyway produces strong attributed ROAS and zero real growth.
+3. **Privacy-era structural signal loss (ATT / SKAN)**: Mobile privacy frameworks severed cross-app user tracking, making delayed, aggregated, noisy postbacks standard. This does not eliminate Pillar 3, but rewrites its observable data foundation (see [SKAN 4.0 and incrementality](/blog/mobile-game-ua-skan4-and-incrementality/)).
+4. **Ad fraud and adversarial traffic (Invalid Traffic)**: Click farms and attribution hijacking corrupt both probability estimates and dual feedback, requiring a dedicated security layer ahead of the four pillars.
+</Callout>
+
+## Three Checks to Run Before Scaling the Model
+
+Most small and mid-sized DSP, ADX, SSP, or vertical publisher teams do not have thousand-GPU clusters for 15B TokenMixers or billion-parameter generative ad models. Scaling the backbone while the four foundations still leak rarely pays off. Before adding GPUs, run three checks that need almost no extra compute:
+
+| Check Order | Zero-GPU Check | Roles & Pillar | Pass Criterion & Red Flag |
+|:---|:---|:---|:---|
+| **Check 1** | **Decision-boundary calibration & within-group GAUC audit** | All roles · Calibration | Do not stop at global AUC. At the exact downstream boundary that sets bids or gates traffic, verify 20-to-50-bin PCOC and ECE alongside within-buyer or within-request GAUC. If global AUC is high while top bins overestimate true rates, fix boundary recalibration and net-margin targets first. |
+| **Check 2** | **Bid monotonicity & dual-multiplier oscillation check** | Platforms / ADX / SSP (monotonicity) & All roles (duals) · Duality & Games | Platforms and exchanges should run offline or shadow monotonicity probes, bumping candidate bids by +10% to confirm allocation never drops. Buyers and platforms should monitor intraday budget, ROAS, and QPS multipliers for oscillations or locked static sub-rule caps, and verify settlement contract attribution before expanding model size. |
+| **Check 3** | **Exploration propensity logs & broad-K recall audit** | All roles (propensity logs) & Multi-stage / GenRec (broad-K) · Debiasing & Exploration | Verify an isolated low-rate exploration lane logs true serving probability `propensity_p`. For multi-stage retrievers or RL post-trained stacks, track `hit@200`, `hit@500`, and 7-day cold-start supply survival next to `hit@10` so ranking gains never hollow out the candidate pool. |
+
+Over twenty years, ad models moved from logistic regression to deep cascades, 15B token mixers, and generative decoders, each wave lifting representation capacity. As long as advertising allocates scarce budgets and attention inside a partially observed, multi-agent, drifting market, calibration, constrained games, counterfactual debiasing, and exploration stay in the system. When the equations genuinely get rewritten, it is usually because auction rules, commercial contracts, or observable signal regimes changed, not because the network grew another order of magnitude.
+
+---
+
+## References and Further Reading
+
+### Foundations and Market Structure (2007 - 2022)
+- Edelman, B., Ostrovsky, M., & Schwarz, M. (2007). *Internet Advertising and the Generalized Second-Price Auction: Selling Billions of Dollars Worth of Keywords*. American Economic Review.
+- Varian, H. R. (2007). *Position Auctions*. International Journal of Industrial Organization / Journal of Economic Perspectives.
+- Richardson, M., Dominowska, E., & Ragno, R. (2007). *Predicting Clicks: Estimating the Click-Through Rate for New Ads*. WWW 2007.
+- Devanur, N. R., & Hayes, T. P. (2009). *The AdWords Problem: Online Keyword Matching with Budgeted Bidders under Random Permutations*. ACM EC 2009.
+- Li, L., Chu, W., Langford, J., & Schapire, R. E. (2010). *A Contextual-Bandit Approach to Personalized News Article Recommendation*. WWW 2010 (`arXiv:1003.0146v2`).
+- Chapelle, O., & Li, L. (2011). *An Empirical Evaluation of Thompson Sampling*. NeurIPS 2011.
+- Bharadwaj, V., Chen, P., Ma, W., et al. (2012). *SHALE: An Efficient Algorithm for Allocation of Guaranteed Display Advertising*. KDD 2012.
+- McMahan, H. B., & Muralidharan, O. (2012). *On Calibrated Predictions for Auction Selection Mechanisms* (`arXiv:1211.3955v1`).
+- McMahan, H. B., Holt, G., Sculley, D., et al. (2013). *Ad Click Prediction: a View from the Trenches*. KDD 2013.
+- He, X., Pan, J., Jin, O., et al. (2014). *Practical Lessons from Predicting Clicks on Ads at Facebook*. ADKDD 2014.
+- Chapelle, O. (2014). *Modeling Delayed Feedback in Display Advertising*. KDD 2014.
+- Balseiro, S. R., Feldman, J., Mirrokni, V., & Muthukrishnan, S. (2014). *Yield Optimization of Display Advertising with Ad Exchange*. Management Science (arXiv 2011).
+- Schnabel, T., Swaminathan, A., Singh, A., et al. (2016). *Recommendations as Treatments: Debiasing Learning and Evaluation*. ICML 2016 (`arXiv:1602.05352v2`).
+- Joachims, T., Swaminathan, A., & Schnabel, T. (2017). *Unbiased Learning-to-Rank with Biased Feedback*. WSDM 2017 (`arXiv:1608.04468v1`).
+- Zhu, H., Jin, J., Tan, C., et al. (2017). *Optimized Cost per Click in Taobao Display Advertising*. KDD 2017.
+- Ma, X., Zhao, L., Huang, G., et al. (2018). *Entire Space Multi-Task Model: An Effective Approach for Estimating Post-Click Conversion Rate*. SIGIR 2018 (`arXiv:1804.07931v2`).
+- Aggarwal, G., Badanidiyuru, A., & Mehta, A. (2019). *Autobidding with Constraints*. WINE 2019.
+- Balseiro, S. R., & Gur, Y. (2019). *Learning in Repeated Auctions with Budgets: Regret Minimization and Equilibrium*. Management Science.
+- Ren, K., Qin, J., Zheng, L., et al. (2019). *Deep Landscape Forecasting for Real-time Bidding Advertising*. WSDM 2019 (`arXiv:1905.03028v2`).
+- Wang, X., Liu, T., & Miao, J. (2019). *A Deep Probabilistic Model for Customer Lifetime Value Prediction* (ZILN, `arXiv:1912.07753v1`).
+- Yan, L., Qin, Z., Wang, X., Bendersky, M., & Najork, M. (2022). *Scale Calibration of Deep Ranking Models*. KDD 2022.
+
+### Ranking Scaling, Generative Ads, and Mathematical Audits (2023 - 2026, Verified 2026-11-24)
+- Rajput, S., Mehta, N., Singh, A., et al. (2023). *Recommender Systems with Generative Retrieval* (TIGER, NeurIPS 2023, `arXiv:2305.05065v3`).
+- Balseiro, S. R., Bhawalkar, K., Feng, Z., et al. (2024). *A Field Guide for Pacing Budget and ROS Constraints*. ICML 2024 (`arXiv:2302.08530v2`).
+- Li, J., & Tang, P. (2024). *Vulnerabilities of Single-Round Incentive Compatibility in Auto-bidding*. IJCAI 2024 (`arXiv:2210.06107v6`).
+- Zhai, J., Liao, L., Liu, X., et al. (2024). *Actions Speak Louder than Words: Trillion-Parameter Sequential Transducers for Generative Recommendations* (HSTU, ICML 2024, `arXiv:2402.17152v3`).
+- Zhang, B., Luo, L., Chen, Y., et al. (2024). *Wukong: Towards a Scaling Law for Large-Scale Recommendation*. ICML 2024 (`arXiv:2403.02545v4`).
+- Guo, J., Huo, Y., Zhang, Z., et al. (2024). *AIGB: Generative Auto-bidding via Conditional Diffusion Modeling*. NeurIPS 2024 (`arXiv:2405.16141v4`).
+- Paes Leme, R., Piliouras, G., Schneider, J., & Spendlove, K. (2024). *Complex Dynamics in Autobidding Systems*. ACM EC 2024 (`arXiv:2406.19350v2`).
+- Ding, C., Wu, J., & Yuan, Y. (2025). *Delayed Feedback Modeling with Influence Functions* (`arXiv:2502.01669v2`).
+- Deng, J., Wang, S., Cai, K., et al. (2025). *OneRec: Unifying Retrieve and Rank with Generative Recommender and Iterative Preference Alignment* (`arXiv:2502.18965v1`; V2 `arXiv:2508.20900v4`).
+- Dai, Q., Xiao, J., Du, Z., et al. (2025). *MCNet: Monotonic Calibration Networks for Expressive Uncertainty Calibration in Online Advertising*. WWW 2025 (`arXiv:2503.00334v1`).
+- Zhu, J., Fan, Z., Zhu, X., et al. (2025). *RankMixer: Scaling Up Ranking Models in Industrial Recommenders* (`arXiv:2507.15551v3`).
+- Zhang, Z., Pei, H., Guo, J., et al. (2026). *OneTrans: Unified Feature Interaction and Sequence Modeling with One Transformer in Industrial Recommender*. WWW 2026 (`arXiv:2510.26104v3`).
+- Zhang, J., Li, Y., Liu, Y., et al. (2026). *GPR: Towards a Generative Pre-trained One-Model Paradigm for Large-Scale Advertising Recommendation* (`arXiv:2511.10138v3`).
+- Zhao, C., Hu, Q., Song, S., et al. (2026). *LLM-Auction: Generative Auction towards LLM-Native Advertising* (`arXiv:2512.10551v3`).
+- Gaitonde, J., Li, Y., & Light, B. (2026). *Budget Pacing in Repeated Auctions: Regret and Efficiency without Convergence* (`arXiv:2205.08674v6`).
+- Jiang, Y., Zhu, J., Han, X., & Lu, H. (2026). *TokenMixer-Large: Scaling Up Large Ranking Models in Industrial Recommenders* (`arXiv:2602.06563v2`).
+- Anagnostides, I., Gemp, I., Piliouras, G., & Spendlove, K. (2026). *Chaos in Autobidding Auctions* (`arXiv:2602.09118v1`).
+- Xue, B., Liu, D., Wang, L., et al. (2026). *Generative Recommendation for Large-Scale Advertising* (GR4AD, `arXiv:2602.22732v3`; GR4AD-X `arXiv:2610.38378v2`).
+- Huang, S., Long, J., & Li, Q. (2026). *Debiasing Sequential Recommendation with Time-aware Inverse Propensity Scoring* (`arXiv:2603.04986v1`).
+- Jiang, Y., Feng, Z., Mah, C. P., Mehta, A., & Wang, D. (2026). *One Model, Two Markets: Bid-Aware Generative Recommendation* (GEM-Rec, `arXiv:2603.22231v1`).
+- Chen, J., Zhang, S., & Hu, B. (2026). *RankUp: Towards High-rank Representations for Large Scale Advertising Recommender Systems* (`arXiv:2604.17878v3`).
+- Zhang, X., Xiong, Y., & Huang, Y. (2026). *UniVA: Unified Value Alignment for Generative Recommendation in Online Advertising at Tencent* (`arXiv:2605.05803v2`).
+- Kim, T., Yun, H., Choo, J., & Park, C. (2026). *Don't Let Bandit Feedback Pull Continual LLM-Recommender Updates Off Target* (ABPO, `arXiv:2605.18899v1`).
+- Shianifar, J., Mramor, B., & Zou, F. (2026). *Less Traffic, Better Outcomes: Competition-Aware Request Dispatch in Real-Time Ad Exchanges* (Bias-LF-DCN, AdKDD 2026, `arXiv:2608.03705v1`).
+- Huang, Y., Liu, Z., & Yan, Y. (2026). *On the Complexity of Exact Autobidding Equilibria* (`arXiv:2611.04475v1`).
+- Somani, A., Ragesh, R., Joshi, V., & Singh, A. (2026). *Lost in the Funnel: Selection-Induced Miscalibration in Ranking and Decision Systems* (`arXiv:2611.22595v1`).
+- Chen, Y., Zhang, F., Xu, Y., et al. (2026). *Better Rankers, Worse Retrievers: The Hidden Cost of RL Post-Training in Generative Recommendation* (`arXiv:2611.22838v1`).

@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 620" width="1280" height="620" role="img" aria-label="Mindmap of the four mathematical pillars of computational advertising across DSP, ADX, SSP, and 2026 scaling and generative models">
+  <rect width="1280" height="620" rx="14" fill="#fbf9f5" stroke="#e4ddd0" stroke-width="1.5" />
+
+  <!-- Header -->
+  <text x="36" y="36" fill="#86663b" font-size="11.5" font-weight="700" letter-spacing="1.4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">COMPUTATIONAL ADVERTISING · FOUR MATHEMATICAL PILLARS MINDMAP</text>
+  <text x="36" y="62" fill="#231f1a" font-size="19" font-weight="700" font-family="system-ui, -apple-system, sans-serif">Ad-Tech Math Mindmap: Ranking Scaling and GenRec Still Answer to These Four Branches</text>
+
+  <!-- Main Branches -->
+  <g fill="none" stroke-width="2.4" stroke-linecap="round">
+    <path d="M 226 334 C 266 334, 266 146, 310 146" stroke="#b5813d" />
+    <path d="M 226 334 C 266 334, 266 272, 310 272" stroke="#2d6647" />
+    <path d="M 226 334 C 266 334, 266 398, 310 398" stroke="#2b527a" />
+    <path d="M 226 334 C 266 334, 266 524, 310 524" stroke="#994238" />
+  </g>
+
+  <!-- Sub-branches -->
+  <g fill="none" stroke-width="1.6" stroke-linecap="round">
+    <path d="M 550 146 C 578 146, 580 118, 608 118" stroke="#c89e64" />
+    <path d="M 550 146 C 578 146, 580 174, 608 174" stroke="#c89e64" />
+    <path d="M 550 272 C 578 272, 580 244, 608 244" stroke="#5d9474" />
+    <path d="M 550 272 C 578 272, 580 300, 608 300" stroke="#5d9474" />
+    <path d="M 550 398 C 578 398, 580 370, 608 370" stroke="#5c82a8" />
+    <path d="M 550 398 C 578 398, 580 426, 608 426" stroke="#5c82a8" />
+    <path d="M 550 524 C 578 524, 580 496, 608 496" stroke="#c06c62" />
+    <path d="M 550 524 C 578 524, 580 552, 608 552" stroke="#c06c62" />
+  </g>
+
+  <!-- Root Node -->
+  <g font-family="system-ui, -apple-system, sans-serif">
+    <rect x="34" y="256" width="192" height="156" rx="14" fill="#231f1a" stroke="#86663b" stroke-width="2" />
+    <text x="130" y="284" text-anchor="middle" fill="#e5c590" font-size="10.5" font-weight="700" font-family="ui-monospace, monospace">2002 - 2026 INVARIANT</text>
+    <text x="130" y="312" text-anchor="middle" fill="#ffffff" font-size="15.5" font-weight="700">Core of Ad Tech</text>
+    <text x="130" y="338" text-anchor="middle" fill="#efe6d5" font-size="12">Constrained Allocation</text>
+    <text x="130" y="358" text-anchor="middle" fill="#efe6d5" font-size="12">Under Partial Information</text>
+    <line x1="56" y1="376" x2="204" y2="376" stroke="#5c5144" stroke-width="1" />
+    <text x="130" y="396" text-anchor="middle" fill="#d3b482" font-size="10.8">DSP · ADX · SSP · Walled</text>
+  </g>
+
+  <!-- Level 1: Four Pillars -->
+  <g font-family="system-ui, -apple-system, sans-serif">
+    <rect x="310" y="102" width="240" height="88" rx="10" fill="#fcf5ea" stroke="#b5813d" stroke-width="1.6" />
+    <text x="326" y="125" fill="#86663b" font-size="10.5" font-weight="700" font-family="ui-monospace, monospace">01 · EXPECTATION &amp; CALIBRATION</text>
+    <text x="326" y="149" fill="#231f1a" font-size="13.5" font-weight="700">Turn Scores Into True Prices</text>
+    <text x="326" y="172" fill="#5b5449" font-size="11.4">Chain Rule · Empirical Bayes · ZILN</text>
+
+    <rect x="310" y="228" width="240" height="88" rx="10" fill="#eef5f0" stroke="#2d6647" stroke-width="1.6" />
+    <text x="326" y="251" fill="#2d6647" font-size="10.5" font-weight="700" font-family="ui-monospace, monospace">02 · DUALITY &amp; PACING</text>
+    <text x="326" y="275" fill="#1e3d2b" font-size="13.5" font-weight="700">Map Global Caps to Multipliers</text>
+    <text x="326" y="298" fill="#3c5a47" font-size="11.4">Budget / ROAS / QPS / Ad Load</text>
+
+    <rect x="310" y="354" width="240" height="88" rx="10" fill="#eef3f8" stroke="#2b527a" stroke-width="1.6" />
+    <text x="326" y="377" fill="#2b527a" font-size="10.5" font-weight="700" font-family="ui-monospace, monospace">03 · COUNTERFACTUAL DEBIASING</text>
+    <text x="326" y="401" fill="#1a344f" font-size="13.5" font-weight="700">Repair MNAR &amp; Censored Logs</text>
+    <text x="326" y="424" fill="#3a526c" font-size="11.4">ESMM · Delay DFM · Bid Censoring</text>
+
+    <rect x="310" y="480" width="240" height="88" rx="10" fill="#fdf1ef" stroke="#994238" stroke-width="1.6" />
+    <text x="326" y="503" fill="#994238" font-size="10.5" font-weight="700" font-family="ui-monospace, monospace">04 · EXPLORATION &amp; EXPLOITATION</text>
+    <text x="326" y="527" fill="#5e231c" font-size="13.5" font-weight="700">Survive Market Drift &amp; Echoes</text>
+    <text x="326" y="550" fill="#7a3b33" font-size="11.4">Bandits · Cold-Start · Propensity p</text>
+  </g>
+
+  <!-- Level 2: Widened Leaves (width=636, x=608..1244) -->
+  <g font-family="system-ui, -apple-system, sans-serif">
+    <!-- P1 -->
+    <rect x="608" y="94" width="636" height="46" rx="8" fill="#ffffff" stroke="#dfd3be" stroke-width="1.2" />
+    <text x="622" y="114" fill="#86663b" font-size="10.5" font-weight="700">3-Sided Roles</text>
+    <text x="712" y="114" fill="#231f1a" font-size="11">DSP pCTR·pCVR·pLTV | ADX Net Margin | SSP Buyer Bid Dist</text>
+    <text x="622" y="132" fill="#6d6458" font-size="10.3">Reality: High global AUC hides weak GAUC; gross-revenue ranking hides rebate losses</text>
+
+    <rect x="608" y="150" width="636" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
+    <text x="622" y="170" fill="#994238" font-size="10.5" font-weight="700">2026 Pushback</text>
+    <text x="712" y="170" fill="#231f1a" font-size="11">Lost in the Funnel (2026): Selection breaks calibration (Pre-auction ECE -60%/-71%)</text>
+    <text x="622" y="188" fill="#6d6458" font-size="10.3">GR4AD / GPR: Pure SID collides 85.44%, forcing deterministic business tokens + value heads</text>
+
+    <!-- P2 -->
+    <rect x="608" y="220" width="636" height="46" rx="8" fill="#ffffff" stroke="#c5dacd" stroke-width="1.2" />
+    <text x="622" y="240" fill="#2d6647" font-size="10.5" font-weight="700">3-Sided Roles</text>
+    <text x="712" y="240" fill="#231f1a" font-size="11">DSP Best Response (Budget/ROAS) | ADX/SSP Rule Design (QPS/Floor)</text>
+    <text x="622" y="258" fill="#6d6458" font-size="10.3">Reality: 1PA broke truthful bidding; locked rules cap gain; contracts pick who keeps savings</text>
+
+    <rect x="608" y="276" width="636" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
+    <text x="622" y="296" fill="#994238" font-size="10.5" font-weight="700">2026 Pushback</text>
+    <text x="712" y="296" fill="#231f1a" font-size="11">Google GEM-Rec (2026): Bid-Aware Decoding must prove allocation monotonicity</text>
+    <text x="622" y="314" fill="#6d6458" font-size="10.3">Autobidding Theory (2024-2026): FIXP-complete equilibria and chaos resist bigger models</text>
+
+    <!-- P3 -->
+    <rect x="608" y="346" width="636" height="46" rx="8" fill="#ffffff" stroke="#c3d4e6" stroke-width="1.2" />
+    <text x="622" y="366" fill="#2b527a" font-size="10.5" font-weight="700">3-Sided Roles</text>
+    <text x="712" y="366" fill="#231f1a" font-size="11">DSP Rival Bids &amp; Delay | ADX Unsent Traffic | SSP Unfilled Bids</text>
+    <text x="622" y="384" fill="#6d6458" font-size="10.3">Reality: Logs are Missing-Not-At-Random; single-log penalties mislabel unobserved positives</text>
+
+    <rect x="608" y="402" width="636" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
+    <text x="622" y="422" fill="#994238" font-size="10.5" font-weight="700">2026 Pushback</text>
+    <text x="712" y="422" fill="#231f1a" font-size="11">ABPO &amp; Better Rankers (2026): Continual GRPO needs IPS; unlogged penalties hurt recall</text>
+    <text x="622" y="440" fill="#6d6458" font-size="10.3">Time-aware IPS &amp; Influence DFM (2025-2026): Label-clock bias is orthogonal to model scale</text>
+
+    <!-- P4 -->
+    <rect x="608" y="472" width="636" height="46" rx="8" fill="#ffffff" stroke="#e6c8c3" stroke-width="1.2" />
+    <text x="622" y="492" fill="#994238" font-size="10.5" font-weight="700">3-Sided Roles</text>
+    <text x="712" y="492" fill="#231f1a" font-size="11">DSP Cold-Start Boost | ADX Supply Probe | SSP Dynamic Floor Probing</text>
+    <text x="622" y="510" fill="#6d6458" font-size="10.3">Reality: Under-exploration narrows supply, pushes ops back to manual rules, starves IPS</text>
+
+    <rect x="608" y="528" width="636" height="46" rx="8" fill="#fff8f6" stroke="#e4beb8" stroke-width="1.2" />
+    <text x="622" y="548" fill="#994238" font-size="10.5" font-weight="700">2026 Pushback</text>
+    <text x="712" y="548" fill="#231f1a" font-size="11">GR4AD-X (2026): Single-path semantic clusters starve tail ads, needing multi-path SIDs</text>
+    <text x="622" y="566" fill="#6d6458" font-size="10.3">RL Entropy Collapse (2026): Distribution sharpens (6.0 -&gt; 3.1 nats), shrinking exploration</text>
+  </g>
+</svg>

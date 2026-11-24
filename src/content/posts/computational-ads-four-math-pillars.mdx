@@ -1,0 +1,352 @@
+---
+title: "计算广告二十年：不变的四大数学支柱"
+date: 2026-11-24
+tags: [广告与推荐, 技术报告解读]
+summary: "从 2002 年搜索广告拍卖走到 2026 年的百亿精排与生成式广告，看买方 DSP、撮合方 ADX 和卖方 SSP 在不同规则下解什么问题，以及为什么模型换了四代，底层依然停留在四个数学问题上。"
+draft: false
+---
+
+import AdPillarsLab from '../../components/blog/AdPillarsLab.astro'
+import Callout from '../../components/blog/Callout.astro'
+import Comparison from '../../components/blog/Comparison.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+import Timeline from '../../components/blog/Timeline.astro'
+import TimelineItem from '../../components/blog/TimelineItem.astro'
+
+二十多年来，计算广告的模型底座换了四代。算力涨了几个数量级，主干从人工交叉的逻辑回归走到百亿参数的精排网络，再到端到端生成式广告。翻开 2025 到 2026 年最新的工业论文，实验和问题分析里反复出现的却还是那几件老事：候选集过完漏斗后校准偏掉，生成式解码破坏出价单调性，强化学习后训练因为单日志缺失把大 $$K$$ 召回（前几百名候选的覆盖率）拉低。
+
+算力和新架构扩大了高维特征的拟合容量，也把原本拆开的召回、排序、出价收进了更紧密的耦合里，但广告系统最底层的四个数学问题没有消失：期望价值与概率校准、带约束的优化与拍卖博弈、反事实观测纠偏、非平稳市场里的探索。过去二十年里，真正让这些问题的解法发生整体改写的，往往不是参数从一亿涨到百亿，而是交易规则、商业合约和隐私政策变了，比如从二价拍卖切到一价，从人工出价切到 ROI 自动出价，或者移动隐私框架切断跨应用追踪。
+
+下面按时间把四代架构走一遍，再拆开三边市场的账本，最后回到这四个问题和它们在 2026 年的具体表现。GPU 算子优化、码本训练和单模型实现细节不在本文展开，可以对照看站内关于 [RankMixer](/blog/推荐系统的mixer革命-从一篇论文到四家大厂全量上线/)、[OneTrans](/blog/onetrans-字节跳动如何用一个transformer统一推荐系统的特征交互与序列建模/) 和 [广告生成式推荐工程实践](/blog/广告生成式推荐的工程全景-从三篇工业论文提炼系统设计观/) 的拆解。
+
+<TechGraph
+  src="/images/posts/computational-ads-four-math-pillars/evolution-convergence-map.svg"
+  title="EVOLUTION TO MATHEMATICAL INVARIANTS (2002 - 2026)"
+  caption="四代计算广告架构提升了特征表达容量与跨阶段耦合度，但在 2026 年的商业落地里依然受制于四个底层数学问题（博主自绘，综合 2002 至 2026 年文献）。"
+/>
+
+## 从 2002 年到现在，四代架构是怎么换下来的
+
+计算广告的演进很少单纯跟着论文热点走。每一次大的架构换代，背后都有一次结算方式、拍卖规则或供应链结构的变化。
+
+<Timeline>
+  <TimelineItem date="2002 - 2014" label="第一代：拍卖定型、合约对偶与在线学习">
+    Google AdWords Select 引入 `Bid × CTR` 与广义二价拍卖（GSP），结束纯按出价排序的频繁改价震荡。合约展示广告用上线性规划对偶，RTB 实时竞价兴起，FTRL、GBDT+LR、延迟反馈模型与上下文老虎机相继落地。
+  </TimelineItem>
+  <TimelineItem date="2015 - 2022" label="第二代：深度漏斗、自动出价与一价切换">
+    深度网络接管特征交叉与行为序列。平台全面转向 oCPX（按目标转化成本自动出价）与目标 ROAS（广告支出回报率）自动出价。Header Bidding 推高了全链路 QPS，Google Ad Manager 于 2019 年全面切向统一一价拍卖（1PA），带动一价压价与交易平台下发前挑量普及。
+  </TimelineItem>
+  <TimelineItem date="2024 - 2026" label="第三代：精排 Scaling Law">
+    Meta Wukong、字节 RankMixer 与 TokenMixer-Large（15B）、OneTrans 和腾讯 RankUp 打破传统 DLRM 加参数就饱和的限制，把高阶交互和长行为序列做到十亿到百亿参数。
+  </TimelineItem>
+  <TimelineItem date="2024 - 2026" label="第四代：生成式广告与轨迹出价" active>
+    TIGER、Meta HSTU、快手 OneRec / GR4AD、腾讯 GPR / UniVA、Google GEM-Rec 和阿里 AIGB 尝试用语义编码自回归或条件扩散来统一漏斗和出价轨迹，同时重新遇到校准、单调性、IPS 纠偏与召回下降。
+  </TimelineItem>
+</Timeline>
+
+### 2002 到 2014：搜索拍卖把预测概率写进了价格
+
+1990 年代末，最早的搜索广告平台 Overture（原 GoTo.com）采用广义一价拍卖（GFP）：谁对关键词出价最高就排第一，每次点击按自己的出价扣费。广告主很快写出自动脚本，每隔几分钟就试探压低一分钱或反超对手一分钱，价格长期剧烈抖动。
+
+2002 年 2 月，Google 推出 AdWords Select，改用 `Bid × CTR`（预期单次曝光收益）排序，并采用广义二价拍卖（GSP）。Edelman、Ostrovsky、Schwarz 和 Varian 在 2007 年对这套机制做了完整的经济学分析。把预测点击率乘进排序分之后，模型输出就不再只是相对相关度，而是一个要直接和钱相乘的概率。2007 年，微软的 Richardson 等人（WWW 2007）公开了用逻辑回归预估新广告点击率并做概率校准的做法。
+
+同一时期，展示广告沿两条线发展。品牌合约广告需要把未来流量分配给多个带保量承诺的订单，Devanur 与 Hayes（EC 2009）、Balseiro 等人（2011 / 2014）以及 SHALE（KDD 2012）用线性规划对偶为每个合约算出影子价格，把全局库存分配拆成在线单次请求决策。另一边，2009 到 2010 年后实时竞价（RTB）兴起，广告交易平台把整块广告位拆成单次曝光竞价。高维稀疏特征催生了 Google 的 FTRL-Proximal 在线学习（McMahan et al., KDD 2013）和 Facebook 的 GBDT+LR 特征交叉（He et al., ADKDD 2014）。转化回传滞后带来 Criteo 的延迟反馈模型 DFM（Chapelle, KDD 2014），新广告冷启动则把 LinUCB（Li et al., WWW 2010）和 Thompson Sampling（Chapelle & Li, NeurIPS 2011）带进线上流量。
+
+### 2015 到 2022：自动出价和全面切一价
+
+深度学习随后接管了特征交叉和用户行为序列（Wide & Deep、DeepFM、DIN），但这一阶段真正改写数学求解形式的，是市场规则的两次变化。
+
+第一次变化是自动出价接管单次报价。淘宝的 oCPC（Zhu et al., KDD 2017）和各大平台的 Target CPA / Target ROAS 不再要求广告主手动给每次点击定价，改为申报总预算和成本或回报底线，由系统代为出价。Aggarwal 等人（WINE 2019）与 Balseiro、Gur（Management Science 2019）把这套出价行为形式化：出价方从追求单轮效用最大化，转变为在总预算和 ROI 约束下追求总价值最大化。为了让自动出价拿到更准的后链路估值，全空间转化模型 ESMM（Ma et al., SIGIR 2018）和重尾零膨胀付费模型 ZILN（Wang et al., 2019）成为常见标配。
+
+第二次变化是 Header Bidding（头部竞价）和 2019 年全面切换统一一价拍卖（1PA）。此前在单坑位展示 RTB 二价拍卖下，无预算约束买方的如实出价是占优策略，虽然多坑位 GSP 本身已非占优（Edelman et al., 2007）。Header Bidding 让媒体在调用主广告服务器前先并行询问多家交易所，导致多跳供应路径（SPO）变复杂、全链路 QPS 大幅膨胀，也促使 Google Ad Manager 在 2019 年 3 月宣布、9 月完成统一一价拍卖切换。一价拍卖里赢家按自己的报价付钱，单坑位诚实出价不再成立。买方因此引入一价压价（Bid Shading），用生存分析估计被输标右删失的对手出价分布（如 DLF，Ren et al., WSDM 2019）。交易平台面对成倍增长、绝大多数不会回包的请求以及 20 到 50 毫秒的 RTB 超时丢包，开始在下发给买方之前做下发前挑量（Pre-callout Traffic Shaping）。
+
+### 2024 到 2026：精排 Scaling 与生成式广告
+
+跑了十来年的四级级联漏斗（召回 -> 粗排 -> 精排 -> 重排）在 GPU 时代遇到两个老毛病：召回阶段漏掉的高价值广告后面捡不回来，各阶段目标不一致；传统深度排序模型充斥着手工交叉和稀疏访存，GPU 算力利用率（MFU）长期停在个位数，加参数收益很快见顶。
+
+2024 到 2026 年，工业界走出了两条大算力路线。
+
+一条是精排 Scaling Law。Meta 在 ICML 2024 发表 **Wukong**（`arXiv:2403.02545v4`），靠堆叠因子分解机交互块，在跨越两个数量级的计算复杂度上跑出了平滑的推荐缩放曲线（图 1）。字节跳动的 **RankMixer**（`arXiv:2507.15551v3`）用硬件友好的 Token Mixing 换掉二次复杂度的自注意力，把 MFU 拉高了一个量级，并在 **TokenMixer-Large**（`arXiv:2602.06563v2`）里扩到线上 7B、离线 15B 参数。**OneTrans**（`arXiv:2510.26104v3`, WWW 2026）把特征交互和用户序列放进同一个 Transformer 主干，线上人均 GMV 提升 5.68%。腾讯 **RankUp**（`arXiv:2604.17878v3`）则针对深层排序网络里的表示秩坍塌做了输入空间扩展。
+
+<Figure
+  src="/images/posts/computational-ads-four-math-pillars/paper-wukong-scaling.png"
+  alt="Wukong scaling law curve showing relative LogLoss improving smoothly across two orders of magnitude of GFLOP per example compared with DLRM, DCNv2, AutoInt+, and FinalMLP"
+  caption="图 1：Meta Wukong 原论文 Figure 1 显示，在 1 到 100+ GFLOP/example 区间内，架构对齐后的精排模型可以随算力平滑降低 Relative LogLoss，而传统 DLRM、DCNv2、FinalMLP 提前饱和甚至退化（来源：Zhang et al., ICML 2024, arXiv:2403.02545v4）。"
+  width="84%"
+/>
+
+另一条是生成式广告和轨迹出价。从 Google **TIGER**（`arXiv:2305.05065v3`）用离散语义编码（Semantic ID, SID）自回归生成候选，到 Meta **HSTU**（`arXiv:2402.17152v3`, ICML 2024）把万亿参数序列转导跑出幂律缩放，快手 **OneRec**（`arXiv:2502.18965v1` / `2508.20900v4`）、**GR4AD**（`arXiv:2602.22732v3`）、腾讯 **GPR**（`arXiv:2511.10138v3`）、**UniVA**（`arXiv:2605.05803v2`）与 Google **GEM-Rec**（`arXiv:2603.22231v1`）陆续把生成式架构带进商业广告。出价侧也在变化，阿里 **AIGB / DiffBid**（`arXiv:2405.16141v4`, NeurIPS 2024）用条件扩散直接生成整段跨期出价轨迹，**LLM-Auction**（`arXiv:2512.10551v3`）把拍卖分配放进大模型对齐流程。
+
+模型从逻辑回归做到百亿精排和生成式解码，为什么广告系统里老的数学问题还是绕不过去？先看看市场里几本对立的账。
+
+## 先看三边账本：广告和内容推荐差在哪
+
+做内容推荐出身的工程师刚进广告组，常会把广告理解成「内容推荐最后乘个出价」。只看点击排序时这很顺手，真进市场结算就容易出问题，因为广告交易里站着几个利益相反、各自信息不全的角色。
+
+### 谁在定规则，谁在规则里出牌
+
+开放程序化市场里有买方 DSP、撮合方 ADX 和卖方 SSP，旁边还有把三者收进一家的围墙花园平台（大型搜索、信息流与短视频生态）。这几方并不对称：买方 DSP 是在既定拍卖规则下算最优出价的参与者；撮合方 ADX 和卖方 SSP 是定规则、设底价、决定发不发请求的领导者（博弈论里叫 Stackelberg 结构）；围墙花园同时掌握内容、转化和竞价两侧信息，在内部完成结算和定价。
+
+<TechGraph
+  src="/images/posts/computational-ads-four-math-pillars/triparty-four-pillars.svg"
+  title="THREE-SIDED ROLES, SHARED PILLARS & FAILURE BRANCHES"
+  caption="买方 DSP、撮合方 ADX 与卖方 SSP 处在不同的博弈位阶，各自的数据盲区和优化目标相反，但都依赖同一组四个数学支柱，缺任意一个都会触发系统失衡（博主自绘）。"
+/>
+
+把四个角色的数据视野、账本约束和用到的数学工具放进一张表里，关系很清楚：
+
+| 市场角色 | 博弈位阶 | 能看到什么 / 看不到什么 | 优化账本与约束 | 主要用到的支柱 |
+| :--- | :--- | :--- | :--- | :--- |
+| **买方（DSP / 广告主代理）** | 参与者（最优反应） | 看得到站内转化与付费；输标时看不到对手出价 | 总预算与 ROAS / CPA 红线下最大化转化价值 | 期望校准 + 对偶控制 + 延迟与输标纠偏 + 新计划冷启动 |
+| **撮合方（ADX / 交易平台）** | 规则制定者（分发与清算） | 看得到多买方横向出价、竞胜与返点；看不到广告主站内成交额 | 各买方 QPS 配额与流水底线下最大化返点后净利 | 净利期望分解 + 配额对偶与拍卖规则 + 未下发 IPS + 空白供给探测 |
+| **卖方（SSP / 媒体变现）** | 规则制定者（库存与底价） | 看得到媒体库存、广告加载率与留存；流拍时看不到买方真实意愿 | 填充率与用户体验红线下最大化单位曝光收益（eCPM / RPM） | 买方出价分布估计 + Ad Load 与动态底价 + 流拍左删失 + 底价试探 |
+| **围墙花园一体平台** | 全信息主导者（内部结算） | 同时掌握媒体内容、广告主转化与全盘竞价 | 平台收入、广告主留存与用户时长多目标权衡 | 四个支柱全量耦合，叠加跨期用户体验外部性 |
+
+### 三件容易被离线指标遮住的商业事实
+
+从这张账本往业务里看，有三个问题单纯靠加模型参数解决不了。
+
+第一，**目标口径写错时，模型越准亏得越稳**。多买方市场里，同一个特征在不同预算下的方向可能完全相反。用户手机里已经装了某个 App，对拉新买方是强负信号，对唤端买方却是强正信号；高底价广告位对高客单大客户是好流量，对低价长尾买方则几乎零出价。更常见的是账本错位：如果系统只按表面毛流水（Gross eCPM / RPM）排序，没扣除阶梯返点和媒体分成，很多排在最前面的高流量切片反而是每曝光一次都在贴钱。正如站内 [ROS（Return on Spend，投入产出比）Pacing 与动态抽成](/blog/pacing-ros-dynamic-take-rate/) 拆解的那样，算法改的是出价，合同结算条款才决定省下的钱落到谁的账上。
+
+第二，**全局离线精度和线上可执行收益经常错位**。不同渠道和买方的基础转化率能差几十倍，扁平网络只要记熟渠道均值就能拉出很高的全局 AUC，但真正决定交易归属的是同一请求或同一买方内部的组内排序（GAUC）。全局一维单调校准能把预估均值与真实均值之比（PCOC）修回 1 附近，但改不了单分数自身的组内 GAUC（不过在竞价环节，非线性单调校准会改变不同出价乘以概率后的 `Bid × pCTR` 相对次序，这也是后校准能改善拍卖效率的原因）。反过来，把流量切得太细虽然能拉高离线预测相关性，每个高密度格子里的有效流量盘子却会被稀释，承接不住释放出来的配额。线上真正卡住收益的，常常是历史遗留的静态规则小桶把高价值请求拦在了外面。
+
+第三，**漏斗位置决定了推理算力的账能不能算平**。从入口守门（Pre-callout）、召回粗排一路走到竞价后精排，上下游请求量相差超过一个数量级，而且最上游绝大多数请求最终不会产生出价或成交。在几乎空跑的入口硬上高延迟远程大模型，单次推理开销可能直接超过单次期望毛利。算力投入必须匹配当前漏斗位置的边际商业价值。
+
+## 四代模型之后，真正卡住系统的四个数学问题
+
+下面这张思维导图把四个数学问题、三边角色的落地形态以及 2025 到 2026 年前沿论文里暴露出的限制收在一张图里，后面逐个展开。
+
+<TechGraph
+  src="/images/posts/computational-ads-four-math-pillars/math-pillars-mindmap.svg"
+  title="COMPUTATIONAL ADVERTISING · FOUR MATHEMATICAL PILLARS MINDMAP"
+  caption="四个底层数学问题覆盖买方、撮合方与卖方角色，每一个都在 2025 至 2026 年的精排 Scaling 与生成式广告论文里出现了可量化的限制（博主自绘）。"
+/>
+
+### 期望价值与概率校准
+
+内容推荐把用户最喜欢的视频排第一、第二喜欢的排第二就行，所有分数同乘 10 不影响结果。商业广告不行。预测分要直接乘进 `eCPM = Bid × pCTR` 或自动出价公式，排序全对但整体高估 30%，赢下的恰恰是亏损曝光（赢者诅咒）；整体低估 30%，高价值流量就全流给了对手。
+
+一个具体算例能看得很清楚。假设一条广告点击后有 10% 概率转化，付费金额服从对数正态分布，对数均值 $$\mu = 2.0$$，对数标准差 $$\sigma = 1.5$$。如果模型回归 $$\ln(y)$$ 再直接取 $$\exp(\hat{\mu})$$ 还原，得到的是条件中位数 $$e^{2.0} \approx \$7.39$$，算出的点击估值只有 **$$\$0.74$$**。真实的条件期望必须补上 Jensen 不等式项 $$e^{\sigma^2/2}$$，即 $$e^{2.0 + 1.5^2/2} = e^{3.125} \approx \$22.76$$，真实点击估值是 **$$\$2.28$$**。两个模型的排序 AUC 一模一样，但没校准的那一个会在竞价里系统性低出价三倍。
+
+无论买方估点击后付费，还是撮合方估下发前净利，底层都按全期望定律拆解，再用经验贝叶斯平滑稳住长尾小样本，用参数化重尾似然（比如 Google ZILN，`arXiv:1912.07753v1`，站内 [pLTV 重尾建模演进](/blog/mobile-game-ua-pltv-heavy-tail-modeling/) 有完整推导）处理零膨胀与大额付费：
+
+```math
+\mathbb{E}[V \mid x] = \underbrace{p(\text{event}_1 \mid x)}_{\text{出价 / 点击概率}} \cdot \underbrace{p(\text{event}_2 \mid x, \text{event}_1)}_{\text{赢标 / 转化概率}} \cdot \underbrace{\mathbb{E}[Y \mid x, \text{event}_2]}_{\text{重尾收益或返点后净利}}
+```
+
+在 ZILN 下，期望解析式为 $$p(x)\cdot \exp(\mu(x) + \sigma(x)^2/2)$$。随着模型加深或换用 Pairwise / Listwise 排序损失，损失函数自带的平移不变性会破坏概率尺度（Google KDD 2022, *Scale Calibration of Deep Ranking Models*），校准因此长期是独立于 AUC 的单调映射问题（如 WWW 2025 **MCNet**, `arXiv:2503.00334v1`）。
+
+到了 2025 和 2026 年，校准问题以两种新形式重新冒了出来。
+
+第一种是**选择机制本身打破完美校准**。早在 2012 年，Google 的 McMahan 与 Muralidharan（`arXiv:1211.3955v1`）就证明，因为拍卖决定了哪些广告能被曝光观测，自然校准和拍卖效率最大化在一般条件下可能冲突。2026 年 11 月，Microsoft Ads 公开的 arXiv 预印本 ***Lost in the Funnel***（`arXiv:2611.22595v1`）在真实搜索广告线上给出了清晰对照（图 2）：上游相关性模型 $$S$$ 一行未改，在自己出口处的期望校准误差（ECE）只有 156 与 185 bp（1 bp = 0.01%）。但候选穿过过滤阈值、业务规则和重排到达拍卖边界后，高分分桶系统性高估，控制组拍卖前 ECE 升至 784 与 809 bp，过滤边界有符号误差达到 $$-7.3$$ 与 $$-7.8$$ 个百分点，几乎全来自选择诱发的残差偏移 $$W$$。在边界加上漏斗感知再校准（FAR）后，双区域 20 天在线 A/B 测试把拍卖前 ECE 降了 **60% 与 71%**，曝光层 ECE 降了 **63% 与 80%**，同时去掉了一批被高估放行的低质广告，点击率取得 **+1.0% 与 +2.0% 的相对提升**。
+
+<Figure
+  src="/images/posts/computational-ads-four-math-pillars/paper-lost-in-funnel-reliability.png"
+  alt="Reliability curves across 50 bins in two production regions showing Control scores systematically overestimating true rates while Funnel-Aware Recalibration tracks the diagonal"
+  caption="图 2：Microsoft Ads arXiv 预印本 Figure 2 显示，上游模型不变且出口校准良好，经过漏斗过滤和选择后，控制组（灰线）在拍卖前和曝光层仍系统性高估高分广告，边界再校准 FAR（蓝线）将其拉回对角线（来源：Somani et al., arXiv:2611.22595v1，2026-11-24 核验）。"
+  width="84%"
+/>
+
+第二种出现在生成式广告里。快手 **GR4AD**（`arXiv:2602.22732v3`）测到，用纯语义量化给广告分配 Semantic ID 时碰撞率高达 **85.44%**，因为同一条视频素材在不同广告主手里出价、返点和 ROI 目标能差十倍。腾讯 **GPR**（`arXiv:2511.10138v3`）、**UniVA**（`arXiv:2605.05803v2`）和快手 GR4AD 最后都在底层放弃纯语义量化，改回确定性业务属性编码。因为自回归交叉熵反映的是语言或序列上的可预测性，不是商业期望价值，GPR 只能外挂独立价值头并显式加 `stop_gradient` 隔开梯度，强化学习后训练阶段的奖励打分也依然依赖传统校准好的 pCTR / pCVR 模型。
+
+这里要留两个边界：全局一维单调校准只能修偏置和尺度，救不了单分数自身的组内 GAUC（分切片再校准可以改变跨切片排序，但不能替代上游特征表达）；重尾 ZILN 必须给 $$\sigma(x)$$ 加硬上限，防止冷启动异常样本吐出极端方差，让 $$\exp(\sigma^2/2)$$ 打穿预算。
+
+### 约束优化与拍卖博弈
+
+这个部分需要把两类不同的数学分开看：单主体的预算或配额控制是凸优化（记作 2A），多主体的拍卖规则、保留价与竞争均衡是博弈论（记作 2B）。一价拍卖普及、自动出价同场竞争之后，把两者混成一个公式很容易出事故。
+
+单主体约束很常见：广告主日预算 1,000 元且要求 ROAS 不低于 2.0，或者交易平台给某买方的配额帽是每秒 5,000 次。请求到来时只有几毫秒响应时间，不可能把全天还没到达的几亿条请求拉起来解全局规划。
+
+拉格朗日对偶的作用，就是把全局约束压成一个随时间调节的影子价格。举个可心算的例子：设买方是价值最大化自动出价代理（先把原始期望价值除以目标 ROAS $$T$$ 归一化，令归一化目标为 1），在单坑位二价拍卖下预算还剩一半、投放时间只剩两小时，且累计 ROAS 高于目标。此时 ROAS 约束松弛（$$\lambda \approx 0$$），预算影子价格 $$\mu$$ 从 $$1.18$$ 降到 $$0.87$$，综合出价乘子 $$k = (1+\lambda)/(\mu+\lambda) \approx 1/\mu$$ 从 $$0.85$$ 提到 $$1.15$$。注意，对于纯利润最大化出价者，分母多一项 $$1$$，乘子恒不超过 $$1$$；只有跨期价值最大化代理能拿前期攒下的 ROAS 空间把单次出价乘子抬到 $$1$$ 以上。一条归一化价值 $$v_t = \$1.00$$ 的请求，出价随之从 $$\$0.85$$ 自动提到 $$\$1.15$$。换成一价拍卖后，控制器先输出有效估值 $$k v_t$$，压价模块再结合赢价分布 $$F(b)$$ 求 $$\arg\max_b (k v_t - b) F(b)$$。
+
+把跨期预算 $$B$$、目标回报率 $$T$$ 或配额上限 $$Q$$ 写进拉格朗日函数，无论是合约展示分配 SHALE、买方预算与 ROS Pacing（`arXiv:2302.08530v2`，详见站内 [ROS Pacing 与动态抽成](/blog/pacing-ros-dynamic-take-rate/)），还是交易平台下发前配额挑量（如 AdKDD 2026 **Bias-LF-DCN**, `arXiv:2608.03705v1`），单次决策都会退化成非常干净的形式：
+
+```math
+\text{买方自动出价 (真实拍卖):}\quad b_t^* = \frac{1 + \lambda}{\mu + \lambda T} \cdot v_t
+\qquad\qquad
+\text{撮合方挑量放行:}\quad a_t^* = \mathbb{I}\!\Big(\mathbb{E}[\text{NetProfit}_t + \lambda \cdot \text{Rev}_t] > \tau\Big)
+```
+
+线上只需要用 PID、在线镜像下降或步长梯度追踪 $$\mu, \lambda, \tau$$，不需要预知全天流量分布。但走到 2B 多主体博弈层面，事情就复杂得多：卖方 SSP 设动态底价、平台定混排和清算规则、多家自动出价代理同场竞价，系统必须守住分配单调性（出价越高，曝光概率单调不减）和激励相容（IC）或可控的均衡效率。
+
+2024 到 2026 年的新架构在这里碰到了两道墙。
+
+一道墙在生成式解码的拍卖接口上。2026 年 3 月，Google Research 公开的 arXiv 预印本 ***One Model, Two Markets: Bid-Aware Generative Recommendation***（GEM-Rec, `arXiv:2603.22231v1`）指出，如果把实时波动的出价直接喂进语义 ID 模型的黑盒特征层，Beam Search 路径漂移可能让广告主加价 20% 反而掉了曝光，市场信任立刻受损。GEM-Rec 用控制 Token 分离「插不插广告」和「推哪条广告」，并在推理期设计 **Bid-Aware Decoding**，数学证明了不重训模型也能保证分配单调性。在 Steam 公开数据集的离线一价拍卖仿真中，单靠出价压力超参 $$\lambda$$ 就能在相关性（NDCG@10）和平台收入间走出平滑前沿（图 3，该实验为公开数据集离线仿真，不是线上广告 A/B 测试）。
+
+<Figure
+  src="/images/posts/computational-ads-four-math-pillars/paper-gemrec-pareto.png"
+  alt="GEM-Rec Pareto frontier on Steam dataset showing NDCG@10 versus Total First-Price Revenue across Bid Pressure lambda compared to TIGER baseline"
+  caption="图 3：Google Research GEM-Rec 在 Steam 公开数据集离线仿真中的帕累托前沿显示，原生语义生成（TIGER）无法响应实时竞价，显式注入 Bid-Aware Decoding 并保证单调性后，可通过 λ 连续权衡相关性与一价收入（来源：Jiang et al., arXiv:2603.22231v1 预印本，2026-11-24 核验）。"
+  width="82%"
+/>
+
+另一道墙在多主体博弈的动力学本身。阿里 **AIGB / DiffBid**（`arXiv:2405.16141v4`）用条件扩散模型生成整条出价轨迹，缓解了单步强化学习的误差累积，但求解的依然是带预算和 ROI 约束的规划。而在理论侧，Google 在 EC 2024（`arXiv:2406.19350v2`）证明带 ROS 约束的统一乘子自动出价会出现双稳态和准周期轨道；2026 年 2 月 arXiv 预印本 ***Chaos in Autobidding Auctions***（`arXiv:2602.09118v1`）进一步证明它能模拟蔡氏电路并在离散镜像下降下产生严格意义的 **Li-Yorke 混沌**；2026 年 11 月 arXiv 预印本 ***On the Complexity of Exact Autobidding Equilibria***（`arXiv:2611.04475v1`）证明二价 ROI Pacing 与带约束 GSP 的精确均衡是 **FIXP-complete**（高阶不动点难题，连高逼近度求解在计算复杂性上都极度昂贵）；李俊成与唐平中（IJCAI 2024, `arXiv:2210.06107v6`）也指出 ROI 代理会让传统单轮激励相容失效并造成 A/B 实验串扰。好在 Gaitonde 等人（`arXiv:2205.08674v6`）证明，即便动力学不收敛，在线对偶 Pacing 在核心拍卖格式下依然能守住至少 $$1/2$$ 的流动福利下界。这些性质来自多主体博弈几何，排序网络是 100M 还是 15B 参数都不会改变它们。
+
+应用单主体对偶时要注意价格接受者假设：当头部大买方占了某个媒体很高的流量份额，它调乘子会直接带动对手反应，工程上必须给乘子更新加阻尼和上下界保护。
+
+### 观测偏差与删失数据
+
+广告日志从来不是真实世界的均匀采样，而是被历史策略筛过的非随机缺失（MNAR）切片。买方只看得到点击后的转化，输标时看不到赢家报价（右删失），用户还可能隔几天才付费；撮合方只看得到已下发请求的回包，没发出去的流量一片空白；卖方设高底价导致流拍时，看不到买方心理价位比底价低多少（左删失）。
+
+看一个最小算例。假设 A 类熟客和 B 类新流量每天各有 1,000 次潜在候选机会，真实点击率都是 5%。但老策略给了 A 90% 的曝光率（900 次曝光、45 次点击），只给了 B 10% 的曝光率（100 次曝光、5 次点击）。在纯二分类 CTR 交叉熵下，9:1 的样本量不改变 A、B 各自 5% 的理论贝叶斯最优值，但换成**只用正样本训练的生成式 Next-Item Softmax 交叉熵**，或者跑**朴素策略梯度（RL）**，A 贡献的正样本梯度就是 B 的 9 倍，更大容量的模型只会学得更偏向 A。给每条观测乘上曝光概率的倒数（逆倾向权重 $$1/0.9$$ 与 $$1/0.1$$）之后，两边有效机会数立刻还原为 $$900/0.9 = 1,000$$ 对 $$100/0.1 = 1,000$$。
+
+围绕残缺日志，行业沉淀了四套标准工具：用记录下来的曝光倾向分 $$p_i$$ 做逆倾向加权（IPS / DR，Schnabel et al., `arXiv:1602.05352v2`; Joachims et al., `arXiv:1608.04468v1`）；在全曝光空间联合训练避免点击样本选择偏差（ESMM, `arXiv:1804.07931v2`）；用生存分析同时吸收赢标密度和输标删失概率（DLF, `arXiv:1905.03028v2`）；显式建模转化延迟时钟，防止把还没来得及付费的近期样本标成负例（Chapelle DFM, KDD 2014; 影响函数修正 `arXiv:2502.01669v2`，详见站内 [延迟反馈与竞价](/blog/mobile-game-ua-delayed-feedback-and-bidding/)）。其中 IPS 的基本估计式非常直接：
+
+```math
+\hat{\mathcal{L}}_{\text{IPS}}(\theta) = \frac{1}{N}\sum_{i=1}^{N} \frac{O_i}{p_i} \cdot \ell\big(f_\theta(x_i), y_i\big)
+```
+
+这里 $$O_i \in \{0,1\}$$ 表示样本是否被旧策略曝光，$$p_i = \Pr(O_i = 1 \mid x_i)$$ 是记录下的倾向分。这属于统计学的可识别性限制，不是模型容量问题：历史日志里根本没观测过某个区域的反事实结果，参数量再大也变不出缺失的因果信息。
+
+2026 年的两篇预印本直接印证了这一点。
+
+一篇是 2026 年 5 月的 ***Don't Let Bandit Feedback Pull Continual LLM-Recommender Updates Off Target***（ABPO, `arXiv:2605.18899v1`）。大模型推荐上线后要持续用新日志更新，但日志里只有旧策略塑造的 Bandit 反馈。直接跑朴素 GRPO 会不断自我强化旧策略的偏好，并把模糊的无响应过度惩罚。作者没有换更大的模型，而是把历史上真正曝光过的动作作为锚点放进每个 GRPO rollout 组，对锚点加**自归一化逆倾向加权**（Self-Normalized IPS）来抵消策略偏移。同年 3 月的 ***Time-aware IPS***（`arXiv:2603.04986v1`）也表明，忽略时变曝光倾向会让序列和生成式模型把旧曝光误当成静态兴趣。
+
+另一篇是 2026 年 11 月港科大与携程团队公开的 ***Better Rankers, Worse Retrievers***（`arXiv:2611.22838v1`），在五个公开电商与内容推荐数据集上复查了 GenRec 常用的 SFT + GRPO 后训练流程（图 4）。GRPO 确实抬高了头部精度，在标准 `Beam=50, K=10` 评测下，`Office` 与 `Industrial` 的 `hit@10` 分别涨了 `+0.39` 和 `+0.46` 个点，但到了 $$K \approx 20$$（Office）和 $$K \approx 50$$（Industrial）就由正转负，到 $$K = 500$$ 时 Office 的召回掉了 **5.1 个点**，原本在 SFT Top-500 里的真实目标有 **14% 到 22%** 被挤出了候选池。根因出在估计器上：每条用户日志只记了 1 个实际交互的 next item，GRPO 把 rollout 里采出的其他候选全部赋予负优势，其中恰恰包含大量合理、而且是相似用户真正会点击的候选。这本质上是正样本与未标注样本（PU）的反事实缺失，却直接引发了候选池萎缩。
+
+<Figure
+  src="/images/posts/computational-ads-four-math-pillars/paper-rl-recall-collapse.png"
+  alt="Change in hit@K after GRPO post-training relative to SFT showing small-K ranking gains turning into severe large-K recall losses on Office and Industrial datasets"
+  caption="图 4：Better Rankers, Worse Retrievers 预印本 Figure 1 显示，GRPO 后训练改善了 K≤10 指标，但 K 超过 20 至 50 后召回率持续下滑，Office 数据集在 K=500 处损失 5.1 个点，根因是单日志负优势误杀了未记录的合理候选（来源：Chen et al., arXiv:2611.22838v1，2026-11-24 核验）。"
+  width="84%"
+/>
+
+工程上用 IPS 要防小倾向分 $$p_i \to 0$$ 时的方差爆炸，通常要配权重截断、自归一化（SNIPS）或双重稳健（DR），并且依赖线上探索保证 $$p_i$$ 严格大于 0。
+
+### 非平稳市场里的探索
+
+预训练语料大体是静态的，去年的百科条目今年还是原义。广告市场每小时都在漂移：大促开场预算翻倍，创意几天就疲劳，竞品随时调价，新广告主和新版位每天都在进场。如果系统只做利用（Exploit），永远只把预算、配额或曝光分给历史上表现最好的头部，新计划就攒不到初始转化，掉量后恢复的媒体也爬不出低级池。真实竞价市场虽然自带一些随机波动，但在高并发稀疏长尾里，缺少显式探索时，系统很容易慢慢退回人工调规则、加白名单和批赔付。更麻烦的是，一旦低分区的放行概率掉到 0，上一节的 IPS 纠偏连分母都没了。
+
+算一笔小账。假设一个新广告或新流量切片历史上只有 2 次曝光、0 次点击，大盘平均点击率是 3%。如果探索比例是 0%，哪怕它的真实点击率是 6%（大盘两倍），它也永远拿不到第 3 次曝光。按 Thompson Sampling 或受控 $$\epsilon$$-探索给它 50 次低成本试探曝光：如果它确实差，50 次后后验迅速掉下去，损失封顶；如果真是 6% 的好流量，后验很快拉起并升入主池，后面几万次曝光赚回来的利润远高于那点探索税。
+
+从 **LinUCB**（Li et al., WWW 2010, `arXiv:1003.0146v2`）到工业界常用的 **Thompson Sampling**（Chapelle & Li, NeurIPS 2011），思路都是把单次决策分数从点估计改成「当前估值 + 不确定性红利」：
+
+```math
+\text{Score}_t(x, a) = \underbrace{\hat{\mu}_t(x, a)}_{\text{利用估值 (Exploit)}} + \underbrace{\beta_t \cdot \hat{\sigma}_t(x, a)}_{\text{不确定性信息价值 (Explore)}}
+```
+
+落到三边市场，买方给新计划做冷启动扶持，交易平台为空白供给和复活渠道留探测配额与保底随机流（并落盘真实 `propensity_p`），卖方在动态底价周围加受控扰动来试探买方实时出价意愿。
+
+2026 年的生成式架构同样躲不开这个问题。在 *Better Rankers, Worse Retrievers*（`arXiv:2611.22838v1`）里，GRPO 后训练不仅压低了大 $$K$$ 召回，还让 Office 公开电商基准上商品分布的平均熵从 **6.0 nats 降到 3.1 nats**。虽然该基准测的是有机商品，但把同一套单日志强化学习搬进商业广告，分布急剧变尖就会直接压缩长尾和新广告的探索空间。快手 2026 年 10 月更新的 **GR4AD-X**（`arXiv:2610.38378v2`）也遇到了同类问题：广告硬量化到单条 Semantic ID 路径后，落在聚类边界的新广告很容易被上下文小扰动带偏，在 Beam Search 前缀剪枝时直接出局，作者只好引入 **Multi-Path SID**（多路径语义编码）重新打开长尾覆盖。
+
+不过不同角色的探索成本差了一个量级。买方 DSP 探索要掏真金白银买曝光，受 ROAS 和赔付预算限制；交易平台发一条探测请求的边际成本主要是带宽和微秒级 CPU。高成本一侧要用多模态或跨买方先验压小盲探范围，只在边界留小比例真随机流来保住 IPS 的分母。
+
+### 交互测试：排序不变，单个环节出偏差会怎样
+
+下面的单屏实验把离线排序能力锁死在 AUC = 0.842，你可以分别切换和拖动校准偏移（PCOC）、对偶乘子 $$k$$ 与探索占比 $$\epsilon$$，直接看单个环节出偏差时，实际净利留存和 30 天新供给存活率怎么往下掉。
+
+<AdPillarsLab lang="zh" />
+
+## 精排 Scaling 和生成式广告到底改变了什么
+
+强调这四个数学问题没有消失，不代表百亿精排和生成式广告只是包装。几家大厂的一手线上数据很扎实：
+- 字节跳动 **OneTrans**（`arXiv:2510.26104v3`）在线上 A/B 中相对分离架构带来人均 GMV **+5.68%**；
+- **TokenMixer-Large**（`arXiv:2602.06563v2`，线上 7B / 离线 15B）相对生产基线把广告消耗指标 ADSS（Advertising Spending/Scale）拉高 **+2.0%**，电商订单提升 **+1.66%**；
+- 腾讯视频号 **GPR**（`arXiv:2511.10138v3`）在多轮上线里累计带来 **5%+** GMV 提升，快手 **GR4AD**（`arXiv:2602.22732v3`）在亿级用户广告系统全量上线，相对原级联基线带来广告收入 **+4.2%**。
+
+新旧两代到底差在哪，放在一起对照会更清楚：
+
+<Comparison
+  left={{
+    title: "深度级联时代（2015 - 2022）",
+    items: [
+      "表达容量受限：浅层特征交叉配短序列，GPU 算力利用率长期停在个位数",
+      "阶段割裂：召回、粗排、精排、出价各自训练，上游漏掉的好广告下游捡不回来",
+      "数学模块分段拼装：单点预估 -> 启发式乘子 -> 离线去偏补丁 -> 静态冷启动规则",
+      "主要卡点：特征表达天花板与跨阶段目标不一致"
+    ]
+  }}
+  right={{
+    title: "精排 Scaling 与生成式广告（2024 - 2026）",
+    items: [
+      "表达容量大幅抬升：1B 到 15B 精排和超长行为序列，高阶交叉与意图理解明显变强",
+      "跨阶段联合耦合：自回归解码统一召回与排序，扩散模型直接规划整段出价轨迹",
+      "四个老问题以更隐蔽的形式回来：选择边界失校准、解码单调性、GRPO 需请回 IPS、RL 压低大 K 召回",
+      "主要卡点：单位算力 ROI、决策边界对齐与闭环偏差放大"
+    ]
+  }}
+  leftLabel="传统深度级联"
+  rightLabel="大算力 Scaling 与生成式"
+/>
+
+变化实实在在发生在三处：高阶特征交叉与序列意图理解的拟合上限提高了，原本割裂的阶段合并得更紧了，四个老数学问题换上了新接口（比如把列表排序的单调性换成了语义解码期的 Bid-Aware Decoding 证明，把传统日志去偏换成了持续 RL 里的 Anchored IPS）。
+
+### 这四个问题之外的四个现实约束
+
+单靠这四个数学支柱也装不下整个广告系统。有四件事落在它们外面，却同样决定业务成败：
+
+<Callout type="warning" title="四个支柱覆盖不到的四重系统边界">
+1. **用户侧跨期外部性与广告加载率（Ad Load）**：在搜索和信息流里多插一条高价低质广告，今天收入会涨，7 天后的留存和时长可能往下掉。这是跨期多目标权衡，不能化简成单日静态约束。
+2. **增量归因（Incrementality / Lift）**：绝大多数模型优化的是归因转化，但广告主长期买单的是因为看了广告才多出来的增量成交。把预算砸给本来就会复购的老客，归因 ROAS 再好看，生意也没增长。
+3. **隐私政策带来的信号缺失（ATT / SKAN）**：移动隐私框架切断了跨应用设备追踪，延迟聚合回传和噪声成了常态。这没有取消观测纠偏问题，而是从地基上改写了可用数据的粒度（参见站内 [SKAN 4.0 与增量归因](/blog/mobile-game-ua-skan4-and-incrementality/)）。
+4. **反作弊与对抗流量（Invalid Traffic）**：点击农场和归因劫持会同时污染概率估计与对偶反馈，属于对抗安全防线，必须挡在前面单独处理。
+</Callout>
+
+## 换更大模型之前，先查三件事
+
+绝大多数中小规模 DSP、ADX、SSP 或垂直媒体团队并没有千卡集群去训 15B TokenMixer 或十亿级生成式广告模型。如果四个底座本身还在漏水，急着上大架构往往得不偿失。换大模型之前，下面三项检查几乎不花额外 GPU 算力：
+
+| 检查顺序 | 零新增 GPU 检查项 | 适用角色与对应支柱 | 通过标准与风险信号 |
+| :--- | :--- | :--- | :--- |
+| **Check 1** | **决策边界分桶校准与组内 GAUC 审计** | 全部角色 · 期望校准 | 不只看全局 AUC。在真正定出价或切量的下游边界，按预测分切 20 到 50 桶看分桶 PCOC 与 ECE，同时查同一买方或同一请求内的组内 GAUC。全局 AUC 高但高分桶系统性高估时，先修边界再校准并核对毛利与流水口径。 |
+| **Check 2** | **出价单调性与对偶乘子震荡检查** | 平台/ADX/SSP（单调性）与全部角色（对偶） · 约束与博弈 | 平台与撮合侧做离线或影子单调性测试，把候选广告出价上调 10%，确认分配概率不下降。买方与平台一起看日内预算、ROAS 和 QPS 乘子曲线，排查静态子规则锁死和周期性震荡，先理顺配额和合同归属。 |
+| **Check 3** | **探索流倾向记录与大 K 覆盖率审计** | 全部角色（探索日志）与多阶段/GenRec（大 K 召回） · 纠偏与探索 | 确认线上留了独立的小比例受控探索流并准确记下放行概率 `propensity_p`。多阶段召回或上了 RL 后训练的系统，除了 `hit@10` 和 `NDCG@10`，同时盯 `hit@200`、`hit@500` 和新供给 7 日存活率，防止候选池越训越窄。 |
+
+二十年里，模型从逻辑回归换到深度精排，再到百亿参数的 Token Mixer 和生成式解码器，每一代都实打实抬高了表达能力。但只要广告还在信息残缺、预算有限、多方竞价且持续漂移的市场里运行，校准、约束博弈、反事实纠偏和探索这四道题就一直留在系统里。什么时候真要改写公式，往往不是因为换了更大的网络，而是拍卖规则、商业合同或者数据观测条件变了。
+
+---
+
+## 参考与延伸阅读
+
+### 历史奠基与市场结构（2007 - 2022）
+- Edelman, B., Ostrovsky, M., & Schwarz, M. (2007). *Internet Advertising and the Generalized Second-Price Auction: Selling Billions of Dollars Worth of Keywords*. American Economic Review.
+- Varian, H. R. (2007). *Position Auctions*. International Journal of Industrial Organization / Journal of Economic Perspectives.
+- Richardson, M., Dominowska, E., & Ragno, R. (2007). *Predicting Clicks: Estimating the Click-Through Rate for New Ads*. WWW 2007.
+- Devanur, N. R., & Hayes, T. P. (2009). *The AdWords Problem: Online Keyword Matching with Budgeted Bidders under Random Permutations*. ACM EC 2009.
+- Li, L., Chu, W., Langford, J., & Schapire, R. E. (2010). *A Contextual-Bandit Approach to Personalized News Article Recommendation*. WWW 2010 (`arXiv:1003.0146v2`).
+- Chapelle, O., & Li, L. (2011). *An Empirical Evaluation of Thompson Sampling*. NeurIPS 2011.
+- Bharadwaj, V., Chen, P., Ma, W., et al. (2012). *SHALE: An Efficient Algorithm for Allocation of Guaranteed Display Advertising*. KDD 2012.
+- McMahan, H. B., & Muralidharan, O. (2012). *On Calibrated Predictions for Auction Selection Mechanisms* (`arXiv:1211.3955v1`).
+- McMahan, H. B., Holt, G., Sculley, D., et al. (2013). *Ad Click Prediction: a View from the Trenches*. KDD 2013.
+- He, X., Pan, J., Jin, O., et al. (2014). *Practical Lessons from Predicting Clicks on Ads at Facebook*. ADKDD 2014.
+- Chapelle, O. (2014). *Modeling Delayed Feedback in Display Advertising*. KDD 2014.
+- Balseiro, S. R., Feldman, J., Mirrokni, V., & Muthukrishnan, S. (2014). *Yield Optimization of Display Advertising with Ad Exchange*. Management Science (arXiv 2011).
+- Schnabel, T., Swaminathan, A., Singh, A., et al. (2016). *Recommendations as Treatments: Debiasing Learning and Evaluation*. ICML 2016 (`arXiv:1602.05352v2`).
+- Joachims, T., Swaminathan, A., & Schnabel, T. (2017). *Unbiased Learning-to-Rank with Biased Feedback*. WSDM 2017 (`arXiv:1608.04468v1`).
+- Zhu, H., Jin, J., Tan, C., et al. (2017). *Optimized Cost per Click in Taobao Display Advertising*. KDD 2017.
+- Ma, X., Zhao, L., Huang, G., et al. (2018). *Entire Space Multi-Task Model: An Effective Approach for Estimating Post-Click Conversion Rate*. SIGIR 2018 (`arXiv:1804.07931v2`).
+- Aggarwal, G., Badanidiyuru, A., & Mehta, A. (2019). *Autobidding with Constraints*. WINE 2019.
+- Balseiro, S. R., & Gur, Y. (2019). *Learning in Repeated Auctions with Budgets: Regret Minimization and Equilibrium*. Management Science.
+- Ren, K., Qin, J., Zheng, L., et al. (2019). *Deep Landscape Forecasting for Real-time Bidding Advertising*. WSDM 2019 (`arXiv:1905.03028v2`).
+- Wang, X., Liu, T., & Miao, J. (2019). *A Deep Probabilistic Model for Customer Lifetime Value Prediction* (ZILN, `arXiv:1912.07753v1`).
+- Yan, L., Qin, Z., Wang, X., Bendersky, M., & Najork, M. (2022). *Scale Calibration of Deep Ranking Models*. KDD 2022.
+
+### 精排 Scaling、生成式广告与前沿数学审计（2023 - 2026，核验日期 2026-11-24）
+- Rajput, S., Mehta, N., Singh, A., et al. (2023). *Recommender Systems with Generative Retrieval* (TIGER, NeurIPS 2023, `arXiv:2305.05065v3`).
+- Balseiro, S. R., Bhawalkar, K., Feng, Z., et al. (2024). *A Field Guide for Pacing Budget and ROS Constraints*. ICML 2024 (`arXiv:2302.08530v2`).
+- Li, J., & Tang, P. (2024). *Vulnerabilities of Single-Round Incentive Compatibility in Auto-bidding*. IJCAI 2024 (`arXiv:2210.06107v6`).
+- Zhai, J., Liao, L., Liu, X., et al. (2024). *Actions Speak Louder than Words: Trillion-Parameter Sequential Transducers for Generative Recommendations* (HSTU, ICML 2024, `arXiv:2402.17152v3`).
+- Zhang, B., Luo, L., Chen, Y., et al. (2024). *Wukong: Towards a Scaling Law for Large-Scale Recommendation*. ICML 2024 (`arXiv:2403.02545v4`).
+- Guo, J., Huo, Y., Zhang, Z., et al. (2024). *AIGB: Generative Auto-bidding via Conditional Diffusion Modeling*. NeurIPS 2024 (`arXiv:2405.16141v4`).
+- Paes Leme, R., Piliouras, G., Schneider, J., & Spendlove, K. (2024). *Complex Dynamics in Autobidding Systems*. ACM EC 2024 (`arXiv:2406.19350v2`).
+- Ding, C., Wu, J., & Yuan, Y. (2025). *Delayed Feedback Modeling with Influence Functions* (`arXiv:2502.01669v2`).
+- Deng, J., Wang, S., Cai, K., et al. (2025). *OneRec: Unifying Retrieve and Rank with Generative Recommender and Iterative Preference Alignment* (`arXiv:2502.18965v1`; V2 `arXiv:2508.20900v4`).
+- Dai, Q., Xiao, J., Du, Z., et al. (2025). *MCNet: Monotonic Calibration Networks for Expressive Uncertainty Calibration in Online Advertising*. WWW 2025 (`arXiv:2503.00334v1`).
+- Zhu, J., Fan, Z., Zhu, X., et al. (2025). *RankMixer: Scaling Up Ranking Models in Industrial Recommenders* (`arXiv:2507.15551v3`).
+- Zhang, Z., Pei, H., Guo, J., et al. (2026). *OneTrans: Unified Feature Interaction and Sequence Modeling with One Transformer in Industrial Recommender*. WWW 2026 (`arXiv:2510.26104v3`).
+- Zhang, J., Li, Y., Liu, Y., et al. (2026). *GPR: Towards a Generative Pre-trained One-Model Paradigm for Large-Scale Advertising Recommendation* (`arXiv:2511.10138v3`).
+- Zhao, C., Hu, Q., Song, S., et al. (2026). *LLM-Auction: Generative Auction towards LLM-Native Advertising* (`arXiv:2512.10551v3`).
+- Gaitonde, J., Li, Y., & Light, B. (2026). *Budget Pacing in Repeated Auctions: Regret and Efficiency without Convergence* (`arXiv:2205.08674v6`).
+- Jiang, Y., Zhu, J., Han, X., & Lu, H. (2026). *TokenMixer-Large: Scaling Up Large Ranking Models in Industrial Recommenders* (`arXiv:2602.06563v2`).
+- Anagnostides, I., Gemp, I., Piliouras, G., & Spendlove, K. (2026). *Chaos in Autobidding Auctions* (`arXiv:2602.09118v1`).
+- Xue, B., Liu, D., Wang, L., et al. (2026). *Generative Recommendation for Large-Scale Advertising* (GR4AD, `arXiv:2602.22732v3`; GR4AD-X `arXiv:2610.38378v2`).
+- Huang, S., Long, J., & Li, Q. (2026). *Debiasing Sequential Recommendation with Time-aware Inverse Propensity Scoring* (`arXiv:2603.04986v1`).
+- Jiang, Y., Feng, Z., Mah, C. P., Mehta, A., & Wang, D. (2026). *One Model, Two Markets: Bid-Aware Generative Recommendation* (GEM-Rec, `arXiv:2603.22231v1`).
+- Chen, J., Zhang, S., & Hu, B. (2026). *RankUp: Towards High-rank Representations for Large Scale Advertising Recommender Systems* (`arXiv:2604.17878v3`).
+- Zhang, X., Xiong, Y., & Huang, Y. (2026). *UniVA: Unified Value Alignment for Generative Recommendation in Online Advertising at Tencent* (`arXiv:2605.05803v2`).
+- Kim, T., Yun, H., Choo, J., & Park, C. (2026). *Don't Let Bandit Feedback Pull Continual LLM-Recommender Updates Off Target* (ABPO, `arXiv:2605.18899v1`).
+- Shianifar, J., Mramor, B., & Zou, F. (2026). *Less Traffic, Better Outcomes: Competition-Aware Request Dispatch in Real-Time Ad Exchanges* (Bias-LF-DCN, AdKDD 2026, `arXiv:2608.03705v1`).
+- Huang, Y., Liu, Z., & Yan, Y. (2026). *On the Complexity of Exact Autobidding Equilibria* (`arXiv:2611.04475v1`).
+- Somani, A., Ragesh, R., Joshi, V., & Singh, A. (2026). *Lost in the Funnel: Selection-Induced Miscalibration in Ranking and Decision Systems* (`arXiv:2611.22595v1`).
+- Chen, Y., Zhang, F., Xu, Y., et al. (2026). *Better Rankers, Worse Retrievers: The Hidden Cost of RL Post-Training in Generative Recommendation* (`arXiv:2611.22838v1`).

@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 490" width="960" height="490" role="img" aria-label="DSP 买方、ADX 撮合方与 SSP 卖方如何共享四大数学支柱，以及缺少任一支柱时的系统失效分支">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#7c6b53" />
+    </marker>
+    <marker id="arr-fail" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#a44a3f" />
+    </marker>
+  </defs>
+
+  <rect width="960" height="490" rx="14" fill="#fbf9f5" stroke="#e4ddd0" stroke-width="1.5" />
+
+  <!-- Header -->
+  <text x="36" y="38" fill="#86663b" font-size="11.5" font-weight="700" letter-spacing="1.4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">THREE-SIDED ROLES, SHARED PILLARS &amp; FAILURE BRANCHES</text>
+  <text x="36" y="64" fill="#231f1a" font-size="19.5" font-weight="700" font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">三边博弈位阶不同（参与者 vs. 定规则者），却共用同一套四支柱底座</text>
+
+  <!-- Left Column: Three Market Roles (3 core nodes) -->
+  <g font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
+    <rect x="36" y="96" width="232" height="104" rx="10" fill="#eef2f7" stroke="#96aec8" stroke-width="1.4" />
+    <text x="52" y="118" fill="#2b527a" font-size="11" font-weight="700" font-family="ui-monospace, monospace">BUYER · DSP / 买方代理</text>
+    <text x="52" y="140" fill="#1a344f" font-size="14" font-weight="700">看得到后链路转化与充值</text>
+    <text x="52" y="162" fill="#3a526c" font-size="12">目标: 预算与 ROAS 下买最大价值</text>
+    <text x="52" y="182" fill="#64748b" font-size="11.5">盲区: 输标时不知道对手出价</text>
+
+    <rect x="36" y="218" width="232" height="104" rx="10" fill="#fcf3e6" stroke="#d8a866" stroke-width="1.4" />
+    <text x="52" y="240" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">EXCHANGE · ADX 撮合层</text>
+    <text x="52" y="262" fill="#231f1a" font-size="14" font-weight="700">看得到横向多买方出价与返点</text>
+    <text x="52" y="284" fill="#5b5449" font-size="12">目标: QPS 配额与流水下赚净利</text>
+    <text x="52" y="304" fill="#7c6b53" font-size="11.5">盲区: 看不到广告主站内成交额</text>
+
+    <rect x="36" y="340" width="232" height="104" rx="10" fill="#eef4f0" stroke="#9ebaa8" stroke-width="1.4" />
+    <text x="52" y="362" fill="#2d6647" font-size="11" font-weight="700" font-family="ui-monospace, monospace">SELLER · SSP / 媒体变现</text>
+    <text x="52" y="384" fill="#1e3d2b" font-size="14" font-weight="700">看得到库存、加载率与留存</text>
+    <text x="52" y="406" fill="#3c5a47" font-size="12">目标: 体验红线下提底价与 eCPM</text>
+    <text x="52" y="426" fill="#53725e" font-size="11.5">盲区: 流拍时看不到买方真实意愿</text>
+  </g>
+
+  <!-- Connectors from 3 roles to center loop -->
+  <line x1="268" y1="148" x2="326" y2="215" stroke="#7c6b53" stroke-width="1.5" marker-end="url(#arr)" />
+  <line x1="268" y1="270" x2="326" y2="270" stroke="#7c6b53" stroke-width="1.5" marker-end="url(#arr)" />
+  <line x1="268" y1="392" x2="326" y2="325" stroke="#7c6b53" stroke-width="1.5" marker-end="url(#arr)" />
+
+  <!-- Center Box: The 4-Pillar Closed Loop (1 unified core engine) -->
+  <rect x="330" y="96" width="320" height="348" rx="12" fill="#ffffff" stroke="#c59c63" stroke-width="1.8" />
+  <text x="490" y="122" text-anchor="middle" fill="#86663b" font-size="11.5" font-weight="700" font-family="ui-monospace, monospace">SHARED MATHEMATICAL CORE</text>
+
+  <g font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
+    <rect x="350" y="136" width="280" height="58" rx="8" fill="#fbf7ef" stroke="#d8c7ab" stroke-width="1.2" />
+    <text x="364" y="159" fill="#231f1a" font-size="13.5" font-weight="700">① 条件期望与概率校准</text>
+    <text x="364" y="180" fill="#5b5449" font-size="11.8">把原始打分变成可乘出价的真实期望值</text>
+
+    <rect x="350" y="210" width="280" height="58" rx="8" fill="#fbf7ef" stroke="#d8c7ab" stroke-width="1.2" />
+    <text x="364" y="233" fill="#231f1a" font-size="13.5" font-weight="700">② 拉格朗日对偶与在线控制</text>
+    <text x="364" y="254" fill="#5b5449" font-size="11.8">把全局预算 / QPS / Ad Load 化成乘子</text>
+
+    <rect x="350" y="284" width="280" height="58" rx="8" fill="#fbf7ef" stroke="#d8c7ab" stroke-width="1.2" />
+    <text x="364" y="307" fill="#231f1a" font-size="13.5" font-weight="700">③ 反事实因果与删失纠偏</text>
+    <text x="364" y="328" fill="#5b5449" font-size="11.8">用 IPS / 生存分析修复非随机残缺日志</text>
+
+    <rect x="350" y="358" width="280" height="58" rx="8" fill="#fbf7ef" stroke="#d8c7ab" stroke-width="1.2" />
+    <text x="364" y="381" fill="#231f1a" font-size="13.5" font-weight="700">④ 非平稳探索与利用权衡</text>
+    <text x="364" y="402" fill="#5b5449" font-size="11.8">用受控探测维持新供给与真实概率分母</text>
+  </g>
+
+  <!-- Internal loop flow arrows -->
+  <line x1="490" y1="194" x2="490" y2="207" stroke="#86663b" stroke-width="1.4" marker-end="url(#arr)" />
+  <line x1="490" y1="268" x2="490" y2="281" stroke="#86663b" stroke-width="1.4" marker-end="url(#arr)" />
+  <line x1="490" y1="342" x2="490" y2="355" stroke="#86663b" stroke-width="1.4" marker-end="url(#arr)" />
+
+  <!-- Right Column: Explicit Failure Branches -->
+  <g font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
+    <line x1="630" y1="165" x2="684" y2="165" stroke="#a44a3f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-fail)" />
+    <rect x="688" y="136" width="236" height="58" rx="8" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1.3" />
+    <text x="702" y="158" fill="#8f362c" font-size="12.5" font-weight="700">失效分支: 排序准但定价错</text>
+    <text x="702" y="179" fill="#8f362c" font-size="11.5">重尾低估买不到量，高估直接亏穿</text>
+
+    <line x1="630" y1="239" x2="684" y2="239" stroke="#a44a3f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-fail)" />
+    <rect x="688" y="210" width="236" height="58" rx="8" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1.3" />
+    <text x="702" y="232" fill="#8f362c" font-size="12.5" font-weight="700">失效分支: 提前烧穿或震荡</text>
+    <text x="702" y="253" fill="#8f362c" font-size="11.5">破 ROAS 底线、静态桶锁死或单调失效</text>
+
+    <line x1="630" y1="313" x2="684" y2="313" stroke="#a44a3f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-fail)" />
+    <rect x="688" y="284" width="236" height="58" rx="8" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1.3" />
+    <text x="702" y="306" fill="#8f362c" font-size="12.5" font-weight="700">失效分支: 算力越大越偏</text>
+    <text x="702" y="327" fill="#8f362c" font-size="11.5">大模型加速背诵旧策略与未归因假负例</text>
+
+    <line x1="630" y1="387" x2="684" y2="387" stroke="#a44a3f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr-fail)" />
+    <rect x="688" y="358" width="236" height="58" rx="8" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1.3" />
+    <text x="702" y="380" fill="#8f362c" font-size="12.5" font-weight="700">失效分支: 茧房与召回坍塌</text>
+    <text x="702" y="401" fill="#8f362c" font-size="11.5">新供给永无样本，最终退回人工开量</text>
+  </g>
+
+  <!-- Footer Note -->
+  <text x="36" y="472" fill="#7c6b53" font-size="11.5" font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
+    注: 围墙花园广告平台（如大型搜索、信息流与短视频生态）将买方、撮合与卖方收归一体，四根数学支柱依然以不同权重并存于内部链路中。
+  </text>
+</svg>

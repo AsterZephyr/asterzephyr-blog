@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 470" width="960" height="470" role="img" aria-label="计算广告二十年四代技术演进如何全部收敛于四大底层数学支柱">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#7c6b53" />
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#a44a3f" />
+    </marker>
+  </defs>
+
+  <rect width="960" height="470" rx="14" fill="#fbf9f5" stroke="#e4ddd0" stroke-width="1.5" />
+
+  <!-- Header -->
+  <text x="36" y="38" fill="#86663b" font-size="11.5" font-weight="700" letter-spacing="1.4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">EVOLUTION TO MATHEMATICAL INVARIANTS (2002 - 2026)</text>
+  <text x="36" y="64" fill="#231f1a" font-size="20" font-weight="700" font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">四代广告范式升级了模型与耦合方式，但最终全部收敛回四大数学支柱</text>
+
+  <!-- Row 1: Four Eras -->
+  <g font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
+    <!-- Era 1 -->
+    <rect x="36" y="92" width="198" height="108" rx="10" fill="#f4efe6" stroke="#d4c9b5" stroke-width="1.3" />
+    <text x="50" y="114" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">ERA 1 · 2002 - 2014</text>
+    <text x="50" y="136" fill="#231f1a" font-size="14.5" font-weight="700">线性拍卖与 RTB 奠基</text>
+    <text x="50" y="158" fill="#5b5449" font-size="12">AdWords GSP · LR / FTRL</text>
+    <text x="50" y="176" fill="#5b5449" font-size="12">合约对偶 · 延迟转化 · Bandit</text>
+
+    <!-- Era 2 -->
+    <rect x="264" y="92" width="198" height="108" rx="10" fill="#f4efe6" stroke="#d4c9b5" stroke-width="1.3" />
+    <text x="278" y="114" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">ERA 2 · 2015 - 2022</text>
+    <text x="278" y="136" fill="#231f1a" font-size="14.5" font-weight="700">深度漏斗与一价自动出价</text>
+    <text x="278" y="158" fill="#5b5449" font-size="12">DeepFM / DIN · oCPX / ROAS</text>
+    <text x="278" y="176" fill="#5b5449" font-size="12">ESMM / ZILN · 一价压价 · 挑量</text>
+
+    <!-- Era 3 -->
+    <rect x="492" y="92" width="198" height="108" rx="10" fill="#eef4f0" stroke="#9ebaa8" stroke-width="1.4" />
+    <text x="506" y="114" fill="#2d6647" font-size="11" font-weight="700" font-family="ui-monospace, monospace">ERA 3 · 2024 - 2026</text>
+    <text x="506" y="136" fill="#1e3d2b" font-size="14.5" font-weight="700">精排 Scaling Law</text>
+    <text x="506" y="158" fill="#3c5a47" font-size="12">Wukong · RankMixer (15B)</text>
+    <text x="506" y="176" fill="#3c5a47" font-size="12">OneTrans · RankUp 高秩扩展</text>
+
+    <!-- Era 4 -->
+    <rect x="720" y="92" width="204" height="108" rx="10" fill="#eef2f7" stroke="#96aec8" stroke-width="1.4" />
+    <text x="734" y="114" fill="#2b527a" font-size="11" font-weight="700" font-family="ui-monospace, monospace">ERA 4 · 2024 - 2026</text>
+    <text x="734" y="136" fill="#1a344f" font-size="14.5" font-weight="700">生成式广告与轨迹出价</text>
+    <text x="734" y="158" fill="#3a526c" font-size="12">HSTU / OneRec · GPR / GR4AD</text>
+    <text x="734" y="176" fill="#3a526c" font-size="12">GEM-Rec 单调解码 · AIGB 扩散</text>
+  </g>
+
+  <!-- Era progression arrows -->
+  <line x1="234" y1="146" x2="261" y2="146" stroke="#7c6b53" stroke-width="1.6" marker-end="url(#arrow)" />
+  <line x1="462" y1="146" x2="489" y2="146" stroke="#7c6b53" stroke-width="1.6" marker-end="url(#arrow)" />
+  <line x1="690" y1="146" x2="717" y2="146" stroke="#7c6b53" stroke-width="1.6" marker-end="url(#arrow)" />
+
+  <!-- Middle Convergence Band -->
+  <rect x="135" y="228" width="690" height="44" rx="22" fill="#fcf3e6" stroke="#d8a866" stroke-width="1.4" stroke-dasharray="5 3" />
+  <text x="480" y="255" text-anchor="middle" fill="#6b4b1f" font-size="13.5" font-weight="700" font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
+    改变的是「函数逼近容量」与「模块耦合方式」 · 不变的是「商业资源分配的四重数学硬边界」
+  </text>
+
+  <!-- Vertical lines from eras to band -->
+  <line x1="135" y1="200" x2="180" y2="226" stroke="#7c6b53" stroke-width="1.3" marker-end="url(#arrow)" />
+  <line x1="363" y1="200" x2="363" y2="226" stroke="#7c6b53" stroke-width="1.3" marker-end="url(#arrow)" />
+  <line x1="591" y1="200" x2="591" y2="226" stroke="#7c6b53" stroke-width="1.3" marker-end="url(#arrow)" />
+  <line x1="822" y1="200" x2="780" y2="226" stroke="#7c6b53" stroke-width="1.3" marker-end="url(#arrow)" />
+
+  <!-- Down arrows to Four Pillars -->
+  <line x1="180" y1="272" x2="135" y2="300" stroke="#7c6b53" stroke-width="1.4" marker-end="url(#arrow)" />
+  <line x1="363" y1="272" x2="363" y2="300" stroke="#7c6b53" stroke-width="1.4" marker-end="url(#arrow)" />
+  <line x1="591" y1="272" x2="591" y2="300" stroke="#7c6b53" stroke-width="1.4" marker-end="url(#arrow)" />
+  <line x1="780" y1="272" x2="822" y2="300" stroke="#7c6b53" stroke-width="1.4" marker-end="url(#arrow)" />
+
+  <!-- Row 2: Four Pillars with Failure/Pushback Tag -->
+  <g font-family="system-ui, -apple-system, 'PingFang SC', sans-serif">
+    <!-- Pillar 1 -->
+    <rect x="36" y="304" width="204" height="136" rx="10" fill="#ffffff" stroke="#c59c63" stroke-width="1.6" />
+    <text x="50" y="326" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">PILLAR 1 · 定价尺子</text>
+    <text x="50" y="348" fill="#231f1a" font-size="14.5" font-weight="700">条件期望与概率校准</text>
+    <text x="50" y="370" fill="#524b42" font-size="12">全期望分解 · 重尾 ZILN</text>
+    <rect x="48" y="384" width="180" height="44" rx="6" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1" />
+    <text x="56" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 反噬: 选择诱发失校准</text>
+    <text x="56" y="418" fill="#8f362c" font-size="10.8">Lost in the Funnel · SID 碰撞</text>
+
+    <!-- Pillar 2 -->
+    <rect x="264" y="304" width="204" height="136" rx="10" fill="#ffffff" stroke="#c59c63" stroke-width="1.6" />
+    <text x="278" y="326" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">PILLAR 2 · 全局护栏</text>
+    <text x="278" y="348" fill="#231f1a" font-size="14.5" font-weight="700">拉格朗日对偶与博弈控制</text>
+    <text x="278" y="370" fill="#524b42" font-size="12">影子价格 · 预算 / ROAS / QPS</text>
+    <rect x="276" y="384" width="180" height="44" rx="6" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1" />
+    <text x="284" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 反噬: 单调性与混沌边界</text>
+    <text x="284" y="418" fill="#8f362c" font-size="10.8">GEM-Rec · FIXP / 混沌博弈</text>
+
+    <!-- Pillar 3 -->
+    <rect x="492" y="304" width="204" height="136" rx="10" fill="#ffffff" stroke="#c59c63" stroke-width="1.6" />
+    <text x="506" y="326" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">PILLAR 3 · 真实世界</text>
+    <text x="506" y="348" fill="#231f1a" font-size="14.5" font-weight="700">反事实因果与删失纠偏</text>
+    <text x="506" y="370" fill="#524b42" font-size="12">选择偏差 · 延迟归因 · 输标删失</text>
+    <rect x="504" y="384" width="180" height="44" rx="6" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1" />
+    <text x="512" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 反噬: 策略自强化漂移</text>
+    <text x="512" y="418" fill="#8f362c" font-size="10.8">ABPO 请回 IPS · 时变去偏</text>
+
+    <!-- Pillar 4 -->
+    <rect x="720" y="304" width="204" height="136" rx="10" fill="#ffffff" stroke="#c59c63" stroke-width="1.6" />
+    <text x="734" y="326" fill="#86663b" font-size="11" font-weight="700" font-family="ui-monospace, monospace">PILLAR 4 · 生存呼吸</text>
+    <text x="734" y="348" fill="#231f1a" font-size="14.5" font-weight="700">非平稳市场探索与利用</text>
+    <text x="734" y="370" fill="#524b42" font-size="12">Bandit · 冷启动 · 底价探测</text>
+    <rect x="732" y="384" width="180" height="44" rx="6" fill="#fdf1ef" stroke="#e2b4ad" stroke-width="1" />
+    <text x="740" y="402" fill="#8f362c" font-size="11" font-weight="700">2026 反噬: RL 召回坍塌</text>
+    <text x="740" y="418" fill="#8f362c" font-size="10.8">单日志负优势压死腰部候选</text>
+  </g>
+</svg>

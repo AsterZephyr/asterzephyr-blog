@@ -1,0 +1,629 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式边界实验 · 排序不变，坏掉一根数学支柱会怎样',
+      title: '四大支柱压力测试：为什么高 AUC 模型仍可能在线上亏钱',
+      subtitle:
+        '固定离线排序能力不变，切换三组商业边界（校准与重尾低估、拉格朗日对偶水位线、纯利用与探索坍塌），拖动滑块观察真实利润、达标率与长尾覆盖率如何偏离离线指标。',
+      tabs: [
+        { id: 'calib', label: '① 校准与重尾偏差' },
+        { id: 'dual', label: '② 对偶乘子与约束' },
+        { id: 'explore', label: '③ 选择偏差与探索坍塌' },
+      ],
+      presetsLabel: '快速场景预设：',
+      presets: [
+        { id: 'balanced', label: '健康基线' },
+        { id: 'overbid', label: '选后高估 (+35%)' },
+        { id: 'tight', label: '预算吃紧 + 严格 ROAS' },
+        { id: 'zeroexp', label: '0% 探索 (纯利用)' },
+      ],
+      s1Label: '校准乘性偏移 (PCOC)',
+      s2Label: '预算 / 配额松紧度 (对偶乘子 k)',
+      s3Label: '探索流量占比 ε',
+      m1Label: '离线 AUC (保持不变)',
+      m2Label: '实际净利留存 (vs. 最优)',
+      m3Label: '约束达标 / 校准健康度',
+      m4Label: '30 天新供给存活率',
+      diagTitle: '当前诊断',
+      chartTitle: '净利留存随参数漂移的非线性塌陷曲线（教学仿真，非单家生产实测）',
+      defaultM1: '0.842',
+      defaultM2: '97.4%',
+      defaultM3: '健康 (PCOC 1.00)',
+      defaultM4: '86.0%',
+      defaultDiag:
+        '当前处于健康均衡区：概率尺度校准接近 1.0，对偶乘子与市场水位匹配，且保持 5% 受控探索流以维持无偏日志分母。',
+    }
+  : {
+      eyebrow: 'INTERACTIVE BOUNDARY LAB · FIXED RANKING, BROKEN PILLAR',
+      title: 'Four-Pillar Stress Test: Why a High-AUC Model Still Loses Money Online',
+      subtitle:
+        'Hold offline ranking AUC constant and toggle three commercial boundaries (calibration drift, Lagrangian dual multiplier, and exploration collapse) to see how live net profit and supply coverage diverge from offline scores.',
+      tabs: [
+        { id: 'calib', label: '1. Calibration & Heavy Tail' },
+        { id: 'dual', label: '2. Dual Multiplier & Caps' },
+        { id: 'explore', label: '3. Bias & Exploration Collapse' },
+      ],
+      presetsLabel: 'Quick presets:',
+      presets: [
+        { id: 'balanced', label: 'Healthy Baseline' },
+        { id: 'overbid', label: 'Post-Filter Overbid (+35%)' },
+        { id: 'tight', label: 'Tight Budget + Hard ROAS' },
+        { id: 'zeroexp', label: '0% Exploration (Exploit Only)' },
+      ],
+      s1Label: 'Calibration Scale Drift (PCOC)',
+      s2Label: 'Budget / Quota Dual Multiplier k',
+      s3Label: 'Exploration Share ε',
+      m1Label: 'Offline AUC (Held Fixed)',
+      m2Label: 'Realized Net Profit (% of Opt)',
+      m3Label: 'Constraint / Calibration Health',
+      m4Label: '30-Day Cold-Start Survival',
+      diagTitle: 'Live Diagnosis',
+      chartTitle: 'Non-linear Profit Retention vs. Parameter Drift (Illustrative Simulation)',
+      defaultM1: '0.842',
+      defaultM2: '97.4%',
+      defaultM3: 'Healthy (PCOC 1.00)',
+      defaultM4: '86.0%',
+      defaultDiag:
+        'Balanced operating zone: probability scale stays near 1.0, the dual multiplier matches market clearing prices, and a 5% exploration slice preserves unbiased IPS denominators.',
+    };
+
+const payload = JSON.stringify({ isZh });
+---
+
+<section class="ap-lab not-prose" data-widget="ad-pillars-lab" data-payload={payload}>
+  <header class="ap-head">
+    <p class="ap-eyebrow">{copy.eyebrow}</p>
+    <h4 class="ap-title">{copy.title}</h4>
+    <p class="ap-subtitle">{copy.subtitle}</p>
+  </header>
+
+  <div class="ap-toolbar">
+    <div class="ap-tabs" role="tablist" aria-label={copy.title}>
+      {copy.tabs.map((tab, idx) => (
+        <button
+          type="button"
+          class={`ap-tab ${idx === 0 ? 'is-active' : ''}`}
+          role="tab"
+          aria-selected={idx === 0 ? 'true' : 'false'}
+          data-mode-btn={tab.id}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+    <div class="ap-presets">
+      <span class="ap-presets-label">{copy.presetsLabel}</span>
+      {copy.presets.map((p) => (
+        <button type="button" class="ap-preset" data-preset-btn={p.id}>
+          {p.label}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  <div class="ap-controls">
+    <label class="ap-control">
+      <span class="ap-control-top">
+        <span>{copy.s1Label}</span>
+        <strong data-out-pcoc>1.00x</strong>
+      </span>
+      <input type="range" min="0.55" max="1.65" step="0.05" value="1.00" data-in-pcoc />
+    </label>
+    <label class="ap-control">
+      <span class="ap-control-top">
+        <span>{copy.s2Label}</span>
+        <strong data-out-dual>1.00</strong>
+      </span>
+      <input type="range" min="0.50" max="1.60" step="0.05" value="1.00" data-in-dual />
+    </label>
+    <label class="ap-control">
+      <span class="ap-control-top">
+        <span>{copy.s3Label}</span>
+        <strong data-out-eps>5.0%</strong>
+      </span>
+      <input type="range" min="0" max="15" step="0.5" value="5.0" data-in-eps />
+    </label>
+  </div>
+
+  <div class="ap-body">
+    <div class="ap-chart-box">
+      <p class="ap-chart-title" data-chart-title>{copy.chartTitle}</p>
+      <svg viewBox="0 0 460 220" class="ap-svg" role="img" aria-label={copy.chartTitle}>
+        <line x1="48" y1="20" x2="48" y2="180" stroke="#d8d1c4" stroke-width="1" />
+        <line x1="48" y1="180" x2="436" y2="180" stroke="#d8d1c4" stroke-width="1" />
+        <line x1="48" y1="100" x2="436" y2="100" stroke="#e5dfd3" stroke-width="1" stroke-dasharray="4 4" />
+        <!-- Static SSR default curve so non-JS / SSR render is never empty -->
+        <path
+          data-curve-area
+          d="M 48 180 L 48 118 L 87 96 L 126 76 L 165 56 L 204 38 L 242 26 L 281 40 L 320 68 L 359 102 L 398 136 L 436 164 L 436 180 Z"
+          fill="rgba(134, 102, 59, 0.14)"
+        />
+        <path
+          data-curve-line
+          d="M 48 118 L 87 96 L 126 76 L 165 56 L 204 38 L 242 26 L 281 40 L 320 68 L 359 102 L 398 136 L 436 164"
+          fill="none"
+          stroke="#86663b"
+          stroke-width="2.5"
+          stroke-linejoin="round"
+        />
+        <line data-ref-line x1="242" y1="20" x2="242" y2="180" stroke="#a44a3f" stroke-width="1.2" stroke-dasharray="3 3" />
+        <circle data-cur-dot cx="242" cy="26" r="5" fill="#a44a3f" stroke="#fbf9f5" stroke-width="2" />
+        <text x="42" y="184" text-anchor="end" fill="#716d63" font-size="10" font-family="ui-monospace, monospace">0%</text>
+        <text x="42" y="104" text-anchor="end" fill="#716d63" font-size="10" font-family="ui-monospace, monospace">50%</text>
+        <text x="42" y="26" text-anchor="end" fill="#716d63" font-size="10" font-family="ui-monospace, monospace">100%</text>
+        <text data-axis-min x="48" y="198" text-anchor="start" fill="#716d63" font-size="10" font-family="ui-monospace, monospace">0.55x</text>
+        <text data-axis-mid x="242" y="198" text-anchor="middle" fill="#716d63" font-size="10" font-family="ui-monospace, monospace">1.00x</text>
+        <text data-axis-max x="436" y="198" text-anchor="end" fill="#716d63" font-size="10" font-family="ui-monospace, monospace">1.65x</text>
+        <text data-axis-label x="242" y="214" text-anchor="middle" fill="#716d63" font-size="10.5">{copy.s1Label}</text>
+      </svg>
+    </div>
+
+    <div class="ap-stats-col">
+      <dl class="ap-stats">
+        <div class="ap-stat">
+          <dt>{copy.m1Label}</dt>
+          <dd data-stat-auc>{copy.defaultM1}</dd>
+        </div>
+        <div class="ap-stat">
+          <dt>{copy.m2Label}</dt>
+          <dd data-stat-profit>{copy.defaultM2}</dd>
+        </div>
+        <div class="ap-stat">
+          <dt>{copy.m3Label}</dt>
+          <dd data-stat-health>{copy.defaultM3}</dd>
+        </div>
+        <div class="ap-stat">
+          <dt>{copy.m4Label}</dt>
+          <dd data-stat-surv>{copy.defaultM4}</dd>
+        </div>
+      </dl>
+      <div class="ap-diag">
+        <span class="ap-diag-label">{copy.diagTitle}</span>
+        <p class="ap-diag-text" data-stat-diag>{copy.defaultDiag}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function clamp(v: number, lo: number, hi: number): number {
+    return Math.min(Math.max(v, lo), hi);
+  }
+
+  function evalModel(pcoc: number, dual: number, epsPct: number) {
+    // Calibration penalty: asymmetric (overbidding burns margin faster than underbidding starves volume)
+    const calibErr = pcoc - 1.0;
+    const calibRetention =
+      calibErr >= 0
+        ? Math.exp(-2.35 * calibErr * calibErr - 0.35 * calibErr)
+        : Math.exp(-1.55 * calibErr * calibErr);
+
+    // Dual multiplier penalty: deviating from optimal shadow price k*=1.0 either leaves budget idle or breaches ROAS/QPS
+    const dualErr = dual - 1.0;
+    const dualRetention =
+      dualErr >= 0
+        ? Math.exp(-1.9 * dualErr * dualErr)
+        : Math.exp(-1.25 * dualErr * dualErr);
+
+    // Exploration trade-off over a 30-day non-stationary horizon:
+    // 0% exploration causes echo-chamber decay; excessive exploration pays short-term tax
+    const eps = epsPct / 100;
+    const shortTermKeep = 1 - 0.55 * eps;
+    const supplySurvival = clamp(0.18 + 0.80 * (1 - Math.exp(-38 * eps)), 0.18, 0.98);
+    const exploreRetention = shortTermKeep * (0.62 + 0.38 * supplySurvival);
+
+    const netProfitPct = clamp(100 * calibRetention * dualRetention * exploreRetention, 5, 100);
+    return {
+      netProfitPct,
+      supplySurvivalPct: supplySurvival * 100,
+      calibRetention,
+      dualRetention,
+      exploreRetention,
+    };
+  }
+
+  function initAdPillarsLab() {
+    document.querySelectorAll<HTMLElement>('[data-widget="ad-pillars-lab"]').forEach((root) => {
+      if (root.dataset.bound === '1') return;
+      root.dataset.bound = '1';
+      const { isZh } = JSON.parse(root.dataset.payload || '{"isZh":true}');
+
+      const inPcoc = root.querySelector<HTMLInputElement>('[data-in-pcoc]');
+      const inDual = root.querySelector<HTMLInputElement>('[data-in-dual]');
+      const inEps = root.querySelector<HTMLInputElement>('[data-in-eps]');
+      const outPcoc = root.querySelector<HTMLElement>('[data-out-pcoc]');
+      const outDual = root.querySelector<HTMLElement>('[data-out-dual]');
+      const outEps = root.querySelector<HTMLElement>('[data-out-eps]');
+
+      const statProfit = root.querySelector<HTMLElement>('[data-stat-profit]');
+      const statHealth = root.querySelector<HTMLElement>('[data-stat-health]');
+      const statSurv = root.querySelector<HTMLElement>('[data-stat-surv]');
+      const statDiag = root.querySelector<HTMLElement>('[data-stat-diag]');
+
+      const curveLine = root.querySelector<SVGPathElement>('[data-curve-line]');
+      const curveArea = root.querySelector<SVGPathElement>('[data-curve-area]');
+      const refLine = root.querySelector<SVGLineElement>('[data-ref-line]');
+      const curDot = root.querySelector<SVGCircleElement>('[data-cur-dot]');
+      const axisMin = root.querySelector<SVGTextElement>('[data-axis-min]');
+      const axisMid = root.querySelector<SVGTextElement>('[data-axis-mid]');
+      const axisMax = root.querySelector<SVGTextElement>('[data-axis-max]');
+      const axisLabel = root.querySelector<SVGTextElement>('[data-axis-label]');
+
+      const tabBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-mode-btn]'));
+      const presetBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-preset-btn]'));
+
+      let activeMode: 'calib' | 'dual' | 'explore' = 'calib';
+
+      function render() {
+        const pcoc = parseFloat(inPcoc?.value || '1.0');
+        const dual = parseFloat(inDual?.value || '1.0');
+        const eps = parseFloat(inEps?.value || '5.0');
+
+        if (outPcoc) outPcoc.textContent = `${pcoc.toFixed(2)}x`;
+        if (outDual) outDual.textContent = dual.toFixed(2);
+        if (outEps) outEps.textContent = `${eps.toFixed(1)}%`;
+
+        const cur = evalModel(pcoc, dual, eps);
+        if (statProfit) statProfit.textContent = `${cur.netProfitPct.toFixed(1)}%`;
+        if (statSurv) statSurv.textContent = `${cur.supplySurvivalPct.toFixed(1)}%`;
+
+        if (statHealth) {
+          if (Math.abs(pcoc - 1) > 0.2) {
+            statHealth.textContent = isZh
+              ? pcoc > 1 ? `高估失校准 (${pcoc.toFixed(2)}x)` : `低估丢量 (${pcoc.toFixed(2)}x)`
+              : pcoc > 1 ? `Overbid Drift (${pcoc.toFixed(2)}x)` : `Underbid Starve (${pcoc.toFixed(2)}x)`;
+          } else if (Math.abs(dual - 1) > 0.2) {
+            statHealth.textContent = isZh
+              ? dual > 1 ? `乘子过激 (破底线风险)` : `乘子保守 (预算闲置)`
+              : dual > 1 ? `Aggressive Dual (ROAS Risk)` : `Under-paced (Idle Budget)`;
+          } else if (eps < 1.5) {
+            statHealth.textContent = isZh ? '探索不足 (茧房告警)' : 'Under-explored (Echo Risk)';
+          } else {
+            statHealth.textContent = isZh ? `健康 (PCOC ${pcoc.toFixed(2)})` : `Healthy (PCOC ${pcoc.toFixed(2)})`;
+          }
+        }
+
+        if (statDiag) {
+          if (pcoc >= 1.25) {
+            statDiag.textContent = isZh
+              ? '离线 AUC 仍是 0.842，但选择后高估导致出价持续越过真实期望值，赢下的恰恰是亏损曝光（赢者诅咒）。'
+              : 'Offline AUC is still 0.842, yet post-selection overestimation pushes bids above true value, winning money-losing impressions (winner curse).';
+          } else if (pcoc <= 0.75) {
+            statDiag.textContent = isZh
+              ? '类似重尾付费直接取对数中位数忽略 Jensen 修正：排序全对，但整体低估导致竞价拿不到量，高潜流量流失给对手。'
+              : 'Similar to taking a log-domain median without Jensen correction: ranking order is intact, but systematic underbidding starves volume.';
+          } else if (dual >= 1.25) {
+            statDiag.textContent = isZh
+              ? '对偶乘子 k 过高：短期消耗冲高，但快速突破 ROAS 或 QPS 护栏，触发日内提前撞预算停投或毛利倒挂。'
+              : 'Dual multiplier k is too high: short-term spend surges past ROAS or QPS guardrails, causing early budget depletion or margin inversion.';
+          } else if (dual <= 0.75) {
+            statDiag.textContent = isZh
+              ? '对偶乘子 k 过保守（类似静态子规则小桶锁死）：大盘明明有预算和库存，高价值请求却被过严门槛拒之门外。'
+              : 'Dual multiplier k is overly conservative (akin to locked static sub-rules): budget and inventory sit idle while high-value requests are rejected.';
+          } else if (eps < 1.5) {
+            statDiag.textContent = isZh
+              ? '探索占比趋近 0%：短期看似省下了探索成本，但 30 天内新供给存活率跌破 35%，IPS 去偏失去有效分母，系统退回人工开量。'
+              : 'Near-zero exploration saves a tiny short-term tax, but 30-day cold-start survival collapses below 35%, starving IPS denominators and forcing manual ops.';
+          } else if (eps > 11) {
+            statDiag.textContent = isZh
+              ? '随机探索比例过高：长尾覆盖充足，但过多无差别流量吃掉了当期净利，需通过先验分层或冷启动匹配压缩盲探损耗。'
+              : 'Excessive random exploration preserves tail coverage but taxes live profit; structured cold-start prioritization is needed to trim blind probing cost.';
+          } else {
+            statDiag.textContent = isZh
+              ? '当前处于健康均衡区：概率尺度校准接近 1.0，对偶乘子与市场水位匹配，且保持受控探索流以维持无偏日志分母。'
+              : 'Balanced operating zone: probability scale stays near 1.0, the dual multiplier matches market clearing prices, and controlled exploration keeps IPS unbiased.';
+          }
+        }
+
+        // Sweep active axis to plot curve
+        const x0 = 48, x1 = 436, y0 = 180, y1 = 22;
+        const steps = 28;
+        let lo = 0.55, hi = 1.65, curVal = pcoc;
+        if (activeMode === 'dual') {
+          lo = 0.50; hi = 1.60; curVal = dual;
+          if (axisMin) axisMin.textContent = '0.50';
+          if (axisMid) axisMid.textContent = '1.00';
+          if (axisMax) axisMax.textContent = '1.60';
+          if (axisLabel) axisLabel.textContent = isZh ? '对偶乘子 k (预算 / ROAS 权衡)' : 'Dual Multiplier k (Budget / ROAS)';
+        } else if (activeMode === 'explore') {
+          lo = 0; hi = 15; curVal = eps;
+          if (axisMin) axisMin.textContent = '0%';
+          if (axisMid) axisMid.textContent = '7.5%';
+          if (axisMax) axisMax.textContent = '15%';
+          if (axisLabel) axisLabel.textContent = isZh ? '探索流量占比 ε (30 天净利留存)' : 'Exploration Share ε (30-Day Retention)';
+        } else {
+          if (axisMin) axisMin.textContent = '0.55x';
+          if (axisMid) axisMid.textContent = '1.00x';
+          if (axisMax) axisMax.textContent = '1.65x';
+          if (axisLabel) axisLabel.textContent = isZh ? '校准乘性偏移 (PCOC)' : 'Calibration Scale Drift (PCOC)';
+        }
+
+        const pts: string[] = [];
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const v = lo + t * (hi - lo);
+          const res =
+            activeMode === 'calib'
+              ? evalModel(v, dual, eps)
+              : activeMode === 'dual'
+                ? evalModel(pcoc, v, eps)
+                : evalModel(pcoc, dual, v);
+          const px = x0 + t * (x1 - x0);
+          const py = y0 - (res.netProfitPct / 100) * (y0 - y1);
+          pts.push(`${i === 0 ? 'M' : 'L'} ${px.toFixed(1)} ${py.toFixed(1)}`);
+        }
+        const lineD = pts.join(' ');
+        const areaD = `M ${x0} ${y0} ${lineD.replace(/^M/, 'L')} L ${x1} ${y0} Z`;
+        if (curveLine) curveLine.setAttribute('d', lineD);
+        if (curveArea) curveArea.setAttribute('d', areaD);
+
+        const curT = (curVal - lo) / (hi - lo);
+        const cx = x0 + curT * (x1 - x0);
+        const cy = y0 - (cur.netProfitPct / 100) * (y0 - y1);
+        if (refLine) {
+          refLine.setAttribute('x1', cx.toFixed(1));
+          refLine.setAttribute('x2', cx.toFixed(1));
+        }
+        if (curDot) {
+          curDot.setAttribute('cx', cx.toFixed(1));
+          curDot.setAttribute('cy', cy.toFixed(1));
+        }
+      }
+
+      tabBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          activeMode = (btn.dataset.modeBtn as 'calib' | 'dual' | 'explore') || 'calib';
+          tabBtns.forEach((b) => {
+            const on = b === btn;
+            b.classList.toggle('is-active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+          render();
+        });
+      });
+
+      presetBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const p = btn.dataset.presetBtn;
+          if (p === 'balanced') {
+            if (inPcoc) inPcoc.value = '1.00';
+            if (inDual) inDual.value = '1.00';
+            if (inEps) inEps.value = '5.0';
+          } else if (p === 'overbid') {
+            if (inPcoc) inPcoc.value = '1.35';
+            if (inDual) inDual.value = '1.00';
+            if (inEps) inEps.value = '5.0';
+            activeMode = 'calib';
+          } else if (p === 'tight') {
+            if (inPcoc) inPcoc.value = '1.00';
+            if (inDual) inDual.value = '1.35';
+            if (inEps) inEps.value = '5.0';
+            activeMode = 'dual';
+          } else if (p === 'zeroexp') {
+            if (inPcoc) inPcoc.value = '1.00';
+            if (inDual) inDual.value = '1.00';
+            if (inEps) inEps.value = '0.0';
+            activeMode = 'explore';
+          }
+          tabBtns.forEach((b) => {
+            const on = b.dataset.modeBtn === activeMode;
+            b.classList.toggle('is-active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+          render();
+        });
+      });
+
+      [inPcoc, inDual, inEps].forEach((el) => el?.addEventListener('input', render));
+      render();
+    });
+  }
+
+  initAdPillarsLab();
+  document.addEventListener('astro:page-load', initAdPillarsLab);
+  document.addEventListener('asterzephyr:language-change', initAdPillarsLab);
+</script>
+
+<style>
+  .ap-lab {
+    margin: 2rem 0;
+    padding: 1.35rem 1.45rem;
+    border: 1px solid var(--color-border, #e4ddd0);
+    border-radius: 14px;
+    background: #fbf9f5;
+  }
+  .ap-head {
+    margin-bottom: 1rem;
+  }
+  .ap-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #86663b;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .ap-title {
+    margin: 0 0 0.35rem;
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: #231f1a;
+    line-height: 1.35;
+  }
+  .ap-subtitle {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #5b5449;
+    line-height: 1.55;
+  }
+  .ap-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+  .ap-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .ap-tab {
+    padding: 0.42rem 0.78rem;
+    border: 1px solid #d8cfc0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #4f483e;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .ap-tab.is-active {
+    background: #86663b;
+    border-color: #86663b;
+    color: #ffffff;
+  }
+  .ap-presets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .ap-presets-label {
+    font-size: 0.78rem;
+    color: #716d63;
+  }
+  .ap-preset {
+    padding: 0.26rem 0.62rem;
+    border: 1px solid #dfd7c8;
+    border-radius: 999px;
+    background: #f4efe6;
+    color: #524b42;
+    font-size: 0.76rem;
+    cursor: pointer;
+  }
+  .ap-preset:hover {
+    border-color: #86663b;
+    color: #231f1a;
+  }
+  .ap-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    background: #f4efe6;
+  }
+  .ap-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: #474137;
+  }
+  .ap-control-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.4rem;
+  }
+  .ap-control-top strong {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #86663b;
+    font-size: 0.86rem;
+  }
+  .ap-control input[type='range'] {
+    width: 100%;
+    accent-color: #86663b;
+  }
+  .ap-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: stretch;
+  }
+  .ap-chart-box {
+    padding: 0.85rem;
+    border: 1px solid #e6dfd2;
+    border-radius: 10px;
+    background: #ffffff;
+  }
+  .ap-chart-title {
+    margin: 0 0 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #5b5449;
+  }
+  .ap-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .ap-stats-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .ap-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin: 0;
+  }
+  .ap-stat {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #e6dfd2;
+    border-radius: 9px;
+    background: #ffffff;
+  }
+  .ap-stat dt {
+    font-size: 0.72rem;
+    color: #716d63;
+    margin-bottom: 0.25rem;
+  }
+  .ap-stat dd {
+    margin: 0;
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #231f1a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .ap-diag {
+    flex: 1;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid #e2cdb2;
+    border-radius: 9px;
+    background: #fcf6ec;
+  }
+  .ap-diag-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #86663b;
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .ap-diag-text {
+    margin: 0;
+    font-size: 0.83rem;
+    line-height: 1.55;
+    color: #3f382e;
+  }
+  @media (max-width: 720px) {
+    .ap-controls {
+      grid-template-columns: 1fr;
+    }
+    .ap-body {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

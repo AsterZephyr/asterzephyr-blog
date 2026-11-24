@@ -48,4 +48,22 @@ export const SERIES = [
       'mobile-game-ua-skan4-and-incrementality.mdx',
     ],
   },
+  {
+    id: 'ad-bidding-and-monetization',
+    title: 'Ad systems, bidding, and monetization',
+    description: 'From programmatic ad platforms and RTB engines to CTR feature engineering, traffic shaping, pacing, multi-channel autobidding, and the four mathematical pillars enduring into scaling and generative ads.',
+    posts: [
+      '程序化广告-基础知识与实战案例解析.md',
+      '广告平台关系与流程解析.mdx',
+      '实时竞价-rtb-投放引擎技术说明文档.mdx',
+      '广告投放引擎算法流程解析.mdx',
+      'rtb业务链路中的出价类型设计.md',
+      '广告算法auc-pcoc扫盲.mdx',
+      '用数据证明直觉-ctr-特征工程的完整实战复盘.mdx',
+      'explaining-traffic-shaping.mdx',
+      'pacing-ros-dynamic-take-rate.mdx',
+      'multi-channel-autobidding.mdx',
+      'computational-ads-four-math-pillars.mdx',
+    ],
+  },
 ];
