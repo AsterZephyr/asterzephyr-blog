@@ -214,5 +214,11 @@
     "target": "/images/posts/open-post-training-frontiers-2026/open-post-training-map-en.svg",
     "sourceHash": "da6d446da89be7d19c475045b9f8836a9e1a6bfd72677d74e9601f5240718f67",
     "targetHash": "17ae055ad5406d6c7c9b764c1807ed20e461d3668a12b906f91f10c2487b0fd4"
+  },
+  {
+    "source": "/images/posts/generative-recommendation-evolution-2022-2026/gr-evolution-map.svg",
+    "target": "/images/posts/generative-recommendation-evolution-2022-2026/gr-evolution-map-en.svg",
+    "sourceHash": "662192e0053a21e7318449776f428e9edfb110d45cf6a586989a9dd1bbf2a1d9",
+    "targetHash": "44a008cde128d1cced7df8d11b08722616e7376385789be59fe0dde3b03f572e"
   }
 ]

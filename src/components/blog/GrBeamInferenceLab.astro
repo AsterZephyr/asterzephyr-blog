@@ -1,0 +1,739 @@
+---
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isZh = lang === 'zh';
+
+const copy = isZh
+  ? {
+      eyebrow: '交互式实验器 · 生成式推荐宽束推理延迟与 KV 账本',
+      title: '切换实测配置与宽束参数，看 vLLM 为什么被拖到两秒、瓶颈又在哪转移',
+      subtitle:
+        '模式一直接展示华为 2611.23339v1 在 Ascend 910B4 上的五组 Table I 实测延迟与 100 ms 线上红线；模式二按前缀长度与束宽推演逻辑前缀重读、PagedAttention 块碎片和词表裁剪倍率。',
+      modeLabel: '视图模式',
+      modes: [
+        { id: 'bench', label: '1. Ascend 910B4 实测延迟对照（Table I）' },
+        { id: 'math', label: '2. 宽束 KV 访存与词表裁剪账本（机制推演）' },
+      ],
+      bench: {
+        presetLabel: '实测配置预设',
+        slaLabel: '100 ms 线上推荐延迟上限',
+        legendTtft: 'TTFT（首 token / Prefill）',
+        legendDecode: 'Decode（后 2 枚 SID 生成 + 调度）',
+        metricSpeedup: '相对普通 vLLM 提速',
+        metricGapCustom: '与定制 xAttention 差距',
+        metricSla: '是否落入 100 ms 预算',
+        slaPass: '达标（落入 100 ms 内）',
+        slaFail: '仍超预算（需进一步优化）',
+        presets: [
+          {
+            id: '1.7b-128',
+            label: '1.7B · P=1,024 · BW=128',
+            rows: [
+              { name: '普通 vLLM（Prefix Cache 开）', ttft: 36.5, decode: 208.2, e2e: 244.7, cls: 'terra' },
+              { name: '定制 vLLM（xAttention 定制核）', ttft: 33.5, decode: 26.4, e2e: 59.9, cls: 'amber' },
+              { name: 'Tree Attention 静态图（无定制核）', ttft: 30.7, decode: 28.4, e2e: 59.1, cls: 'teal' },
+            ],
+            verdict: '128 束宽下普通 vLLM 的 NPU 实际只算了 57.6 ms（28.8×2），却被宿主机调度拖出 208.2 ms Decode；展开三步循环后直接压回 59.1 ms，稳稳落入 100 ms 线上预算。',
+          },
+          {
+            id: '1.7b-512',
+            label: '1.7B · P=1,024 · BW=512',
+            rows: [
+              { name: '普通 vLLM（Prefix Cache 开）', ttft: 37.4, decode: 1952.0, e2e: 1989.0, cls: 'terra' },
+              { name: '定制 vLLM（xAttention 定制核）', ttft: 32.3, decode: 47.8, e2e: 80.1, cls: 'amber' },
+              { name: 'Tree Attention 静态图（无定制核）', ttft: 30.9, decode: 48.1, e2e: 79.0, cls: 'teal' },
+            ],
+            verdict: '512 束宽把普通 vLLM 彻底击穿到近 2 秒（1,989 ms）；Tree Attention 静态图压到 79.0 ms（25.2× 提速），虽然通用 Attention 核比 xAttention 慢 2.35 ms，但靠零 KV 重排和 21.5× 词表裁剪反而略快 1.1 ms。',
+          },
+          {
+            id: '1.7b-10k',
+            label: '1.7B · P=10,880 · BW=512',
+            rows: [
+              { name: '普通 vLLM（Prefix Cache 开）', ttft: 380.1, decode: 4710.0, e2e: 5090.0, cls: 'terra' },
+              { name: '定制 vLLM（xAttention 定制核）', ttft: 370.5, decode: 83.8, e2e: 454.3, cls: 'amber' },
+              { name: 'Tree Attention 静态图（无定制核）', ttft: 379.3, decode: 88.4, e2e: 467.7, cls: 'teal' },
+            ],
+            verdict: '用户历史拉长到 10,880 token 后，瓶颈发生转移：Tree Attention 已把 512 束 Decode 压到 88.4 ms（比 vLLM 快 53×），但 379.3 ms 的 Prefill TTFT 成为大头，总延迟 467.7 ms 仍远超 100 ms 红线。',
+          },
+          {
+            id: '8b-128',
+            label: '8B · P=1,024 · BW=128',
+            rows: [
+              { name: '普通 vLLM（Prefix Cache 开）', ttft: 116.0, decode: 268.9, e2e: 384.9, cls: 'terra' },
+              { name: '定制 vLLM（xAttention 定制核）', ttft: 102.5, decode: 72.5, e2e: 175.0, cls: 'amber' },
+              { name: 'Tree Attention 静态图（无定制核）', ttft: 98.7, decode: 76.7, e2e: 175.4, cls: 'teal' },
+            ],
+            verdict: '模型扩到 OpenOneRec-8B 后，单卡 910B4 仅 Prefill TTFT 就接近 100 ms；系统级优化把总延迟从 384.9 ms 压到 175.4 ms（与定制核仅差 0.4 ms），但要进 100 ms 还需量化或并行拆分。',
+          },
+          {
+            id: '8b-512',
+            label: '8B · P=1,024 · BW=512',
+            rows: [
+              { name: '普通 vLLM（Prefix Cache 开）', ttft: 115.0, decode: 2029.0, e2e: 2144.0, cls: 'terra' },
+              { name: '定制 vLLM（xAttention 定制核）', ttft: 100.3, decode: 139.3, e2e: 239.6, cls: 'amber' },
+              { name: 'Tree Attention 静态图（无定制核）', ttft: 99.3, decode: 146.3, e2e: 246.4, cls: 'teal' },
+            ],
+            verdict: '8B 配合 512 束宽时，总延迟压到 246.4 ms（比 vLLM 快 8.7×），和定制核方案差距 2.8%；此时 Decode 的 QKV/FFN 计算与 TTFT 共同卡住 100 ms 门槛。',
+          },
+        ],
+        note: '实测口径：引自 arXiv:2611.23339v1 Table I，单卡 Ascend 910B4、BF16 精度、batch=1，不含图编译与预热耗时，三套方案生成结果无精度损失。柱条按当前预设最大耗时归一化，红虚线标示 100 ms 参考线。',
+      },
+      math: {
+        sliderPrefix: '共享用户历史前缀长度 P（tokens）',
+        sliderBeam: '束搜索宽度 Beam Width（BW）',
+        sliderVocab: '有效 SID 子词表大小（OpenOneRec 全词表为 176,384）',
+        cardVllmTitle: '普通 vLLM（按 Batch 拆开 + 128-token 分页块）',
+        cardTreeTitle: 'Tree Attention 静态图（按序列拼接 + 静态 KV + 词表裁剪）',
+        mPrefixReads: '单步逻辑前缀 KV 访存量（token-slots）',
+        mBeamKvSlots: 'Beam 专属 KV 槽位分配（3-token SID，缓存前 2 步）',
+        mBlockWaste: 'Beam 分页块容量浪费率（块大小 128）',
+        mVocabCand: '每束词表投影与 Top-k 候选维度',
+        note: '机制推演公式：按论文 Section II-B、III-C 与 IV-B 口径计算。vLLM 逻辑前缀读量 = BW × P，每束至少分 1 块 128-token 页（仅写 2 token，浪费约 98.4%）；Tree Attention 仅读 1 × P，静态 KV 仅开 P + BW × 2 槽位。',
+      },
+    }
+  : {
+      eyebrow: 'INTERACTIVE LAB · GR WIDE-BEAM LATENCY & KV ACCOUNTING',
+      title: 'Inspect Real Ascend 910B4 Benchmarks and Wide-Beam KV Cost Equations',
+      subtitle:
+        'Mode 1 compares all five Table I configurations from arXiv:2611.23339v1 against the 100 ms serving SLA. Mode 2 lets you vary prefix length, beam width, and SID vocabulary size to inspect KV reads, block fragmentation, and projection savings.',
+      modeLabel: 'Lab View',
+      modes: [
+        { id: 'bench', label: '1. Ascend 910B4 Measured Latency (Table I)' },
+        { id: 'math', label: '2. Wide-Beam KV & Vocab Budget (Analytical)' },
+      ],
+      bench: {
+        presetLabel: 'Benchmark Config',
+        slaLabel: '100 ms online RecSys SLA',
+        legendTtft: 'TTFT (Prefill + 1st token)',
+        legendDecode: 'Decode (remaining 2 SID tokens + dispatch)',
+        metricSpeedup: 'Speedup vs. vanilla vLLM',
+        metricGapCustom: 'Delta vs. Custom xAttention',
+        metricSla: 'Within 100 ms SLA?',
+        slaPass: 'Yes (under 100 ms)',
+        slaFail: 'Above 100 ms budget',
+        presets: [
+          {
+            id: '1.7b-128',
+            label: '1.7B · P=1,024 · BW=128',
+            rows: [
+              { name: 'Vanilla vLLM (prefix cache on)', ttft: 36.5, decode: 208.2, e2e: 244.7, cls: 'terra' },
+              { name: 'Custom vLLM (xAttention kernel)', ttft: 33.5, decode: 26.4, e2e: 59.9, cls: 'amber' },
+              { name: 'Tree Attention static graph (no custom kernel)', ttft: 30.7, decode: 28.4, e2e: 59.1, cls: 'teal' },
+            ],
+            verdict: 'At BW=128, vanilla vLLM spends only 57.6 ms of actual NPU time on the last two tokens (28.8×2) yet incurs 208.2 ms decode due to host stalls. Loop unrolling cuts E2E to 59.1 ms, well under 100 ms.',
+          },
+          {
+            id: '1.7b-512',
+            label: '1.7B · P=1,024 · BW=512',
+            rows: [
+              { name: 'Vanilla vLLM (prefix cache on)', ttft: 37.4, decode: 1952.0, e2e: 1989.0, cls: 'terra' },
+              { name: 'Custom vLLM (xAttention kernel)', ttft: 32.3, decode: 47.8, e2e: 80.1, cls: 'amber' },
+              { name: 'Tree Attention static graph (no custom kernel)', ttft: 30.9, decode: 48.1, e2e: 79.0, cls: 'teal' },
+            ],
+            verdict: 'At BW=512, vanilla vLLM explodes to 1,989 ms. The static Tree Attention graph hits 79.0 ms (25.2× faster), beating Custom vLLM by 1.1 ms even with a 2.35 ms slower Attention kernel thanks to zero KV rearrangement and 21.5× vocab pruning.',
+          },
+          {
+            id: '1.7b-10k',
+            label: '1.7B · P=10,880 · BW=512',
+            rows: [
+              { name: 'Vanilla vLLM (prefix cache on)', ttft: 380.1, decode: 4710.0, e2e: 5090.0, cls: 'terra' },
+              { name: 'Custom vLLM (xAttention kernel)', ttft: 370.5, decode: 83.8, e2e: 454.3, cls: 'amber' },
+              { name: 'Tree Attention static graph (no custom kernel)', ttft: 379.3, decode: 88.4, e2e: 467.7, cls: 'teal' },
+            ],
+            verdict: 'At a 10,880-token history, the bottleneck shifts to prefill: decode drops 53× (4,710 to 88.4 ms), yet 379.3 ms TTFT keeps E2E at 467.7 ms, well past the 100 ms target.',
+          },
+          {
+            id: '8b-128',
+            label: '8B · P=1,024 · BW=128',
+            rows: [
+              { name: 'Vanilla vLLM (prefix cache on)', ttft: 116.0, decode: 268.9, e2e: 384.9, cls: 'terra' },
+              { name: 'Custom vLLM (xAttention kernel)', ttft: 102.5, decode: 72.5, e2e: 175.0, cls: 'amber' },
+              { name: 'Tree Attention static graph (no custom kernel)', ttft: 98.7, decode: 76.7, e2e: 175.4, cls: 'teal' },
+            ],
+            verdict: 'On OpenOneRec-8B, single-NPU prefill TTFT alone sits near 100 ms. System optimization cuts E2E from 384.9 to 175.4 ms (within 0.4 ms of Custom vLLM), while meeting 100 ms requires quantization or parallelism.',
+          },
+          {
+            id: '8b-512',
+            label: '8B · P=1,024 · BW=512',
+            rows: [
+              { name: 'Vanilla vLLM (prefix cache on)', ttft: 115.0, decode: 2029.0, e2e: 2144.0, cls: 'terra' },
+              { name: 'Custom vLLM (xAttention kernel)', ttft: 100.3, decode: 139.3, e2e: 239.6, cls: 'amber' },
+              { name: 'Tree Attention static graph (no custom kernel)', ttft: 99.3, decode: 146.3, e2e: 246.4, cls: 'teal' },
+            ],
+            verdict: 'At 8B with BW=512, E2E drops 8.7× to 246.4 ms (within 2.8% of Custom vLLM), where both prefill TTFT and wider QKV/FFN decode compute push past the 100 ms mark.',
+          },
+        ],
+        note: 'Measured data: arXiv:2611.23339v1 Table I on one Ascend 910B4 NPU, BF16, batch=1, excluding graph compilation and warm-up, with zero accuracy loss. Bars normalize to each preset max latency; dashed line marks 100 ms.',
+      },
+      math: {
+        sliderPrefix: 'Shared user-history prefix length P (tokens)',
+        sliderBeam: 'Beam width (BW)',
+        sliderVocab: 'Valid SID subset size (OpenOneRec full vocab = 176,384)',
+        cardVllmTitle: 'Vanilla vLLM (Batched beams + 128-token PagedAttention)',
+        cardTreeTitle: 'Tree Attention Static Graph (Seq concat + Static KV + SID vocab)',
+        mPrefixReads: 'Logical prefix KV reads per step (token-slots)',
+        mBeamKvSlots: 'Beam-specific KV slots allocated (3-token SID, 2 cached steps)',
+        mBlockWaste: 'Paged block capacity wasted per beam (128-token block)',
+        mVocabCand: 'Vocab projection & top-k candidates per beam',
+        note: 'Analytical formulas from Sections II-B, III-C, and IV-B: vanilla vLLM reads BW × P prefix slots logically and allocates at least one 128-token block per beam (leaving ~98.4% empty for 2 cached tokens); Tree Attention reads 1 × P and allocates exactly P + BW × 2 static slots.',
+      },
+    };
+
+const uid = `grl-${Math.random().toString(36).slice(2, 8)}`;
+const initPreset = copy.bench.presets[1];
+---
+
+<section class="grl-box not-prose" id={uid} data-lang={lang} data-copy={JSON.stringify(copy)}>
+  <header class="grl-head">
+    <p class="grl-eyebrow">{copy.eyebrow}</p>
+    <h3 class="grl-title">{copy.title}</h3>
+    <p class="grl-subtitle">{copy.subtitle}</p>
+  </header>
+
+  <div class="grl-row">
+    <span class="grl-label">{copy.modeLabel}</span>
+    <div class="grl-pills" role="tablist">
+      {copy.modes.map((m, idx) => (
+        <button
+          type="button"
+          class:list={['grl-pill', { 'is-active': idx === 0 }]}
+          data-mode={m.id}
+          role="tab"
+          aria-selected={idx === 0 ? 'true' : 'false'}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  <!-- Mode 1: Measured Table I -->
+  <div class="grl-panel" data-panel="bench">
+    <div class="grl-row">
+      <span class="grl-label">{copy.bench.presetLabel}</span>
+      <div class="grl-tabs">
+        {copy.bench.presets.map((p, idx) => (
+          <button
+            type="button"
+            class:list={['grl-tab', { 'is-active': idx === 1 }]}
+            data-preset={p.id}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div class="grl-bars" data-el="bars">
+      {initPreset.rows.map((r) => {
+        const maxMs = initPreset.rows[0].e2e;
+        const ttftPct = (r.ttft / maxMs) * 100;
+        const decPct = (r.decode / maxMs) * 100;
+        const slaPct = Math.min(100, (100 / maxMs) * 100);
+        return (
+          <div class="grl-bar-item">
+            <div class="grl-bar-top">
+              <span>{r.name}</span>
+              <strong>{r.e2e.toFixed(1)} ms ({r.ttft.toFixed(1)} + {r.decode.toFixed(1)})</strong>
+            </div>
+            <div class="grl-track">
+              <span class={`grl-seg-ttft grl-${r.cls}-a`} style={`width: ${ttftPct.toFixed(2)}%`}></span>
+              <span class={`grl-seg-dec grl-${r.cls}-b`} style={`width: ${decPct.toFixed(2)}%`}></span>
+              <i class="grl-sla" style={`left: ${slaPct.toFixed(2)}%`} title={copy.bench.slaLabel}></i>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    <div class="grl-legend">
+      <span><i class="grl-dot grl-teal-a"></i>{copy.bench.legendTtft}</span>
+      <span><i class="grl-dot grl-teal-b"></i>{copy.bench.legendDecode}</span>
+      <span><i class="grl-dot-line"></i>{copy.bench.slaLabel}</span>
+    </div>
+
+    <div class="grl-stats">
+      <div class="grl-stat"><span>{copy.bench.metricSpeedup}</span><strong data-m="speedup">25.2×</strong></div>
+      <div class="grl-stat"><span>{copy.bench.metricGapCustom}</span><strong data-m="gapCustom">-1.1 ms (-1.4%)</strong></div>
+      <div class="grl-stat"><span>{copy.bench.metricSla}</span><strong data-m="slaStatus">{copy.bench.slaPass}</strong></div>
+    </div>
+
+    <p class="grl-verdict" data-m="verdict">{initPreset.verdict}</p>
+    <p class="grl-note">{copy.bench.note}</p>
+  </div>
+
+  <!-- Mode 2: Analytical KV & Vocab Budget -->
+  <div class="grl-panel is-hidden" data-panel="math">
+    <div class="grl-sliders">
+      <label class="grl-slider">
+        <span class="grl-slider-top">
+          <span>{copy.math.sliderPrefix}</span>
+          <strong data-out="prefix">1,024</strong>
+        </span>
+        <input type="range" min="512" max="10240" step="512" value="1024" data-in="prefix" />
+      </label>
+      <label class="grl-slider">
+        <span class="grl-slider-top">
+          <span>{copy.math.sliderBeam}</span>
+          <strong data-out="beam">512</strong>
+        </span>
+        <input type="range" min="32" max="1024" step="32" value="512" data-in="beam" />
+      </label>
+      <label class="grl-slider">
+        <span class="grl-slider-top">
+          <span>{copy.math.sliderVocab}</span>
+          <strong data-out="vocab">8,192</strong>
+        </span>
+        <input type="range" min="4096" max="16384" step="2048" value="8192" data-in="vocab" />
+      </label>
+    </div>
+
+    <div class="grl-grid">
+      <div class="grl-card grl-card-terra">
+        <h4 class="grl-card-head">{copy.math.cardVllmTitle}</h4>
+        <dl class="grl-metrics">
+          <div><dt>{copy.math.mPrefixReads}</dt><dd data-m="vllmReads">524,288</dd></div>
+          <div><dt>{copy.math.mBeamKvSlots}</dt><dd data-m="vllmSlots">65,536 (512 blocks)</dd></div>
+          <div><dt>{copy.math.mBlockWaste}</dt><dd data-m="vllmWaste">98.4%</dd></div>
+          <div><dt>{copy.math.mVocabCand}</dt><dd data-m="vllmVocab">176,384</dd></div>
+        </dl>
+      </div>
+
+      <div class="grl-card grl-card-teal">
+        <h4 class="grl-card-head">{copy.math.cardTreeTitle}</h4>
+        <dl class="grl-metrics">
+          <div><dt>{copy.math.mPrefixReads}</dt><dd data-m="treeReads">1,024 (512× less)</dd></div>
+          <div><dt>{copy.math.mBeamKvSlots}</dt><dd data-m="treeSlots">1,024 (exact)</dd></div>
+          <div><dt>{copy.math.mBlockWaste}</dt><dd data-m="treeWaste">0%</dd></div>
+          <div><dt>{copy.math.mVocabCand}</dt><dd data-m="treeVocab">8,192 (21.5× less)</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <p class="grl-note">{copy.math.note}</p>
+  </div>
+</section>
+
+<script is:inline define:vars={{ uid }}>
+  (function () {
+    const root = document.getElementById(uid);
+    if (!root) return;
+    const copy = JSON.parse(root.dataset.copy || '{}');
+    const isZh = root.dataset.lang === 'zh';
+
+    const modeBtns = root.querySelectorAll('[data-mode]');
+    const panels = root.querySelectorAll('[data-panel]');
+    modeBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-mode');
+        modeBtns.forEach((b) => {
+          const active = b.getAttribute('data-mode') === target;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        panels.forEach((p) => {
+          p.classList.toggle('is-hidden', p.getAttribute('data-panel') !== target);
+        });
+      });
+    });
+
+    // Mode 1: Measured Table I
+    const barsEl = root.querySelector('[data-el="bars"]');
+    function renderBench(presetId) {
+      const preset = copy.bench.presets.find((x) => x.id === presetId);
+      if (!preset || !barsEl) return;
+      const maxMs = Math.max(...preset.rows.map((r) => r.e2e));
+      const slaPct = Math.min(100, (100 / maxMs) * 100);
+      barsEl.innerHTML = preset.rows
+        .map((r) => {
+          const ttftPct = (r.ttft / maxMs) * 100;
+          const decPct = (r.decode / maxMs) * 100;
+          return `
+            <div class="grl-bar-item">
+              <div class="grl-bar-top">
+                <span>${r.name}</span>
+                <strong>${r.e2e.toFixed(1)} ms (${r.ttft.toFixed(1)} + ${r.decode.toFixed(1)})</strong>
+              </div>
+              <div class="grl-track">
+                <span class="grl-seg-ttft grl-${r.cls}-a" style="width:${ttftPct.toFixed(2)}%"></span>
+                <span class="grl-seg-dec grl-${r.cls}-b" style="width:${decPct.toFixed(2)}%"></span>
+                <i class="grl-sla" style="left:${slaPct.toFixed(2)}%" title="${copy.bench.slaLabel}"></i>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      const vllm = preset.rows[0].e2e;
+      const custom = preset.rows[1].e2e;
+      const ours = preset.rows[2].e2e;
+      const speedup = vllm / ours;
+      const diffMs = ours - custom;
+      const diffPct = (diffMs / custom) * 100;
+      const sign = diffMs > 0 ? '+' : '';
+
+      root.querySelector('[data-m="speedup"]').textContent = `${speedup.toFixed(1)}×`;
+      root.querySelector('[data-m="gapCustom"]').textContent = `${sign}${diffMs.toFixed(1)} ms (${sign}${diffPct.toFixed(1)}%)`;
+      root.querySelector('[data-m="slaStatus"]').textContent = ours <= 100 ? copy.bench.slaPass : copy.bench.slaFail;
+      root.querySelector('[data-m="verdict"]').textContent = preset.verdict;
+    }
+
+    root.querySelectorAll('[data-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        root.querySelectorAll('[data-preset]').forEach((b) => b.classList.toggle('is-active', b === btn));
+        renderBench(btn.getAttribute('data-preset'));
+      });
+    });
+
+    // Mode 2: Analytical KV & Vocab
+    const inPrefix = root.querySelector('[data-in="prefix"]');
+    const inBeam = root.querySelector('[data-in="beam"]');
+    const inVocab = root.querySelector('[data-in="vocab"]');
+
+    function updateMath() {
+      const P = Number(inPrefix.value);
+      const BW = Number(inBeam.value);
+      const V = Number(inVocab.value);
+      const fullV = 176384;
+      const vllmReads = P * BW;
+      const vllmSlots = BW * 128;
+      const treeSlots = BW * 2;
+      const vRatio = (fullV / V).toFixed(1);
+
+      root.querySelector('[data-out="prefix"]').textContent = P.toLocaleString('en-US');
+      root.querySelector('[data-out="beam"]').textContent = BW.toLocaleString('en-US');
+      root.querySelector('[data-out="vocab"]').textContent = V.toLocaleString('en-US');
+
+      root.querySelector('[data-m="vllmReads"]').textContent = vllmReads.toLocaleString('en-US');
+      root.querySelector('[data-m="vllmSlots"]').textContent = isZh
+        ? `${vllmSlots.toLocaleString('en-US')}（${BW} 块）`
+        : `${vllmSlots.toLocaleString('en-US')} (${BW} blocks)`;
+      root.querySelector('[data-m="vllmWaste"]').textContent = `${((126 / 128) * 100).toFixed(1)}%`;
+      root.querySelector('[data-m="vllmVocab"]').textContent = fullV.toLocaleString('en-US');
+
+      root.querySelector('[data-m="treeReads"]').textContent = isZh
+        ? `${P.toLocaleString('en-US')}（降 ${BW}×）`
+        : `${P.toLocaleString('en-US')} (${BW}× less)`;
+      root.querySelector('[data-m="treeSlots"]').textContent = isZh
+        ? `${treeSlots.toLocaleString('en-US')}（零碎片）`
+        : `${treeSlots.toLocaleString('en-US')} (exact)`;
+      root.querySelector('[data-m="treeWaste"]').textContent = '0%';
+      root.querySelector('[data-m="treeVocab"]').textContent = isZh
+        ? `${V.toLocaleString('en-US')}（降 ${vRatio}×）`
+        : `${V.toLocaleString('en-US')} (${vRatio}× less)`;
+    }
+
+    [inPrefix, inBeam, inVocab].forEach((el) => el.addEventListener('input', updateMath));
+    updateMath();
+  })();
+</script>
+
+<style>
+  .grl-box {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--color-field);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .grl-head {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .grl-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .grl-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    color: var(--color-heading);
+  }
+  .grl-subtitle {
+    margin: 0.35rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .grl-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 1rem;
+  }
+  .grl-label {
+    min-width: 5.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+    text-transform: uppercase;
+  }
+  .grl-pills,
+  .grl-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .grl-pill {
+    padding: 0.38rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .grl-pill.is-active {
+    color: #fff;
+    background: var(--color-heading);
+    border-color: var(--color-heading);
+  }
+  .grl-tab {
+    padding: 0.34rem 0.72rem;
+    font-size: 0.77rem;
+    font-weight: 600;
+    color: var(--color-body);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .grl-tab.is-active {
+    color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .grl-panel.is-hidden {
+    display: none;
+  }
+  .grl-bars {
+    margin-top: 1.05rem;
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+  }
+  .grl-bars :global(.grl-bar-item) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .grl-bars :global(.grl-bar-top) {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--color-body);
+  }
+  .grl-bars :global(.grl-bar-top strong) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--color-heading);
+  }
+  .grl-bars :global(.grl-track) {
+    position: relative;
+    display: flex;
+    height: 16px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #ece6dc;
+  }
+  .grl-bars :global(.grl-terra-a),
+  .grl-terra-a {
+    background: #d9826c;
+  }
+  .grl-bars :global(.grl-terra-b),
+  .grl-terra-b {
+    background: #b1462f;
+  }
+  .grl-bars :global(.grl-amber-a),
+  .grl-amber-a {
+    background: #e2b578;
+  }
+  .grl-bars :global(.grl-amber-b),
+  .grl-amber-b {
+    background: #b87324;
+  }
+  .grl-bars :global(.grl-teal-a),
+  .grl-teal-a {
+    background: #6da393;
+  }
+  .grl-bars :global(.grl-teal-b),
+  .grl-teal-b {
+    background: #2c6b5a;
+  }
+  .grl-bars :global(.grl-sla) {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 2px dashed #9b2c2c;
+    pointer-events: none;
+  }
+  .grl-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    font-size: 0.76rem;
+    color: var(--color-muted);
+  }
+  .grl-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 0.35rem;
+    vertical-align: -1px;
+  }
+  .grl-dot-line {
+    display: inline-block;
+    width: 12px;
+    height: 0;
+    border-top: 2px dashed #9b2c2c;
+    margin-right: 0.35rem;
+    vertical-align: 3px;
+  }
+  .grl-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+  }
+  .grl-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.65rem 0.8rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.76rem;
+    color: var(--color-muted);
+  }
+  .grl-stat strong {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.9rem;
+    color: var(--color-heading);
+  }
+  .grl-verdict {
+    margin: 0.8rem 0 0;
+    padding: 0.68rem 0.85rem;
+    background: #e7f2ee;
+    border: 1px solid #bfdcd2;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    line-height: 1.58;
+    color: var(--color-body);
+  }
+  .grl-sliders {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin: 1rem 0 1.1rem;
+  }
+  .grl-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.7rem 0.8rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: var(--color-body);
+  }
+  .grl-slider-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.4rem;
+    align-items: baseline;
+  }
+  .grl-slider-top strong {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--color-heading);
+    white-space: nowrap;
+  }
+  .grl-slider input[type='range'] {
+    width: 100%;
+    accent-color: var(--color-accent);
+  }
+  .grl-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .grl-card {
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+  }
+  .grl-card-terra {
+    border-top: 3px solid #b1462f;
+  }
+  .grl-card-teal {
+    border-top: 3px solid #2c6b5a;
+  }
+  .grl-card-head {
+    margin: 0 0 0.75rem;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--color-heading);
+  }
+  .grl-metrics {
+    margin: 0;
+    display: grid;
+    gap: 0.48rem;
+  }
+  .grl-metrics > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+  }
+  .grl-metrics dt {
+    color: var(--color-muted);
+  }
+  .grl-metrics dd {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 700;
+    color: var(--color-heading);
+    text-align: right;
+  }
+  .grl-note {
+    margin: 0.75rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: var(--color-muted);
+  }
+  @media (max-width: 760px) {
+    .grl-box {
+      padding: 1.1rem;
+    }
+    .grl-stats,
+    .grl-sliders,
+    .grl-grid {
+      grid-template-columns: 1fr;
+    }
+    .grl-label {
+      min-width: auto;
+      width: 100%;
+    }
+  }
+</style>

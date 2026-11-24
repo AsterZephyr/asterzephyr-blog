@@ -1,0 +1,245 @@
+---
+title: "Four Years of Generative Recommendation: From Semantic IDs to Serving Systems"
+summary: "Tracing generative recommendation from P5, TIGER, HSTU, OneRec-V2, and PLUM to OneReason, this post follows how the field cleared item tokenization, scaling laws, and commercial alignment, then examines Huawei's November 2026 paper arXiv:2611.23339v1 to show why wide-beam inference is now the sharpest online bottleneck."
+sourceFile: "generative-recommendation-evolution-2022-2026.mdx"
+sourceHash: "d033bdb353cda8c9f84b18e5fc70c1a92dfaa4daf5531c63708c6ff68bdb7587"
+draft: false
+---
+
+import Callout from '../../components/blog/Callout.astro'
+import Figure from '../../components/blog/Figure.astro'
+import TechGraph from '../../components/blog/TechGraph.astro'
+import GrBeamInferenceLab from '../../components/blog/GrBeamInferenceLab.astro'
+import Comparison from '../../components/blog/Comparison.astro'
+
+Cascaded recommendation funnels (recall, coarse ranking, fine ranking, reranking) have carried one structural flaw for over a decade: each stage optimizes a separate objective, so high-value candidates dropped during recall never recover later. A resource audit by Kuaishou's OneRec team found that over half of serving hardware in a conventional funnel went to cross-service communication and feature storage, leaving fine-ranking Model FLOPs Utilization (MFU) at 4.6% in training and 11.2% in inference, far below the ~40% common in LLM stacks.
+
+Between 2022 and 2026, Generative Recommendation (GR) set out to fold that multi-stage funnel into a single autoregressive model. Looking across those four years of papers shows a pragmatic sequence of bottleneck removals: Semantic IDs compressed tens of millions of items into discrete vocabularies, HSTU and OneRec-V2 established industrial scaling laws, and RL plus chain-of-thought reasoning brought commercial alignment and explicit intent modeling. By late 2026, industrial teams can train 1.7B to 8B generative recommenders, yet production serving has become the hard wall. Running OpenOneRec-1.7B directly on vanilla vLLM at beam width 512 pushes end-to-end latency to 1,989 ms, twenty times past the 10 to 100 ms online budget. On November 19, 2026, Huawei published [arXiv:2611.23339v1](https://arxiv.org/html/2611.23339v1) (*Optimize the Cob, Then the Kernel*), showing that before writing a single custom Attention kernel, restructuring the outer serving pipeline with Tree Attention, static KV caching, three-token loop unrolling, and SID vocabulary pruning cuts latency by 25x over vLLM to 79.0 ms on a single Ascend 910B4, matching a custom `xAttention` baseline.
+
+<Callout type="info" title="Scope and Related Posts on This Site">
+This post is written for readers with basic deep learning or recommender-system background. It connects the 2022 to 2026 GR trajectory and then covers late-2026 wide-beam inference optimization in detail. **It skips RQ-VAE quantization derivations, ad-side SID collision recipes, and vendor hardware comparisons.**<br />
+Four dedicated posts on this site already cover those pieces in depth and are linked directly where relevant: [Prerequisites for RQ-VAE and Semantic IDs](/blog/从梯度下降到-semantic-id-理解-rqvae-所需的全部前序知识), [Seven Engineering Trade-Offs in RQ-VAE Codebook Training](/blog/码本利用率的骗局-rqvae-semantic-id-训练的七个工程权衡), [Engineering Panorama of Ad Generative Recommendation](/blog/广告生成式推荐的工程全景-从三篇工业论文提炼系统设计观), and [Asymmetric RL Optimization in Xiaohongshu SAGE](/blog/PPO搬到推荐系统后为什么水土不服-从小红书SAGE看生成式推荐的非对称优化设计).
+</Callout>
+
+<TechGraph
+  src="/images/posts/generative-recommendation-evolution-2022-2026/gr-evolution-map-en.svg"
+  title="FOUR YEARS OF GENERATIVE RECOMMENDATION"
+  caption="From 2022 to 2026, generative recommendation cleared discrete item representation, scaling architectures, commercial alignment, and wide-beam serving in turn, exposing a new bottleneck at each production scale-up (author diagram synthesizing primary papers below)."
+/>
+
+## Packing Millions of Items Into a Vocabulary: How Semantic IDs Replaced ANN Indexes
+
+Early attempts to bring Transformers and language models into recommendation hit vocabulary explosion immediately. Natural language vocabularies sit around 30K to 200K tokens, whereas an e-commerce or short-video catalog holds tens or hundreds of millions of items. Assigning one token per item makes the output softmax layer intractable; letting a language model generate free-form product titles causes it to hallucinate items that do not exist in the catalog.
+
+**P5** (Geng et al., RecSys 2022, [arXiv:2203.13366](https://arxiv.org/abs/2203.13366)) opened the door by formatting interactions, ratings, reviews, and metadata as natural-language prompts inside a shared T5 model. Because it still relied on text strings or raw IDs, catalog-scale retrieval efficiency and hallucination stayed unresolved.
+
+The workable representation came from two consecutive Google papers. **DSI** (Differentiable Search Index, Tay et al., NeurIPS 2022, [arXiv:2202.06991](https://arxiv.org/abs/2202.06991)) removed external inverted indexes and ANN vector stores in document retrieval, storing corpus memory directly inside Transformer weights to generate hierarchical document IDs from a query. **TIGER** (Rajput et al., NeurIPS 2023, [arXiv:2305.05065](https://arxiv.org/abs/2305.05065)) adapted that idea to recommendation and established the **Semantic ID (SID)** design used across the field today.
+
+TIGER applies **RQ-VAE** (Residual-Quantized Variational Autoencoder) to item content embeddings across multiple residual layers. Layer 1 picks the nearest coarse category centroid (such as sports gear), subtracts it to form a residual, passes that residual to Layer 2 (ball sports), and refines further at Layer 3 (basketballs). Tens of millions of items collapse into 3- or 4-token hierarchical addresses drawn from small codebooks of a few hundred to a few thousand entries. Autoregressive decoding predicts over a compact vocabulary at each step and uniquely identifies an item in three steps. Because similar items share prefixes, brand-new items with zero click history can still be generated from semantic prefixes, directly relieving ID cold start. Training mechanics and codebook-collapse trade-offs are covered in our [RQ-VAE codebook post](/blog/码本利用率的骗局-rqvae-semantic-id-训练的七个工程权衡).
+
+TIGER was validated on small Amazon datasets. Once moved into industrial streams with billions of real-time events, a new wall appeared: user logs are high-frequency, non-stationary, and high-cardinality, so standard NLP Transformers struggled to digest long histories and failed to show clean scaling laws.
+
+## Industrial Scaling Laws Arrive: Sequential Transducers vs. End-to-End Generation
+
+In 2024 and 2025, production traffic pushed industrial labs down two scaling paths: one kept explicit ranking cross-features inside a sequential transducer backbone capable of trillion-parameter scale, while the other replaced the entire retrieve-and-rank stack with a single end-to-end generative model.
+
+### Sequential Transducers: Meta HSTU and Meituan MTGR
+
+At ICML 2024, Meta introduced **HSTU** (Hierarchical Sequential Transduction Unit, Zhai et al., [arXiv:2402.17152](https://arxiv.org/abs/2402.17152)). Unlike natural language with a fixed vocabulary, recommendation event streams drift constantly, and softmax normalization forces attention weights to sum to one, erasing the absolute intensity of user interest. HSTU removed softmax normalization in favor of pointwise aggregated attention with relative time and position biases, folding heterogeneous features and actions into one unified sequence. Meta scaled HSTU up to **1.5 trillion parameters**, showing LLM-like compute scaling laws in production recommendation and recording a 12.4% online A/B lift.
+
+When applying HSTU to heavy industrial ranking, Meituan's **MTGR** (May 2025, [arXiv:2505.18654](https://arxiv.org/abs/2505.18654)) exposed a hard empirical constraint: **dropping years of engineered DLRM cross-features to look purely generative hurts both offline and online accuracy, and parameter scaling alone does not recover it.** MTGR grouped user features, real-time sequences, and candidate cross-features inside an HSTU backbone, aligned feature scales with Group-Layer Normalization, and applied dynamic masking so candidates never leak across one another. Compute scaled **65x** with steady metric gains, giving traditional ranking teams a concrete migration template.
+
+### End-to-End Unified Generation: Kuaishou OneRec and YouTube PLUM
+
+Kuaishou took the bolder route in early 2025 with **OneRec** ([arXiv:2502.18965](https://arxiv.org/abs/2502.18965)), replacing recall, coarse ranking, and fine ranking with an encoder-decoder plus sparse MoE architecture that generates an entire session list autoregressively. Deployed across 25% of live QPS on Kuaishou and Kuaishou Lite, OneRec V1 lifted App Stay Time by 0.54% and 1.24% while cutting serving OPEX to **10.6%** of the legacy cascaded pipeline.
+
+Running V1 in production soon exposed an architectural compute trap. In August 2025, **OneRec-V2** ([arXiv:2508.20900](https://arxiv.org/abs/2508.20900)) reported its profile: **97.66% of V1's compute went into the heavy encoder** over user histories, leaving under 3% for the decoder that generates items and blocking further model scaling.
+
+<Figure
+  src="/images/posts/generative-recommendation-evolution-2022-2026/onerec-v2-framework.png"
+  alt="OneRec-V2 framework showing the Lazy Decoder-Only architecture without key/value projections on the left and watch-time GBPO preference alignment on the right"
+  caption="OneRec-V2 replaces V1's heavy encoder (which took 97.66% of compute) with a Lazy Decoder-Only architecture omitting w_k and w_v projections, paired with real watch-time GBPO alignment (Source: Kuaishou, OneRec-V2, 2025)."
+  width="90%"
+/>
+
+OneRec-V2 dropped the encoder altogether in favor of a **Lazy Decoder-Only** architecture, injecting compressed user context directly into decoder layers. Total compute dropped **94%** and training resources fell **90%**, allowing the model to scale to **8B** parameters.
+
+<Figure
+  src="/images/posts/generative-recommendation-evolution-2022-2026/onerec-scaling_comparison.png"
+  alt="OneRec-V2 training loss scaling curves from 0.1B to 8B dense models plus the 4BA0.5B sparse MoE variant"
+  caption="Removing the encoder bottleneck restores monotonic scaling from 0.1B to 8B (roughly -0.38 to -0.40 relative loss at 8B vs. 0.1B), with the sparse 4BA0.5B MoE tracking dense 2B and 4B models closely (Source: Kuaishou, OneRec-V2, 2025)."
+  width="92%"
+/>
+
+Around the same period, Google and YouTube published **PLUM** at WWW 2026 ([arXiv:2510.07784](https://arxiv.org/abs/2510.07784)), building directly on pretrained LLMs. PLUM encoded videos with multimodal SID-v2 tokens, ran domain Continued Pre-Training (CPT) to teach the LLM how SIDs co-occur across watch histories, and fine-tuned for generative retrieval at billion-user YouTube scale, delivering roughly a **4.96% Panel CTR lift** on YouTube Shorts.
+
+In December 2025, Kuaishou released **OpenOneRec** ([arXiv:2512.24762](https://arxiv.org/abs/2512.24762)), open-sourcing 1.7B and 8B foundation checkpoints, 96 million interactions, and the 8-task RecIF-Bench suite. For the first time, academic and systems researchers had an industrial-grade GR baseline to benchmark against.
+
+## Predicting the Next Click Is Not Enough: Commercial Alignment and Explicit Reasoning
+
+Once models reached billions of parameters, imitating historical click logs via supervised fine-tuning (SFT) hit two clear limits.
+
+The first limit is **commercial objectives colliding with pure semantic tokenization**. Short-video watch time is close to a single objective, whereas ads and e-commerce balance user experience, conversion probability, and bid (eCPM). Under pure semantic RQ-VAE, two advertisers running the same video creative with a 10x bid difference collapse onto the exact same SID. Kuaishou's [GR4AD](https://arxiv.org/abs/2602.22732) measured an **85.44%** SID collision rate in its ad catalog. Between late 2025 and mid-2026, Tencent Weixin Channels **GPR** ([arXiv:2511.10138](https://arxiv.org/abs/2511.10138), 5%+ cumulative GMV lift), Tencent Ads **UniVA** ([arXiv:2605.05803](https://arxiv.org/abs/2605.05803)), and Kuaishou GR4AD converged on the same hybrid pattern: keep semantic quantization in early levels for generalization, switch the final level to deterministic business-attribute or bid-bucket mapping, and run post-training RL (such as OneRec-V2 duration-aware reward shaping, GPR's HEPO, or Xiaohongshu SAGE's asymmetric PPO) to steer generation toward revenue and long-term retention. Full ad-system breakdowns live in our [ad GR panorama](/blog/广告生成式推荐的工程全景-从三篇工业论文提炼系统设计观) and [SAGE post](/blog/PPO搬到推荐系统后为什么水土不服-从小红书SAGE看生成式推荐的非对称优化设计).
+
+The second limit is **implicit prediction lacking explicit intent deduction**. Standard sequential generators act as black boxes mapping 500 clicks straight to 3 integers. For cross-domain needs, conversational queries, or world-knowledge tasks (such as recommending cold-weather gear after a user buys a camping tent ahead of a mountain trip), implicit SID transitions drift easily.
+
+**OneRec-Think** (October 2025, [arXiv:2510.11639](https://arxiv.org/abs/2510.11639)) and **OneReason** (June 2026, [arXiv:2606.06260](https://arxiv.org/abs/2606.06260)) brought LLM chain-of-thought (CoT) reasoning into GR. OneReason found that naive think-before-answer prompting fails when the model lacks strong perception of itemic tokens, causing reasoning text and generated SIDs to diverge. Its three-step fix strengthens itemic-to-text alignment in pretraining, applies a three-level cognitive CoT format during SFT, and finishes with specialize-then-unify RL. Alongside **OneSearch** and Tencent's **TGR** (September 2026, [arXiv:2609.00986](https://arxiv.org/abs/2609.00986)), search queries, dialogue, ranking, and generation are merging into unified backbones.
+
+Every jump in model capability made online serving heavier. By late 2026, the sharpest production blocker shifted to inference: **running wide beam search over a 1.7B to 8B model to emit hundreds of candidate items inside a 10 to 100 ms serving budget.**
+
+---
+
+## Late-2026 Bottleneck: 8B Models Train Fine, Yet vLLM Stalls Near Two Seconds
+
+On November 19, 2026, Huawei researchers published [*Optimize the Cob, Then the Kernel: Optimizing Beam Search for Generative Recommendation Inference*](https://arxiv.org/html/2611.23339v1) (`arXiv:2611.23339v1`). The title plays on "kernel" as both a corn kernel and a low-level GPU/NPU compute kernel (like hand-written FlashAttention), while the "cob" is the surrounding generation pipeline holding those operators together. Benchmarking OpenOneRec-1.7B and 8B on a single Ascend 910B4 NPU, the paper dissects why standard LLM engines break on GR serving.
+
+### Why General-Purpose LLM Engines Fail on GR Workloads
+
+The GR serving pipeline below flips almost every assumption baked into LLM chat engines.
+
+<Figure
+  src="/images/posts/generative-recommendation-evolution-2022-2026/gr_pipeline.png"
+  alt="Generative recommendation serving pipeline: long user history prompt, autoregressive wide beam search of O(1000) beams, and fixed 3-token Semantic ID outputs"
+  caption="GR online serving pairs a long shared user-history prompt with wide beam search (O(1000) beams) and short fixed 3-token SID outputs under a 10 to 100 ms latency cap (Source: Pun et al., arXiv:2611.23339v1, Fig. 1)."
+  width="90%"
+/>
+
+Chat LLM serving typically processes medium prompts with greedy or narrow beams (1 to 4) and variable outputs spanning hundreds of tokens. GR inverts every axis: **a long shared user history of 1K to 10K tokens, wide beam widths of 128 to 512+ for candidate diversity, and a fixed output length of just 3 SID tokens (from 3-layer RQ-Kmeans in OpenOneRec).**
+
+Running this workload directly on **vLLM** (vLLM Ascend v0.13.0 with Automatic Prefix Caching enabled) triggers three severe bottlenecks at once:
+
+1. **The shared prefix is read 512 times per step.** vLLM treats 512 active beams as 512 independent sequences along the batch dimension. Even with Automatic Prefix Caching avoiding physical memory duplication, vLLM's attention kernel tiling does not know those 512 queries share the same prefix, so it reloads the 1,024-token prefix KV from HBM 512 times. Table II shows that on OpenOneRec-1.7B at BW=512, attention kernels across steps 2 and 3 burn **45.647 ms + 68.837 ms = 114.484 ms**.
+2. **PagedAttention wastes over 98% of beam KV blocks and triggers recomputation.** To serve variable-length chat, vLLM Ascend fixes KV blocks at **128 tokens**. In GR, each beam caches at most 2 generated tokens (the third token ends generation and needs no KV entry), leaving >98% of each 128-token block empty across 512 beams. Worse, prefix caching only preserves full blocks, so every partially filled beam block gets released after each step and reallocated and recomputed on the next step.
+3. **Host-side step-by-step dispatch starves the NPU.** Current vLLM runs beam search outside the engine via repeated `generate(max_tokens=1)` calls. After every token, candidate logits and IDs transfer back to the CPU for scoring, parent selection, request rebuilding, and block-table updates. The profiling trace below shows the cost: at 1.7B and BW=512, total NPU operator time is only **208.97 ms**, yet host bubbles inflate end-to-end latency to **1,989 ms**, leaving the NPU idle nearly **90%** of the time.
+
+<Figure
+  src="/images/posts/generative-recommendation-evolution-2022-2026/vllm_profile.png"
+  alt="vLLM profiling trace on Ascend NPU showing host _process_input_queue spans creating two wide NPU idle gaps between decode steps"
+  caption="Returning to the host for _process_input_queue beam management after each SID token creates wide NPU idle gaps, stretching 209 ms of NPU kernels into 1,989 ms end-to-end latency (Source: Pun et al., arXiv:2611.23339v1, Fig. 4a)."
+  width="95%"
+/>
+
+### Fixing the Cob First: Matching xAttention Without Custom Kernels
+
+Between late 2025 and late 2026, GR inference systems split into two engineering schools.
+
+The first school, led by **xGR** (Sun et al., [arXiv:2512.11529](https://arxiv.org/abs/2512.11529)), writes custom operators. Its `xAttention` kernel splits the KV cache into a shared prefix region and beam-specific regions, computes attention over both, and merges via online softmax while moving beam selection onto the device. That choice introduces a hidden tax: after every top-k selection, dedicated cache operators must reorder and copy beam-specific KV tensors across every Transformer layer to match surviving parent indices.
+
+The second school, initiated by **UniSGR / STARK** (Sun et al., [arXiv:2607.04068](https://arxiv.org/abs/2607.04068)) and turned into a full system by Huawei's **`arXiv:2611.23339v1`**, builds a **static Tree Attention pipeline** with zero custom attention kernels, exploiting GR's fixed 3-token decoding structure across four coordinated pieces:
+
+<Figure
+  src="/images/posts/generative-recommendation-evolution-2022-2026/graph.png"
+  alt="Beam search tree (BW=2, N=3) comparing vLLM batched prefix duplication on bottom-left against Tree Attention sequence concatenation on bottom-right"
+  caption="Instead of duplicating prefixes along the batch axis like vLLM, Tree Attention flattens active beams along the sequence axis behind one shared prefix and isolates branches via a tree mask (Source: Pun et al., arXiv:2611.23339v1, Fig. 2)."
+  width="92%"
+/>
+
+The foundation moves beams from the batch dimension to the sequence dimension (Tree Attention). As shown at bottom-right above, active beam tokens are concatenated contiguously behind a **single copy of the prompt**, letting one standard FlashAttention call process all beams together. A tree attention mask $$\mathbf{M}$$ prevents cross-branch leakage:
+
+```math
+\operatorname{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^{\mathsf{T}}}{\sqrt{d}} - \lambda \mathbf{M}\right)\mathbf{V}, \qquad M_{i,j} = \begin{cases} 0\ (\text{visible}), & j \in \mathcal{P} \cup \operatorname{Path}(i) \\ 1\ (\text{masked}), & \text{otherwise} \end{cases}
+```
+
+Here $$\mathcal{P}$$ denotes shared prompt positions, $$\operatorname{Path}(i)$$ denotes token $$i$$ and its ancestor chain, and $$\lambda \to +\infty$$ (Ascend FlashAttention treats 0 as visible and 1 as masked).
+
+Flattening sequences alone still leaves runtime mask construction and KV shuffling. Because surviving parent indices depend on runtime top-k outputs, the full mask cannot be baked at compile time. The paper splits mask construction into a pre-generated **Static Mask** encoding fixed per-step visibility and a **Running Mask** tracking dynamic ancestry, combined with a cheap element-wise logical AND.
+
+The `BW = 2`, 3-step example from Figs. 2 and 3 works like this:
+- **Step 1 (Prefill + 1st token)**: standard causal attention runs over the prompt and picks top-2 tokens **A** and **B**, writing their KV entries into pre-allocated static slots.
+- **Step 2**: logical AND of the Running Mask and Step-2 Static Mask lets A attend only to prompt + A and B attend only to prompt + B. Top-2 selection chooses **E** and **F**, both descending from parent **A**, pruning branch **B**.
+- **Before Step 3 (the key move)**: **the system never copies A's KV tensors or deletes B's KV tensors**. Every KV entry stays in place across all Transformer layers; a single `gather` on the shared Running Mask using parent indices `[A, A]` copies A's mask row for both E and F, masking out B across all layers at once before ANDing with the Step-3 Static Mask.
+
+<Figure
+  src="/images/posts/generative-recommendation-evolution-2022-2026/mask_generation.png"
+  alt="Mask evolution across three decoding steps combining Static Mask and Running Mask via logical AND plus parent gather"
+  caption="When Step 2 selects E and F under parent A, a single gather on the layer-shared Running Mask hides pruned branch B and removes per-layer KV tensor shuffling (Source: Pun et al., arXiv:2611.23339v1, Fig. 3)."
+  width="100%"
+/>
+
+Memory overhead stays small: at prompt length 1,024 and BW=512, the Static Mask takes 4 MB of HBM and the Running Mask takes 1 MB per active request. Total static KV size is fixed before graph capture at $$P + BW \times (N - 1)$$ (with $$N = 3$$, since the final token needs no KV storage), eliminating PagedAttention block tables and fragmentation.
+
+Because output length is always 3, the entire three-step decode loop, scoring, top-k selection, and mask gather unroll into a **single device-side execution graph**. Compiled ahead of time per prompt-length bucket with Huawei TorchAir, tensor-view elimination, graph-pattern fusion (such as residual add + RMSNorm), and on-chip Unified Buffer fusion keep execution entirely on the NPU. Comparing profiling traces confirms that inter-step NPU bubbles vanish.
+
+<Figure
+  src="/images/posts/generative-recommendation-evolution-2022-2026/treeatten_profile.png"
+  alt="Ascend NPU profiling trace after loop unrolling and TorchAir compilation showing continuous back-to-back decode steps with no idle gaps"
+  caption="Unrolling all three decoding steps and beam updates into one TorchAir device graph removes host round-trips and eliminates NPU idle gaps (Source: Pun et al., arXiv:2611.23339v1, Fig. 4b)."
+  width="92%"
+/>
+
+Finally, the output linear layer skips wasted vocabulary math. OpenOneRec inherits a **176,384**-token LLM vocabulary, yet only **8,192** tokens are valid SID items. While the custom vLLM (`xAttention`) baseline computes full-vocabulary logits and restricts top-k afterward, Huawei slices the final projection matrix up front to those 8,192 columns, shrinking projection matmul, log-softmax, and top-k dimensions by **21.5x**.
+
+### Amdahl's Law in Practice: How a 2.35 ms Slower Attention Kernel Wins End-to-End
+
+Table II breaks down summed NPU kernel latencies on OpenOneRec-1.7B (`P = 1,024`, `BW = 512`, single Ascend 910B4) and shows a systems trade-off:
+
+| Component (1.7B · P=1,024 · BW=512) | Vanilla vLLM | Custom vLLM (`xAttention`) | Huawei Tree Attention Graph | Primary Driver |
+|---|---|---|---|---|
+| Prefill & 1st decode step | 32.267 ms | 28.335 ms | 28.425 ms | Roughly tied |
+| Step 2+3 Attention kernels | 114.484 ms | **7.442 ms** | 9.790 ms | Custom `xAttention` kernel is 2.35 ms faster |
+| KV/mask init + beam-path update & rebuild | In host stall | 4.341 ms | **0.209 ms** | Mask gather drops per-layer KV copies (20.8x faster) |
+| Step 2+3 beam scoring (proj + softmax + top-k) | 24.507 ms | 4.641 ms | **0.984 ms** | Early 8,192 SID projection cut (4.7x faster) |
+| **Summed NPU Operator Time** | 208.971 ms | 76.413 ms | **76.307 ms** | Pipeline savings offset slower Attention kernel |
+| **End-to-End Latency (incl. host)** | 1,989.0 ms | 80.1 ms | **79.0 ms** | **25.2x** faster than vLLM; edges out custom kernel |
+
+Looking at Attention alone, generic FlashAttention over Tree Attention trails custom `xAttention` by 2.35 ms (9.790 vs. 7.442 ms), and pays slightly more in tensor prep and QKV projection. Counting the full path reverses the verdict: custom `xAttention` spends **4.341 ms** initializing, shuffling, and reconstructing unshared KV caches, whereas static KV plus mask gather takes **0.209 ms**. Combined with **3.657 ms** saved by early 21.5x vocabulary slicing (4.641 down to 0.984 ms), end-to-end latency reaches **79.0 ms**, edging out the custom-kernel system (80.1 ms) by 1.1 ms.
+
+That is Amdahl's Law applied to inference systems: while host round-trips, paged fragmentation, KV shuffling, and unused vocabulary columns dominate the critical path, hand-tuning one kernel yields limited leverage. Optimize the cob first, then build custom kernels for the hotspots left standing.
+
+The interactive lab below loads all five Table I Ascend 910B4 configurations and includes an analytical view where you can vary prefix length, beam width, and SID vocabulary size:
+
+<GrBeamInferenceLab lang="en" />
+
+Stepping through all five configurations also shows where the solved region ends and what still exceeds the 100 ms serving budget:
+
+<Comparison
+  leftLabel="Well Within the 100 ms Online Budget"
+  rightLabel="Still Above the 100 ms Serving Cap"
+  left={{
+    title: "1.7B Model · 1K Prefix · BW 128 to 512",
+    items: [
+      "E2E drops to 59.1 ms at BW=128 (4.1x over vLLM) and 79.0 ms at BW=512 (25.2x over vLLM), inside the 10 to 100 ms SLA",
+      "Zero custom kernels and zero accuracy loss, keeping architecture changes and hardware ports low-maintenance",
+      "Even at a 10,880-token prefix and BW=512, Steps 2+3 decode falls to 88.4 ms, 53x faster than vLLM's 4,710 ms"
+    ]
+  }}
+  right={{
+    title: "10K+ Prefixes & Single-NPU 8B Models",
+    items: [
+      "At P=10,880, prefill TTFT alone takes 379.3 ms (467.7 ms E2E), shifting the dominant cost back to prefill",
+      "Scaling to OpenOneRec-8B puts 1,024-token TTFT near 100 ms on one 910B4 and BW=512 E2E at 246.4 ms, requiring quantization, parallelism, or cross-request prefix caching",
+      "Benchmarks measure batch=1 latency excluding graph compilation and warm-up; multi-request batching padding overhead under live traffic distributions still needs production testing"
+    ]
+  }}
+/>
+
+---
+
+## What Remains Unfinished at the End of 2026
+
+Three engineering fronts look highest-return after four years of progress.
+
+**Cross-request prefill reuse and long-history compression** is the first. `2611.23339v1` pushes 512-beam 3-step decoding down into tens of milliseconds, yet 10K-token user histories immediately bring back ~380 ms of prefill. Because recommendation histories append only a few new clicks between adjacent requests, pairing static tree decoding with [Cross-Request KV Cache](/blog/cross-request-kv-cache-推荐系统推理的零成本加速) is the most direct path to cutting prefill back into single-digit milliseconds.
+
+**Targeted custom Tree Attention kernels and low-bit quantization on top of static graphs** are next. As the Huawei authors note, optimizing the cob first clarifies where custom kernels pay off: a layout-native Tree Attention kernel that removes the extra tensor preprocessing and QKV overhead visible in Table II, paired with FP8 or INT8 quantization, is what 8B models need to cross under 100 ms at BW=512.
+
+**Reconciling explicit CoT reasoning with millisecond SLAs** stays open. Reasoning models such as OneReason emit dozens of thinking tokens before generating SIDs, breaking the fixed 3-token loop-unrolling assumption behind `2611.23339v1`. Production systems will likely split into fast and slow tracks: fixed 3-step static graphs for high-QPS feed scrolling, and on-demand short reasoning or async precomputed intent summaries for high-value conversion slots, search queries, and session openings.
+
+---
+
+## References
+
+1. Shing Wai Pun, Kai Wu, Pengfei Xia, Hui Zang, Wei Guo, Yong Liu (Huawei). *Optimize the Cob, Then the Kernel: Optimizing Beam Search for Generative Recommendation Inference*. arXiv:2611.23339v1, Nov. 19, 2026. [arxiv.org/html/2611.23339v1](https://arxiv.org/html/2611.23339v1)
+2. Guorui Zhou et al. (Kuaishou). *OneRec-V2 Technical Report* (Lazy Decoder-Only & RL Alignment). arXiv:2508.20900, Aug. 2025. [arxiv.org/abs/2508.20900](https://arxiv.org/abs/2508.20900)
+3. Guorui Zhou et al. (Kuaishou). *OpenOneRec Technical Report*. arXiv:2512.24762, Dec. 2025. [arxiv.org/abs/2512.24762](https://arxiv.org/abs/2512.24762)
+4. Shashank Rajput et al. (Google). *Recommender Systems with Generative Retrieval* (TIGER). NeurIPS 2023, arXiv:2305.05065. [arxiv.org/abs/2305.05065](https://arxiv.org/abs/2305.05065)
+5. Jiaqi Zhai et al. (Meta). *Actions Speak Louder than Words: Trillion-Parameter Sequential Transducers for Generative Recommendations* (HSTU). ICML 2024, arXiv:2402.17152. [arxiv.org/abs/2402.17152](https://arxiv.org/abs/2402.17152)
+6. Q. Sun et al. *xGR: Efficient Generative Recommendation Serving at Scale*. arXiv:2512.11529, Dec. 2025. [arxiv.org/abs/2512.11529](https://arxiv.org/abs/2512.11529)
+7. J. Sun et al. *UniSGR: Unified Framework for Semantic ID Generation and Ranking* (STARK). arXiv:2607.04068, Jul. 2026. [arxiv.org/abs/2607.04068](https://arxiv.org/abs/2607.04068)
+8. Ruining He et al. (Google / YouTube). *PLUM: Adapting Pre-trained Language Models for Industrial-Scale Generative Recommendations*. WWW 2026, arXiv:2510.07784. [arxiv.org/abs/2510.07784](https://arxiv.org/abs/2510.07784)
+9. Meituan. *MTGR: Industrial-Scale Generative Recommendation Framework in Meituan*. arXiv:2505.18654, May 2025. [arxiv.org/abs/2505.18654](https://arxiv.org/abs/2505.18654)
+10. Tencent. *GPR: Towards a Generative Pre-trained Recommender* (Weixin Channels). arXiv:2511.10138, Nov. 2025. [arxiv.org/abs/2511.10138](https://arxiv.org/abs/2511.10138)
+11. Kuaishou OneRec Team. *OneRec-Think* (arXiv:2510.11639, Oct. 2025) & *OneReason Technical Report* (arXiv:2606.06260, Jun. 2026). [arxiv.org/abs/2510.11639](https://arxiv.org/abs/2510.11639) | [arxiv.org/abs/2606.06260](https://arxiv.org/abs/2606.06260)
+12. Yi Tay et al. (Google). *Transformer Memory as a Differentiable Search Index* (DSI). NeurIPS 2022, arXiv:2202.06991. [arxiv.org/abs/2202.06991](https://arxiv.org/abs/2202.06991)
+13. Shijie Geng et al. *Recommendation as Language Processing (RLP): A Unified Pretrain, Personalized Prompt & Predict Paradigm* (P5). RecSys 2022, arXiv:2203.13366. [arxiv.org/abs/2203.13366](https://arxiv.org/abs/2203.13366)
+14. Woosuk Kwon et al. *Efficient Memory Management for Large Language Model Serving with PagedAttention* (vLLM). SOSP 2023, arXiv:2309.06180. [arxiv.org/abs/2309.06180](https://arxiv.org/abs/2309.06180)
