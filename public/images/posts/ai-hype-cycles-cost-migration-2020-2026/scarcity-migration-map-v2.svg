@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 445" width="960" height="445" role="img" aria-label="2020到2026年AI六轮价值链与利润池迁徙图">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#86663b" />
+    </marker>
+  </defs>
+
+  <rect width="960" height="445" rx="14" fill="#fbf9f4" stroke="#e2dacb" stroke-width="1.5" />
+
+  <text x="32" y="38" font-family="-apple-system, BlinkMacSystemFont, PingFang SC, sans-serif" font-size="18" font-weight="700" fill="#1f1b16">2020 到 2026 年六轮 AI 浪潮：利润池与瓶颈如何迁徙</text>
+  <text x="32" y="60" font-family="-apple-system, BlinkMacSystemFont, PingFang SC, sans-serif" font-size="12.5" fill="#6b6356">每一轮把上一层的核心生产要素拉向标准和便宜，新的稀缺项与经营成本就在下一环聚集</text>
+
+  <!-- Row 1: 3 Cards -->
+  <!-- Card 1 -->
+  <rect x="32" y="84" width="276" height="116" rx="10" fill="#ffffff" stroke="#d8cebc" stroke-width="1.5" />
+  <rect x="32" y="84" width="276" height="28" rx="10" fill="#f3ecde" />
+  <text x="46" y="103" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#86663b">01 · 2020 到 2022 算力与融资门槛</text>
+  <text x="46" y="131" font-family="-apple-system, PingFang SC, sans-serif" font-size="14" font-weight="700" fill="#1f1b16">Scaling Law / 涌现 / 思维链</text>
+  <text x="46" y="153" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：预训练算力与可排期的资本开支</text>
+  <text x="46" y="175" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">误判：把训练损失曲线直接当成商业回报</text>
+
+  <line x1="308" y1="142" x2="338" y2="142" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Card 2 -->
+  <rect x="342" y="84" width="276" height="116" rx="10" fill="#ffffff" stroke="#d8cebc" stroke-width="1.5" />
+  <rect x="342" y="84" width="276" height="28" rx="10" fill="#f3ecde" />
+  <text x="356" y="103" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#86663b">02 · 2022 底到 2023 入口与打包</text>
+  <text x="356" y="131" font-family="-apple-system, PingFang SC, sans-serif" font-size="14" font-weight="700" fill="#1f1b16">开源模型与企业 RAG</text>
+  <text x="356" y="153" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：云交叉销售、生态入口与企业采购件</text>
+  <text x="356" y="175" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">误判：接入文档不等于理解业务与合规</text>
+
+  <line x1="618" y1="142" x2="648" y2="142" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Card 3 -->
+  <rect x="652" y="84" width="276" height="116" rx="10" fill="#ffffff" stroke="#d8cebc" stroke-width="1.5" />
+  <rect x="652" y="84" width="276" height="28" rx="10" fill="#f3ecde" />
+  <text x="666" y="103" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#86663b">03 · 2024 价格战与单位经济学</text>
+  <text x="666" y="131" font-family="-apple-system, PingFang SC, sans-serif" font-size="14" font-weight="700" fill="#1f1b16">MoE 降本与 o1 推理时计算</text>
+  <text x="666" y="153" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：计入重试与复核后的有效履约成本</text>
+  <text x="666" y="175" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">误判：只盯 Token 单价而忽略人工返工</text>
+
+  <!-- Connector Row 1 -> Row 2 -->
+  <path d="M 790 200 L 790 218 L 170 218 L 170 236" fill="none" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Row 2: 3 Cards -->
+  <!-- Card 4 -->
+  <rect x="32" y="240" width="276" height="116" rx="10" fill="#ffffff" stroke="#c9b491" stroke-width="1.6" />
+  <rect x="32" y="240" width="276" height="28" rx="10" fill="#f5e9d5" />
+  <text x="46" y="259" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#7c5422">04 · 2024 底到 2025 切入人力预算</text>
+  <text x="46" y="287" font-family="-apple-system, PingFang SC, sans-serif" font-size="14" font-weight="700" fill="#1f1b16">Agent 与数字劳动力</text>
+  <text x="46" y="309" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：流程集成、数据治理与出错问责</text>
+  <text x="46" y="331" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">误判：按结果收费但交付稳定性跟不上</text>
+
+  <line x1="308" y1="298" x2="338" y2="298" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Card 5 -->
+  <rect x="342" y="240" width="276" height="116" rx="10" fill="#ffffff" stroke="#c9b491" stroke-width="1.6" />
+  <rect x="342" y="240" width="276" height="28" rx="10" fill="#f5e9d5" />
+  <text x="356" y="259" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#7c5422">05 · 2026 春 经验与软件复制</text>
+  <text x="356" y="287" font-family="-apple-system, PingFang SC, sans-serif" font-size="14" font-weight="700" fill="#1f1b16">人物蒸馏与软件逆向（CLI / REA）</text>
+  <text x="356" y="309" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：专有数据、转换成本、运维与判断力</text>
+  <text x="356" y="331" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">误判：把功能重写成本趋零当成商业壁垒清零</text>
+
+  <line x1="618" y1="298" x2="648" y2="298" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Card 6 -->
+  <rect x="652" y="240" width="276" height="116" rx="10" fill="#fffaf0" stroke="#c48a3a" stroke-width="2" />
+  <rect x="652" y="240" width="276" height="28" rx="10" fill="#f3dfc0" />
+  <text x="666" y="259" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" font-weight="700" fill="#7c4f13">06 · 2025 到 2026 利润池上移</text>
+  <text x="666" y="287" font-family="-apple-system, PingFang SC, sans-serif" font-size="14" font-weight="700" fill="#1f1b16">AI 数据市场与 RL 判分权</text>
+  <text x="666" y="309" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#4f483e">稀缺项：专家网络、防作弊沙箱与中立信任</text>
+  <text x="666" y="331" font-family="-apple-system, PingFang SC, sans-serif" font-size="11.5" fill="#b9533c">误判：给快速折旧的项目环境套永续软件估值</text>
+
+  <!-- Bottom dashed failure/common trap rail -->
+  <rect x="32" y="376" width="896" height="48" rx="10" fill="#fdf2ef" stroke="#d98c7a" stroke-width="1.5" stroke-dasharray="6 4" />
+  <text x="48" y="397" font-family="-apple-system, PingFang SC, sans-serif" font-size="12.5" font-weight="700" fill="#9b3422">反复重演的定价错位</text>
+  <text x="48" y="415" font-family="-apple-system, PingFang SC, sans-serif" font-size="12" fill="#5e3228">单层成本下降  ->  提前按整条价值链替代估值  ->  隐性经营成本在下一环浮现（复核、问责、沙箱安全、折旧与大客户自建）</text>
+</svg>

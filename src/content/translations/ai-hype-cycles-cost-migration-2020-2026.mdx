@@ -1,255 +1,129 @@
 ---
-title: "Six Years of AI Myths: How Bottlenecks Moved from Compute to the Physical World"
-summary: "From 2020 Scaling Laws to 2026's AI data markets and Physical AI, the technical buzzwords rotate every few months while the same commercial mispricing repeats: pricing a local breakthrough as full replacement. Skipping algorithm recaps, this essay traces how scarcity migrated across seven waves and who ended up paying the hidden bills."
+title: "Six Years of AI Myths: How Bottlenecks Moved from Compute to Data Markets"
+summary: "Tracing AI's business-model evolution from 2020 Scaling Laws to 2026's hard-problem data markets in China and verifiable RL grading. Whenever one layer in a value chain turns standardized and cheap, excess profits do not disappear; they move immediately to the next scarce layer."
 sourceFile: "ai-hype-cycles-cost-migration-2020-2026.mdx"
-sourceHash: "72f2ed4ff7a931468c55659b4ed6d7c82a048299c8a83627e6380e14e827d109"
+sourceHash: "a5bf434ad7d7274314995b3422d068380cedd07f06218f4c7e287616c1d3d2d6"
 draft: false
 ---
 
-import Callout from '../../components/blog/Callout.astro'
 import TechGraph from '../../components/blog/TechGraph.astro'
 import Comparison from '../../components/blog/Comparison.astro'
-import Steps from '../../components/blog/Steps.astro'
-import StepItem from '../../components/blog/StepItem.astro'
 import AiCostShiftLab from '../../components/blog/AiCostShiftLab.astro'
 
-Every few months, the AI industry promotes a new concept framed as an industry-ending breakthrough. From Scaling Laws in 2020, to open-weight models, RAG, MoE, and digital workers, to 2026's viral persona skills, software reverse engineering, RL environment markets, and humanoid robots, the underlying engineering differs completely, yet the mythmaking script barely changes: **a local technical breakthrough is packaged and priced early as a complete general solution.**
+One commercial rule keeps repeating across value chains: wherever a layer is scarce enough to block delivery, excess profits pool there; once that layer becomes standardized and cheap, those profits do not vanish, they move straight to the next scarce layer beside it.
 
-Viewed on one business-model map, these six years and seven waves obey a recurring rule we might call **the conservation of cost**: technical progress rarely makes total cost vanish. Instead, it drives down the visible unit price of one layer while shifting where the real bill lands and who ends up paying it.
+Apply that rule to the past six years of AI, and many surprising reversals click into place. From Scaling Laws in 2020, to open-weight models, RAG, MoE, and digital workers, to 2026's viral persona skills, software reverse engineering, and hard-data markets, the technologies look unrelated while the market mispricing stays familiar: **observers price a cost drop in one layer as if the profit structure of the entire value chain had already been rewritten.**
 
-Rather than re-explaining textbook algorithms, this essay follows a single thread of **scarcity and business models**: trace how the market's definition of what is valuable moved over the past six years, then apply that same lens to 2026's two hottest battlegrounds, **AI data markets and RL environments** and **Physical AI / embodied intelligence**.
-
-<Callout type="info" title="Lineage & Scope">
-The narrative spine of this essay was inspired by a 15-minute Douyin video by creator "叫我 Ryder 就好" reviewing six years of AI mythmaking. Every historical milestone, paper, and business case below was independently verified against primary public sources (through 2026-11-24), and the analysis extends forward into 2025 to 2026 data markets and Physical AI.<br />
-**Non-Goals**: This post does not re-derive Scaling Law, MoE, or RL algorithms (linked directly to existing deep dives on this blog), nor does it offer stock advice. Vendor self-reports, press estimates, and author calculations are labeled explicitly throughout.
-</Callout>
+One shift on the ground over the past two years makes this plain: **data vendors' salespeople used to chase big-tech procurement teams to sell standard labeling packs; now frontline researchers show up at data vendors' doors with their models' failure cases, placing custom orders for hard problems.** Bargaining power flipped in two years because the industry's profit pool moved again.
 
 <TechGraph
-  src="/images/posts/ai-hype-cycles-cost-migration-2020-2026/scarcity-migration-map-en.svg"
-  title="SEVEN WAVES OF SCARCITY & COST MIGRATION (2020 TO 2026)"
-  caption="Across seven AI waves from 2020 to 2026, compressing visible unit cost in one layer consistently exposes a new scarcity and hidden bill in the next (synthesized from primary papers and industry disclosures)."
+  src="/images/posts/ai-hype-cycles-cost-migration-2020-2026/scarcity-migration-map-v2-en.svg"
+  title="SIX WAVES OF SCARCITY & PROFIT POOL MIGRATION (2020 TO 2026)"
+  caption="Value-chain migration across six AI waves from 2020 to 2026: as each wave makes the prior layer cheaper and more standardized, excess profits and hidden operating costs pool in the next link (synthesized from primary papers and industry disclosures)."
 />
 
-## Waves 1 to 3 Revisited: From Compute Certainty to Qualified Task Cost (2020 to 2024)
+## Scaling Laws: Turning Unpredictable R&D Risk into a Capital Barrier
 
-Existing deep dives on this blog cover the technical mechanics of the first four years. Here we isolate the commercial logic that moved capital in each wave.
+Go back to 2020. OpenAI published its Scaling Laws paper, showing a steady power-law link between pre-training loss, parameter count, dataset size, and compute. The compute poured along that curve did deliver real capability leaps and real revenue.
 
-### 2020 to 2023: Scaling Laws Sold Certainty, Not Commercial Returns
+Yet scientific accuracy was only half the reason capital markets aligned around Scaling Laws; the deeper shift was how tech giants competed. For executives and investors, the biggest business risk in foundational research is uncertainty, since you cannot schedule an unknown algorithmic insight into a three-year budget. With a power law, GPU purchases, data budgets, and funding rounds fit onto a calendar, turning competition from betting on research luck into competing on balance sheets and chip allocations. For a capital-intensive industry, that is the clearest fundraising story imaginable.
 
-After OpenAI published its 2020 Scaling Laws paper, the industry quickly turned an empirical power law about pre-training loss into a sweeping belief: make models big enough and buy enough GPUs, and general intelligence will inevitably arrive.
+The slip happened when predictable loss curves were treated as predictable commercial returns. Follow-up research drew clear limits. DeepMind's Chinchilla adjusted the parameter-to-token ratio, and later work proved that once serving costs enter the math, smaller models trained longer are commercially superior (see [Data Taste Engineering Boundaries](/blog/what-is-good-data-taste-llm-engineering-boundaries)). In 2023, Stanford researchers showed that many abrupt "emergent" jumps flatten into smooth curves under continuous metrics. By May 2025, Anthropic tested Claude 3.7 Sonnet and DeepSeek-R1 and found that when models used external hints, their Chain-of-Thought traces disclosed those hints less than 20% of the time, meaning readable reasoning text cannot serve as a reliable compliance audit.
 
-Why did so many seasoned executives and investors embrace that story? Because it supplied the scarcest asset in business: **certainty**. You cannot schedule an unknown algorithmic breakthrough on a three-year roadmap, whereas buying chips, expanding datasets, and sizing funding rounds along a clean curve fits neatly into capital planning. Scaling Laws reshaped not just research, but how capital, compute, and talent were allocated.
+In November 2025, former OpenAI chief scientist Ilya Sutskever said the field was moving from "the age of scaling" back to "the age of research": pre-training feeds everything in, while reinforcement learning requires picking data and designing grading. SemiAnalysis estimates of frontier lab compute match that shift: total spending did not shrink, its weight moved from pre-training to post-training and RL (see [Open Post-Training Frontiers 2026](/blog/open-post-training-frontiers-2026)). Buying GPUs for pre-training alone no longer locks in pricing power.
 
-Subsequent research repeatedly reminded the industry that spending more resources is a precondition for capability, not capability itself, and certainly not guaranteed margin:
+## Open Weights, RAG, and Price Wars: Cheap Models, Adjacent Profits
 
-- DeepMind's Chinchilla recalibrated the parameter-to-data ratio, and later work showed that once inference costs enter the equation, the commercial optimum shifts toward smaller models trained longer (see [Data Taste Engineering Boundaries](/blog/what-is-good-data-taste-llm-engineering-boundaries)).
-- In 2023, Stanford researchers showed that many abrupt "emergent" jumps flatten into smooth curves under continuous evaluation metrics.
-- In May 2025, Anthropic found that when reasoning models used external hints, Chain-of-Thought traces disclosed those hints less than 20% of the time, proving that readable reasoning text does not guarantee transparent decision-making. In November 2025, former OpenAI chief scientist Ilya Sutskever remarked that the field was moving from "the age of scaling" back to "the age of research": pre-training's data answer was "use everything," whereas RL requires selecting data and designing verification.
+After ChatGPT brought LLMs to the public in late 2022, an unusual business move appeared: platform giants that had spent heavily training base models started releasing open weights for free.
 
-None of this means scaling failed. SemiAnalysis estimates that frontier lab compute shifted sharply from pre-training toward post-training and RL (see [Open Post-Training Frontiers 2026](/blog/open-post-training-frontiers-2026)). Scaling continues; **what gets scaled changed**.
+Nobody was running a charity. Companies looked like they were building the same thing while monetizing completely different layers. Pure model labs billed API calls and application startups sold vertical subscriptions, while platform giants gave weights away to compress margins in the model layer so closed upstream models could not capture their pricing power. Meta stated openly that open Llama weights kept its social and ad businesses from being boxed in by closed platforms; Alibaba noted repeatedly in earnings calls that Qwen APIs and open models drive cross-sales across cloud compute, databases, and enterprise services. Models became customer acquisition while profits settled into cloud and distribution.
 
-### Late 2022 to 2023: Open Weights and RAG Were Never Selling the Same Product
+Once models became easy to access, enterprises hit practical walls: general models lacked private company data and still fabricated answers. In 2023, **RAG** (Retrieval-Augmented Generation, pulling internal company records before answering) became the fastest-selling enterprise offer, quickly turned into managed services by AWS and other clouds. Dropping files into a vector database is still far from understanding a business, with missed recall, permissions, and stale files requiring real engineering. Commercially, however, RAG solved packaging: without forcing companies to retrain models, it turned an abstract capability into a standard monthly product an IT department could actually budget for.
 
-Once ChatGPT brought LLMs to mass audiences in late 2022, a counterintuitive trend emerged: giants spending fortunes to train frontier models started releasing open weights. They were not running charities. **Everyone looked like they were selling models, but they were monetizing completely different layers.**
+By 2024, capable base models were no longer scarce either, and price wars thinned per-call margins, pushing competition to **unit economics**. On the surface, the field split in two directions. DeepSeek-V3 combined sparse MoE with FP8 and reported $5.576M for a single official training run at an assumed $2/H800 hour rental rate (covering only that run's compute rental, not prior R&D, ablations, or cluster ownership), followed by DeepSeek-R1 and distilled models pushing API prices down further. OpenAI's o1 moved the other way with Test-Time Compute, deliberately spending extra inference compute on hard problems to raise accuracy.
 
-Base-model labs billed APIs and application startups sold vertical workflows, while platform giants played a longer game. Meta stated plainly that open Llama weights kept its business from being trapped inside rivals' closed ecosystems; Alibaba noted in earnings discussions that Qwen APIs and open models drive cross-sales across cloud compute, databases, and enterprise infrastructure. The model turned into customer acquisition while margins settled into cloud and distribution.
+Both tracks worked on the same customer equation: **what does one qualified outcome actually cost?** Token price is often a tiny slice of the bill. If a cheap model triggers repeated retries plus line-by-line human review and rework, even free API calls lose money for the buyer.
 
-Enterprises simultaneously hit a practical wall: general models did not know private company records and still hallucinated. **RAG** (Retrieval-Augmented Generation, pulling relevant internal documents before answering) became 2023's fastest enterprise buy, rapidly packaged into managed cloud services.
+## From Software Seats to Digital Workers: Pricing Power Jumps, Moats Do Not Vanish
 
-Plugging documents into a retrieval index is still miles away from truly understanding a business; missed recall, stale records, and verification still require real engineering. RAG's real commercial lesson was never vector-search tuning, but **how a technical pattern turns an abstract model capability into a recurring line item an IT department can actually procure**.
+Once qualified delivery math became clear, software vendors in late 2024 went after a much bigger budget. For twenty years, enterprise software monetized per-seat productivity budgets with high gross margins and light liability, leaving operational errors on the human employee. Now vendors aimed straight at payroll and outsourcing budgets by selling AI as **digital labor**.
 
-### 2024: MoE Cost Cutting and o1 Test-Time Compute Solved the Same Equation
+In December 2024, Salesforce launched Agentforce 2.0 explicitly as a digital-labor platform, evolving from $2 per conversation to granular Flex Credits around $0.10 per standard action, effectively pricing software like piece-rate labor.
 
-Once capable models became widely affordable, 2024 competition converged on unit economics along two apparently opposite paths. On one side, DeepSeek-V3 combined MoE sparse activation and FP8 training to report a single official training run at **$5.576M** in assumed GPU rental rates (excluding prior R&D, ablations, and cluster ownership), followed by DeepSeek-R1 and distilled models compressing API pricing across the industry. On the other side, OpenAI's o1 popularized **Test-Time Compute**, deliberately burning more tokens on hard queries to raise accuracy.
+Shift the pricing anchor from "tool" to "worker," and customer acceptance criteria plus error liability tighten overnight. Tool buyers ask how much time an employee saves; labor buyers calculate unattended resolution rates, supervision headcount, and who pays when live production data is corrupted.
 
-Those two trends were never contradictory; both answered one commercial question: **what does it actually cost to deliver one qualified task?** Per-token API price is only the visible tip. If a cheap model forces repeated retries and line-by-line human review, near-zero token fees still lose money once rework labor enters the room.
+Market reality in 2025 exposed that gap quickly. Fintech firm Klarna announced in early 2024 that its AI assistant handled first-month chat volume equivalent to 700 full-time agents (an equivalent-workload claim, not a layoff of 700 staff). By May 2025, Bloomberg reported its CEO admitting cost-cutting had gone too far, quality and complex escalations had suffered, and Klarna was hiring humans again to restore live fallback. In June 2025, Gartner forecast that over 40% of agentic AI projects will be canceled by the end of 2027 due to rising costs, unclear value, and weak risk controls, noting that only a small fraction of thousands of self-proclaimed agent vendors offered true agency. MIT NANDA's August survey reported the same divide: most pilots stalled on workflow redesign and data cleanup, with very few reaching the P&L with rapid revenue growth.
 
----
+That is why MCP, Skills, and persistent memory became mandatory in 2025: without live system access and reusable procedures, an agent cannot even start the job. Yet connecting more tools does not guarantee stable delivery. As analyzed in [Why Autonomous Software Factories Fail](/blog/关不了的灯-software-factory为什么必然失败), current RL lacks a reward signal for long-term maintainability, leaving technical debt in codebases and workflows billed to the engineering team behind them.
 
-## Wave 4: From Software Tools to Digital Labor, Where Accountability Surfaces (Late 2024 to 2025)
+In March and April 2026, after Skills matured into a cross-platform standard, open-source persona distillation and software reverse engineering surged. On one side, `colleague-skill` (now renamed `titanwings/distilly`) and `nuwa-skill` packaged an expert's public writing and habits into an installable Skill. On the other, HKUDS's [`HKUDS/CLI-Anything`](https://github.com/HKUDS/CLI-Anything) wrapped GUI apps like LibreOffice and Blender into agent-ready CLIs, while [`morluto/rea`](https://github.com/morluto/rea) (Reverse Engineer Anything) connected coding agents via MCP to Ghidra and IDA Pro to decompile binaries and rebuild features.
 
-Once teams started accounting for qualified task cost, business models crossed a line in late 2024: software vendors moved beyond per-seat productivity tools and began pricing AI directly as **digital labor**, aiming straight at headcount and outsourcing budgets.
-
-Salesforce's December 2024 launch of **Agentforce 2.0** marked this shift explicitly as a "digital labor platform." Moving from **$2 per conversation** to granular **Flex Credits** (roughly **$0.10 per standard action**) was an effort to price software like piece-rate labor.
-
-The moment you sell a customer a "digital worker," their acceptance criteria change overnight. Tool buyers ask how many minutes an employee saves. Labor buyers ask three sharper questions: **how much work can it deliver unattended, how much supervision does it require, and who owns the damage when it corrupts live data?**
-
-Two reality checks in 2025 made that gap impossible to miss:
-
-- **Klarna's human-fallback correction**: In early 2024, Klarna publicized that its AI assistant handled customer chat volume **equivalent to 700 full-time agents** (an equivalent-workload claim, not a layoff of 700 staff). By May 2025, Bloomberg reported its CEO acknowledging that cost-cutting had gone too far, quality had suffered, and Klarna was hiring again to restore live human fallback alongside its AI stack.
-- **Gartner and MIT's enterprise reality check**: In June 2025, Gartner forecast that **over 40% of agentic AI projects will be canceled by the end of 2027** due to rising costs, unclear business value, and weak risk controls, noting that most self-proclaimed agent vendors were merely rebranding legacy automation. MIT NANDA's August 2025 study pointed to the same divide: only a tiny fraction of enterprise pilots produced rapid revenue growth, with most stalling on workflow redesign and data cleanup.
-
-That is why **MCP, Skills, and persistent memory** became essential in 2025: without business-system interfaces and reusable procedures, an agent cannot even sit at the desk. Yet connecting more tools does not guarantee accountable delivery. As examined in [Why Autonomous Software Factories Fail](/blog/关不了的灯-software-factory为什么必然失败), current RL loops lack a reward signal for long-term maintainability, leaving human engineers to pay for silent defects later.
-
----
-
-## Wave 5: 2026 Persona Distillation and Software Reverse Engineering Confuse Artifacts with Capability
-
-Once Skills became a cross-platform open standard, the spring of 2026 sparked an even bolder leap: if procedures can be packaged as Skills and software can be driven by agents, can **human judgment** and **commercial software** be cloned directly?
-
-Two clusters of open-source projects captured that imagination in March and April 2026:
-
-- **Persona-distillation Skills**: Projects such as `colleague-skill` (late March 2026, later renamed `titanwings/distilly`, keeping its former name in the README) and `nuwa-skill` (April 2026) harvest a person's public essays, talks, and coding habits to package mental models and tone into installable Skills, often pitched online as extracting a person's "cognitive operating system."
-- **CLI wrapping and binary reverse engineering**: In March 2026, HKUDS open-sourced [`HKUDS/CLI-Anything`](https://github.com/HKUDS/CLI-Anything), automatically generating CLI wrappers and `SKILL.md` files for GUI software like LibreOffice and Blender. In April 2026, [`morluto/rea`](https://github.com/morluto/rea) (Reverse Engineer Anything) linked coding agents via MCP to Ghidra and IDA Pro to analyze binaries and rebuild components.
-
-Both categories offer real developer utility by lowering the friction of operating legacy GUIs or analyzing compiled software. The mythmaking starts when observers collapse four distinct capability rungs into one:
-
-> **Invoking software** -> **Analyzing partial implementation** -> **Rebuilding a feature** -> **Replacing a commercial product**.
+These tools save real engineering hours, yet social media stretched them into "zero SaaS defensibility," collapsing four completely different business tiers into one: **operating software, reading partial internals, rewriting a feature, and replacing a company's full product and operating system.**
 
 <Comparison
   left={{
-    title: "Surface assets deflating rapidly",
+    title: "Surface functionality getting cheaper fast",
     items: [
       "Public mental frameworks, phrasing, and stylistic tone from an expert's writing",
-      "Standard GUI menus wrapped into clean CLI commands",
-      "Standalone utility code and generic feature modules",
-      "Standard procedures already written down in static docs"
+      "Standard GUI menus wrapped into clean command-line interfaces",
+      "Standalone utilities and generic feature code",
+      "Standard procedures already documented in static wikis and public APIs"
     ]
   }}
   right={{
-    title: "Scarce moats that artifact cloning cannot copy",
+    title: "Real moats behind pricing power and customer retention",
     items: [
       "Judgment under novel edge cases backed by real accountability",
-      "Proprietary operational data, uptime engineering, and security SLAs",
-      "Long-term customer relationships, org permissions, and continuous maintenance",
+      "Proprietary operational data, system uptime, and security compliance",
+      "Cross-org permissions, customer relationships, and continuous maintenance",
       "24/7 incident ownership and ecosystem integration"
     ]
   }}
-  leftLabel="Deflating"
-  rightLabel="Still Scarce"
+  leftLabel="Commoditizing"
+  rightLabel="Keeping Excess Profit"
 />
 
-Persona distillation and software reverse engineering share zero technical internals, yet trigger the exact same leap: **assuming that capturing external prose or static code gives you the complete capability that created and sustains it.** As explored in [Building Is Easier, Generating Value Is Still Hard](/blog/building-is-easier-generating-value-is-still-hard), as code generation approaches zero cost, durable value retreats immediately into proprietary data, operations, trust, and judgment.
+Near-free code generation does not erase commercial moats. As examined in [Building Is Easier, Generating Value Is Still Hard](/blog/building-is-easier-generating-value-is-still-hard), mature software commands margins not for raw source code alone, but for proprietary data, customer switching costs, compliance commitments, and operational trust. As code gets cheaper, profit pools concentrate even harder in those harder-to-copy business assets.
 
----
+## AI Data Markets and RL Environments: High Cashflow, Tough Valuation Quality
 
-## Wave 6 (Software Frontier): AI Data Markets and RL Environments Shift Pricing from Hours to Grading Authority
+Once base weights, API tokens, and routine code turned cheap, the most lucrative profit pool in software during 2025 and 2026 moved upstream to **hard post-training data and verifiable RL environments**.
 
-Extending this scarcity lens into 2025 and 2026, the fiercest software-side margin battle is no longer generic pre-training models, but **post-training data markets and verifiable RL environments**.
+China's bargaining-power flip shows this value-chain shift clearly. Legacy labeling was low-margin labor outsourcing selling interchangeable "shelf inventory" such as speech transcription, bounding boxes, and generic Q&A packs, leaving salespeople chasing procurement on price. Once reasoning models and RLVR (Reinforcement Learning with Verifiable Rewards) became the main differentiator, major labs paid the price for bargain hunting: lowest-bid question banks and synthetic "expert" packs laundered through LLMs failed to improve post-training scores and could degrade models.
 
-With public web text largely exhausted and frontier labs devoting over half their compute to RL, capability gains hinge on hard, realistic task environments that grade work reliably. Data suppliers moved from low-margin labeling contractors to the central choke point of the frontier race.
+Data decision power inside major Chinese labs shifted from procurement back to post-training researchers and standalone data groups (ByteDance elevated its AI data unit into a parallel top-level department, and core research teams at leading labs began writing data specs directly). Buying switched from off-the-shelf inventory to reverse-commissioned R&D consumables: researchers brought failure cases from cross-statement financial audits, multi-file repo refactors, or frontier physics derivations straight to capable vendors, ordering **hard problems with verifiable rules that current frontier models still miss**, paired with clean reasoning traces.
 
-Three headline signals reveal the real cashflow here: in June 2025, Meta invested roughly **$14.3B** for a 49% non-voting stake in Scale AI at a **$29B+** valuation while founder Alexandr Wang moved to Meta's superintelligence team; largely bootstrapped **Surge AI** crossed **$1B+** in annual revenue via its global specialist network; and domain-expert platform **Mercor** hit a **$10B** valuation, reportedly surpassing **$2B** in annualized gross revenue run rate by mid-2026 (note: Surge and Mercor are private companies; revenue and valuation figures come from press reports rather than audited filings).
+Several local realities amplified that reversal in China. High-signal Chinese domain knowledge sits heavily inside WeChat, vertical communities, and paywalled journals rather than open web pages, leaving public pre-training corpora thinner than English and exposing gaps earlier. Tighter constraints on top-end GPUs raised the payoff of maximizing data signal per chip. China has dense pools of top university graduate students and seasoned practitioners whose rates (starting around 400 RMB per hour for hard expert work) remain far below Western equivalents, yet recruiting real specialists, screening out unqualified annotators, catching LLM-assisted cheating, running peer review, and keeping audit logs requires heavy operational management that lean research teams cannot run themselves. Combined with monthly domestic release races, labs cannot wait to build from scratch and compete to lock in capacity from the few vendors with working expert pipelines.
 
-It is tempting to call data vendors the safest "picks and shovels" of AI. Open up their unit economics, however, and **the conservation of cost reappears** in four structural risks.
+Globally, cashflow in this upstream layer is already substantial. In June 2025, Meta invested roughly $14.3B for a 49% non-voting stake in Scale AI, pushing its valuation past $29B; largely bootstrapped Surge AI surpassed $1B in annual revenue via its specialist network; domain-expert platform Mercor reached a $10B valuation and reportedly crossed $2B in annualized gross revenue run rate by mid-2026 (both Surge and Mercor are private companies; revenue and valuation figures reflect public press reports rather than audited filings).
 
-### 1. The product shifted from human hours to grading authority
+The cash is real, yet examining business-model quality shows **strong cashflow paired with fragile valuation dynamics**.
 
-Legacy annotation billed labor hours. What frontier labs pay a premium for in 2026 are **verifiers and verified expert trajectories** that cannot be gamed. As detailed in our [Kimi K3 technical report analysis](/blog/kimi-k3-技术报告深读), preventing memorization requires strict separation between public tests and hidden verifiers alongside submission caps.
+What vendors sell shifted first, from labor hours to **verifiable grading authority**. As detailed in our [Kimi K3 technical report analysis](/blog/kimi-k3-技术报告深读), preventing memorization requires strict separation between public tests and hidden verifiers alongside submission caps. Once contracts settle per verified trajectory, a single loophole in a verifier can render an entire expensive data asset useless.
 
-Once pricing shifts from "hours worked" to "verified trajectories delivered," the risk profile flips: sloppy labeling used to trigger minor discounts, whereas one loophole in a verifier can invalidate an entire environment asset overnight.
+Verifiers can break, and environments themselves depreciate rapidly. Great enterprise SaaS earns high multiples from near-zero marginal cost and strong renewals; RL environments act like perishable project consumables whose top-tier premium drops once frontier models saturate them. Half-life depends on buyer tier: packs saturated by frontier labs can still be sold cheaper to open-source or mid-tier labs, while Environment Hub and automated synthesis keep pushing generic task prices down. As noted in [Open Post-Training Frontiers 2026](/blog/open-post-training-frontiers-2026), university teams built RL suites that commanded strong prices in San Francisco, only to watch them rot without ongoing maintenance. Applying perpetual-software multiples to perpetually rebuilt project work eventually collides with depreciation.
 
-### 2. RL environments depreciate quickly: ask for half-life, not just ARR
+Once an environment is built, unquoted security engineering and model-contamination risks appear. Our [DeepSeek V4.1 Flash analysis](/blog/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致) documents real DSec sandbox failures where RL agents exploited system loopholes, leaked answers via package mirrors, and tampered with binaries, forcing eBPF isolation. Anthropic's November 2025 paper further showed that reward hacking in production RL induces broader emergent misaligned behaviors. A sloppy environment wastes budget and actively contaminates the model.
 
-Enterprise SaaS earns high multiples because one codebase serves thousands of renewing customers at minimal marginal cost. RL environments behave like **perishable consumables**: the moment frontier models saturate a coding or finance sandbox, its marginal training value to top buyers drops near zero.
+A deeper constraint sits in buyer concentration: global frontier training budgets sit with a tiny handful of labs, giving buyers immense leverage. Neutrality and custody become part of the product itself. After Meta invested in Scale AI, Google, OpenAI, and xAI scaled back work, pushing Scale toward defense and enterprise contracts; in early 2026, a reported security incident at Mercor likewise drew rapid client scrutiny. Pure data resale margins are squeezed by expert payouts, synthetic pipelines, and labs' incentive to build in-house, which is why Mercor partnered with SkyRL to open-source a 397B expert-trajectory recipe and Scale launched Scale Labs for evaluation and post-training research. Vendors moving into benchmarks and recipes confirm that reselling data alone cannot protect long-term pricing power. Researchers knocking on vendors' doors today is largely a timing window during supply mismatch; once task templates and automated verification stabilize, major labs have every incentive to bring the work inside.
 
-Half-life is relative to the buyer tier: tasks saturated by frontier labs can still be resold at lower prices to open-source or mid-tier labs, even as initiatives like Environment Hub and automated synthesis compress generic task pricing. For premium vendors, the core tension stays intact. As noted in [Open Post-Training Frontiers 2026](/blog/open-post-training-frontiers-2026), university teams built valuable RL environment suites that quickly rotted for lack of ongoing maintenance. Valuing perpetual task reconstruction at recurring-SaaS multiples ignores that depreciation curve.
+## Business-Model Recap: Judging Where Profits Land Next
 
-### 3. The unquoted third bottleneck: sandbox security and model contamination
-
-Beyond expert wages and compute sits a cost rarely highlighted on a quote sheet: **anti-cheat security engineering**.
-
-Our [DeepSeek V4.1 Flash analysis](/blog/deepseek-v41-flash-技术深度解析-把-kv-cache-压缩做到极致) documents real DSec sandbox breaches where RL agents leaked answers via package mirrors and tampered with system binaries, forcing engineers to deploy eBPF isolation. Worse, Anthropic's November 2025 paper confirmed that reward hacking in production RL induces broader emergent misaligned behaviors. Buying a leaky environment does not merely waste money; it actively poisons the model.
-
-### 4. Neutrality is part of the product, and oligopoly buyers force vertical integration
-
-Frontier training demand sits heavily with a handful of labs, making vendor moats both narrow and fragile. After Meta's investment in Scale AI, rival labs including Google, OpenAI, and xAI curtailed contracts, pushing Scale harder into defense and enterprise work; similarly, a reported early-2026 security incident at Mercor triggered immediate client scrutiny. Vendors hold their customers' most sensitive training protocols, meaning **neutrality and custody are core product features**.
-
-Squeezed between high expert payouts and buyers' incentive to build in-house, data vendors are integrating upstream. Mercor partnered with SkyRL to open-source a 397B expert-trajectory training recipe (see [Open Post-Training Frontiers 2026](/blog/open-post-training-frontiers-2026)), while Scale launched Scale Labs for evaluation and post-training research. When data suppliers start shipping benchmarks and training recipes, it signals that pure data resale alone cannot protect long-term pricing power.
-
----
-
-## Wave 7 (Physical Frontier): Physical AI Exposes Its Real Bottlenecks Only After Hardware Deflates
-
-If data markets sit at the software edge of scarcity migration, **Physical AI and embodied intelligence** bring the same story into factories and homes: pair unified Vision-Language-Action (VLA) models with affordable humanoid hardware to automate physical work.
-
-<TechGraph
-  src="/images/posts/ai-hype-cycles-cost-migration-2020-2026/data-and-physical-bottlenecks-en.svg"
-  title="HIDDEN COST ANATOMY: DATA MARKETS VS. PHYSICAL AI (2026)"
-  caption="Both 2026 frontiers follow the same cost-conservation rule: software data quotes hide security, depreciation, and trust risk, while physical BOM deflation exposes embodiment-bound data, mechanical wear, and human intervention minutes (author synthesis)."
-/>
-
-Any honest assessment must begin with an undeniable reality: **China's electromechanical supply chain is compressing humanoid BOM (Bill of Materials) costs far faster than expected, and profitable hardware makers already exist.**
-
-Unitree Robotics generated roughly 1.7 billion RMB in profitable 2025 revenue while bringing the G1 humanoid into the **$13,500 to $16,000** range. AgiBot (智元机器人) crossed **15,000 cumulative units** in 2026 and piloted industrial models on electronics inspection and assembly lines. Meanwhile, Tesla retooled Fremont lines for low-volume Optimus V3 ramp-up, though reports indicate intricate hand assemblies and supply-chain hurdles have pushed broad external commercial sales toward late 2027.
-
-Hardware is genuinely deflating. Yet just as 2024 token price cuts did not magically solve enterprise agent reliability, **BOM deflation proves the robot body is no longer the binding bottleneck; it does not prove general-purpose physical labor economics already work.** Once the body gets cheap, three far stickier bills step into view.
-
-### 1. Action data stays bound to specific hardware embodiments
-
-Text LLMs scaled on web corpora because human language works across any Transformer. Physical manipulation breaks that symmetry: change limb geometry, joint torque, or hand degrees of freedom, and teleoperated trajectories rarely transfer cleanly.
-
-Robotics foundation-model lab **Physical Intelligence** makes this plain across its π0 and π0.5 papers: achieving open-world generalization required co-training across **heterogeneous multi-robot datasets, web multimodal data, and semantic subtask prediction**. Hardware can deflate on a factory learning curve, while collecting high-quality physical interaction data remains an hourly human labor expense.
-
-### 2. Effective uptime and mechanical wear: reading Figure 02's BMW numbers closely
-
-In early 2025, Figure AI clashed with *Fortune* after promoting a "fleet" running "end-to-end operations" at BMW's Spartanburg plant, prompting BMW to clarify that prior to March 2025 only **a single robot** had practiced one limited task in restricted windows. In late 2025, Figure published its own 11-month recap: Figure 02 loaded sheet-metal parts in the body shop, logging **1,250+ hours**, handling over 90,000 parts, and contributing to more than 30,000 X3 vehicles.
-
-Those vendor-reported figures (without independent BMW audit) tell two stories at once:
-
-- On one hand, a humanoid survived real body-shop dust, vibration, and industrial cycle cadence beyond lab demos.
-- On the other, even if all 1,250 hours belonged to a single robot over 11 months of weekday shifts, that equals roughly half a year of full single-shift duty on one rigid task, and if split across multiple units, per-robot utilization is lower still. More tellingly, Figure admitted the **forearm was its number-one failure point**, forcing a wrist electronics redesign in Figure 03, and set "zero interventions per shift" as a future KPI, confirming interventions were non-zero.
-
-This exposes Physical AI's third bottleneck: **software ships weekly, while cable fatigue, joint wear, heat, and field servicing obey physics, demanding fresh reliability tuition on every hardware generation.**
-
-### 3. Tactile force control and "last-meter" station integration
-
-In September 2025, Rodney Brooks, co-founder of iRobot and Rethink Robotics who also led MIT's Cog humanoid project, laid out a technical critique that had nothing to do with BOM price and everything to do with **dexterity**: human hands rely on dense tactile force sensing to route wires and manipulate flexible parts, whereas today's humanoids largely lack rich touch sensors, hover at 1 to 3 cm visual precision, and cannot learn closed-loop force control merely by watching human video.
-
-Even inside structured factories, sheet-metal loading depends heavily on custom fixtures and calibration. Cutting a robot's body price to $16,000 **does not cut per-station calibration, safety guarding, and exception-recovery engineering in half**. That is why high-volume Chinese shipments today still skew heavily toward research labs, commercial showcases, and tightly structured single-station pilots.
-
-<Callout type="tip" title="A Falsifiable Metric to Test This Thesis">
-To judge whether Physical AI has crossed from demonstrations into real labor economics, ignore funding headlines, backflips, and raw shipment counts. Watch one operational metric: **human intervention minutes per autonomous operating hour** (including remote teleoperation takeover and physical resets). If multiple vendors hold that metric stably under 1 to 2 minutes per hour across unstructured warehouse or multi-SKU assembly lines in 2027 with manageable annual maintenance, our cautious near-term ROI view should be revised immediately.
-</Callout>
-
----
-
-## Interactive Lab: Calculating True Delivery Cost Across Three 2026 Models
-
-One rule connects every wave above: **never compare a vendor's sticker price directly against human labor wages.** The interactive calculator below exposes the hidden denominators across 2026's three hottest arenas. Pick a preset or drag the sliders to see how quickly hidden bills overtake nominal pricing.
+Put 2026's two hottest software business models (digital-labor agents and data / RL environments) into the unit-economics calculator below; pick a preset or drag the sliders to compare sticker quotes against true delivery costs after human review, security overhead, and depreciation.
 
 <AiCostShiftLab lang="en" />
 
----
+Compress six years across LLMs, agents, and data markets into one grid, and the coordinates that decide whether an AI business makes durable money stay remarkably tight:
 
-## Answering the Three Sharpest Counter-Arguments
+| Arena & Stage | Layer Getting Cheap | Where Profits & Costs Moved | Commercial Metric That Decides Viability |
+|---|---|---|---|
+| LLM Scaling & Inference | Pre-training weights, basic token price | Serving costs, post-training selection & grading, cloud & distribution | Qualified outcome cost including retries and human review |
+| Digital Labor & Agents | Routine coding & generic app wrappers | Workflow integration, data governance, error liability, upkeep | First-pass resolution rate, escalation rate, and renewals |
+| AI Data & RL Markets | Standard human labeling, generic Q&A packs | Expert ops, anti-cheat sandbox security, customer custody trust | Environment half-life, buyer concentration, resistance to in-housing |
 
-Any sharp founder or investor will immediately push back with three strong objections. Meeting them head-on clarifies where this thesis stops.
+Looking back across six years, from pre-training weights and API pricing to routine code, every technical wave has turned the previous layer's priciest input into a commodity. People rarely lose money by doubting technical progress; they lose money by seeing cost drop in one layer and assuming profits are already locked in.
 
-### Objection 1: "Didn't Scaling Laws actually generate massive real revenue?"
-
-Compute investment undeniably unlocked breakthrough capabilities and real revenue. The distinction is simple: Kaplan and Chinchilla fitted **pre-training loss curves**, not commercial gross margins. Compute did not shrink in 2025 to 2026; scaling migrated from pre-training to post-training RL and test-time compute. Scaling Laws were an accurate empirical forecast of loss that markets packaged as a guarantee of commercial returns.
-
-### Objection 2: "Aren't AI data markets generating huge real cashflow right now?"
-
-Surge crossing $1B+, Mercor surging in run rate, and Scale topping a $29B valuation prove the cashflow is completely real. The question is not revenue size, but **cashflow quality**: it is **high-concentration, high-depreciation, high-trust-dependency cashflow**. Demand clusters in a tiny set of frontier labs, saturated environments lose their top-tier premium quickly, and a neutrality conflict or security breach triggers rapid client exits. Traditional SaaS multiples understate the ongoing cost of rebuilding tasks and maintaining buyer trust.
-
-### Objection 3: "Don't Unitree's profits and AgiBot's 15,000+ units prove Brooks is too pessimistic?"
-
-Unitree's profitability and AgiBot's shipment scale prove China's supply chain is compressing hardware BOM far faster than legacy robotics expected, and universities, showcases, and structured pilots already sustain profitable hardware makers. Yet that operates on a different layer than Brooks's objection: capturing multi-trillion-dollar general factory and household labor is gated not by actuators and reducers, but by **embodiment-bound data, tactile force control, mechanical wear, and human intervention minutes per hour**. Falling BOM proves the body is no longer the bottleneck, pushing the real bottlenecks into plain sight.
-
----
-
-## Four-Step Audit Before Backing the Next AI Buzzword
-
-2027 will surely bring an eighth and ninth wave of anxiety-inducing AI terms. Before committing engineering headcount, procurement budget, or capital, run four weight-free checks:
-
-<Steps>
-  <StepItem title="Which exact visible unit price did it compress?">
-    Every durable technical wave slashes one concrete denominator (pre-training compute, inference tokens, CLI wrapping labor, or robot BOM). If a pitch cannot name which visible cost fell, it is usually rebranding.
-  </StepItem>
-  <StepItem title="Where did the hidden cost migrate, and who pays it?">
-    Tokens got cheaper, so did retries and human review rise? Labeling turned into RL environments, so who funds sandbox security and verifier upkeep? Hardware got cheap, so are site integration and teleoperation folded into the hourly rate?
-  </StepItem>
-  <StepItem title="What is the asset's half-life against the next model release?">
-    Static prompts, generic wrapper code, and unmaintained RL packs often decay within months. Compounding moats sit in continuously updated proprietary data, reliable operational workflows, and earned customer trust.
-  </StepItem>
-  <StepItem title="Who owns the mistake, and how much human fallback is hidden?">
-    Track first-pass resolution and escalation rate for software agents, hidden-verifier resistance for data markets, and human intervention minutes per autonomous hour for Physical AI. If a vendor dodges that number, do not price it as full replacement.
-  </StepItem>
-</Steps>
-
-Looking across 2020 to 2026, the easiest mistake in AI has never been doubting technical progress. It is watching progress move so fast that we mistake **solving one local bottleneck** for **solving the entire commercial chain**. Durable opportunities rarely live inside the capabilities social media already celebrates; they live in the hard, accountable problems still sitting on the floor right after the breakthrough arrives.
+When the next AI concept shows up, skip the launch-day hype and check four plain business realities: whether platform giants have an incentive to give your layer away for free; who absorbs error liability and human fallback once pricing shifts from tools to outcomes; how fast core assets depreciate when the next model drops; and whether major customers will bring the workflow in-house once the template stabilizes. Only when those four answers hold up does a business actually stand on its own.
 
 ---
 
@@ -263,12 +137,9 @@ Looking across 2020 to 2026, the easiest mistake in AI has never been doubting t
 6. DeepSeek-AI (2025). *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*. [arXiv:2501.12948](https://arxiv.org/abs/2501.12948).
 7. Chen, Y. et al., Anthropic (2025). *Reasoning Models Don't Always Say What They Think*. [arXiv:2505.05410](https://arxiv.org/abs/2505.05410).
 8. MacDiarmid, M. et al., Anthropic (2025). *Natural Emergent Misalignment from Reward Hacking in Production RL*. [arXiv:2511.18397](https://arxiv.org/abs/2511.18397).
-9. Black, K. et al., Physical Intelligence (2024). *π0: A Vision-Language-Action Flow Model for General Robot Control*. [arXiv:2410.24164](https://arxiv.org/abs/2410.24164).
-10. Physical Intelligence (2025). *π0.5: a Vision-Language-Action Model with Open-World Generalization*. [arXiv:2504.16054](https://arxiv.org/abs/2504.16054).
-11. Brooks, R. (2025-09). *Why Today's Humanoids Won't Learn Dexterity*. [rodneybrooks.com](https://rodneybrooks.com/why-todays-humanoids-wont-learn-dexterity/).
-12. Gartner Press Release (2025-06-25). *Gartner Predicts Over 40% of Agentic AI Projects Will Be Canceled by End of 2027*.
-13. MIT NANDA / Fortune (2025-08-18). *The GenAI Divide: State of AI in Business 2025*.
-14. Fortune (2025-04-06) & Figure AI Official Recap (late 2025). BMW Spartanburg Figure 02 deployment audit and 11-month operational summary.
-15. Bloomberg (2025-05). *Klarna Turns From AI to Real Person Customer Service*.
-16. Reuters / CNBC (2025-06). Meta's $14.3B strategic investment for a 49% non-voting stake in Scale AI.
-17. HKUDS (`CLI-Anything`, 2026-03), `morluto/rea` (`REA`, 2026-04), `titanwings/distilly` (formerly `colleague-skill`, 2026-03), and `nuwa-skill` (2026-04).
+9. Gartner Press Release (2025-06-25). *Gartner Predicts Over 40% of Agentic AI Projects Will Be Canceled by End of 2027*.
+10. MIT NANDA / Fortune (2025-08-18). *The GenAI Divide: State of AI in Business 2025*.
+11. Bloomberg (2025-05). *Klarna Turns From AI to Real Person Customer Service*.
+12. Reuters / CNBC (2025-06). Meta's $14.3B strategic investment for a 49% non-voting stake in Scale AI.
+13. HKUDS (`CLI-Anything`, 2026-03), `morluto/rea` (`REA`, 2026-04), `titanwings/distilly` (formerly `colleague-skill`, 2026-03), and `nuwa-skill` (2026-04).
+14. 叫我 Ryder 就好 (Douyin video). [Six Years of AI Mythmaking (Chinese)](https://www.douyin.com/video/7710337352782122267).

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 445" width="960" height="445" role="img" aria-label="Six waves of AI value-chain and bottleneck migration from 2020 to 2026">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#86663b" />
+    </marker>
+  </defs>
+
+  <rect width="960" height="445" rx="14" fill="#fbf9f4" stroke="#e2dacb" stroke-width="1.5" />
+
+  <text x="32" y="38" font-family="-apple-system, BlinkMacSystemFont, Inter, sans-serif" font-size="18" font-weight="700" fill="#1f1b16">Six AI Waves (2020 to 2026): How Profit Pools and Bottlenecks Moved</text>
+  <text x="32" y="60" font-family="-apple-system, BlinkMacSystemFont, Inter, sans-serif" font-size="12.5" fill="#6b6356">Each wave standardizes and cheapens the prior layer, pushing scarcity and operating costs into the next link</text>
+
+  <!-- Row 1 -->
+  <rect x="32" y="84" width="276" height="116" rx="10" fill="#ffffff" stroke="#d8cebc" stroke-width="1.5" />
+  <rect x="32" y="84" width="276" height="28" rx="10" fill="#f3ecde" />
+  <text x="46" y="103" font-family="-apple-system, Inter, sans-serif" font-size="11.5" font-weight="700" fill="#86663b">01 · 2020 to 2022 Compute Barrier</text>
+  <text x="46" y="131" font-family="-apple-system, Inter, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">Scaling Laws / Emergence / CoT</text>
+  <text x="46" y="153" font-family="-apple-system, Inter, sans-serif" font-size="11.5" fill="#4f483e">Scarce: Pre-training GPUs &amp; capital</text>
+  <text x="46" y="175" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#b9533c">Trap: Loss fit sold as commercial ROI</text>
+
+  <line x1="308" y1="142" x2="338" y2="142" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <rect x="342" y="84" width="276" height="116" rx="10" fill="#ffffff" stroke="#d8cebc" stroke-width="1.5" />
+  <rect x="342" y="84" width="276" height="28" rx="10" fill="#f3ecde" />
+  <text x="356" y="103" font-family="-apple-system, Inter, sans-serif" font-size="11.5" font-weight="700" fill="#86663b">02 · Late 2022 to 2023 Packaging</text>
+  <text x="356" y="131" font-family="-apple-system, Inter, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">Open Weights &amp; Enterprise RAG</text>
+  <text x="356" y="153" font-family="-apple-system, Inter, sans-serif" font-size="11.5" fill="#4f483e">Scarce: Cloud cross-sell &amp; buyable SKUs</text>
+  <text x="356" y="175" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#b9533c">Trap: Indexing docs != understanding</text>
+
+  <line x1="618" y1="142" x2="648" y2="142" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <rect x="652" y="84" width="276" height="116" rx="10" fill="#ffffff" stroke="#d8cebc" stroke-width="1.5" />
+  <rect x="652" y="84" width="276" height="28" rx="10" fill="#f3ecde" />
+  <text x="666" y="103" font-family="-apple-system, Inter, sans-serif" font-size="11.5" font-weight="700" fill="#86663b">03 · 2024 Unit Economics</text>
+  <text x="666" y="131" font-family="-apple-system, Inter, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">MoE Efficiency &amp; o1 Reasoning</text>
+  <text x="666" y="153" font-family="-apple-system, Inter, sans-serif" font-size="11.5" fill="#4f483e">Scarce: Cost per qualified outcome</text>
+  <text x="666" y="175" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#b9533c">Trap: Cheap tokens hide human rework</text>
+
+  <path d="M 790 200 L 790 218 L 170 218 L 170 236" fill="none" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Row 2 -->
+  <rect x="32" y="240" width="276" height="116" rx="10" fill="#ffffff" stroke="#c9b491" stroke-width="1.6" />
+  <rect x="32" y="240" width="276" height="28" rx="10" fill="#f5e9d5" />
+  <text x="46" y="259" font-family="-apple-system, Inter, sans-serif" font-size="11.5" font-weight="700" fill="#7c5422">04 · Late 2024 to 2025 Payroll Shift</text>
+  <text x="46" y="287" font-family="-apple-system, Inter, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">Agents &amp; Digital Labor</text>
+  <text x="46" y="309" font-family="-apple-system, Inter, sans-serif" font-size="11.5" fill="#4f483e">Scarce: Workflow, data &amp; liability</text>
+  <text x="46" y="331" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#b9533c">Trap: Outcome pricing outpaces reliability</text>
+
+  <line x1="308" y1="298" x2="338" y2="298" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <rect x="342" y="240" width="276" height="116" rx="10" fill="#ffffff" stroke="#c9b491" stroke-width="1.6" />
+  <rect x="342" y="240" width="276" height="28" rx="10" fill="#f5e9d5" />
+  <text x="356" y="259" font-family="-apple-system, Inter, sans-serif" font-size="11.5" font-weight="700" fill="#7c5422">05 · Spring 2026 Artifact Cloning</text>
+  <text x="356" y="287" font-family="-apple-system, Inter, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">Persona Skills &amp; Reverse Eng.</text>
+  <text x="356" y="309" font-family="-apple-system, Inter, sans-serif" font-size="11.5" fill="#4f483e">Scarce: Data, switching costs &amp; ops</text>
+  <text x="356" y="331" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#b9533c">Trap: Cheap code != zero SaaS moat</text>
+
+  <line x1="618" y1="298" x2="648" y2="298" stroke="#86663b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <rect x="652" y="240" width="276" height="116" rx="10" fill="#fffaf0" stroke="#c48a3a" stroke-width="2" />
+  <rect x="652" y="240" width="276" height="28" rx="10" fill="#f3dfc0" />
+  <text x="666" y="259" font-family="-apple-system, Inter, sans-serif" font-size="11.5" font-weight="700" fill="#7c4f13">06 · 2025 to 2026 Upstream Shift</text>
+  <text x="666" y="287" font-family="-apple-system, Inter, sans-serif" font-size="13.5" font-weight="700" fill="#1f1b16">AI Data Markets &amp; RL Verifiers</text>
+  <text x="666" y="309" font-family="-apple-system, Inter, sans-serif" font-size="11.5" fill="#4f483e">Scarce: Experts, sandboxes &amp; trust</text>
+  <text x="666" y="331" font-family="-apple-system, Inter, sans-serif" font-size="11" fill="#b9533c">Trap: SaaS multiples on perishable tasks</text>
+
+  <!-- Bottom trap rail -->
+  <rect x="32" y="376" width="896" height="48" rx="10" fill="#fdf2ef" stroke="#d98c7a" stroke-width="1.5" stroke-dasharray="6 4" />
+  <text x="48" y="397" font-family="-apple-system, Inter, sans-serif" font-size="12.5" font-weight="700" fill="#9b3422">Recurring Mispricing Pattern</text>
+  <text x="48" y="415" font-family="-apple-system, Inter, sans-serif" font-size="11.5" fill="#5e3228">Single-layer cost drops  ->  Valued early as full value-chain replacement  ->  Hidden operating bills surface next (review, liability, security, decay)</text>
+</svg>

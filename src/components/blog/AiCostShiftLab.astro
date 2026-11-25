@@ -8,18 +8,17 @@ const isZh = lang === 'zh';
 
 const copy = isZh
   ? {
-      eyebrow: '交互式商业沙盘 · 2026 三大隐性成本核算',
-      title: '表面报价 vs 真实交付成本：成本到底迁去哪了？',
-      subtitle: '切换三大前沿战场并拖动滑块，对比“宣传单上的名义单价”与“计入重试、折旧或人工兜底后的真实成本”。',
-      note: '注：以下数值为教学估算模型，用于展示成本结构对隐性分母的敏感度，不代表某一家公司的审计财报。',
+      eyebrow: '交互式商业沙盘 · 2026 两大商业模式核算',
+      title: '表面报价 vs 真实交付成本：钱到底花去哪了？',
+      subtitle: '切换数字员工 Agent 与 AI 数据市场两个场景，拖动滑块观察名义单价和计入人工兜底、安全运营及折旧后的真实成本落差。',
+      note: '注：以下数值为教学估算模型，用于展示成本结构对经营假设的敏感度，不代表某一家公司的审计财报。',
       tabs: [
         { id: 'agent', label: 'Agent 数字劳动力' },
         { id: 'data', label: '数据市场与 RL 环境' },
-        { id: 'physical', label: '具身智能工位' },
       ],
       scenarios: {
         agent: {
-          summary: '按次或按动作计费看似把客服/运营成本打到几毛钱，但只要重试率和人工复核率压不下来，隐性人工很快吃掉全部软件差价。',
+          summary: '按次或按动作计费看似把客服和运营成本压到几毛钱，但只要重试率和人工复核率压不下来，隐性人工很快吃掉全部软件差价。',
           nominalLabel: '名义调用成本 / 任务',
           trueLabel: '真实合格交付成本 / 任务',
           ratioLabel: '隐性成本放大倍数',
@@ -32,14 +31,14 @@ const copy = isZh
             { id: 's4', label: '单次人工介入与纠错成本 ($)', min: 2, max: 25, step: 1, val: 12 },
           ],
           presets: [
-            { label: '理想自动化（Klarna 早期叙事）', vals: [0.10, 4, 5, 8] },
+            { label: '理想自动化（早期叙事）', vals: [0.10, 4, 5, 8] },
             { label: '企业复杂工单（当前常态）', vals: [0.10, 8, 25, 12] },
             { label: '失控重试 + 高返工（退场区）', vals: [0.15, 18, 45, 16] },
           ],
           baselineText: '对照基线：人工直接处理单任务约 $4.50',
         },
         data: {
-          summary: '买 RL 环境不能只看标价和专家时薪，还要乘以验证器打回重试倍数，并按环境被模型刷满前的“半衰期”做资产摊销。',
+          summary: '买 RL 环境不能只看标价和专家时薪，还要算上验证器打回重做的工时、沙箱安全附加成本，以及环境被前沿模型刷满前的折旧速度。',
           nominalLabel: '名义专家时薪',
           trueLabel: '单条可信轨迹全口径成本',
           ratioLabel: '单月环境资产折旧率',
@@ -56,39 +55,18 @@ const copy = isZh
             { label: '2026 前沿代码/金融 RL 轨迹', vals: [120, 2.0, 50, 5] },
             { label: '高对抗防作弊沙箱环境', vals: [200, 4.0, 90, 3] },
           ],
-          baselineText: '核心观察：半衰期越短，买家越倾向自建或压价',
-        },
-        physical: {
-          summary: '硬件 BOM 跌到 $16,000 并不自动带来“几美分一小时”的劳动力。只要有效开机率偏低、每小时仍需几分钟人工介入或遥操作，小时成本立刻反超熟练工。',
-          nominalLabel: '仅硬件折旧小时费（名义）',
-          trueLabel: '真实有效小时成本（含维护+人工介入）',
-          ratioLabel: '人工与运维占比',
-          verdictGood: '逼近国内产线基线（$6 到 $10/小时），具备广泛替代弹性',
-          verdictWarn: '虽可能低于欧美高薪产线，但远超国内产线成本，需继续压低人工介入分钟数',
-          sliders: [
-            { id: 's1', label: '机器人整机采购价 ($)', min: 15000, max: 150000, step: 5000, val: 30000 },
-            { id: 's2', label: '年有效自主作业小时数（小时/年）', min: 600, max: 4000, step: 100, val: 1400 },
-            { id: 's3', label: '每小时自治中的人工介入/遥操作（分钟）', min: 0, max: 30, step: 1, val: 12 },
-            { id: 's4', label: '年维护+工位集成摊销占整机比例 (%)', min: 15, max: 100, step: 5, val: 45 },
-          ],
-          presets: [
-            { label: '高价工业原型（早期试点）', vals: [120000, 1200, 18, 60] },
-            { label: 'BOM 通缩 + 当前干预常态', vals: [20000, 1400, 12, 45] },
-            { label: '真正拐点（高开机 + 近零介入）', vals: [25000, 3200, 2, 25] },
-          ],
-          baselineText: '对照基线：欧美产线综合人工约 $30/小时，国内产线约 $6 到 $10/小时（按 3 年硬件折旧、人工干预成本 $35/小时估算）',
+          baselineText: '核心观察：半衰期越短，大买家越倾向收归自建或压价',
         },
       },
     }
   : {
-      eyebrow: 'INTERACTIVE UNIT-ECONOMICS LAB · 2026 HIDDEN COST TRACKER',
-      title: 'Sticker Price vs. True Delivery Cost: Where Did the Cost Move?',
-      subtitle: 'Switch between three 2026 battlegrounds and drag sliders to compare nominal pricing against true cost after retries, depreciation, and human fallback.',
-      note: 'Note: Illustrative teaching model showing sensitivity to hidden denominators, not audited financials of any single vendor.',
+      eyebrow: 'INTERACTIVE UNIT-ECONOMICS LAB · 2026 BUSINESS MODELS',
+      title: 'Sticker Price vs. True Delivery Cost: Where Did the Margin Go?',
+      subtitle: 'Switch between digital-labor agents and AI data / RL markets, then drag sliders to compare nominal quotes against true cost after human fallback, security overhead, and depreciation.',
+      note: 'Note: Illustrative teaching model showing sensitivity to operating assumptions, not audited financials of any single vendor.',
       tabs: [
         { id: 'agent', label: 'Digital Labor Agents' },
         { id: 'data', label: 'Data & RL Environments' },
-        { id: 'physical', label: 'Physical AI Station' },
       ],
       scenarios: {
         agent: {
@@ -112,8 +90,8 @@ const copy = isZh
           baselineText: 'Reference baseline: direct human ticket handling ~$4.50/task',
         },
         data: {
-          summary: 'Pricing an RL environment goes beyond expert hourly rates: add verifier rejection loops, sandbox security engineering, and fast asset depreciation as models saturate the benchmark.',
-          nominalLabel: 'Nominal Expert Hour Rate',
+          summary: 'Pricing an RL environment goes beyond expert hourly rates: add verifier rejection loops, sandbox security engineering, and fast asset depreciation as frontier models saturate the pack.',
+          nominalLabel: 'Nominal Expert Hourly Rate',
           trueLabel: 'Full Cost per Verified Trajectory',
           ratioLabel: 'Monthly Asset Depreciation',
           verdictGood: 'Unit trajectory cost manageable with reusable verifier',
@@ -131,31 +109,9 @@ const copy = isZh
           ],
           baselineText: 'Key dynamic: shorter half-life pushes labs to build in-house or squeeze vendors',
         },
-        physical: {
-          summary: 'Hardware BOM falling to $16,000 does not automatically yield pennies-per-hour labor. Low active duty and ongoing human intervention minutes quickly push effective hourly cost above factory wages.',
-          nominalLabel: 'Hardware Depreciation Only ($/hr)',
-          trueLabel: 'Effective Hourly Cost (incl. maint + human)',
-          ratioLabel: 'Maintenance & Human Share',
-          verdictGood: 'Approaches China line wage ($6 to $10/hr) with broad deployment ROI',
-          verdictWarn: 'Above China factory wages (or near Western lines); cut intervention minutes first',
-          sliders: [
-            { id: 's1', label: 'Robot hardware price ($)', min: 15000, max: 150000, step: 5000, val: 30000 },
-            { id: 's2', label: 'Effective autonomous hours / year', min: 600, max: 4000, step: 100, val: 1400 },
-            { id: 's3', label: 'Human intervention / teleop (min per hr)', min: 0, max: 30, step: 1, val: 12 },
-            { id: 's4', label: 'Annual maintenance + integration (% of BOM)', min: 15, max: 100, step: 5, val: 45 },
-          ],
-          presets: [
-            { label: 'High-cost prototype pilot', vals: [120000, 1200, 18, 60] },
-            { label: 'BOM deflation + typical intervention', vals: [20000, 1400, 12, 45] },
-            { label: 'True inflection (high uptime, ~0 teleop)', vals: [25000, 3200, 2, 25] },
-          ],
-          baselineText: 'Baseline: Western factory labor ~$30/hr; China line ~$6 to $10/hr (assumes 3-yr depreciation and $35/hr remote/onsite specialist labor)',
-        },
       },
     };
 
-// SSR static defaults for the initial active tab ('agent')
-// s1=0.10, s2=8, s3=25%, s4=12 -> nominal=$0.80, true=$0.80 + 0.25*12 = $3.80, ratio=4.8x
 const payload = JSON.stringify(copy);
 ---
 
@@ -293,7 +249,7 @@ const payload = JSON.stringify(copy);
             nominalPct = total > 0 ? Math.round((nominal / total) * 100) : 50;
             hiddenPct = 100 - nominalPct;
             warn = total > 3.6;
-          } else if (currentTab === 'data') {
+          } else {
             nominal = v1;
             const baseExpert = v1 * v2;
             total = baseExpert * (1 + v3 / 100);
@@ -304,19 +260,6 @@ const payload = JSON.stringify(copy);
             nominalPct = total > 0 ? Math.round((baseExpert / total) * 100) : 50;
             hiddenPct = 100 - nominalPct;
             warn = v4 <= 5 || total >= 400;
-          } else {
-            const hwDepHr = v1 / (3 * Math.max(1, v2));
-            const maintHr = (v1 * (v4 / 100)) / Math.max(1, v2);
-            const humanHr = (v3 / 60) * 35;
-            nominal = hwDepHr;
-            total = hwDepHr + maintHr + humanHr;
-            const nonHwPct = total > 0 ? Math.round(((maintHr + humanHr) / total) * 100) : 0;
-            nominalValEl.textContent = '$' + nominal.toFixed(2) + '/hr';
-            trueValEl.textContent = '$' + total.toFixed(2) + '/hr';
-            ratioValEl.textContent = nonHwPct + '%';
-            nominalPct = 100 - nonHwPct;
-            hiddenPct = nonHwPct;
-            warn = total >= 12;
           }
 
           bar1El.style.width = Math.max(4, Math.min(100, nominalPct)) + '%';

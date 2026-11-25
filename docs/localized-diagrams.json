@@ -240,15 +240,9 @@
     "targetHash": "44a008cde128d1cced7df8d11b08722616e7376385789be59fe0dde3b03f572e"
   },
   {
-    "source": "/images/posts/ai-hype-cycles-cost-migration-2020-2026/scarcity-migration-map.svg",
-    "target": "/images/posts/ai-hype-cycles-cost-migration-2020-2026/scarcity-migration-map-en.svg",
-    "sourceHash": "de74664fd1331d2fb46034ea10094bb7ec4e759223960e9b6514769ebcdcd785",
-    "targetHash": "27cddf331552e72818517caee434540b0af9d68728c457d6958ea8750e50e6c2"
-  },
-  {
-    "source": "/images/posts/ai-hype-cycles-cost-migration-2020-2026/data-and-physical-bottlenecks.svg",
-    "target": "/images/posts/ai-hype-cycles-cost-migration-2020-2026/data-and-physical-bottlenecks-en.svg",
-    "sourceHash": "589251648540c75a985d3f0581ef7d5a85476fda2bf68dbc4c4ef934e7a118cc",
-    "targetHash": "65fe3f2a3168c97d65d0adb543bcb994a4f969b6feaf6a13fac11e7d56e856c7"
+    "source": "/images/posts/ai-hype-cycles-cost-migration-2020-2026/scarcity-migration-map-v2.svg",
+    "target": "/images/posts/ai-hype-cycles-cost-migration-2020-2026/scarcity-migration-map-v2-en.svg",
+    "sourceHash": "9b684c222b5724000c265fa04122616830ff01d2deca6084e66fb93ad2dc72dd",
+    "targetHash": "dc0110c3e5c06eadc6e8cf786e83d4679896ae75c5b7e1aed31eb97fce4932d0"
   }
 ]
